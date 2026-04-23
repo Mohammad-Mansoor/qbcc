@@ -1,0 +1,136 @@
+@extends('dsh.master')
+@section('title' , 'فورم ایجاد مصارف')
+@section('content')
+  <!-- navbar -->
+  
+  <div class="sparkline12-list">
+    <div class="sparkline12-hd">
+      <div class="main-sparkline12-hd tx-xs-center">
+        <h1>فورم مصرف جدید</h1>
+        @if(session("status"))
+          <div class="alert alert-success status" style="display:none;" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                      aria-hidden="true">&times;</span></button>
+            <p class="text-center">{{session('status')}}</p>
+          </div>
+        
+        @endif
+        @if(session("error"))
+          
+          <div class="alert alert-danger status" style="display:none;" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                      aria-hidden="true">&times;</span></button>
+            <p class="text-center">{{session('error')}}</p>
+          </div>
+        
+        @endif
+      </div>
+    </div>
+  <!-- @if ($errors->any())
+    @foreach ($errors->all() as $error)
+      <div>{{$error}}</div>
+            @endforeach
+  @endif -->
+    <div class="sparkline12-graph">
+      <div class="basic-login-form-ad">
+        <div class="row">
+          <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="all-form-element-inner">
+              <form action="/dashboard/expenses" method="post">
+                @csrf
+                <br>
+                <div class="row">
+                  <div class="col-md-4"></div>
+                  <div class="col-md-8">
+                    <div class="form-group-inner">
+                      <div class="row">
+                        <div class="col-lg- col-md-9 col-sm-9 col-xs-12">
+                          <input id="name" name="name" type="text" class="form-control quantity">
+                          <small class="text-danger">@error('name') {{ __('message.'.$message) }} @enderror</small>
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                          <label class="">نام دریافت کننده</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="form-group-inner">
+                      <div class="row">
+                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                          <select name="expense_type" id="expense_type" class="form-control">
+                            
+                            <option>مصرف دفتر</option>
+                            <option>مصرف خانه</option>
+                          
+                          </select>
+                          <small class="text-danger">@error('expense_type') {{ __('message.'.$message) }}@enderror
+                          </small>
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                          <label class="">نوع مصرف</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="form-group-inner">
+                      <div class="row">
+                        <div class="col-lg- col-md-9 col-sm-9 col-xs-12">
+                          <input id="date" name="date" type="date" class="form-control quantity">
+                          <small class="text-danger">@error('date') {{ __('message.'.$message) }} @enderror</small>
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                          <label class="">تاریخ</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    
+                    <div class="form-group-inner">
+                      <div class="row">
+                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
+                          <input value="AF" dir="ltr" type="text" class="form-control" readonly>
+                        </div>
+                        <div class="col-lg-5 col-md-5 col-sm-5 col-xs-12">
+                          <input type="text" dir="ltr" name="amount_af" value="{{ old('amount') }}" id="fp"
+                                 class="form-control">
+                          <input type="text" name="amount" dir="ltr" id="mainP" value="{{ old('amount') }}"
+                                 class="form-control">
+                          <small class="text-danger">@error('amount') {{ __('message.'.$message) }} @enderror</small>
+                        </div>
+                        <input type="hidden" value="{{$currency}}" id="currency">
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                          <label class="">مقدار</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="form-group-inner">
+                      <div class="row">
+                        <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                          <textarea id="description" name="description"
+                                    class="form-control">{{ old('description') }}</textarea>
+                          <small class="text-danger">@error('description') {{ __('message.'.$message) }}@enderror
+                          </small>
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                          <label class="">توضیحات</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="login-horizental cancel-wp ">
+                      <button class="btn btn-white" type="button">انصراف</button>
+                      <button class="btn btn-primary " type="submit"><span class="fa fa-save"></span> ذخیره</button>
+                    </div>
+                  </div>
+                
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+@endsection
+

