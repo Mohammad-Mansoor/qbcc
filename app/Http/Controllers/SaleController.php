@@ -14,8 +14,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Services\AccountingService;
+use App\ChartOfAccount;
+
 class SaleController extends Controller
 {
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -133,11 +143,24 @@ class SaleController extends Controller
         $carpet_id->package_id = $request->package_id;
         $carpet_id->save();
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
         $activity->description = " قالین نمبر " . $carpet_id->carpet_no . " به فروش رسید ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
+
+        // Accounting Posting (Dynamic Mapping)
+        try {
+            $this->accountingService->postAutoTransaction('sale', 'credit', [
+                'date' => Carbon::today()->format('Y-m-d'),
+                'amount' => $sale->sale_cost_total,
+                'party_type' => 'App\Customer',
+                'party_id' => $sale->customer_id,
+                'reference' => 'SALE-' . $sale->id,
+                'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'source_id' => $sale->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Sale #" . $sale->id . ": " . $e->getMessage());
+        }
         
         if($sale) {
             return redirect('/dashboard/carpet-stock')->with('status', ' موفقانه ثبت شد !');

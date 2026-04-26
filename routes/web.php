@@ -529,8 +529,43 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
     Route::get('/customer-accounts', 'CustomerController@accounts');
     Route::post('/customers/search', 'CustomerController@search');
 
+});
+
+/** Accounting Modules */
+Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'usertype:SP,FI']], function () {
+    
+    /** Dashboard */
+    Route::get('/', 'Accounting\DashboardController@index')->name('accounting.dashboard');
+    
+    /** Chart of Accounts */
+    Route::get('/chart-of-accounts', 'Accounting\ChartOfAccountController@index')->name('accounting.coa.index');
+    Route::get('/chart-of-accounts/create', 'Accounting\ChartOfAccountController@create')->name('accounting.coa.create');
+    Route::post('/chart-of-accounts', 'Accounting\ChartOfAccountController@store')->name('accounting.coa.store');
+    Route::get('/chart-of-accounts/{id}/edit', 'Accounting\ChartOfAccountController@edit')->name('accounting.coa.edit');
+    Route::put('/chart-of-accounts/{id}', 'Accounting\ChartOfAccountController@update')->name('accounting.coa.update');
+
+    /** Journal Vouchers */
+    Route::get('/journals', 'Accounting\JournalController@index')->name('accounting.journals.index');
+    Route::get('/journals/create', 'Accounting\JournalController@create')->name('accounting.journals.create');
+    Route::post('/journals', 'Accounting\JournalController@store')->name('accounting.journals.store');
+    Route::get('/journals/{id}', 'Accounting\JournalController@show')->name('accounting.journals.show');
+    Route::get('/journals/{id}/print', 'Accounting\JournalController@print')->name('accounting.journals.print');
+    Route::post('/journals/{id}/reverse', 'Accounting\JournalController@reverse')->name('accounting.journals.reverse');
+
+    /** Mapping Rules */
+    Route::get('/mapping-rules', 'Accounting\MappingRuleController@index')->name('accounting.mappings.index');
+    Route::post('/mapping-rules', 'Accounting\MappingRuleController@update')->name('accounting.mappings.update');
+
+    /** Financial Reports */
+    Route::get('/reports/trial-balance', 'Accounting\ReportController@trialBalance')->name('accounting.reports.trial_balance');
+    Route::get('/reports/profit-loss', 'Accounting\ReportController@profitLoss')->name('accounting.reports.profit_loss');
+    Route::get('/reports/balance-sheet', 'Accounting\ReportController@balanceSheet')->name('accounting.reports.balance_sheet');
+    Route::get('/reports/cash-flow', 'Accounting\ReportController@cashFlow')->name('accounting.reports.cash_flow');
+    Route::get('/reports/account-ledger', 'Accounting\ReportController@accountLedger')->name('accounting.reports.account_ledger');
+    Route::get('/reports/customer-statement', 'Accounting\ReportController@customerStatement')->name('accounting.reports.customer_statement');
 
 
+    
 });
 /**  */
 

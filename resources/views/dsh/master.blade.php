@@ -332,7 +332,28 @@
 
           </li>
         @endif
-        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO'||  auth()->user()->role == 'CO'||  auth()->user()->role == 'SCO'||  auth()->user()->role == 'CCO'|| auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
+                @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+                <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/accounting*') ? 'active pcoded-trigger' : '' }}">
+                    <a href="{{ route('accounting.dashboard') }}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-book"></i></span><span class="pcoded-mtext"><b>حسابداری (Accounting)</b></span></a>
+                    <ul class="pcoded-submenu">
+                        <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
+                        <li><a href="{{ route('accounting.journals.index') }}">روزنامچه (General Ledger)</a></li>
+                        <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات نگاشت (Mappings)</a></li>
+                        <li class="nav-item pcoded-hasmenu">
+                            <a href="#!" class="nav-link"><span class="pcoded-mtext">گزارشات مالی (Reports)</span></a>
+                            <ul class="pcoded-submenu">
+                                <li><a href="{{ route('accounting.reports.profit_loss') }}">سود و ضرر (P&L)</a></li>
+                                <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه</a></li>
+                                <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
+                                <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب (GL Detail)</a></li>
+                                <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری (Statement)</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                @endif
+
+                @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO'||  auth()->user()->role == 'CO'||  auth()->user()->role == 'SCO'||  auth()->user()->role == 'CCO'|| auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
                 <li class="nav-item pcoded-hasmenu">
                     <a href="#" class="nav-link "><span class="pcoded-micon"><i
                                 class="feather icon-layout"></i></span><span

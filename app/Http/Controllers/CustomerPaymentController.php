@@ -12,8 +12,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Services\AccountingService;
+use App\ChartOfAccount;
+
 class CustomerPaymentController extends Controller
 {
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -24,26 +34,40 @@ class CustomerPaymentController extends Controller
         //
     }
 
+    private function postPaymentToAccounting($payment)
+    {
+        try {
+            $condition = ($payment->type == 'رسید') ? 'receipt' : 'withdrawal';
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+
+            $this->accountingService->postAutoTransaction('customer_payment', $condition, [
+                'date' => $payment->date,
+                'amount' => $amount,
+                'party_type' => 'App\Customer',
+                'party_id' => $payment->customer_id,
+                'reference' => 'PAY-' . $payment->id,
+                'description' => $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
+
 
     public function request_list()
     {
         $requests = CustomerPayment::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
-
-
         return view('customers.requested-money-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
-
         $payment = CustomerPayment::find($id);
-
-
-        $payment->status = 1 ;
+        $payment->status = 1; // Explicitly set to approved
         $payment->update();
-
+        
+        $this->postPaymentToAccounting($payment);
 
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
@@ -57,17 +81,12 @@ class CustomerPaymentController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
 
-
         return response()->json(['status' => 'success']);
-
     }
+
     public function delete_request($id){
         $credit = CustomerPayment::find($id);
-
-
         $credit->delete();
-
-
         return response()->json(['status','error']);
     }
 
@@ -98,12 +117,10 @@ class CustomerPaymentController extends Controller
             'team_id' => '',
             'dollar_rate' => '',
             'check_number' => '',
-
         ]);
 
 
         if($request->money_type == 'دالر'){
-
             $payed = new CustomerPayment();
             $payed->amount = $request->amount;
             $payed->amount_af = 0;
@@ -120,6 +137,10 @@ class CustomerPaymentController extends Controller
                 $payed->status = 0;
             }
             $payed->save();
+
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
+            }
 
             $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
 
@@ -152,10 +173,13 @@ class CustomerPaymentController extends Controller
             }
             $payed->save();
 
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
+            }
+
             $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
 
             if ($payed) {
-
                 $activity = new Activity();
                 $activity->date = Carbon::today()->format('Y-m-d');
                 $activity->description = " مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id.  " به مبلغ " . $request->amount . " افغانی را " . $request->type . ' کرد ';
@@ -188,6 +212,7 @@ class CustomerPaymentController extends Controller
 
         return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers'));
     }
+
     public function show_all_payment($customer_id){
         $payments = CustomerPayment::where('customer_id',$customer_id)->orderBy('created_at','DESC')->get();
         $customer = Customer::find($customer_id);
@@ -200,7 +225,6 @@ class CustomerPaymentController extends Controller
     
         $all = '';
         return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers','all'));
-
     }
 
     /**
@@ -240,14 +264,11 @@ class CustomerPaymentController extends Controller
             'agent_id' => '',
             'dollar_rate' => '',
             'finish_number' => '',
-
         ]);
         $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
 
         if($request->money_type == 'دالر'){
-
             $payed = CustomerPayment::find($payment_id);
-
             $amount = '';
             $money = '';
             if ($payed->amount > 0) {
@@ -281,8 +302,6 @@ class CustomerPaymentController extends Controller
         }
         else{
             $payed = CustomerPayment::find($payment_id);
-
-
             $amount = '';
             $money = '';
             if ($payed->amount > 0) {
@@ -326,11 +345,9 @@ class CustomerPaymentController extends Controller
         $payment = CustomerPayment::find($id);
         $customer_name = DB::table('customers')->where('id', $payment->customer_id)->first();
 
-
         $amount = '';
         $money = '';
         if ($payment->amount > 0) {
-
             $amount = $payment->amount;
             $money = 'دالر';
         }
