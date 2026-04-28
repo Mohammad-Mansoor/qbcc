@@ -305,9 +305,12 @@
                       <td>{{round(($sale->carpet_area * $sale->sale_cost_per_meter) - ($sale->carpet_area * $sale->price) + $kachaee_expense + $wash_expense +  $finishing_expense,2) }} $</td>
 
                       @endif
-                      <td class="hideOnPrint"><a href="/dashboard/sales/{{$sale->id}}/edit"
-                                                 class="btn btn-sm btn-info printBTN"><i
-                                  class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                      <td class="hideOnPrint">
+                          <a href="/dashboard/sales/{{$sale->id}}/edit" class="btn btn-sm btn-info printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
+                          @if($sale->ledger_transaction_id)
+                              <a href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success printBTN"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
+                          @endif
+                      </td>
 
 
 
@@ -353,9 +356,12 @@
                       <td>{{round(($sale->carpet_area * $sale->sale_cost_per_meter) - (($sale->carpet_area * $sale->carpet->price) + $kachaee_expense + $wash_expense +  $finishing_expense),2)}} $</td>
                     
                     @endif
-                      <td class="hideOnPrint"><a href="/dashboard/sales/{{$sale->id}}/edit"
-                                                 class="btn btn-sm btn-info printBTN"><i
-                                  class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                      <td class="hideOnPrint">
+                          <a href="/dashboard/sales/{{$sale->id}}/edit" class="btn btn-sm btn-info printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
+                          @if($sale->ledger_transaction_id)
+                              <a href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success printBTN"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
+                          @endif
+                      </td>
                
                   
                   

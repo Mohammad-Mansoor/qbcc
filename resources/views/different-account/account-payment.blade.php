@@ -293,6 +293,13 @@
                             <td class="hideOnPrint">
                               <a href="/dashboard/different-account-payments/{{$pa->id}}/edit"
                                  class="btn btn-sm btn-info">ویرایش</a>
+                                 
+                              @php
+                                  $transaction = \App\LedgerTransaction::where('source_type', 'different_account')->where('source_id', $pa->id)->first();
+                              @endphp
+                              @if($transaction)
+                                  <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
+                              @endif
                             </td>
                           @endif
                         </tr>

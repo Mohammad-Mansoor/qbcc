@@ -209,15 +209,26 @@ class AccountingAnalyticsService
         $arChange = ($closingBalances['receivables'] ?? 0) - ($openingBalances['receivables'] ?? 0);
         $apChange = ($closingBalances['payables'] ?? 0) - ($openingBalances['payables'] ?? 0);
         $invChange = ($closingBalances['inventory'] ?? 0) - ($openingBalances['inventory'] ?? 0);
+        $equityChange = ($closingBalances['equity'] ?? 0) - ($openingBalances['equity'] ?? 0);
+        $fixedAssetsChange = ($closingBalances['investing'] ?? 0) - ($openingBalances['investing'] ?? 0);
 
         return [
             'net_profit' => $netProfit,
             'adjustments' => [
-                'receivables' => -$arChange, // Increase in Asset = Cash Outflow
-                'payables' => $apChange,     // Increase in Liability = Cash Inflow
-                'inventory' => -$invChange,  // Increase in Asset = Cash Outflow
+                'receivables' => -$arChange,
+                'payables' => $apChange,
+                'inventory' => -$invChange,
             ],
-            'net_cash_operating' => $netProfit - $arChange + $apChange - $invChange
+            'net_cash_operating' => $netProfit - $arChange + $apChange - $invChange,
+            'investing' => [
+                'fixed_assets' => -$fixedAssetsChange, // Increase in fixed asset = Cash out
+            ],
+            'net_cash_investing' => -$fixedAssetsChange,
+            'financing' => [
+                'equity' => $equityChange, // Increase in equity = Cash in
+            ],
+            'net_cash_financing' => $equityChange,
+            'net_change_in_cash' => ($netProfit - $arChange + $apChange - $invChange) - $fixedAssetsChange + $equityChange
         ];
     }
 
@@ -236,7 +247,7 @@ class AccountingAnalyticsService
             ->groupBy('coa.account_code')
             ->get();
 
-        $balances = ['receivables' => 0, 'payables' => 0, 'inventory' => 0];
+        $balances = ['receivables' => 0, 'payables' => 0, 'inventory' => 0, 'equity' => 0, 'investing' => 0];
 
         foreach ($data as $row) {
             if (strpos($row->account_code, '13') === 0) {
@@ -245,6 +256,10 @@ class AccountingAnalyticsService
                 $balances['payables'] += $row->balance_credit_base;
             } elseif (strpos($row->account_code, '14') === 0) {
                 $balances['inventory'] += $row->balance_debit_base;
+            } elseif (strpos($row->account_code, '3') === 0) {
+                $balances['equity'] += $row->balance_credit_base;
+            } elseif (strpos($row->account_code, '15') === 0 || strpos($row->account_code, '16') === 0) {
+                $balances['investing'] += $row->balance_debit_base;
             }
         }
 

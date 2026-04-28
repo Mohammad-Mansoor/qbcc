@@ -6,7 +6,7 @@ use App\Activity;
 use App\AgentPayment;
 use App\AgentPhone;
 use App\Agents;
-
+use App\Services\AccountingService;
 use App\CarpetCheckBook;
 use App\MaterialSale;
 use Carbon\Carbon;
@@ -16,171 +16,120 @@ use Illuminate\Support\Facades\DB;
 
 class AgentPaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    protected $accountingService;
+    
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
     public function index()
     {
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    private function postPaymentToAccounting($payment)
     {
-        //
-    }
+        try {
+            $condition = $payment->type; // 'رسید' or 'گرفت'
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
+            $this->accountingService->postAutoTransaction('agent_payment', $condition, [
+                'date' => $payment->date,
+                'amount' => $amount,
+                'party_type' => 'App\Agents',
+                'party_id' => $payment->agent_id,
+                'reference' => 'AGT-PAY-' . $payment->id,
+                'description' => $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Agent Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
 
     public function money_request()
     {
         $requests = AgentPayment::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
-
-
         return view('agents.requested-money-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = AgentPayment::find($id);
+            $payment->status = 1; // Approved
+            $payment->update();
 
-        $payment = AgentPayment::find($id);
+            $this->postPaymentToAccounting($payment);
 
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = ($payment->amount > 0) 
+                ? " مبلغ " . $payment->amount . " دالر برای نماینده تایید شد "
+                : " مبلغ " . $payment->amount_af . " افغانی برای نماینده تایید شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment->status = 1 ;
-        $payment->update();
-
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        if ($payment->amount > 0){
-            $activity->description = " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد ";
-        }
-        else{
-            $activity->description = " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
-        }
-
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
+            return response()->json(['status' => 'success']);
+        });
     }
+
     public function delete_request($id){
         $credit = AgentPayment::find($id);
-
-
         $credit->delete();
-
-
         return response()->json(['status','error']);
     }
 
-
-
-
-
     public function store(Request $request)
     {
-
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'agent_id' => '',
-            'dollar_rate' => '',
-            'check_number' => '',
-            'status' => ''
-
-        ]);
-
-        if ($request->money_type == 'دالر') {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'agent_id' => 'required',
+            ]);
 
             $payed = new AgentPayment();
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->agent_id = $request->agent_id;
             $payed->dollar_rate = $request->dollar_rate;
             $payed->check_number = $request->check_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
+            
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
             }
 
+            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
+
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
+            }
 
             $agent_name = DB::table('agents')
                 ->join('users', 'agents.user_id', 'users.id')
                 ->where('agents.agent_id', $request->agent_id)->first();
-            if ($payed) {
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " نماینده به نام  " . $agent_name->name . ' اکونت نمبر '. $agent_name->account_no.  " به مبلغ " . $request->amount . " دالر را " . $request->type . 'کرد';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        } else {
-            $payed = new AgentPayment();
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->agent_id = $request->agent_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->check_number = $request->check_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
-            $payed->save();
+            
+            $currency = ($request->money_type == 'دالر') ? " دالر " : " افغانی ";
 
-            $agent_name = DB::table('agents')
-                ->join('users', 'agents.user_id', 'users.id')
-                ->where('agents.agent_id', $request->agent_id)->first();
-            if ($payed) {
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " نماینده به نام  " . $agent_name->name . ' اکونت نمبر '. $agent_name->account_no.  " به مبلغ " . $request->amount . " افغانی را " . $request->type . 'کرد';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " پرداخت به نماینده " . $agent_name->name . " اکونت نمبر " . $agent_name->account_no . " به مبلغ " . $request->amount . $currency;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return redirect()->back()->with('status', 'پرداخت نماینده موفقانه ثبت و در سیستم مالی درج گردید!');
+        });
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\AgentPayment $agentPayment
-     * @return \Illuminate\Http\Response
-     */
     public function show($agent_id)
     {
         $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('created_at', 'DESC')->paginate(30);
@@ -212,12 +161,6 @@ class AgentPaymentController extends Controller
         return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'debits_us', 'debits_af', 'credit_af', 'credit_us', 'check_numbers', 'all', 'sale_numbers'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\AgentPayment $agentPayment
-     * @return \Illuminate\Http\Response
-     */
     public function edit($payment_id)
     {
         $paymentEdit = AgentPayment::find($payment_id);
@@ -233,142 +176,74 @@ class AgentPaymentController extends Controller
         return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'debits_us', 'debits_af', 'credit_af', 'credit_us', 'check_numbers', 'sale_numbers'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  \App\AgentPayment $agentPayment
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $payment_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'agent_id' => '',
-            'dollar_rate' => '',
-            'check_number' => '',
-
-        ]);
-
-        if ($request->money_type == 'دالر') {
+        return DB::transaction(function () use ($request, $payment_id) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+            ]);
 
             $payed = AgentPayment::find($payment_id);
-
             $agent_name = DB::table('agents')
                 ->join('users', 'agents.user_id', 'users.id')
                 ->where('agents.agent_id', $request->agent_id)->first();
 
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
+            if ($payed->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Agent Payment Edited');
             }
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس نماینده به نام  " . $agent_name->name . ' اکونت نمبر '. $agent_name->account_no.  "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود  ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
 
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->agent_id = $request->agent_id;
             $payed->dollar_rate = $request->dollar_rate;
             $payed->check_number = $request->check_number;
+
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            }
             $payed->update();
 
-
-            if ($payed) {
-                return redirect('/dashboard/agent-payments/' . $request->agent_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/agent-payments/' . $request->agent_id)->with('error', 'مشکل در سرور وجود داره!');
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
             }
-        } else {
-            $payed = AgentPayment::find($payment_id);
 
-            $agent_name = DB::table('agents')
-                ->join('users', 'agents.user_id', 'users.id')
-                ->where('agents.agent_id', $request->agent_id)->first();
-
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
-            }
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس نماینده به نام  " . $agent_name->name  . ' اکونت نمبر '. $agent_name->account_no.  "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
+            $activity->description = "ویرایش پرداخت نماینده " . $agent_name->name . " اکونت نمبر " . $agent_name->account_no;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->agent_id = $request->agent_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->check_number = $request->check_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/agent-payments/' . $request->agent_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/agent-payments/' . $request->agent_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect('/dashboard/agent-payments/' . $request->agent_id)->with('status', 'ویرایش موفقانه انجام شد و حسابات مالی نماینده بروز گردید!');
+        });
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\AgentPayment $agentPayment
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = AgentPayment::find($id);
+            $agent_name = DB::table('agents')
+                ->join('users', 'agents.user_id', 'users.id')
+                ->where('agents.agent_id', $payment->agent_id)->first();
 
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Agent Payment Deleted');
+            }
 
-        $payment = AgentPayment::find($id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "حذف پرداخت نماینده " . $agent_name->name . " اکونت نمبر " . $agent_name->account_no;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $agent_name = DB::table('agents')
-            ->join('users', 'agents.user_id', 'users.id')
-            ->where('agents.agent_id', $payment->agent_id)->first();
-
-        $amount = '';
-        $money = '';
-        if ($payment->amount > 0) {
-
-            $amount = $payment->amount;
-            $money = 'دالر';
-        }
-        else{
-            $money = 'افغانی';
-            $amount = $payment->amount_af;
-        }
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "از بیلانس نماینده به نام  " . $agent_name->name  . ' اکونت نمبر '. $agent_name->account_no.  " مبلغ " . $amount . ' '. $money . " را حذف کرد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-        $payment->delete();
-
-        if ($payment) {
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

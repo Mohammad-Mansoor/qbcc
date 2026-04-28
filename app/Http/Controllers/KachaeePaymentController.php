@@ -6,6 +6,7 @@ use App\Activity;
 use App\CarpetRepair;
 use App\Kachaee;
 use App\KachaeePayment;
+use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,72 +14,69 @@ use Illuminate\Support\Facades\DB;
 
 class KachaeePaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
     {
-        //
+        $this->accountingService = $accountingService;
     }
 
+    private function postPaymentToAccounting($payment)
+    {
+        try {
+            $team = Kachaee::find($payment->team_id);
+            $isUsd = $payment->amount > 0;
+            $amount = $isUsd ? $payment->amount : $payment->amount_af;
+            $rate = $isUsd ? ($payment->dollar_rate ?? 1) : 1;
+
+            $this->accountingService->postAutoTransaction('kachaee_payment', $payment->type, [
+                'date' => $payment->date,
+                'amount' => $amount,
+                'exchange_rate' => $rate,
+                'party_type' => 'App\Kachaee',
+                'party_id' => $payment->team_id,
+                'reference' => 'KCH-' . $payment->id,
+                'description' => "پرداخت بخش کچایی: " . ($team->name ?? 'N/A') . " - " . $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Kachaee Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
 
     public function money_request()
     {
         $requests = KachaeePayment::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
-
-
         return view('kachaee.requested-money-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = KachaeePayment::find($id);
+            $payment->status = 1;
+            $payment->update();
 
-        $payment = KachaeePayment::find($id);
+            // Accounting Posting
+            $this->postPaymentToAccounting($payment);
 
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $currency = ($payment->amount > 0) ? "دالر" : "افغانی";
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            $activity->description = " مبلغ " . $amount . " " . $currency . " توسط سوپر ادمین تایید و در سیستم مالی ثبت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment->status = 1 ;
-        $payment->update();
-
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        if ($payment->amount > 0){
-            $activity->description = " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد ";
-        }
-        else{
-            $activity->description = " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
-        }
-
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
-    }
-    public function delete_request($id){
-        $credit = KachaeePayment::find($id);
-
-
-        $credit->delete();
-
-
-        return response()->json(['status','error']);
+            return response()->json(['status' => 'success']);
+        });
     }
 
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function delete_request($id)
     {
-        //
+        $payment = KachaeePayment::find($id);
+        $payment->delete();
+        return response()->json(['status', 'error']);
     }
 
     /**
@@ -89,81 +87,46 @@ class KachaeePaymentController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'team_id' => '',
-            'dollar_rate' => '',
-            'kachaee_number' => '',
-
-        ]);
-
-        $team_name = DB::table('kachaees')->where('id', $request->team_id)->first();
-
-
-        if($request->money_type == 'دالر'){
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'type' => 'required',
+                'team_id' => 'required',
+            ]);
 
             $payed = new KachaeePayment();
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
+            if ($request->money_type == 'دالر') {
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            }
+            
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->team_id = $request->team_id;
             $payed->dollar_rate = $request->dollar_rate;
             $payed->kachaee_number = $request->kachaee_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
+            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
-            if ($payed) {
 
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " مشتری به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. " به مبلغ " . $request->amount . " دالر را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
+            }
 
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
-        else{
-            $payed = new KachaeePayment();
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->kachaee_number = $request->kachaee_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
-            $payed->save();
-            if ($payed) {
+            $team = Kachaee::find($request->team_id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " تراکنش کچایی: " . $team->name . " مبلغ " . $request->amount . " " . $request->money_type . " " . $request->type . " ثبت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " مشتری به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. " به مبلغ " . $request->amount . " افغانی را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect()->back()->with('status', 'تراکنش با موفقیت ثبت شد!');
+        });
     }
 
     /**
@@ -174,11 +137,8 @@ class KachaeePaymentController extends Controller
      */
     public function show($team_id)
     {
-
-
         $payments = KachaeePayment::where('team_id',$team_id)->orderBy('created_at','DESC')->paginate(30);
         $team = Kachaee::find($team_id);
-
         $debits_us = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount');
         $debits_af = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $credit_us = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount');
@@ -186,20 +146,6 @@ class KachaeePaymentController extends Controller
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
         return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers'));
-
-    }
-    public function show_all_payment($team_id){
-        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('created_at','DESC')->get();
-        $team = Kachaee::find($team_id);
-
-        $debits_us = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $debits_af = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
-        $credit_us = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $credit_af = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
-        $paymentEdit = '';
-        $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
-        $all = '';
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers','all'));
     }
 
     /**
@@ -228,43 +174,32 @@ class KachaeePaymentController extends Controller
      * @param  \App\KachaeePayment  $kachaeePayment
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request,$payment_id)
+    public function update(Request $request, $payment_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'team_id' => '',
-            'dollar_rate' => '',
-            'kachaee_number' => '',
-
-        ]);
-        $team_name = DB::table('kachaees')->where('id', $request->team_id)->first();
-
-        if($request->money_type == 'دالر'){
+        return DB::transaction(function () use ($request, $payment_id) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'type' => 'required',
+                'team_id' => 'required',
+            ]);
 
             $payed = KachaeePayment::find($payment_id);
 
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
+            // Reversal
+            if ($payed->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Kachaee Record Edited');
             }
 
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس کچایی گر به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود  ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-
-
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
+            if ($request->money_type == 'دالر') {
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            }
+            
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
@@ -272,45 +207,21 @@ class KachaeePaymentController extends Controller
             $payed->dollar_rate = $request->dollar_rate;
             $payed->kachaee_number = $request->kachaee_number;
             $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/kachaee-payments/'.$request->team_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/kachaee-payments/'.$request->team_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
-        else{
-            $payed = KachaeePayment::find($payment_id);
 
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
+            // Re-post
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
             }
+
+            $team = Kachaee::find($request->team_id);
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس کچایی گر به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
+            $activity->description = " ویرایش تراکنش کچایی: " . $team->name . " مبلغ " . $request->amount;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->kachaee_number = $request->kachaee_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/kachaee-payments/'.$request->team_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/kachaee-payments/'.$request->team_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect('/dashboard/kachaee-payments/'.$request->team_id)->with('status', 'بروزرسانی با موفقیت انجام شد!');
+        });
     }
 
     /**
@@ -321,32 +232,16 @@ class KachaeePaymentController extends Controller
      */
     public function destroy($id)
     {
-        $payment = KachaeePayment::find($id);
-        $team_name = DB::table('kachaees')->where('id', $payment->team_id)->first();
+        return DB::transaction(function () use ($id) {
+            $payment = KachaeePayment::find($id);
 
-        $amount = '';
-        $money = '';
-        if ($payment->amount > 0) {
+            // Reversal
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Kachaee Record Deleted');
+            }
 
-            $amount = $payment->amount;
-            $money = 'دالر';
-        }
-        else{
-            $money = 'افغانی';
-            $amount = $payment->amount_af;
-        }
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "از بیلانس کچایی گر به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. " مبلغ " . $amount . ' '. $money . " را حذف کرد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        $payment->delete();
-
-        if ($payment) {
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

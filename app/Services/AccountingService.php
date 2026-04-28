@@ -31,22 +31,43 @@ class AccountingService
             throw new Exception("No mapping rule found for transaction type '$type' and condition '$condition'. Please configure it in Settings.");
         }
 
+        // Determine which side (Debit or Credit) should have the party information attached.
+        // Usually, we attach the party to the Accounts Receivable (Asset) or Accounts Payable (Liability) side.
+        $debitAcc = ChartOfAccount::find($rule->debit_account_id);
+        $creditAcc = ChartOfAccount::find($rule->credit_account_id);
+
         $entries = [
             [
                 'account_id' => $rule->debit_account_id,
                 'debit' => $params['amount'],
                 'credit' => 0,
-                'party_type' => $params['party_type'] ?? null,
-                'party_id' => $params['party_id'] ?? null,
+                'party_type' => ($debitAcc->account_code == '1300' || $debitAcc->account_code == '2100') ? ($params['party_type'] ?? null) : null,
+                'party_id' => ($debitAcc->account_code == '1300' || $debitAcc->account_code == '2100') ? ($params['party_id'] ?? null) : null,
             ],
             [
                 'account_id' => $rule->credit_account_id,
                 'debit' => 0,
                 'credit' => $params['amount'],
-                'party_type' => $params['party_type'] ?? null,
-                'party_id' => $params['party_id'] ?? null,
+                'party_type' => ($creditAcc->account_code == '1300' || $creditAcc->account_code == '2100') ? ($params['party_type'] ?? null) : null,
+                'party_id' => ($creditAcc->account_code == '1300' || $creditAcc->account_code == '2100') ? ($params['party_id'] ?? null) : null,
             ]
         ];
+
+        // Map transaction type to valid DB enum: sales, purchase, payment, receipt, journal
+        $journalTypeMap = [
+            'sale' => 'sales',
+            'material_purchase' => 'purchase',
+            'washing' => 'purchase',
+            'finishing' => 'purchase',
+            'customer_payment' => 'receipt',
+            'washing_payment' => 'payment',
+            'finishing_payment' => 'payment',
+            'expense' => 'payment',
+            'agent_payment' => 'payment',
+            'payroll' => 'payment',
+        ];
+
+        $journalType = $journalTypeMap[$type] ?? 'journal';
 
         return $this->postTransaction([
             'date' => $params['date'],
@@ -54,7 +75,7 @@ class AccountingService
             'description' => $params['description'] ?? $rule->description_template,
             'source_type' => $params['source_type'] ?? ucfirst($type),
             'source_id' => $params['source_id'] ?? null,
-            'journal_type' => $type,
+            'journal_type' => $journalType,
             'entries' => $entries
         ]);
     }
@@ -197,5 +218,23 @@ class AccountingService
         }
 
         return !$period->is_closed;
+    }
+    
+    /**
+     * Find and reverse a transaction by its source
+     * 
+     * @param int $sourceId
+     * @param string|null $reason
+     * @return void
+     */
+    public function reverseTransactionBySource($sourceId, $reason = null)
+    {
+        $transactions = LedgerTransaction::where('source_id', $sourceId)
+            ->where('status', 'posted')
+            ->get();
+
+        foreach ($transactions as $tx) {
+            $this->reverseTransaction($tx->id, $reason);
+        }
     }
 }

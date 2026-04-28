@@ -6,6 +6,7 @@ use App\Activity;
 use App\CarpetWash;
 use App\WashingPayment;
 use App\WashingTeam;
+use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,55 +19,68 @@ class WashingPaymentController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    protected $accountingService;
+    
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
     public function index()
     {
         //
+    }
+
+    private function postPaymentToAccounting($payment)
+    {
+        try {
+            $condition = $payment->type; // 'رسید' or 'گرفت'
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+
+            $this->accountingService->postAutoTransaction('washing_payment', $condition, [
+                'date' => $payment->date,
+                'amount' => $amount,
+                'party_type' => 'App\WashingTeam',
+                'party_id' => $payment->team_id,
+                'reference' => 'W-PAY-' . $payment->id,
+                'description' => $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Washing Payment #" . $payment->id . ": " . $e->getMessage());
+        }
     }
 
 
     public function money_request()
     {
         $requests = WashingPayment::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
-
-
         return view('washing.requested-money-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = WashingPayment::find($id);
+            $payment->status = 1; // Approved
+            $payment->update();
 
-        $payment = WashingPayment::find($id);
+            $this->postPaymentToAccounting($payment);
 
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = ($payment->amount > 0) 
+                ? " مبلغ " . $payment->amount . "دالر برای شست‌گر تایید شد "
+                : " مبلغ " . $payment->amount_af . "افغانی برای شست‌گر تایید شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment->status = 1 ;
-        $payment->update();
-
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        if ($payment->amount > 0){
-            $activity->description = " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد ";
-        }
-        else{
-            $activity->description = " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
-        }
-
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
+            return response()->json(['status' => 'success']);
+        });
     }
     public function delete_request($id){
         $credit = WashingPayment::find($id);
-
-
         $credit->delete();
-
-
         return response()->json(['status','error']);
     }
 
@@ -89,80 +103,47 @@ class WashingPaymentController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'team_id' => '',
-            'dollar_rate' => '',
-            'wash_number' => '',
-
-        ]);
-        $team_name = DB::table('washing_teams')->where('id', $request->team_id)->first();
-
-        if($request->money_type == 'دالر'){
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'team_id' => 'required',
+            ]);
 
             $payed = new WashingPayment();
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
+            $payed->team_id = $request->team_id;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
             $payed->dollar_rate = $request->dollar_rate;
             $payed->wash_number = $request->wash_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
-            $payed->save();
-            if ($payed) {
 
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " شست گر به نام  " . $team_name->name .  ' اکونت نمبر '. $team_name->id. " به مبلغ " . $request->amount . " دالر را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
             } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
             }
-        }
-        else{
-            $payed = new WashingPayment();
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->wash_number = $request->wash_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
+
+            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
-            if ($payed) {
 
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " شست گر به نام  " . $team_name->name . ' اکونت نمبر '. $team_name->id. " به مبلغ " . $request->amount . " افغانی را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-
-
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
             }
-        }
+
+            $team_name = DB::table('washing_teams')->where('id', $request->team_id)->first();
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "پرداخت به شست‌گر " . $team_name->name . " به مبلغ " . $request->amount . " " . $request->money_type;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return redirect()->back()->with('status', 'موفقانه ثبت شد و در سیستم مالی درج گردید!');
+        });
     }
 
     /**
@@ -222,88 +203,53 @@ class WashingPaymentController extends Controller
      * @param  \App\WashingPayment  $washingPayment
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request,$payment_id)
+    public function update(Request $request, $payment_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'agent_id' => '',
-            'dollar_rate' => '',
-            'wash_number' => '',
-
-        ]);
-        $team_name = DB::table('washing_teams')->where('id', $request->team_id)->first();
-
-        if($request->money_type == 'دالر'){
+        return DB::transaction(function () use ($request, $payment_id) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+            ]);
 
             $payed = WashingPayment::find($payment_id);
+            $team_name = DB::table('washing_teams')->where('id', $request->team_id)->first();
 
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
+            // Reverse Old Accounting Entry (Only if approved)
+            if ($payed->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Washing Payment Edited');
+            }
+
+            // Update record
+            $payed->team_id = $request->team_id;
+            $payed->description = $request->description;
+            $payed->date = $request->date;
+            $payed->type = $request->type;
+            $payed->dollar_rate = $request->dollar_rate;
+            $payed->wash_number = $request->wash_number;
+
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
             } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            }
+            $payed->update();
+
+            // Post New Accounting Entry (Only if approved)
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
             }
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس شست گر به نام  " . $team_name->name . ' اکونت نمبر '. $team_name->id. "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود  ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
+            $activity->description = "ویرایش پرداخت شست‌گر " . $team_name->name . " اکونت نمبر " . $team_name->id;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->wash_number = $request->wash_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/washing-payments/'.$request->team_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/washing-payments/'.$request->team_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
-        else{
-            $payed = WashingPayment::find($payment_id);
-
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
-            }
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس شست گر به نام  " . $team_name->name . ' اکونت نمبر '. $team_name->id. "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->wash_number = $request->wash_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/washing-payments/'.$request->team_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/washing-payments/'.$request->team_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect('/dashboard/washing-payments/'.$request->team_id)->with('status', 'ویرایش با موفقیت انجام و اسناد مالی بروز شد!');
+        });
     }
 
     /**
@@ -314,30 +260,23 @@ class WashingPaymentController extends Controller
      */
     public function destroy($id)
     {
-         $payment = WashingPayment::find($id);
-        $team_name = DB::table('washing_teams')->where('id', $payment->team_id)->first();
+        return DB::transaction(function () use ($id) {
+            $payment = WashingPayment::find($id);
+            $team_name = DB::table('washing_teams')->where('id', $payment->team_id)->first();
 
-        $amount = '';
-        $money = '';
-        if ($payment->amount > 0) {
+            // Reverse Accounting Entry (Only if approved)
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Washing Payment Deleted');
+            }
 
-            $amount = $payment->amount;
-            $money = 'دالر';
-        }
-        else{
-            $money = 'افغانی';
-            $amount = $payment->amount_af;
-        }
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "حذف پرداخت شست‌گر " . $team_name->name . " اکونت نمبر " . $team_name->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "از بیلانس شست گر به نام  " . $team_name->name . ' اکونت نمبر '. $team_name->id. " مبلغ " . $amount . ' '. $money . " را حذف کرد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        $payment->delete();
-
-        if ($payment) {
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

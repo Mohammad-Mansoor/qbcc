@@ -348,6 +348,13 @@
                       <td class="hideOnPrint text-center">
                         <a href="/dashboard/finishing-payments/{{$pa->id}}/edit"
                            class="btn btn-sm btn-info">ویرایش</a>
+                           
+                        @php
+                            $transaction = \App\LedgerTransaction::where('source_type', 'finishing_payment')->where('source_id', $pa->id)->first();
+                        @endphp
+                        @if($transaction)
+                            <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
+                        @endif
                         
                         <button onclick="deletePayment( {{$pa->id}}, {{$pa->team_id}})"
                                 class="btn btn-danger btn-sm "><i

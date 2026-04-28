@@ -9,12 +9,40 @@ use App\MaterialCategory;
 use App\MaterialSale;
 use App\MaterialStock;
 use App\MaterialType;
+use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaterialSaleController extends Controller
 {
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
+    private function postMaterialSaleToAccounting($sale)
+    {
+        try {
+            // Material sale is also a sale, but we might want a different category
+            // For now, let's use 'material_sale' type
+            $this->accountingService->postAutoTransaction('material_sale', 'credit', [
+                'date' => $sale->date,
+                'amount' => $sale->total_price_af,
+                'party_type' => 'App\Agents',
+                'party_id' => $sale->agent_id,
+                'reference' => $sale->sale_number,
+                'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
+                'source_id' => $sale->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Material Sale #" . $sale->id . ": " . $e->getMessage());
+        }
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -22,11 +50,11 @@ class MaterialSaleController extends Controller
      */
     public function index()
     {
-        $material_sales = MaterialSale::orderBy('created_at','DESC')->get();
+        $material_sales = MaterialSale::orderBy('created_at','DESC')->paginate(60);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = '';
-       $agents = Agents::all();
+        $agents = Agents::all();
         $lastId = MaterialSale::latest()->first();
         $SaleNo = '';
         if($lastId) {
@@ -40,71 +68,51 @@ class MaterialSaleController extends Controller
 
         return view('mstock.material-sale', compact('material_sales', 'categories', 'material_types', 'saleEdit', 'agents','SaleNo'));
     }
-    public function search_sale_number($sale_number,$agent_id){
 
+    public function search_sale_number($sale_number,$agent_id){
         $agent = Agents::findOrfail($agent_id);
         $sales = MaterialSale::where('sale_number',$sale_number)->where('agent_id',$agent_id)->get();
         $quantity = MaterialSale::Where('agent_id', '=', $agent_id)->where('sale_number','=',$sale_number)->count();
-
         return view('mstock.sale-number-list', compact('agent','sales','sale_number','quantity'));
-
     }
 
     public function request_list()
     {
         $requests = MaterialSale::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
         return view('mstock.material-sale-requested-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $sale = MaterialSale::find($id);
+            $material_stock = MaterialStock::where('material_category', '=', $sale->category_id)->where('material_type', '=', $sale->type_id)->first();
 
-        $sale = MaterialSale::find($id);
+            if ($material_stock) {
+                $material_stock->quantity = $material_stock->quantity - $sale->amount;
+                $material_stock->update();
+            }
 
+            $sale->status = 1 ;
+            $sale->update();
 
-        $material_stock = MaterialStock::where('material_category', '=', $sale->category_id)->where('material_type', '=', $sale->type_id)->first();
+            // Accounting Posting
+            $this->postMaterialSaleToAccounting($sale);
 
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " به مقدار " . $sale->amount . "کیلوگرام مواد تایید و در سیستم مالی ثبت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $material_stock->quantity = $material_stock->quantity - $sale->amount;
-        $material_stock->update();
-
-
-        $sale->status = 1 ;
-        $sale->update();
-
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " به مقدار " . $sale->amount . "کیلوگرام مواد توسط سوپر ادمین ثبت شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
+            return response()->json(['status' => 'success']);
+        });
     }
+
     public function delete_request($id){
-        $purchase = MaterialSale::find($id);
-
-
-        $purchase->delete();
-
-
+        $sale = MaterialSale::find($id);
+        $sale->delete();
         return response()->json(['status','error']);
-    }
-
-
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -115,68 +123,52 @@ class MaterialSaleController extends Controller
      */
     public function store(Request $request)
     {
+        return DB::transaction(function () use ($request) {
+            $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
 
-        $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
-
-        if (!$material_stock) {
-            return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
-        } else {
-            if ($request->amount > $material_stock->quantity) {
-                return redirect()->back()->with('error', ' مواد در گدام' . $material_stock->quantity . 'kg' . 'میباشد');
-            }
-            else {
-                if (Auth::user()->role == 'SP'){
-                    $material_stock->quantity = $material_stock->quantity - $request->amount;
-                    $material_stock->update();
+            if (!$material_stock) {
+                return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
+            } else {
+                if ($request->amount > $material_stock->quantity) {
+                    return redirect()->back()->with('error', ' مواد در گدام ' . $material_stock->quantity . 'kg' . ' میباشد');
                 }
-
+                else {
+                    if (Auth::user()->role == 'SP'){
+                        $material_stock->quantity = $material_stock->quantity - $request->amount;
+                        $material_stock->update();
+                    }
+                }
             }
 
-        }
-        $data = $request->validate([
-            'agent_id' => 'required',
-            'amount' => 'required',
-            'price' => 'required',
-            'total_price' => 'required',
-            'total_price_af' => 'required',
-            'type_id' => 'required',
-            'category_id' => 'required',
-            'date' => 'required',
-            'sale_number' => 'required',
-            'status' => ''
-        ]);
-        if (Auth::user()->role == 'SP'){
-            $data['status'] = 1;
-        }
-        else{
-            $data['status'] = 0;
-        }
+            $data = $request->validate([
+                'agent_id' => 'required',
+                'amount' => 'required',
+                'price' => 'required',
+                'total_price' => 'required',
+                'total_price_af' => 'required',
+                'type_id' => 'required',
+                'category_id' => 'required',
+                'date' => 'required',
+                'sale_number' => 'required',
+                'status' => ''
+            ]);
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " به مقدار " . $request->amount . " فروخته شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
+            $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
 
-        $done = MaterialSale::create($data);
+            $sale = MaterialSale::create($data);
 
+            if ($sale->status == 1) {
+                $this->postMaterialSaleToAccounting($sale);
+            }
 
-        if ($done) {
-            return redirect('/dashboard/material-sales')->with('status', ' موفقانه ثبت شد !');
-        } else {
-            return redirect('/dashboard/material-sales')->with('error', 'مشکل در سرور وجود داره!');
-        }
-    }
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " به مقدار " . $request->amount . " مواد فروخته شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\MaterialSale $materialSale
-     * @return \Illuminate\Http\Response
-     */
-    public function show(MaterialSale $materialSale)
-    {
-        //
+            return redirect('/dashboard/material-sales')->with('status', 'فروش مواد موفقانه ثبت و در سیستم مالی درج گردید!');
+        });
     }
 
     /**
@@ -187,13 +179,12 @@ class MaterialSaleController extends Controller
      */
     public function edit($id)
     {
-        $material_sales = MaterialSale::paginate(10);
+        $material_sales = MaterialSale::paginate(30);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = MaterialSale::find($id);
         $agents = Agents::all();
         return view('mstock.material-sale', compact('material_sales', 'agents', 'categories', 'material_types', 'saleEdit'));
-
     }
 
     /**
@@ -203,61 +194,57 @@ class MaterialSaleController extends Controller
      * @param  \App\MaterialSale $materialSale
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, MaterialSale $materialSale)
+    public function update(Request $request, $id)
     {
+        return DB::transaction(function () use ($request, $id) {
+            $materialSale = MaterialSale::find($id);
+            $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
 
-        $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
-
-        if (!$material_stock) {
-            return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
-        } else {
-           if (Auth::user()->role == 'SP') {
-                $old_amount = $materialSale->amount;
-                $material_stock->quantity = $material_stock->quantity + $old_amount;
-                $material_stock->update();
-
-                if ($request->amount > $material_stock->quantity) {
-
+            if (!$material_stock) {
+                return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
+            } else {
+               if (Auth::user()->role == 'SP') {
                     $old_amount = $materialSale->amount;
-                    $material_stock->quantity = $material_stock->quantity - $old_amount;
-                    $material_stock->update();
-                    return redirect()->back()->with('error', ' مواد در گدام' . $material_stock->quantity . 'kg' . 'میباشد');
-                } else {
-
+                    $material_stock->quantity = $material_stock->quantity + $old_amount;
+                    
+                    if ($request->amount > $material_stock->quantity) {
+                        return redirect()->back()->with('error', 'موجودی گدام کافی نیست!');
+                    }
+                    
                     $material_stock->quantity = $material_stock->quantity - $request->amount;
-
-                    $material_stock->save();
+                    $material_stock->update();
                 }
-//
             }
-        }
 
+            // Accounting Reversal
+            if ($materialSale->status == 1) {
+                $this->accountingService->reverseTransactionBySource($materialSale->id, 'Material Sale Edited');
+            }
 
+            $materialSale->agent_id = $request->agent_id;
+            $materialSale->sale_number = $request->sale_number;
+            $materialSale->amount = $request->amount;
+            $materialSale->price = $request->price;
+            $materialSale->total_price = $request->total_price;
+            $materialSale->total_price_af = $request->total_price_af;
+            $materialSale->date = $request->date;
+            $materialSale->category_id = $request->category_id;
+            $materialSale->type_id = $request->type_id;
+            $materialSale->update();
 
-        $materialSale->agent_id = $request->agent_id;
-        $materialSale->sale_number = $request->sale_number;
-        $materialSale->amount = $request->amount;
-        $materialSale->price = $request->price;
-        $materialSale->total_price = $request->total_price;
-        $materialSale->total_price_af = $request->total_price_af;
-        $materialSale->date = $request->date;
-        $materialSale->category_id = $request->category_id;
-        $materialSale->type_id = $request->type_id;
-        $materialSale->update();
+            // Re-post if approved
+            if ($materialSale->status == 1) {
+                $this->postMaterialSaleToAccounting($materialSale);
+            }
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " به مقدار " . $request->amount . " فروخته شده ویرایش شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "ویرایش فروش مواد به مقدار " . $request->amount;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-
-        if ($materialSale) {
-            return redirect('/dashboard/material-sales')->with('status', ' موفقانه ثبت شد !');
-        } else {
-            return redirect('/dashboard/material-sales')->with('error', 'مشکل در سرور وجود داره!');
-        }
-
+            return redirect('/dashboard/material-sales')->with('status', 'ویرایش موفقانه ثبت و حسابات مالی بروزرسانی شد!');
+        });
     }
 
     /**
@@ -266,8 +253,17 @@ class MaterialSaleController extends Controller
      * @param  \App\MaterialSale $materialSale
      * @return \Illuminate\Http\Response
      */
-    public function destroy(MaterialSale $materialSale)
+    public function destroy($id)
     {
-        //
+        return DB::transaction(function () use ($id) {
+            $sale = MaterialSale::find($id);
+
+            if ($sale->status == 1) {
+                $this->accountingService->reverseTransactionBySource($sale->id, 'Material Sale Deleted');
+            }
+
+            $sale->delete();
+            return response()->json(['status' => 'success']);
+        });
     }
 }

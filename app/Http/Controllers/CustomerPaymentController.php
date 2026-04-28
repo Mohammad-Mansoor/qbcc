@@ -37,10 +37,10 @@ class CustomerPaymentController extends Controller
     private function postPaymentToAccounting($payment)
     {
         try {
-            $condition = ($payment->type == 'رسید') ? 'receipt' : 'withdrawal';
+            $condition = $payment->type; // 'رسید' or 'گرفت'
             $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
 
-            $this->accountingService->postAutoTransaction('customer_payment', $condition, [
+            $transaction = $this->accountingService->postAutoTransaction('customer_payment', $condition, [
                 'date' => $payment->date,
                 'amount' => $amount,
                 'party_type' => 'App\Customer',
@@ -49,6 +49,9 @@ class CustomerPaymentController extends Controller
                 'description' => $payment->description,
                 'source_id' => $payment->id,
             ]);
+            
+            $payment->ledger_transaction_id = $transaction->id;
+            $payment->save();
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Payment #" . $payment->id . ": " . $e->getMessage());
         }
@@ -63,25 +66,24 @@ class CustomerPaymentController extends Controller
 
     public function approve_request($id)
     {
-        $payment = CustomerPayment::find($id);
-        $payment->status = 1; // Explicitly set to approved
-        $payment->update();
-        
-        $this->postPaymentToAccounting($payment);
+        return DB::transaction(function () use ($id) {
+            $payment = CustomerPayment::find($id);
+            $payment->status = 1; // Approved
+            $payment->update();
+            
+            // Post to Accounting
+            $this->postPaymentToAccounting($payment);
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        if ($payment->amount > 0){
-            $activity->description = " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد ";
-        }
-        else{
-            $activity->description = " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
-        }
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = ($payment->amount > 0) 
+                ? " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد "
+                : " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-        return response()->json(['status' => 'success']);
+            return response()->json(['status' => 'success']);
+        });
     }
 
     public function delete_request($id){
@@ -109,88 +111,49 @@ class CustomerPaymentController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'team_id' => '',
-            'dollar_rate' => '',
-            'check_number' => '',
-        ]);
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'customer_id' => 'required',
+            ]);
 
-
-        if($request->money_type == 'دالر'){
             $payed = new CustomerPayment();
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
+            $payed->customer_id = $request->customer_id;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->customer_id = $request->customer_id;
             $payed->dollar_rate = $request->dollar_rate;
             $payed->invoice_number = $request->invoice_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
+            
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
             }
-            else{
-                $payed->status = 0;
-            }
+
+            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
 
+            // Accounting Posting (Only if approved)
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
             }
 
             $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
+            $currency = ($request->money_type == 'دالر') ? " دالر " : " افغانی ";
 
-            if ($payed) {
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id. " به مبلغ " . $request->amount . " دالر را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
-        else{
-            $payed = new CustomerPayment();
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->customer_id = $request->customer_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->invoice_number = $request->invoice_number;
-            if (Auth::user()->role == 'SP'){
-                $payed->status = 1;
-            }
-            else{
-                $payed->status = 0;
-            }
-            $payed->save();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " مشتری به نام " . $customer_name->name . " اکونت نمبر " . $customer_name->id . " به مبلغ " . $request->amount . $currency . " را " . $request->type . " کرد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-            if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
-            }
-
-            $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
-
-            if ($payed) {
-                $activity = new Activity();
-                $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id.  " به مبلغ " . $request->amount . " افغانی را " . $request->type . ' کرد ';
-                $activity->user_id = Auth::user()->id;
-                $activity->save();
-
-                return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect()->back()->with('status', 'موفقانه ثبت شد!');
+        });
     }
 
     /**
@@ -256,82 +219,51 @@ class CustomerPaymentController extends Controller
      */
     public function update(Request $request, $payment_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'agent_id' => '',
-            'dollar_rate' => '',
-            'finish_number' => '',
-        ]);
-        $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
+        return DB::transaction(function () use ($request, $payment_id) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+            ]);
 
-        if($request->money_type == 'دالر'){
             $payed = CustomerPayment::find($payment_id);
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
+            $customer_name = DB::table('customers')->where('id', $request->customer_id)->first();
+
+            // Reverse Old Accounting Entries (Only if it was approved)
+            if ($payed->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Payment Record Edited');
+            }
+
+            // Update record
+            $payed->customer_id = $request->customer_id;
+            $payed->description = $request->description;
+            $payed->date = $request->date;
+            $payed->type = $request->type;
+            $payed->dollar_rate = $request->dollar_rate;
+            $payed->invoice_number = $request->invoice_number;
+
+            if($request->money_type == 'دالر'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
             } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            }
+            $payed->update();
+
+            // Post New Accounting Entry (Only if approved)
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed);
             }
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id.  "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود  ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
+            $activity->description = "ویرایش پرداخت مشتری " . $customer_name->name . " به مبلغ " . $request->amount . " " . $request->money_type;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payed->amount = $request->amount;
-            $payed->amount_af = 0;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->customer_id = $request->customer_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->invoice_number = $request->invoice_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
-        else{
-            $payed = CustomerPayment::find($payment_id);
-            $amount = '';
-            $money = '';
-            if ($payed->amount > 0) {
-                $amount = $payed->amount;
-                $money = 'دالر';
-            } else {
-                $money = 'افغانی';
-                $amount = $payed->amount_af;
-            }
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " در بیلانس مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id.  "  مبلغ " . $amount . ' ' . $money . " که " . $payed->type . 'کرده بود ویرایش شد به' . $request->amount . " دالر " . $request->type . ' کرد ';
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-
-            $payed->amount = 0;
-            $payed->amount_af = $request->amount;
-            $payed->description = $request->description;
-            $payed->date = $request->date;
-            $payed->type = $request->type;
-            $payed->customer_id = $request->customer_id;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->invoice_number = $request->invoice_number;
-            $payed->update();
-            if ($payed) {
-                return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('status', 'موفقانه ثبت شد !');
-            } else {
-                return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('error', 'مشکل در سرور وجود داره!');
-            }
-        }
+            return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('status', 'ویرایش موفقانه ثبت و اسناد حسابداری بروزرسانی شد!');
+        });
     }
 
     /**
@@ -342,30 +274,23 @@ class CustomerPaymentController extends Controller
      */
     public function destroy($id)
     {
-        $payment = CustomerPayment::find($id);
-        $customer_name = DB::table('customers')->where('id', $payment->customer_id)->first();
+        return DB::transaction(function () use ($id) {
+            $payment = CustomerPayment::find($id);
+            $customer_name = DB::table('customers')->where('id', $payment->customer_id)->first();
 
-        $amount = '';
-        $money = '';
-        if ($payment->amount > 0) {
-            $amount = $payment->amount;
-            $money = 'دالر';
-        }
-        else{
-            $money = 'افغانی';
-            $amount = $payment->amount_af;
-        }
+            // Reverse Accounting Entry (Only if approved)
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Payment Record Deleted');
+            }
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "از بیلانس مشتری به نام  " . $customer_name->name . ' اکونت نمبر '. $customer_name->id.  " مبلغ " . $amount . ' '. $money . " را حذف کرد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "حذف پرداخت مشتری " . $customer_name->name . " اکونت نمبر " . $customer_name->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment->delete();
-
-        if ($payment) {
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

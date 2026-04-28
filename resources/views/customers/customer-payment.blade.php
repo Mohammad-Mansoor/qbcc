@@ -381,9 +381,12 @@
                       <a href="/dashboard/customer-payments/{{$pa->id}}/edit"
                          class="btn btn-sm btn-info">ویرایش</a>
                       
+                      @if($pa->ledger_transaction_id)
+                          <a href="{{ route('accounting.journals.show', $pa->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
+                      @endif
+                      
                       <button onclick="deletePayment( {{$pa->id}}, {{$pa->customer_id}})" class="btn btn-danger btn-sm">
-                        <i
-                                class="fa fa-tick"></i>حذف
+                        <i class="fa fa-tick"></i>حذف
                       </button>
                     </td>
                   @endif

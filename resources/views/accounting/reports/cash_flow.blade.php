@@ -115,16 +115,55 @@
                     </div>
                 </div>
 
-                <!-- 2. INVESTING & FINANCING (Placeholder for Professional Look) -->
-                <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; opacity: 0.8;">
-                    <div class="card-body p-4 d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="font-weight-bold text-muted mb-1">فعالیت‌های سرمایه‌گذاری و تأمین مالی</h6>
-                            <small class="text-muted">Investing & Financing Activities</small>
-                        </div>
-                        <div class="text-right">
-                            <span class="font-weight-bold">0.00</span>
-                        </div>
+                <!-- 2. INVESTING ACTIVITIES -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; border-right: 6px solid #fbc02d !important;">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="font-weight-bold text-dark mb-0">۲. فعالیت‌های سرمایه‌گذاری (Investing Activities)</h5>
+                        <div class="badge badge-light-warning p-2 rounded">خرید و فروش دارایی‌های ثابت</div>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <table class="table table-hover">
+                            <tbody>
+                                <tr>
+                                    <td class="py-3">تغییر در دارایی‌های ثابت (Fixed Assets)</td>
+                                    <td class="py-3 text-right {{ $investing['fixed_assets'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $investing['fixed_assets'] > 0 ? '+' : '' }}{{ number_format($investing['fixed_assets'], 2) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="font-weight-bold" style="background: #fffde7;">
+                                    <td class="py-3">خالص جریان نقد از فعالیت‌های سرمایه‌گذاری</td>
+                                    <td class="py-3 text-right text-warning" style="font-size: 1.1rem;">{{ number_format($net_cash_investing, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. FINANCING ACTIVITIES -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; border-right: 6px solid #43a047 !important;">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="font-weight-bold text-dark mb-0">۳. فعالیت‌های تأمین مالی (Financing Activities)</h5>
+                        <div class="badge badge-light-success p-2 rounded">تغییر در سرمایه و وام‌ها</div>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <table class="table table-hover">
+                            <tbody>
+                                <tr>
+                                    <td class="py-3">تغییر در حقوق مالکانه (Equity / Investment)</td>
+                                    <td class="py-3 text-right {{ $financing['equity'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $financing['equity'] > 0 ? '+' : '' }}{{ number_format($financing['equity'], 2) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="font-weight-bold" style="background: #e8f5e9;">
+                                    <td class="py-3">خالص جریان نقد از فعالیت‌های تأمین مالی</td>
+                                    <td class="py-3 text-right text-success" style="font-size: 1.1rem;">{{ number_format($net_cash_financing, 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
 
@@ -132,11 +171,11 @@
                 <div class="card border-0 shadow-lg mb-5 overflow-hidden" style="border-radius: 15px;">
                     <div class="row no-gutters">
                         <div class="col-md-8 bg-dark text-white p-4">
-                            <h4 class="text-white font-weight-bold mb-1">خالص تغییر در نقدینگی</h4>
+                            <h4 class="text-white font-weight-bold mb-1">خالص تغییر در نقدینگی (کل)</h4>
                             <p class="mb-0 opacity-75">Net Change in Cash and Equivalents</p>
                         </div>
                         <div class="col-md-4 bg-info text-white p-4 text-center d-flex align-items-center justify-content-center">
-                            <h2 class="text-white font-weight-bold mb-0">{{ number_format($net_cash_operating, 2) }}</h2>
+                            <h2 class="text-white font-weight-bold mb-0">{{ number_format($net_change_in_cash, 2) }}</h2>
                         </div>
                     </div>
                 </div>
@@ -152,6 +191,8 @@
 
 <style>
     .badge-light-info { background: #e0f7fa; color: #00838f; }
+    .badge-light-warning { background: #fffde7; color: #fbc02d; }
+    .badge-light-success { background: #e8f5e9; color: #43a047; }
     .border-left { border-left: 4px solid #00acc1; }
     @media print {
         body { background: white !important; }
@@ -159,7 +200,7 @@
         .pcoded-main-container { margin-left: 0 !important; margin-top: 0 !important; }
         .no-print-padding { padding: 0 !important; }
         .card { border: 1px solid #eee !important; box-shadow: none !important; }
-        .bg-dark, .bg-info, .badge-light-info { -webkit-print-color-adjust: exact; }
+        .bg-dark, .bg-info, .badge-light-info, .badge-light-warning, .badge-light-success { -webkit-print-color-adjust: exact; }
     }
 </style>
 @endsection

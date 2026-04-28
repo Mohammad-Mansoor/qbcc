@@ -72,7 +72,7 @@
                             <small class="text-muted opacity-50">{{ $item['detail'] }}</small>
                         </div>
                     </div>
-                    <h4 class="font-weight-bold mb-2">${{ number_format($kpis[$item['key']]['value'], 2) }}</h4>
+                    <h4 class="font-weight-bold mb-2">{{ number_format($kpis[$item['key']]['value'], 2) }} <small>AFN</small></h4>
                     <div class="d-flex align-items-center">
                         @if($kpis[$item['key']]['change'] >= 0)
                             <span class="text-success small font-weight-bold">
@@ -194,7 +194,7 @@
                                         <span class="badge badge-light-primary">{{ strtoupper($tx->journal_type) }}</span>
                                     </td>
                                     <td class="py-3 text-right px-4 font-weight-bold text-dark">
-                                        ${{ number_format($tx->entries->sum('debit'), 2) }}
+                                        {{ number_format($tx->entries->sum('debit'), 2) }} <small>AFN</small>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -228,7 +228,7 @@
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [20, 80, 100] } },
             stroke: { curve: 'smooth', width: 3 },
             xaxis: { categories: {!! json_encode($profit_loss->pluck('date')) !!}, axisBorder: { show: false } },
-            yaxis: { labels: { formatter: function (val) { return "$" + val.toLocaleString(); } } },
+            yaxis: { labels: { formatter: function (val) { return val.toLocaleString() + " AFN"; } } },
             dataLabels: { enabled: false },
             grid: { borderColor: '#f1f1f1' }
         };

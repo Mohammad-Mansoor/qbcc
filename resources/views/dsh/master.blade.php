@@ -257,7 +257,7 @@
                 <li class="nav-item pcoded-hasmenu">
                     <a href="/dashboard/customer-account-for-orders" class="nav-link"><span class="pcoded-micon"><i
                                 class="feather icon-home"></i></span><span
-                            class="pcoded-mtext"><b>Orders</b></span></a>
+                            class="pcoded-mtext"><b>سفارشات</b></span></a>
                 </li>
                 
                 
@@ -334,7 +334,7 @@
         @endif
                 @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                 <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/accounting*') ? 'active pcoded-trigger' : '' }}">
-                    <a href="{{ route('accounting.dashboard') }}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-book"></i></span><span class="pcoded-mtext"><b>حسابداری (Accounting)</b></span></a>
+                    <a href="{{ route('accounting.dashboard') }}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-book"></i></span><span class="pcoded-mtext"><b>سیستم حسابداری</b></span></a>
                     <ul class="pcoded-submenu">
                         <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
                         <li><a href="{{ route('accounting.journals.index') }}">روزنامچه (General Ledger)</a></li>
@@ -436,7 +436,7 @@
   </div>
   
   <div style="position: absolute; left: 55px;">
-        <a href="/dashboard/close-to-end-customer-order" title="Close to End Order List">
+        <a href="/dashboard/close-to-end-customer-order" title="لیست سفارشات رو به اتمام">
 
             <?php
             $today = \Carbon\Carbon::today();

@@ -117,39 +117,37 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        return DB::transaction(function () use ($request) {
+            $carpet_id = Carpet::find($request->carpet_id);
+            $invoice_id = Invoice::find($request->invoice_id);
 
+            $sale = new Sale();
+            $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
+            $sale->sale_cost_total = $request->sale_cost_total;
+            $sale->profit = $request->sale_cost_total - $request->total_price_cost;
+            $sale->type = $request->carpet_type;
+            $sale->quality = $request->carpet_quality;
+            $sale->carpet_id = $request->carpet_id;
+            $sale->invoice_id = $request->invoice_id;
+            $sale->customer_id = $invoice_id->customer->id;
+            $sale->customer_code = $request->customer_code;
+            $sale->carpet_height = $request->carpet_height;
+            $sale->carpet_width = $request->carpet_width;
+            $sale->carpet_area = $request->carpet_area;
+            $sale->save();
 
-        $carpet_id = Carpet::find($request->carpet_id);
+            $carpet_id->status = 6;
+            $carpet_id->package_id = $request->package_id;
+            $carpet_id->save();
 
-        $invoice_id = Invoice::find($request->invoice_id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر " . $carpet_id->carpet_no . " به فروش رسید ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $sale = new Sale();
-
-        $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
-        $sale->sale_cost_total = $request->sale_cost_total;
-        $sale->profit = $request->sale_cost_total - $request->total_price_cost;
-
-        $sale->type = $request->carpet_type;
-        $sale->quality = $request->carpet_quality;
-        $sale->carpet_id = $request->carpet_id;
-        $sale->invoice_id = $request->invoice_id;
-        $sale->customer_id = $invoice_id->customer->id;
-        $sale->customer_code = $request->customer_code;
-        $sale->carpet_height = $request->carpet_height;
-        $sale->carpet_width = $request->carpet_width;
-        $sale->carpet_area = $request->carpet_area;
-        $sale->save();
-        $carpet_id->status = 6 ;
-        $carpet_id->package_id = $request->package_id;
-        $carpet_id->save();
-
-        $activity->description = " قالین نمبر " . $carpet_id->carpet_no . " به فروش رسید ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-        // Accounting Posting (Dynamic Mapping)
-        try {
-            $this->accountingService->postAutoTransaction('sale', 'credit', [
+            // Accounting Posting (Dynamic Mapping)
+            $transaction = $this->accountingService->postAutoTransaction('sale', 'credit', [
                 'date' => Carbon::today()->format('Y-m-d'),
                 'amount' => $sale->sale_cost_total,
                 'party_type' => 'App\Customer',
@@ -158,18 +156,12 @@ class SaleController extends Controller
                 'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
                 'source_id' => $sale->id,
             ]);
-        } catch (\Exception $e) {
-            \Log::error("Accounting posting failed for Sale #" . $sale->id . ": " . $e->getMessage());
-        }
-        
-        if($sale) {
-            return redirect('/dashboard/carpet-stock')->with('status', ' موفقانه ثبت شد !');
-        }
-        else{
-            return redirect('/dashboard/carpet-stock')->with('error', 'مشکل در سرور وجود داره!');
-        }
 
+            $sale->ledger_transaction_id = $transaction->id;
+            $sale->save();
 
+            return redirect('/dashboard/carpet-stock')->with('status', ' موفقانه ثبت شد و در دفتر روزنامچه ثبت گردید!');
+        });
     }
 
 
@@ -211,46 +203,52 @@ class SaleController extends Controller
      */
     public function update(Request $request, $id)
     {
+        return DB::transaction(function () use ($request, $id) {
+            $carpet_id = Carpet::find($request->carpet_id);
+            $carpet_id->package_id = $request->package_id;
+            $carpet_id->save();
+            
+            $invoice_id = Invoice::find($request->invoice_id);
+            $sale = Sale::find($id);
 
-        $carpet_id = Carpet::find($request->carpet_id);
-        $carpet_id->package_id = $request->package_id;
-        $carpet_id->save();
-        $invoice_id = Invoice::find($request->invoice_id);
+            $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
+            $sale->sale_cost_total = $request->sale_cost_total;
+            $sale->profit = $request->sale_cost_total - $request->total_price_cost;
+            $sale->type = $request->carpet_type;
+            $sale->quality = $request->carpet_quality;
+            $sale->carpet_id = $request->carpet_id;
+            $sale->invoice_id = $request->invoice_id;
+            $sale->customer_id = $invoice_id->customer->id;
+            $sale->customer_code = $request->customer_code;
+            $sale->carpet_height = $request->carpet_height;
+            $sale->carpet_width = $request->carpet_width;
+            $sale->carpet_area = $request->carpet_area;
+            $sale->update();
 
-        $sale =  Sale::find($id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "فروش قالین نمبر " . $carpet_id->carpet_no . " ویرایش ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
+            // Reverse Old Accounting Entries for this Sale and Post New One
+            $this->accountingService->reverseTransactionBySource($sale->id, 'Sale Record Edited');
+            
+            $transaction = $this->accountingService->postAutoTransaction('sale', 'credit', [
+                'date' => Carbon::today()->format('Y-m-d'),
+                'amount' => $sale->sale_cost_total,
+                'party_type' => 'App\Customer',
+                'party_id' => $sale->customer_id,
+                'reference' => 'SALE-' . $sale->id,
+                'description' => "ویرایش فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'source_id' => $sale->id,
+            ]);
 
-    
+            $sale->ledger_transaction_id = $transaction->id;
+            $sale->save();
 
-
-        $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
-        $sale->sale_cost_total = $request->sale_cost_total;
-        $sale->profit = $request->sale_cost_total - $request->total_price_cost;
-
-        $sale->type = $request->carpet_type;
-        $sale->quality = $request->carpet_quality;
-        $sale->carpet_id = $request->carpet_id;
-        $sale->invoice_id = $request->invoice_id;
-        $sale->customer_id = $invoice_id->customer->id;
-        $sale->customer_code = $request->customer_code;
-        $sale->carpet_height = $request->carpet_height;
-        $sale->carpet_width = $request->carpet_width;
-        $sale->carpet_area = $request->carpet_area;
-        $sale->update();
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "فروش قالین نمبر " . $carpet_id->carpet_no . " ویرایش ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-        if($sale) {
-            return redirect('/dashboard/sales')->with('status', ' موفقانه ثبت شد !');
-        }
-        else{
-            return redirect('/dashboard/sales')->with('error', 'مشکل در سرور وجود داره!');
-        }
-
+            return redirect('/dashboard/sales')->with('status', 'ویرایش موفقانه ثبت شد و اسناد حسابداری بروزرسانی گردید!');
+        });
     }
 
     /**

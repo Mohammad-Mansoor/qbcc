@@ -307,8 +307,8 @@
                   @php($total_usd = 0)
                   <?php
 
-                  $total_af = \Illuminate\Support\Facades\DB::table('finishing_team_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount_af') - \Illuminate\Support\Facades\DB::table('finishing_team_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount_af');
-                  $total_usd = \Illuminate\Support\Facades\DB::table('finishing_team_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('finishing_team_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount');
+                  $total_af = \Illuminate\Support\Facades\DB::table('customer_payments')->where('customer_id', $cust->id)->where('type', 'رسید')->sum('amount_af') - \Illuminate\Support\Facades\DB::table('customer_payments')->where('customer_id', $cust->id)->where('type', 'گرفت')->sum('amount_af');
+                  $total_usd = \Illuminate\Support\Facades\DB::table('customer_payments')->where('customer_id', $cust->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('customer_payments')->where('customer_id', $cust->id)->where('type', 'گرفت')->sum('amount');
 
                   ?>
 

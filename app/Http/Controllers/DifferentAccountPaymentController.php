@@ -9,72 +9,68 @@ use App\DifferentAccountTotal;
 use App\OfficeCashBook;
 use App\OfficeCredit;
 use App\OfficeDebit;
+use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DifferentAccountPaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
     {
-        //
+        $this->accountingService = $accountingService;
+    }
+
+    private function postPaymentToAccounting($payment)
+    {
+        try {
+            $account = DifferentAccount::find($payment->account_id);
+            $this->accountingService->postAutoTransaction('different_account', $payment->type, [
+                'date' => $payment->date,
+                'amount' => $payment->amount,
+                'reference' => 'DIFF-' . $payment->id,
+                'description' => "تراکنش حساب متفرقه: " . ($account->name ?? 'N/A') . " - " . $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Different Account Payment #" . $payment->id . ": " . $e->getMessage());
+        }
     }
 
     public function money_request()
     {
         $requests = DifferentAccountPayment::where('status', 0)->orderBy('id', 'DESC')->get();
-
-
-
-
         return view('different-account.requested-money-list', compact('requests'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = DifferentAccountPayment::find($id);
+            $payment->status = 1;
+            $payment->update();
 
-        $payment = DifferentAccountPayment::find($id);
+            // Accounting Posting
+            $this->postPaymentToAccounting($payment);
 
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " مبلغ " . $payment->amount . " دالر توسط سوپر ادمین تایید و در سیستم مالی ثبت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment->status = 1 ;
-        $payment->update();
-
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-
-            $activity->description = " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد ";
-
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
-    }
-    public function delete_request($id){
-        $credit = DifferentAccountPayment::find($id);
-
-
-        $credit->delete();
-
-
-        return response()->json(['status','error']);
+            return response()->json(['status' => 'success']);
+        });
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function delete_request($id)
     {
-        //
+        $payment = DifferentAccountPayment::find($id);
+        $payment->delete();
+        return response()->json(['status', 'error']);
     }
 
     /**
@@ -85,124 +81,42 @@ class DifferentAccountPaymentController extends Controller
      */
     public function store(Request $request)
     {
-
-        if ($request->type == 'گرفت') {
-            $received_data = $request->validate([
+        return DB::transaction(function () use ($request) {
+            $data = $request->validate([
                 'amount' => 'required',
                 'description' => 'required',
                 'date' => 'required',
-                'insert_credit' => '',
-                'type' => '',
-                'account_id' => '',
-                'status' =>''
-
-
+                'type' => 'required',
+                'account_id' => 'required',
             ]);
-            if (Auth::user()->role == 'SP'){
-                $received_data['status'] = 1;
-            }
-            else{
-                $received_data['status'] = 0;
-            }
-            $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-            if (!$totalUpdate) {
-                $total = new DifferentAccountTotal();
-                $total->total = 0;
-                $total->account_id = $request->account_id;
-                $total->paid = $total->paid + $request->amount;
-                $total->remaining = $total->total - $total->paid;
-                $total->save();
 
-                $account = DifferentAccount::find($request->account_id);
+            $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
+            
+            $payment = DifferentAccountPayment::create($data);
 
+            // Update Totals
+            $totalUpdate = DifferentAccountTotal::firstOrNew(['account_id' => $request->account_id]);
+            if ($request->type == 'گرفت') {
+                $totalUpdate->paid += $request->amount;
             } else {
-                $totalUpdate->paid = $totalUpdate->paid + $request->amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
-
+                $totalUpdate->total += $request->amount;
             }
+            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
+            $totalUpdate->save();
 
-
-            $payed = DifferentAccountPayment::create($received_data);
+            if ($payment->status == 1) {
+                $this->postPaymentToAccounting($payment);
+            }
 
             $account = DifferentAccount::find($request->account_id);
-
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " حساب متفرقه به نام " . $account->name . ' اکونت نمبر '. $account->id. " مبلغ " . $request->amount . 'دالر گرفت کرد ';
+            $activity->description = " حساب متفرقه: " . $account->name . " مبلغ " . $request->amount . " " . $request->type . " ثبت شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-
-            if ($payed) {
-                return redirect()->back()->with('status', 'گرفت موفقانه ثبت شد !');
-            } else {
-                return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-            }
-        } else {
-            $payment_data = $request->validate([
-                'amount' => 'required',
-                'description' => 'required',
-                'date' => 'required',
-                'insert_credit' => '',
-                'type' => '',
-                'account_id' => '',
-                'status' =>''
-
-
-            ]);
-            if (Auth::user()->role == 'SP'){
-                $payment_data['status'] = 1;
-            }
-            else{
-                $payment_data['status'] = 0;
-            }
-            $payment = DifferentAccountPayment::create($payment_data);
-
-            $account = DifferentAccount::find($request->account_id);
-
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " حساب متفرقه به نام " . $account->name . ' اکونت نمبر '. $account->id. " مبلغ " . $request->amount . 'دالر رسید کرد ';
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-
-            $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-            if (!$totalUpdate) {
-                $total = new DifferentAccountTotal();
-                $total->total = $request->amount;
-                $total->account_id = $request->account_id;
-                $total->paid = 0;
-                $total->remaining = $total->total - $total->paid;
-                $total->save();
-
-
-            } else {
-                $totalUpdate->total = $totalUpdate->total + $request->amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
-
-
-            }
-        }
-
-
-        if ($payment) {
-            return redirect()->back()->with('status', 'رسید موفقانه ثبت شد !');
-        } else {
-            return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-        }
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\DifferentAccountPayment $differentAccountPayment
-     * @return \Illuminate\Http\Response
-     */
-    public function show(DifferentAccountPayment $differentAccountPayment)
-    {
-        //
+            return redirect()->back()->with('status', 'تراکنش با موفقیت ثبت و در سیستم مالی درج گردید!');
+        });
     }
 
     /**
@@ -213,19 +127,13 @@ class DifferentAccountPaymentController extends Controller
      */
     public function edit($id)
     {
-
-
-
-
-        $debits = DifferentAccountPayment::where('type', '=', 'گرفت')->where('account_id', $id)->where('status',1)->sum('amount');
-        $credits = DifferentAccountPayment::where('type', '=', 'رسید')->where('account_id', $id)->where('status',1)->sum('amount');
         $paymentEdit = DifferentAccountPayment::find($id);
+        $debits = DifferentAccountPayment::where('type', '=', 'گرفت')->where('account_id', $paymentEdit->account_id)->where('status',1)->sum('amount');
+        $credits = DifferentAccountPayment::where('type', '=', 'رسید')->where('account_id', $paymentEdit->account_id)->where('status',1)->sum('amount');
         $payments = DifferentAccountPayment::where('account_id', $paymentEdit->account_id)->orderBy('created_at','DESC')->paginate(30);
-        $account = DifferentAccount::where('id', '=', $paymentEdit->account_id)->first();
+        $account = DifferentAccount::find($paymentEdit->account_id);
         $total = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->sum('total');
         return view('different-account.account-payment', compact('account', 'payments', 'total', 'debits', 'credits', 'paymentEdit'));
-
-
     }
 
     /**
@@ -237,68 +145,54 @@ class DifferentAccountPaymentController extends Controller
      */
     public function update(Request $request, DifferentAccountPayment $differentAccountPayment)
     {
+        return DB::transaction(function () use ($request, $differentAccountPayment) {
+            $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'type' => 'required',
+                'account_id' => 'required'
+            ]);
 
-        $payment_data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'insert_credit' => '',
-            'type' => '',
-            'account_id' => ''
+            // Reversal
+            if ($differentAccountPayment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($differentAccountPayment->id, 'Different Account Record Edited');
+            }
 
-        ]);
-
-
-        if ($request->type == 'گرفت') {
-            if ($request->old_type == 'گرفت') {
-                /** Updating total account agent */
-                $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-                $totalUpdate->paid = $totalUpdate->paid + $request->amount - $request->old_amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
+            // Update Totals (subtract old)
+            $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
+            if ($differentAccountPayment->type == 'گرفت') {
+                $totalUpdate->paid -= $differentAccountPayment->amount;
             } else {
-                $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-                $totalUpdate->total = $totalUpdate->total - $request->old_amount;
-                $totalUpdate->paid = $totalUpdate->paid + $request->amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
+                $totalUpdate->total -= $differentAccountPayment->amount;
             }
 
+            // Update record
+            $differentAccountPayment->update($request->all());
 
-        } else {
-            if ($request->old_type == 'رسید') {
-                $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-
-                $totalUpdate->total = $totalUpdate->total + $request->amount - $request->old_amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
+            // Add new amounts to totals
+            if ($request->type == 'گرفت') {
+                $totalUpdate->paid += $request->amount;
+            } else {
+                $totalUpdate->total += $request->amount;
             }
-            else{
-                $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-                $totalUpdate->paid = $totalUpdate->paid - $request->old_amount;
-                $totalUpdate->total = $totalUpdate->total + $request->amount;
-                $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-                $totalUpdate->update();
+            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
+            $totalUpdate->update();
+
+            // Re-post if approved
+            if ($differentAccountPayment->status == 1) {
+                $this->postPaymentToAccounting($differentAccountPayment);
             }
-        }
 
+            $account = DifferentAccount::find($request->account_id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " ویرایش تراکنش حساب متفرقه: " . $account->name . " به مبلغ " . $request->amount;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment = $differentAccountPayment->update($payment_data);
-
-        $account = DifferentAccount::find($request->account_id);
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " حساب متفرقه به نام " . $account->name .  ' اکونت نمبر '. $account->id. " مبلغ " . $request->amount . 'دالر ویرایش شد  ';
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        if ($payment) {
-            return redirect()->to('/dashboard/different-account/' . $request->account_id)->with('status', '  رسید پول موفقانه بروز شد !');
-        } else {
-            return redirect()->to('/dashboard/different-account/' . $request->account_id)->with('error', 'مشکل در سرور وجود داره!');
-        }
+            return redirect()->to('/dashboard/different-account/' . $request->account_id)->with('status', 'تراکنش با موفقیت بروزرسانی شد!');
+        });
     }
 
     /**
@@ -307,8 +201,28 @@ class DifferentAccountPaymentController extends Controller
      * @param  \App\DifferentAccountPayment $differentAccountPayment
      * @return \Illuminate\Http\Response
      */
-    public function destroy(DifferentAccountPayment $differentAccountPayment)
+    public function destroy($id)
     {
-        //
+        return DB::transaction(function () use ($id) {
+            $payment = DifferentAccountPayment::find($id);
+
+            // Reversal
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Different Account Record Deleted');
+            }
+
+            // Update Totals
+            $totalUpdate = DifferentAccountTotal::where('account_id', $payment->account_id)->first();
+            if ($payment->type == 'گرفت') {
+                $totalUpdate->paid -= $payment->amount;
+            } else {
+                $totalUpdate->total -= $payment->amount;
+            }
+            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
+            $totalUpdate->update();
+
+            $payment->delete();
+            return response()->json(['status' => 'success']);
+        });
     }
 }

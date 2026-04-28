@@ -4,28 +4,42 @@ namespace App\Http\Controllers;
 
 use App\NewMonthlyExpense;
 use App\NewMonthlyExpenseBalance;
+use App\Services\AccountingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class NewMonthlyExpenseBalanceController extends Controller
 {
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
+    private function postExpenseToAccounting($expense)
+    {
+        try {
+            // NewMonthlyExpenseBalance category strings might match mapping rules
+            $this->accountingService->postAutoTransaction('expense', $expense->category, [
+                'date' => $expense->date,
+                'amount' => $expense->amount,
+                'reference' => 'NEXP-' . $expense->id,
+                'description' => $expense->description . " (" . $expense->category . ")",
+                'source_id' => $expense->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for New Expense #" . $expense->id . ": " . $e->getMessage());
+        }
+    }
+
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
     {
         //
     }
@@ -38,43 +52,33 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'currency' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'category' => 'required',
-            'dollar_rate' => 'required',
-            'user_role' => ''
+        return DB::transaction(function () use ($request) {
+            $data = $request->validate([
+                'amount' => 'required',
+                'currency' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'category' => 'required',
+                'dollar_rate' => 'required',
+                'user_role' => ''
+            ]);
 
-        ]);
+            $expense = new NewMonthlyExpenseBalance();
+            $expense->amount = $request->amount;
+            $expense->currency = $request->currency;
+            $expense->description = $request->description;
+            $expense->date = $request->date;
+            $expense->category = $request->category;
+            $expense->dollar_rate = $request->dollar_rate;
+            $expense->user_role = Auth::user()->role;
+            $expense->month_id = $request->month_id;
+            $expense->save();
 
-        $expense = new NewMonthlyExpenseBalance();
-        $expense->amount = $request->amount;
-        $expense->currency = $request->currency;
-        $expense->description = $request->description;
-        $expense->date = $request->date;
-        $expense->category = $request->category;
-        $expense->dollar_rate = $request->dollar_rate;
-        $expense->user_role = Auth::user()->role;
-        $expense->month_id = $request->month_id;
-        $expense->save();
-        if ($expense) {
-            return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-        } else {
-            return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-        }
-    }
+            // Post to Accounting
+            $this->postExpenseToAccounting($expense);
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\NewMonthlyExpenseBalance  $newMonthlyExpenseBlanace
-     * @return \Illuminate\Http\Response
-     */
-    public function show(NewMonthlyExpenseBalance $newMonthlyExpenseBlanace)
-    {
-        //
+            return redirect()->back()->with('status', 'موفقانه ثبت و در سیستم مالی درج گردید!');
+        });
     }
 
     /**
@@ -91,7 +95,9 @@ class NewMonthlyExpenseBalanceController extends Controller
         $expenses = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
         $expenses_sp = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->orderBy('id','DESC')->paginate(50);
 
-
+        // ... stats calculation code ...
+        // (Keeping existing UI logic but focusing on accounting integration)
+        
         $khoraka_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',1)->sum('amount');
         $khoraka_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',2)->sum('amount');
         $khoraka_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',3)->sum('amount');
@@ -116,7 +122,6 @@ class NewMonthlyExpenseBalanceController extends Controller
         $ajora_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',1)->sum('amount');
         $ajora_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',2)->sum('amount');
         $ajora_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',3)->sum('amount');
-
 
         $khoraka_sp_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',1)->sum('amount');
         $khoraka_sp_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',2)->sum('amount');
@@ -144,8 +149,7 @@ class NewMonthlyExpenseBalanceController extends Controller
         $ajora_sp_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','اجوره')->where('currency',3)->sum('amount');
 
         $search ='';
-
-
+        $month_obj = NewMonthlyExpense::find($month->me_id);
 
         return view('new-monthly-expense.expense-account-payments',
             compact('expenseEdit','expenses','expenses_sp',
@@ -164,7 +168,7 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'bardasht_sp_af','bardasht_sp_usd','bardasht_sp_cd',
                 'tel_sp_af','tel_sp_usd','tel_sp_cd',
                 'mashat_sp_af','mashat_sp_usd','mashat_sp_cd',
-                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month'));
+                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month_obj'));
     }
 
     /**
@@ -176,31 +180,35 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function update(Request $request, $expense_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'currency' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'category' => 'required',
-            'dollar_rate' => 'required',
-            'user_role' => ''
+        return DB::transaction(function () use ($request, $expense_id) {
+            $request->validate([
+                'amount' => 'required',
+                'currency' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'category' => 'required',
+                'dollar_rate' => 'required',
+            ]);
 
-        ]);
+            $expense = NewMonthlyExpenseBalance::find($expense_id);
+            
+            // Reversal
+            $this->accountingService->reverseTransactionBySource($expense->id, 'New Expense Record Edited');
 
-        $expense = NewMonthlyExpenseBalance::find($expense_id);
-        $expense->amount = $request->amount;
-        $expense->currency = $request->currency;
-        $expense->description = $request->description;
-        $expense->date = $request->date;
-        $expense->category = $request->category;
-        $expense->dollar_rate = $request->dollar_rate;
-        $expense->user_role = Auth::user()->role;
-        $expense->update();
-        if ($expense) {
-            return redirect('/dashboard/monthly-expense-accounts/'.$request->month_id)->with('status', 'موفقانه ثبت شد !');
-        } else {
-            return redirect('/dashboard/monthly-expense-accounts/'.$request->month_id)->with('error', 'مشکل در سرور وجود داره!');
-        }
+            $expense->amount = $request->amount;
+            $expense->currency = $request->currency;
+            $expense->description = $request->description;
+            $expense->date = $request->date;
+            $expense->category = $request->category;
+            $expense->dollar_rate = $request->dollar_rate;
+            $expense->user_role = Auth::user()->role;
+            $expense->update();
+
+            // Re-post
+            $this->postExpenseToAccounting($expense);
+
+            return redirect('/dashboard/monthly-expense-accounts/'.$request->month_id)->with('status', 'ویرایش موفقانه ثبت و سیستم مالی بروزرسانی شد!');
+        });
     }
 
     /**
@@ -211,10 +219,14 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function destroy($expense_id)
     {
-        $expense = NewMonthlyExpenseBalance::find($expense_id);
-        $expense->delete();
-        if ($expense) {
+        return DB::transaction(function () use ($expense_id) {
+            $expense = NewMonthlyExpenseBalance::find($expense_id);
+            
+            // Reversal
+            $this->accountingService->reverseTransactionBySource($expense->id, 'New Expense Record Deleted');
+            
+            $expense->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

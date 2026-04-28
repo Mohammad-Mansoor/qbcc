@@ -8,51 +8,59 @@ use App\DifferentAccountTotal;
 use App\OfficeCredit;
 use App\OfficeCashBook;
 use App\OfficeDebit;
+use App\Services\AccountingService;
 use Carbon\Carbon;
-use const http\Client\Curl\AUTH_ANY;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
 
 class OfficeCreditController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
+    private function postCreditToAccounting($credit)
+    {
+        try {
+            $this->accountingService->postAutoTransaction('office_credit', 'deposit', [
+                'date' => $credit->date,
+                'amount' => $credit->amount,
+                'reference' => 'OFF-CRED-' . $credit->id,
+                'description' => 'تزریق سرمایه به دخل (Cash Injection): ' . $credit->description,
+                'source_id' => $credit->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Office Credit #" . $credit->id . ": " . $e->getMessage());
+        }
+    }
+
     public function index()
     {
         $creditEdit = "";
-        /** list credits from three type user */
         $center_credits = OfficeCredit::where('user_role','CO')->orWhere('user_role','CCO')->orderBy('id', 'DESC')->get();
         $froshat_credits = OfficeCredit::where('user_role','SO')->orWhere('user_role','SCO')->orderBy('id', 'DESC')->get();
         $sp_credits = OfficeCredit::where('user_role','SP')->orderBy('id', 'DESC')->get();
-        /** end list three type user credit */
 
-        /** show credits of two center and sales office */
         $other_user = OfficeCredit::where('user_role', '!=', 'SP')->where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
-        /** end two type user credits list */
-
-
-        /** show total credits of three type user */
+        
         $center_total = OfficeCredit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
         $froshat_total = OfficeCredit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
         $sp_total = OfficeCredit::where('user_role', '=', 'SP')->sum('amount');
-        /** end credit of three type users */
 
         $cashbook = OfficeCashBook::count();
         $cash = '';
 
-        /** list debits from three type user */
         $center_debits = OfficeDebit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
         $froshat_debits = OfficeDebit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
         $sp_debits = OfficeDebit::where('user_role', '=', 'SP')->sum('amount');
-        /** end list three type user debits */
-        /** balance of so and co office */
+
         $so_cashbook = OfficeCashBook::where('user_role','SO')->orWhere('user_role','SCO')->sum('balance');
         $co_cashbook = OfficeCashBook::where('user_role','CO')->orWhere('user_role','CCO')->sum('balance');
-        /** end balance of so and CO office */
+
         if ($cashbook > 0) {
             $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
         }
@@ -62,282 +70,242 @@ class OfficeCreditController extends Controller
     public function money_request()
     {
         $credits = OfficeCredit::where('user_role', '!=', 'SP')->where('status', 0)->orderBy('id', 'DESC')->get();
-
         return view('office-cash-book.requested-money-list', compact('credits'));
     }
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $credit = OfficeCredit::find($id);
 
-        $credit = OfficeCredit::find($id);
+            $sp_cashbook = OfficeCashBook::where('user_role','SP')->first();
+            $user_cashbook = OfficeCashBook::where('user_role',$credit->user_role)->first();
 
-        $sp_cashbook = OfficeCashBook::where('user_role','SP')->first();
-        $user_cashbook = OfficeCashBook::where('user_role',$credit->user_role)->first();
+            if ($sp_cashbook->balance < $credit->amount){
+                return response()->json(['status' => 'error']);
+            }
+            else{
+                $sp_cashbook->balance = $sp_cashbook->balance - $credit->amount;
+                $sp_cashbook->update();
+                $user_cashbook->balance = $user_cashbook->balance + $credit->amount;
+                $user_cashbook->update();
+                
+                $activity = new Activity();
+                $activity->date = Carbon::today()->format('Y-m-d');
+                $activity->description = " مبلغ " . $credit->amount . " توسط سوپر ادمین اپروف شد ";
+                $activity->user_id = Auth::user()->id;
+                $activity->save();
+            }
 
-        if ($sp_cashbook->balance < $credit->amount){
-            return response()->json(['status' => 'error']);
-        }
-        else{
+            $debit = new OfficeDebit();
+            if ($credit->user_role == 'CO' || $credit->user_role == 'CCO'){
+                $debit->name =  '  مصارف کاربر دفتر مرکزی ';
+            }
+            else{
+                $debit->name =  '  مصارف کاربر دفتر فروشات ';
+            }
 
-            $sp_cashbook->balance = $sp_cashbook->balance - $credit->amount;
-            $sp_cashbook->update();
-            $user_cashbook->balance = $user_cashbook->balance + $credit->amount;
-            $user_cashbook->update();
-            
-             $activity = new Activity();
+            $debit->amount = $credit->amount;
+            $debit->description = $credit->description;
+            $debit->date = $credit->date;
+            $debit->expense_type = 'مصرف دفاتر';
+            $debit->expense_for_where = 'مصرف دفاتر';
+            $debit->user_role = 'SP';
+            $debit->credit_id = $id;
+            $debit->save();
+
+            $credit->status = 1 ;
+            $credit->update();
+            return response()->json(['status' => 'success']);
+        });
+    }
+
+    public function delete_request($id){
+        return DB::transaction(function () use ($id) {
+            $credit = OfficeCredit::find($id);
+            $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " مبلغ " . $credit->amount . " توسط سوپر ادمین اپروف شد ";
+            $activity->description = " مبلغ " . $credit->amount . " که درخواست شده بود  توسط سوپر ادمین رد شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
-        }
-
-
-
-
-        $debit = new OfficeDebit();
-        if ($credit->user_role == 'CO' || $credit->user_role == 'CCO'){
-            $debit->name =  '  مصارف کاربر دفتر مرکزی ';
-        }
-        else{
-            $debit->name =  '  مصارف کاربر دفتر فروشات ';
-        }
-
-
-        $debit->amount = $credit->amount;
-        $debit->description = $credit->description;
-        $debit->date = $credit->date;
-        $debit->expense_type = 'مصرف دفاتر';
-        $debit->expense_for_where = 'مصرف دفاتر';
-        $debit->user_role = 'SP';
-        $debit->credit_id = $id;
-        $debit->save();
-
-        $credit->status = 1 ;
-        $credit->update();
-        return response()->json(['status' => 'success']);
-
-    }
-    public function delete_request($id){
-        $credit = OfficeCredit::find($id);
-         $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " مبلغ " . $credit->amount . " که درخواست شده بود  توسط سوپر ادمین رد شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        $credit->delete();
-        return response()->json(['status','error']);
+            $credit->delete();
+            return response()->json(['status','error']);
+        });
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function create()
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'user_role' => '',
-            'status' => ''
+        return DB::transaction(function () use ($request) {
+            $data = $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+            ]);
+            $data['user_role'] = Auth::user()->role;
+            $data['status'] = 0;
 
-        ]);
-        $data['user_role'] = Auth::user()->role;
-        $data['status'] = 0;
+            if (Auth::user()->role != 'SP') {
+                $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
+                $sp_cashbook = OfficeCashBook::where('user_role', 'SP')->first();
 
-
-        if (Auth::user()->role != 'SP') {
-            $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
-            $sp_cashbook = OfficeCashBook::where('user_role', 'SP')->first();
-
-            if (!$sp_cashbook) {
-                return back()->with('error', 'دخل عمومی هنوز ثبت نشده است !');
-            } else {
-                if ($sp_cashbook->balance == 0) {
-                    return back()->with('error', 'پول در دخل عمومی موجود نیست');
+                if (!$sp_cashbook) {
+                    return back()->with('error', 'دخل عمومی هنوز ثبت نشده است !');
                 } else {
-                    if ($request->amount > $sp_cashbook->balance) {
-                        return back()->with('error', 'پول خواسته از پول دخل عمومی زیاد است ');
+                    if ($sp_cashbook->balance == 0) {
+                        return back()->with('error', 'پول در دخل عمومی موجود نیست');
                     } else {
-                        $credit = officeCredit::create($data);
-                        if (!$cashbook) {
-                            $cash = new OfficeCashBook();
-                            $cash->balance = 0;
-                            $cash->user_role = Auth::user()->role;
-                            $cash->save();
+                        if ($request->amount > $sp_cashbook->balance) {
+                            return back()->with('error', 'پول خواسته از پول دخل عمومی زیاد است ');
+                        } else {
+                            $credit = OfficeCredit::create($data);
+                            if (!$cashbook) {
+                                $cash = new OfficeCashBook();
+                                $cash->balance = 0;
+                                $cash->user_role = Auth::user()->role;
+                                $cash->save();
+                            }
                         }
-
-
-//
                     }
                 }
-
-            }
-        } else {
-            $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
-            if (!$cashbook) {
-                $cash = new OfficeCashBook();
-                $cash->balance = $request->amount;
-                $cash->user_role = Auth::user()->role;
-                $cash->save();
             } else {
+                $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
+                if (!$cashbook) {
+                    $cash = new OfficeCashBook();
+                    $cash->balance = $request->amount;
+                    $cash->user_role = Auth::user()->role;
+                    $cash->save();
+                } else {
+                    $cashbook->balance = $cashbook->balance + $request->amount;
+                    $cashbook->update();
+                }
+                $data['status'] = 1;
+                $credit = OfficeCredit::create($data);
+                
+                // Accounting Posting (Only when SP adds generic cash)
+                $this->postCreditToAccounting($credit);
 
-                $cashbook->balance = $cashbook->balance + $request->amount;
-                $cashbook->update();
+                $activity = new Activity();
+                $activity->date = Carbon::today()->format('Y-m-d');
+                $activity->description = " مبلغ " . $request->amount . "  دخل شد ";
+                $activity->user_id = Auth::user()->id;
+                $activity->save();
             }
-            $credit = officeCredit::create($data);
-            
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " مبلغ " . $request->amount . "  دخل شد ";
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-        }
 
-        if ($credit) {
-            if (Auth::user()->role == 'SP') {
-                return redirect('/dashboard/add-office-credit')->with('status', 'مقدار پول موفقانه ثبت شد !');
+            if ($credit) {
+                if (Auth::user()->role == 'SP') {
+                    return redirect('/dashboard/add-office-credit')->with('status', 'مقدار پول موفقانه در دخل و روزنامچه مالی ثبت شد!');
+                } else {
+                    return redirect('/dashboard/add-office-credit')->with('status', 'درخواست شما موفقانه ارسال شد تا تایید ان منتظر بمانید !');
+                }
             } else {
-                return redirect('/dashboard/add-office-credit')->with('status', 'درخواست شما موفقانه ارسال شد تا تایید ان منتظر بمانید !');
+                return redirect('/dashboard/add-office-credit')->with('error', 'مشکل در سرور وجود داره!');
             }
-
-        } else {
-            return redirect('/dashboard/add-office-credit')->with('error', 'مشکل در سرور وجود داره!');
-        }
+        });
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\OfficeCredit $officeCredit
-     * @return \Illuminate\Http\Response
-     */
     public function show(OfficeCredit $officeCredit)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\OfficeCredit $officeCredit
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id)
     {
-        $creditEdit = officeCredit::find($id);
-        /** list credits from three type user */
+        $creditEdit = OfficeCredit::find($id);
+        
         $center_credits = OfficeCredit::where('user_role','CO')->orWhere('user_role','CCO')->orderBy('id', 'DESC')->get();
         $froshat_credits = OfficeCredit::where('user_role','SO')->orWhere('user_role','SCO')->orderBy('id', 'DESC')->get();
         $sp_credits = OfficeCredit::where('user_role','SP')->orderBy('id', 'DESC')->get();
-        /** end list three type user credit */
 
-        /** show credits of two center and sales office */
         $other_user = OfficeCredit::where('user_role', '!=', 'SP')->where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
-        /** end two type user credits list */
 
-
-        /** show total credits of three type user */
         $center_total = OfficeCredit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
         $froshat_total = OfficeCredit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
         $sp_total = OfficeCredit::where('user_role', '=', 'SP')->sum('amount');
-        /** end credit of three type users */
 
         $cashbook = OfficeCashBook::count();
         $cash = '';
 
-        /** list debits from three type user */
         $center_debits = OfficeDebit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
         $froshat_debits = OfficeDebit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
         $sp_debits = OfficeDebit::where('user_role', '=', 'SP')->sum('amount');
-        /** end list three type user debits */
-        /** balance of so and co office */
+        
         $so_cashbook = OfficeCashBook::where('user_role','SO')->orWhere('user_role','SCO')->sum('balance');
         $co_cashbook = OfficeCashBook::where('user_role','CO')->orWhere('user_role','CCO')->sum('balance');
-        /** end balance of so and CO office */
+        
         if ($cashbook > 0) {
             $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
         }
         return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook'));
-
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  \App\OfficeCredit $officeCredit
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
-        $credit = officeCredit::find($id);
+        return DB::transaction(function () use ($request, $id) {
+            $credit = OfficeCredit::find($id);
+            $sp = OfficeCashBook::where('user_role', 'SP')->first();
 
-        $ca = OfficeCashBook::where('user_role', Auth::user()->role)->first();
+            if (Auth::user()->role == 'SP') {
+                $sp->balance = $sp->balance - $credit->amount + $request->amount;
+                $sp->update();
+            }
 
-        $sp = OfficeCashBook::where('user_role', 'SP')->first();
+            if ($sp->balance  < $request->amount){
+                return back()->with('error', 'پول خواسته از پول دخل عمومی زیاد است ');
+            } else {
+                // Reversal
+                if (Auth::user()->role == 'SP' && $credit->status == 1) {
+                    $this->accountingService->reverseTransactionBySource($id, 'Office Credit Edited');
+                }
 
-        if (Auth::user()->role == 'SP') {
-            $sp->balance = $sp->balance - $credit->amount + $request->amount;
-            $sp->update();
-        }
+                $credit->amount = $request->amount;
+                $credit->description = $request->description;
+                $credit->date = $request->date;
+                $credit->update();
+                
+                // Repost
+                if (Auth::user()->role == 'SP' && $credit->status == 1) {
+                    $this->postCreditToAccounting($credit);
+                }
 
+                $activity = new Activity();
+                $activity->date = Carbon::today()->format('Y-m-d');
+                $activity->description = " مبلغ " . $request->amount . "  دخل شده ویرایش شد ";
+                $activity->user_id = Auth::user()->id;
+                $activity->save();
+            }
 
-
-        if ($sp->balance  < $request->amount){
-            return back()->with('error', 'پول خواسته از پول دخل عمومی زیاد است ');
-        }
-        else {
-
-            $credit->amount = $request->amount;
-            $credit->description = $request->description;
-            $credit->date = $request->date;
-            $credit->update();
-            
-              $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " مبلغ " . $request->amount . "  دخل شده ویرایش شد ";
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
-        }
-
-        return redirect('/dashboard/add-office-credit')->with('status', 'موفقانه بروز شد');
+            return redirect('/dashboard/add-office-credit')->with('status', 'موفقانه بروز و در روزنامچه ثبت گردید');
+        });
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\OfficeCredit $officeCredit
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        $credit = officeCredit::find($id);
-        
-          $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " مبلغ " . $credit->amount . "  دخل شده حذف شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();        
-        
-        $ca = OfficeCashBook::find(1);
-        $ca->balance = $ca->balance - $credit->amount;
-        $ca->save();
-        $credit->delete();
-        if ($credit) {
+        return DB::transaction(function () use ($id) {
+            $credit = OfficeCredit::find($id);
+            
+            // Reversal
+            if ($credit->user_role == 'SP' && $credit->status == 1) {
+                $this->accountingService->reverseTransactionBySource($id, 'Office Credit Deleted');
+            }
+
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " مبلغ " . $credit->amount . "  دخل شده حذف شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();        
+            
+            $ca = OfficeCashBook::where('user_role', 'SP')->first();
+            if ($ca) {
+                $ca->balance = $ca->balance - $credit->amount;
+                $ca->save();
+            }
+            $credit->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }
