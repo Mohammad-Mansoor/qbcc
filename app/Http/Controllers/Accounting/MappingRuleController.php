@@ -11,6 +11,16 @@ class MappingRuleController extends Controller
 {
     public function index()
     {
+        // Auto-heal: If the tables are empty (like on a fresh production server), 
+        // seed the default skeleton structure automatically so the UI isn't blank.
+        if (\App\ChartOfAccount::count() == 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'ChartOfAccountsSeeder']);
+        }
+
+        if (\App\MappingRule::count() == 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'MappingRulesSeeder']);
+        }
+
         $rules = MappingRule::with(['debitAccount', 'creditAccount'])->get();
         $accounts = ChartOfAccount::orderBy('account_code')->get();
 

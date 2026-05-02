@@ -34,6 +34,35 @@ class Handler extends ExceptionHandler
      */
     public function report(Exception $exception)
     {
+        if ($exception instanceof \Illuminate\Database\QueryException) {
+            $message = $exception->getMessage();
+            if (strpos($message, 'SQLSTATE[42S22]') !== false || strpos($message, 'Unknown column') !== false) {
+                $sql = $exception->getSql();
+                
+                $missingColumn = 'Unknown';
+                if (preg_match("/Unknown column '([^']+)'/", $message, $matches)) {
+                    $missingColumn = $matches[1];
+                }
+                
+                $table = 'Unknown';
+                if (preg_match("/(?:from|into|update)\s+`?([^`\s]+)`?/i", $sql, $matches)) {
+                    $table = $matches[1];
+                }
+
+                $logFile = storage_path('logs/missing_columns.log');
+                
+                $logData = str_repeat("-", 35) . "\n"
+                         . "[" . now()->format('Y-m-d H:i:s') . "]\n\n"
+                         . "URL: " . request()->fullUrl() . "\n"
+                         . "Method: " . request()->method() . "\n\n"
+                         . "Table: " . $table . "\n"
+                         . "Missing Column: " . $missingColumn . "\n\n"
+                         . "SQL:\n" . $sql . "\n\n";
+                         
+                file_put_contents($logFile, $logData, FILE_APPEND);
+            }
+        }
+
         parent::report($exception);
     }
 

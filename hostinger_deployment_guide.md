@@ -7,11 +7,11 @@ This guide will walk you through deploying your Laravel application to a Hosting
 ## Step 1: Prepare Your Files Locally
 Before uploading anything, we need to prepare the project folder.
 
-1. **Clear Caches:** In your local terminal, run these commands to ensure no local paths are cached:
+1. **Clear Caches:** In your local terminal, run these commands to ensure no local paths are cached (using your XAMPP PHP path since your system's default PHP 8.3 is incompatible with Laravel 6):
    ```bash
-   php artisan config:clear
-   php artisan cache:clear
-   php artisan view:clear
+   /opt/lampp/bin/php artisan config:clear
+   /opt/lampp/bin/php artisan cache:clear
+   /opt/lampp/bin/php artisan view:clear
    ```
 2. **Zip the Project:** Compress your entire `public_html` folder into a zip file (e.g., `project.zip`). 
    * **Why?** Uploading a single ZIP file to Hostinger is hundreds of times faster than uploading thousands of individual PHP files.

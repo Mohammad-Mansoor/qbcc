@@ -666,3 +666,6 @@ Route::get('/logout', function () {
     return Redirect::to('/');
 })->name('logout');
 
+Route::get('/test-missing-column', function () {
+    return \Illuminate\Support\Facades\DB::select("select non_existent_column from carpets");
+});
