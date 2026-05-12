@@ -10,4 +10,9 @@ class CustomerPayment extends Model
     public function agent(){
         return $this->belongsTo(Customer::class,'customer_id','id');
     }
+
+    public function order()
+    {
+        return $this->belongsTo(CustomerOrder::class, 'order_id', 'co_id');
+    }
 }

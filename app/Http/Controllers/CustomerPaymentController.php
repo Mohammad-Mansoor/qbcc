@@ -18,10 +18,18 @@ use App\ChartOfAccount;
 class CustomerPaymentController extends Controller
 {
     protected $accountingService;
+    protected $invoiceService;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, \App\Services\InvoiceService $invoiceService)
     {
         $this->accountingService = $accountingService;
+        $this->invoiceService = $invoiceService;
+    }
+
+    public function get_outstanding_invoices(Request $request)
+    {
+        $invoices = $this->invoiceService->getOutstandingInvoices($request->customer_id);
+        return response()->json(['invoices' => $invoices]);
     }
 
     /**
@@ -34,7 +42,7 @@ class CustomerPaymentController extends Controller
         //
     }
 
-    private function postPaymentToAccounting($payment)
+    private function postPaymentToAccounting($payment, $overrides = [])
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
@@ -48,9 +56,14 @@ class CustomerPaymentController extends Controller
                 'reference' => 'PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
+                'override_debit_account_id' => $overrides['override_debit_account_id'] ?? $payment->override_debit_account_id ?? null,
+                'override_credit_account_id' => $overrides['override_credit_account_id'] ?? $payment->override_credit_account_id ?? null,
             ]);
             
             $payment->ledger_transaction_id = $transaction->id;
+            // Also store overrides on the payment record for future reference/reversal
+            $payment->override_debit_account_id = $overrides['override_debit_account_id'] ?? null;
+            $payment->override_credit_account_id = $overrides['override_credit_account_id'] ?? null;
             $payment->save();
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Payment #" . $payment->id . ": " . $e->getMessage());
@@ -136,7 +149,39 @@ class CustomerPaymentController extends Controller
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->save();
+
+            // Handle Invoice Allocations with strict validation
+            if ($request->has('allocations')) {
+                $totalAllocated = 0;
+                foreach ($request->allocations as $invoiceId => $amount) {
+                    if ($amount > 0) {
+                        $invoice = \App\Invoice::with(['sale', 'payments'])->find($invoiceId);
+                        $totalAmount = $invoice->sale->sum('sale_cost_total');
+                        $paidAmount = $invoice->payments->sum('amount_applied');
+                        $remaining = $totalAmount - $paidAmount;
+
+                        if ($amount > ($remaining + 0.01)) { // Allow for minor rounding
+                            throw new \Exception("مقدار تخصیص داده شده به انوایس #$invoice->invoice_no ($amount) از باقی مانده انوایس ($remaining) بیشتر است.");
+                        }
+
+                        \App\InvoicePayment::create([
+                            'payment_id' => $payed->id,
+                            'invoice_id' => $invoiceId,
+                            'amount_applied' => $amount,
+                        ]);
+                        $totalAllocated += $amount;
+                    }
+                }
+
+                // Rule: Allocation Sum Validation (Optional: allow unallocated if business rules permit, 
+                // but here we enforce strict match if any allocation is provided)
+                if ($totalAllocated > 0 && abs($totalAllocated - $request->amount) > 0.01) {
+                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated) با مبلغ کل پرداخت ($request->amount) مطابقت ندارد.");
+                }
+            }
 
             // Accounting Posting (Only if approved)
             if ($payed->status == 1) {
@@ -173,7 +218,12 @@ class CustomerPaymentController extends Controller
         $paymentEdit = '';
         $invoice_numbers = Invoice::where('customer_id','=',$customer_id)->distinct()->get(['invoice_no']);
 
-        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+
+        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     public function show_all_payment($customer_id){
@@ -186,8 +236,13 @@ class CustomerPaymentController extends Controller
         $paymentEdit = '';
         $invoice_numbers = Invoice::where('customer_id','=',$customer_id)->distinct()->get(['invoice_no']);
     
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+
         $all = '';
-        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers','all'));
+        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -207,7 +262,13 @@ class CustomerPaymentController extends Controller
         $credit_af = CustomerPayment::where('type','=','رسید')->where('customer_id',$paymentEdit->customer_id)->where('status',1)->sum('amount_af');
         $invoice_numbers = Invoice::where('customer_id','=',$paymentEdit->customer_id)->distinct()->get(['invoice_no']);
     
-        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
+        $allowedDebitAccounts = $selectionService->getValidAccounts($mKey, 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
+
+        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -249,7 +310,38 @@ class CustomerPaymentController extends Controller
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
             }
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->update();
+
+            // Clear old allocations and re-apply new ones with strict validation
+            \App\InvoicePayment::where('payment_id', $payed->id)->delete();
+            if ($request->has('allocations')) {
+                $totalAllocated = 0;
+                foreach ($request->allocations as $invoiceId => $amount) {
+                    if ($amount > 0) {
+                        $invoice = \App\Invoice::with(['sale', 'payments'])->find($invoiceId);
+                        $totalAmount = $invoice->sale->sum('sale_cost_total');
+                        $paidAmount = $invoice->payments->sum('amount_applied');
+                        $remaining = $totalAmount - $paidAmount;
+
+                        if ($amount > ($remaining + 0.01)) {
+                            throw new \Exception("مقدار تخصیص داده شده به انوایس #$invoice->invoice_no ($amount) از باقی مانده انوایس ($remaining) بیشتر است.");
+                        }
+
+                        \App\InvoicePayment::create([
+                            'payment_id' => $payed->id,
+                            'invoice_id' => $invoiceId,
+                            'amount_applied' => $amount,
+                        ]);
+                        $totalAllocated += $amount;
+                    }
+                }
+
+                if ($totalAllocated > 0 && abs($totalAllocated - $request->amount) > 0.01) {
+                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated) با مبلغ کل پرداخت ($request->amount) مطابقت ندارد.");
+                }
+            }
 
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {

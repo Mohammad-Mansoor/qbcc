@@ -31,70 +31,84 @@
             <table class="table table-hover table-xs" id="dataTable">
               <thead>
               <tr>
-  
-                <th>فاکتور فروش</th>
-                <th>نام نماینده</th>
-                <th> مقدار مواد</th>
-                <th>قیمت فی کیلو</th>
-                <th>قیمت مجموع به افغانی</th>
-                <th>قیمت مجموع به دالر</th>
-                <th>کتگوری</th>
-                <th> نوعیت مواد</th>
-                <th> تاریخ</th>
-                <th class="hideOnPrint">تایید درخواست</th>
-                <th class="hideOnPrint">رد نمودن درخواست</th>
-                
-                <!-- <th>حذف</th> -->
+                <th>فاکتور</th>
+                <th>نماینده</th>
+                <th>گدام</th>
+                <th>مقدار (kg)</th>
+                <th>موجودی</th>
+                <th>قیمت مجموع (AFN)</th>
+                <th>مفاد تخمینی</th>
+                <th>نوعیت</th>
+                <th>تاریخ</th>
+                <th>حسابات</th>
+                <th class="hideOnPrint text-center">عملیات</th>
               </tr>
               </thead>
               <tbody>
-              
-              
-              
-              
-              @if($requests)
-  
+              @if($requests->count() > 0)
                 @foreach($requests as $material)
+                  @php
+                    $profit = $material->total_price_af - ($material->amount * $material->estimated_wac);
+                    $stockStatus = ($material->available_stock >= $material->amount) ? 'success' : 'danger';
+                  @endphp
                   <tr>
-                    <td>{{$material->sale_number}}</td>
-                    <td>{{$material->agent->user->name}}</td>
-                    <td>{{$material->amount . "kg"}}</td>
-                    <td>{{$material->price . "AFG"}}</td>
-                    <td>AF{{$material->total_price_af }}</td>
-                    <td>${{$material->total_price }}</td>
-                    <td>{{$material->category->material_category}}</td>
-                    <td>{{$material->type->material_type}}</td>
-                    <td>{{$material->date}}</td>
-      
-                   
-                    <td class="hideOnPrint">
-                      
-                      <button onclick="approveRequest({{$material->id}})" class="btn btn-info btn-sm"><i
-                                class="fa fa-tick"></i> تایید درخواست ؟
-                      </button>
+                    <td><span class="badge badge-light">{{$material->sale_number}}</span></td>
+                    <td><strong>{{$material->agent->user->name}}</strong></td>
+                    <td>{{$material->warehouse->name ?? 'گدام مرکزی'}}</td>
+                    <td>{{$material->amount}} kg</td>
+                    <td>
+                        <span class="badge badge-{{$stockStatus}}">
+                            {{ number_format($material->available_stock, 1) }} kg
+                        </span>
                     </td>
-                    
-                    <td class="hideOnPrint">
-                      
-                      <button onclick="deleteRequest({{$material->id}})" class="btn btn-danger btn-sm"><i
-                                class="fa fa-tick"></i> رد نمودن درخواست ؟
-                      </button>
+                    <td>AF{{ number_format($material->total_price_af, 2) }}</td>
+                    <td>
+                        <span class="text-{{ $profit >= 0 ? 'success' : 'danger' }} font-weight-bold">
+                            AF{{ number_format($profit, 2) }}
+                        </span>
+                        <br><small class="text-muted">WAC: {{ number_format($material->estimated_wac, 2) }}</small>
                     </td>
-                  
-                  
+                    <td>{{$material->category->material_category}} - {{$material->type->material_type}}</td>
+                    <td><small>{{$material->date}}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary p-1" 
+                                data-toggle="popover" 
+                                data-trigger="hover"
+                                title="Accounting Mappings"
+                                data-html="true"
+                                data-content="
+                                    <div class='small'>
+                                        <strong>Revenue Dr:</strong> {{ $material->debitAccount->account_name ?? 'Default' }}<br>
+                                        <strong>Revenue Cr:</strong> {{ $material->creditAccount->account_name ?? 'Default' }}<br>
+                                        <hr class='my-1'>
+                                        <strong>COGS Dr:</strong> {{ $material->cogsDebitAccount->account_name ?? 'Default' }}<br>
+                                        <strong>COGS Cr:</strong> {{ $material->cogsCreditAccount->account_name ?? 'Default' }}
+                                    </div>
+                                ">
+                            <i class="fa fa-university"></i>
+                        </button>
+                    </td>
+                    <td class="hideOnPrint text-center">
+                      <div class="btn-group">
+                          <button onclick="approveRequest({{$material->id}})" class="btn btn-success btn-xs" title="تایید">
+                            <i class="fa fa-check"></i>
+                          </button>
+                          <button onclick="deleteRequest({{$material->id}})" class="btn btn-danger btn-xs" title="رد">
+                            <i class="fa fa-times"></i>
+                          </button>
+                      </div>
+                    </td>
                   </tr>
-                
-                
                 @endforeach
-              
               @else
-                <h5 style="color: red;text-align: center">هنوز درخواست صورت نگرفته</h5>
+                <tr>
+                    <td colspan="11" class="text-center py-4">
+                        <h5 class="text-muted">هنوز درخواست فروش ثبت نشده است</h5>
+                    </td>
+                </tr>
               @endif
-              
-              
               </tbody>
             </table>
-          
           </div>
         </div>
       </div>
@@ -111,7 +125,9 @@
 @section('scripts')
   
   <script>
-
+      $(document).ready(function() {
+          $('[data-toggle="popover"]').popover();
+      });
 
       function approveRequest(id) {
 

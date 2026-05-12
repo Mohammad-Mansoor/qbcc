@@ -31,13 +31,13 @@ class WashingPaymentController extends Controller
         //
     }
 
-    private function postPaymentToAccounting($payment)
+    private function postPaymentToAccounting($payment, $overrides = [])
     {
         try {
-            $condition = $payment->type; // 'رسید' or 'گرفت'
+            $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
             $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
 
-            $this->accountingService->postAutoTransaction('washing_payment', $condition, [
+            $this->accountingService->postAutoTransaction('payment', $mKey, array_merge([
                 'date' => $payment->date,
                 'amount' => $amount,
                 'party_type' => 'App\WashingTeam',
@@ -45,7 +45,7 @@ class WashingPaymentController extends Controller
                 'reference' => 'W-PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Washing Payment #" . $payment->id . ": " . $e->getMessage());
         }
@@ -131,7 +131,10 @@ class WashingPaymentController extends Controller
             $payed->save();
 
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $team_name = DB::table('washing_teams')->where('id', $request->team_id)->first();
@@ -162,7 +165,16 @@ class WashingPaymentController extends Controller
         $credit_af = WashingPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
-        return view('washing.washing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','wash_numbers'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('washing.washing-payment',compact(
+            'team','payments','paymentEdit','debits_us','debits_af','credit_af',
+            'credit_us','wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'
+        ));
     }
     public function show_all_payment($team_id){
         $payments = WashingPayment::where('team_id',$team_id)->orderBy('created_at','DESC')->get();
@@ -173,8 +185,14 @@ class WashingPaymentController extends Controller
         $credit_af = WashingPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
         $all = '';
-        return view('washing.washing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','wash_numbers','all'));
+        return view('washing.washing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','wash_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -193,7 +211,13 @@ class WashingPaymentController extends Controller
         $credit_us = WashingPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
         $credit_af = WashingPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
         $wash_numbers = CarpetWash::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['wash_number_sh']);
-        return view('washing.washing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','wash_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('washing.washing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -239,7 +263,10 @@ class WashingPaymentController extends Controller
 
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $activity = new Activity();

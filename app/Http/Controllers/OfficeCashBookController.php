@@ -36,7 +36,7 @@ class OfficeCashBookController extends Controller
         $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
 
 
-        $debits =  OfficeDebit::where('user_role',Auth::user()->role)->orderBy('id','DESC')->get();
+        $debits =  OfficeDebit::where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
         $expenseType = OfficeDebit::where('user_role',Auth::user()->role)->select('expense_type')->distinct()->get();
         $expenseEdit = '';
@@ -51,7 +51,7 @@ class OfficeCashBookController extends Controller
         $start = $request->from_date;
         $end = $request->to_date;
 
-        $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('name','like','%'.$search.'%')->whereBetween('date',[$start,$end])->orderBy('id','DESC')->get();
+        $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('name','like','%'.$search.'%')->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
 
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
@@ -71,16 +71,16 @@ class OfficeCashBookController extends Controller
         $end = $request->to_date;
 
         if ($request->expense_type == 'همه مصارف' && $request->search_for_where == 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->get();
+            $debits = OfficeDebit::where('user_role',Auth::user()->role)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }elseif ($request->expense_type == 'همه مصارف' && $request->search_for_where != 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->get();
+            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }elseif ($request->expense_type != 'همه مصارف' && $request->search_for_where == 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->get();
+            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }else{
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->get();
+            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }
 

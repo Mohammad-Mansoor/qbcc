@@ -125,22 +125,7 @@
 
         @endif
         
-        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO'||  auth()->user()->role == 'CO'||  auth()->user()->role == 'SCO'||  auth()->user()->role == 'CCO'|| auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
-          <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/new-different-account*')  ? 'active' : '' }}">
-            <a href="#" class="nav-link"><span class="pcoded-micon"><i
-                        class="feather icon-home"></i></span><span
-                      class="pcoded-mtext"><b>حساب متفرقه جدید</b></span></a>
-            <ul class="pcoded-submenu">
-              <li><a href="/dashboard/new-different-account"> حساب متفرقه جدید</a></li>
-              @if(auth()->user()->role == 'SP')
-                <li><a href="/dashboard/new-different-account-money-request-list"> لیست درخواست های پول</a></li>
-              @endif
-      
-            </ul>
-    
-          </li>
-  
-        @endif
+
 
         @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' ||  auth()->user()->role == 'CCO')
           <li class="nav-item pcoded-hasmenu {{ request()->is(['dashboard/contract-carpet*','dashboard/list-weight','list-buy-carpet','check-book'])  ? 'active' : '' }}">
@@ -241,16 +226,11 @@
           </li>
             @endif
              @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' ||  auth()->user()->role == 'CO'||  auth()->user()->role == 'FI'  )
-          <li class="nav-item pcoded-hasmenu">
-          <a href="/dashboard/monthly-expenses" class="nav-link"><span class="pcoded-micon"><i
-                      class="feather icon-home"></i></span><span
-                    class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
-        </li>
-          <li class="nav-item pcoded-hasmenu">
-                        <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
-                                    class="feather icon-home"></i></span><span
-                                class="pcoded-mtext"><b>مصارف ماهانه جدید</b></span></a>
-                    </li>
+          <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*')  ? 'active' : '' }}">
+            <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
+                        class="feather icon-home"></i></span><span
+                      class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
+          </li>
         @endif
         
             @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' ||  auth()->user()->role == 'CO'||  auth()->user()->role == 'FI'  )
@@ -334,19 +314,37 @@
         @endif
                 @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                 <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/accounting*') ? 'active pcoded-trigger' : '' }}">
-                    <a href="{{ route('accounting.dashboard') }}" class="nav-link"><span class="pcoded-micon"><i class="feather icon-book"></i></span><span class="pcoded-mtext"><b>سیستم حسابداری</b></span></a>
+                    <a href="{{ route('accounting.dashboard') }}" class="nav-link">
+                        <span class="pcoded-micon"><i class="feather icon-book"></i></span>
+                        <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
+                    </a>
                     <ul class="pcoded-submenu">
                         <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
-                        <li><a href="{{ route('accounting.journals.index') }}">روزنامچه (General Ledger)</a></li>
-                        <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات نگاشت (Mappings)</a></li>
+                        <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
+                        <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
+                        <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
+                        
+                        <!-- Advanced Financial Reports (Dari Afghanistan) -->
                         <li class="nav-item pcoded-hasmenu">
-                            <a href="#!" class="nav-link"><span class="pcoded-mtext">گزارشات مالی (Reports)</span></a>
+                            <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و تحلیلی</span></a>
                             <ul class="pcoded-submenu">
-                                <li><a href="{{ route('accounting.reports.profit_loss') }}">سود و ضرر (P&L)</a></li>
-                                <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه</a></li>
+                                <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
+                                <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
+                                <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
                                 <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
-                                <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب (GL Detail)</a></li>
-                                <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری (Statement)</a></li>
+                                <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Operational & Audit Reports -->
+                        <li class="nav-item pcoded-hasmenu">
+                            <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و تفتیش</span></a>
+                            <ul class="pcoded-submenu">
+                                <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
+                                <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
+                                <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
+                                <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
+                                <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -370,6 +368,13 @@
                          <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
                                  <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
                         <li><a href="/dashboard/sales_report">گزارش فروشات</a></li>
+                        <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial Balance)</a></li>
+                        <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان (P&L)</a></li>
+                        <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان (Aging)</a></li>
+                        <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a></li>
+                        <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار (WIP)</a></li>
                             <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
 
 
@@ -809,25 +814,25 @@
                 $('#warea').val(mainArea);
             }
         });
-        // KACHAEE TOTAL PRICE
-        $("#wprice,#wheight,#wwidth").blur(function () {
-            var af = $('#wprice').val();
-            var afg = parseFloat(af).toFixed(2);
-            if (isNaN(afg)) {
-                $("#wprice").val();
-            } else {
-                $("#wprice").val(afg);
-            }
-            var us = $('#currency').val();
-            var price = afg / us;
-            var area = $('#warea').val();
-            if (price != '' && area != '') {
-                var mul = price * area;
-                var af_mul = afg * area;
-                var total = parseFloat(mul).toFixed(2);
-                var af_total = parseFloat(af_mul).toFixed(2);
-                $("#total_price").val(total);
-                $("#af_total_price").val(af_total);
+        // WASHING TOTAL PRICE (ERP INTEGRATED)
+        $("#wprice,#wheight,#wwidth,#exchange_rate,#currency_code").on('blur change', function () {
+            var unitPrice = parseFloat($('#wprice').val()) || 0;
+            var area = parseFloat($('#warea').val()) || 0;
+            var exchangeRate = parseFloat($('#exchange_rate').val()) || 1;
+            var currencyCode = $('#currency_code').val();
+
+            if (unitPrice > 0 && area > 0) {
+                var totalPriceInSelectedCurrency = unitPrice * area;
+                var baseAmountUSD = 0;
+
+                if (currencyCode === 'AFN') {
+                    baseAmountUSD = totalPriceInSelectedCurrency / exchangeRate;
+                } else {
+                    baseAmountUSD = totalPriceInSelectedCurrency;
+                }
+
+                $("#af_total_price").val(totalPriceInSelectedCurrency.toFixed(2));
+                $("#total_price").val(baseAmountUSD.toFixed(2));
             }
         });
         // END OF WASHING

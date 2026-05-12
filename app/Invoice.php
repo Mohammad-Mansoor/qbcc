@@ -15,4 +15,9 @@ class Invoice extends Model
     public function sale(){
         return $this->hasMany(Sale::class,'invoice_id');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(InvoicePayment::class, 'invoice_id');
+    }
 }

@@ -99,7 +99,7 @@
                       <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                         <label class="pull-left">نوع معامله</label>
                         <select name="type" id="" class="form-control">
-                          <option disabled>انتخاب</option>
+                          <option selected disabled>انتخاب</option>
                           <option value="رسید">رسید</option>
                           <option value="گرفت">گرفت</option>
                         </select>
@@ -126,6 +126,53 @@
                         @error('date') <p class="text-danger">
                           {{trans('message.'.$message)}}</p>
                         @enderror
+                      </div>
+                    </div>
+                    
+                    <!-- ACCOUNT OVERRIDES -->
+                    <div id="accounting-overrides-receipt" class="row mt-2 p-2 mb-3" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 5px; display:none;">
+                      <div class="col-lg-6">
+                        <label class="text-info">حساب نقد/بانک (Debit)</label>
+                        <select name="override_debit_account_id" id="override_debit_account_id_in" class="form-control select2">
+                          @foreach($allowedDebitAccountsIn as $acc)
+                            <option value="{{ $acc->id }}" {{ ($mappingIn && $mappingIn->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                              {{ $acc->account_code }} - {{ $acc->account_name }}
+                            </option>
+                          @endforeach
+                        </select>
+                      </div>
+                      <div class="col-lg-6">
+                        <label class="text-info">حساب پرداختنی (Credit)</label>
+                        <select name="override_credit_account_id" id="override_credit_account_id_in" class="form-control select2">
+                          @foreach($allowedCreditAccountsIn as $acc)
+                            <option value="{{ $acc->id }}" {{ ($mappingIn && $mappingIn->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                              {{ $acc->account_code }} - {{ $acc->account_name }}
+                            </option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+
+                    <div id="accounting-overrides-payment" class="row mt-2 p-2 mb-3" style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 5px; display:none;">
+                      <div class="col-lg-6">
+                        <label class="text-warning">حساب پرداختنی (Debit)</label>
+                        <select name="override_debit_account_id" id="override_debit_account_id_out" class="form-control select2" disabled>
+                          @foreach($allowedDebitAccountsOut as $acc)
+                            <option value="{{ $acc->id }}" {{ ($mappingOut && $mappingOut->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                              {{ $acc->account_code }} - {{ $acc->account_name }}
+                            </option>
+                          @endforeach
+                        </select>
+                      </div>
+                      <div class="col-lg-6">
+                        <label class="text-warning">حساب نقد/بانک (Credit)</label>
+                        <select name="override_credit_account_id" id="override_credit_account_id_out" class="form-control select2" disabled>
+                          @foreach($allowedCreditAccountsOut as $acc)
+                            <option value="{{ $acc->id }}" {{ ($mappingOut && $mappingOut->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                              {{ $acc->account_code }} - {{ $acc->account_name }}
+                            </option>
+                          @endforeach
+                        </select>
                       </div>
                     </div>
                     <br>
@@ -203,6 +250,37 @@
                             </div>
                           
                           
+                          </div>
+
+                          <!-- ACCOUNT OVERRIDES EDIT -->
+                          <div class="row mt-3 p-2 mb-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+                            <div class="col-lg-12">
+                              <small class="text-muted"><i class="fa fa-university"></i> Accounting Overrides (Optional)</small>
+                            </div>
+                            <div class="col-lg-6">
+                              <label class="pull-right">Debit Account</label>
+                              <select name="override_debit_account_id" class="form-control select2">
+                                <option value="">Default from mapping</option>
+                                @php
+                                  $currentAccounts = ($paymentEdit->type == 'رسید') ? $allowedDebitAccountsIn : $allowedDebitAccountsOut;
+                                @endphp
+                                @foreach($currentAccounts as $acc)
+                                  <option value="{{ $acc->id }}">{{ $acc->account_code }} - {{ $acc->account_name }}</option>
+                                @endforeach
+                              </select>
+                            </div>
+                            <div class="col-lg-6">
+                              <label class="pull-right">Credit Account</label>
+                              <select name="override_credit_account_id" class="form-control select2">
+                                <option value="">Default from mapping</option>
+                                @php
+                                  $currentAccounts = ($paymentEdit->type == 'رسید') ? $allowedCreditAccountsIn : $allowedCreditAccountsOut;
+                                @endphp
+                                @foreach($currentAccounts as $acc)
+                                  <option value="{{ $acc->id }}">{{ $acc->account_code }} - {{ $acc->account_name }}</option>
+                                @endforeach
+                              </select>
+                            </div>
                           </div>
                   
                     
@@ -378,6 +456,29 @@
           // Append the buttons to an element of your choosing
           $buttons.appendTo('#exportButton');
 
+      });
+
+      // Show/Hide Accounting Overrides based on Transaction Type
+      $('select[name="type"]').change(function() {
+          var type = $(this).val();
+          if (type == 'رسید') {
+              $('#accounting-overrides-receipt').show();
+              $('#accounting-overrides-receipt select').prop('disabled', false);
+              $('#accounting-overrides-payment').hide();
+              $('#accounting-overrides-payment select').prop('disabled', true);
+          } else if (type == 'گرفت') {
+              $('#accounting-overrides-payment').show();
+              $('#accounting-overrides-payment select').prop('disabled', false);
+              $('#accounting-overrides-receipt').hide();
+              $('#accounting-overrides-receipt select').prop('disabled', true);
+          } else {
+              $('#accounting-overrides-receipt, #accounting-overrides-payment').hide();
+              $('#accounting-overrides-receipt select, #accounting-overrides-payment select').prop('disabled', true);
+          }
+      });
+
+      $(document).ready(function() {
+          $('.select2').select2();
       });
 
 

@@ -20,32 +20,37 @@ use Illuminate\Support\Str;
 class FinishingWorkController extends Controller
 {
     protected $accountingService;
+    protected $inventoryManager;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
     {
         $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
     }
 
-    private function postFinishingToAccounting($work)
+    public function saving_the_work(Carpet $carpet)
     {
-        try {
-            $carpet = Carpet::find($work->carpetId);
-            $category = FinishingTeamCategory::find($work->category_id);
-            $team = FinishingTeam::find($work->team_id);
+        $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
+        $lastId = FinishingWork::latest()->first();
+        $FinishNo = $lastId ? 'TA-' . (substr($lastId->finish_number, -1) + 1) : 'TA-1';
 
-            $this->accountingService->postAutoTransaction('finishing', 'credit', [
-                'date' => $work->date,
-                'amount' => $work->price_af,
-                'party_type' => 'App\FinishingTeam',
-                'party_id' => $work->team_id,
-                'reference' => $work->finish_number,
-                'description' => "هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . ($carpet->carpet_no ?? 'N/A') . " توسط " . ($team->name ?? 'Team'),
-                'source_id' => $work->id,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error("Accounting posting failed for Finishing Work #" . $work->id . ": " . $e->getMessage());
+        $done = FinishingWork::where('carpetId', $carpet->carpet_id)->pluck('category_id')->toArray();
+        $teams = FinishingTeam::all();
+        $team_categories = FinishingTeamCategory::whereNotIn('id', $done)->get();
+        
+        $checks = [];
+        for($i=1; $i<=8; $i++) {
+            $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
         }
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
+
+        return view('finishing-center.create', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
     }
+
 
     public function request_list()
     {
@@ -65,8 +70,19 @@ class FinishingWorkController extends Controller
             $carpet->total_price_af = $carpet->total_price_af + $work->price_af;
             $carpet->update();
 
-            // Accounting Posting
-            $this->postFinishingToAccounting($work);
+            // ERP Integration: Atomic Inventory Audit + Accounting
+            $category = FinishingTeamCategory::find($work->category_id);
+            $this->inventoryManager->processValueAddition($carpet, [
+                'type' => 'FINISHING',
+                'transaction_type' => 'finishing',
+                'total_amount' => $work->price_af,
+                'date' => $work->date,
+                'party_type' => 'App\FinishingTeam',
+                'party_id' => $work->team_id,
+                'reference' => $work->finish_number,
+                'description' => "هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+            ]);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
@@ -197,7 +213,12 @@ class FinishingWorkController extends Controller
             $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
         }
 
-        return view('finishing-center.create', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories'), $checks));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
+
+        return view('finishing-center.create', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
     }
 
     public function re_saving_the_work(Carpet $carpet)
@@ -214,7 +235,12 @@ class FinishingWorkController extends Controller
             $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
         }
 
-        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories'), $checks));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
+
+        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
     }
 
     private function processWorkCategory($request, $carpet, $newCarpet, $category_id, $field_suffix)
@@ -228,28 +254,47 @@ class FinishingWorkController extends Controller
             $finish->date = $request->input('date_' . $field_suffix);
             $finish->description = $request->description ?? 'Finishing Work';
             
-            $rate = $request->input('price_af_' . $field_suffix);
-            $price = 0;
+            $currencyCode = $request->currency_code ?? 'USD';
+            $exchangeRate = $request->exchange_rate ?? 1.0;
+            $unitPrice = $request->input('price_af_' . $field_suffix);
+            $totalAmount = 0;
             
-            // Special calculation logic based on category
-            if (in_array($category_id, [1, 3, 5, 6, 7])) { // Area based
-                $price = $newCarpet->area * $rate;
-            } elseif (in_array($category_id, [4, 8])) { // Height based * 2
-                $price = $newCarpet->height * $rate * 2;
-            } elseif ($category_id == 2) { // Fixed price
-                $price = $rate;
+            if (in_array($category_id, [1, 3, 5, 6, 7])) { 
+                $totalAmount = $newCarpet->area * $unitPrice;
+            } elseif (in_array($category_id, [4, 8])) { 
+                $totalAmount = $newCarpet->height * $unitPrice * 2;
+            } elseif ($category_id == 2) { 
+                $totalAmount = $unitPrice;
             }
 
-            $finish->price = $price;
-            $finish->price_af = $price;
+            $finish->currency_code = $currencyCode;
+            $finish->exchange_rate = $exchangeRate;
+            $finish->price = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
+            $finish->price_af = ($currencyCode == 'AFN') ? $totalAmount : ($totalAmount * $exchangeRate);
+            $finish->base_currency_amount = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
             
             if (Auth::user()->role == 'SP' || $request->is_direct_store) {
                 $finish->status = 1;
-                $carpet->total_price += $price;
-                $carpet->total_price_af += $price;
+                $carpet->total_price += $finish->price;
+                $carpet->total_price_af += $finish->price_af;
                 $carpet->update();
                 $finish->save();
-                $this->postFinishingToAccounting($finish);
+
+                $category = FinishingTeamCategory::find($finish->category_id);
+                $this->inventoryManager->recordProductionService($finish, $carpet, [
+                    'type' => 'FINISHING',
+                    'amount' => $totalAmount,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'date' => $finish->date,
+                    'party_type' => 'App\FinishingTeam',
+                    'party_id' => $finish->team_id,
+                    'reference' => $finish->finish_number,
+                    'description' => "هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
+                    'warehouse_id' => $carpet->warehouse_id ?? 1,
+                    'override_debit_account_id' => $request->override_debit_account_id,
+                    'override_credit_account_id' => $request->override_credit_account_id,
+                ]);
             } else {
                 $finish->status = 0;
                 $finish->save();
@@ -259,9 +304,8 @@ class FinishingWorkController extends Controller
 
     public function store_refinish(Request $request)
     {
-        return DB::transaction(function () use ($request) {
-            $carpet = Carpet::find($request->carpetId);
-            $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
+        $carpet = Carpet::find($request->carpetId);
+        $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
             $categories = [
                 1 => 'qaitan', 2 => 'rofo', 3 => 'cheet', 4 => 'labaki',
@@ -272,14 +316,12 @@ class FinishingWorkController extends Controller
                 $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix);
             }
 
-            return redirect('/dashboard/finishing-center')->with('status', 'تیاری مجدد با موفقیت ثبت شد');
-        });
+        return redirect('/dashboard/finishing-center')->with('status', 'تیاری مجدد با موفقیت ثبت شد');
     }
 
     public function store(Request $request)
     {
-        return DB::transaction(function () use ($request) {
-            $request->merge(['is_direct_store' => true]);
+        $request->merge(['is_direct_store' => true]);
             $carpet = Carpet::find($request->carpetId);
             $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
@@ -297,8 +339,7 @@ class FinishingWorkController extends Controller
                 $carpet->update();
             }
 
-            return redirect('/dashboard/finishing-center')->with('status', 'عملیات تیاری با موفقیت ثبت و در سیستم مالی درج گردید');
-        });
+        return redirect('/dashboard/finishing-center')->with('status', 'عملیات تیاری با موفقیت ثبت و در سیستم مالی درج گردید');
     }
 
     public function update(Request $request, FinishingWork $finish)
@@ -337,8 +378,19 @@ class FinishingWorkController extends Controller
             $finish->description = $request->description;
             $finish->update();
 
-            // Re-post to accounting
-            $this->postFinishingToAccounting($finish);
+            // ERP Integration: Re-post value addition
+            $category = FinishingTeamCategory::find($finish->category_id);
+            $this->inventoryManager->processValueAddition($carpet, [
+                'type' => 'FINISHING_EDIT',
+                'transaction_type' => 'finishing',
+                'total_amount' => $finish->price_af,
+                'date' => $finish->date,
+                'party_type' => 'App\FinishingTeam',
+                'party_id' => $finish->team_id,
+                'reference' => $finish->finish_number,
+                'description' => "ویرایش هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+            ]);
 
             return redirect('/dashboard/finishing-center')->with('status', 'تیاری با موفقیت ویرایش و سیستم مالی بروزرسانی شد');
         });

@@ -121,6 +121,7 @@
             <hr style="height: 3px;width: 100%;color: #0b97c4;background-color: #0b97c4">
   
           </div>
+          <p class="hideOnPrint text-center">{{$purchases->links()}}</p>
           <div class="row">
     
             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-4">

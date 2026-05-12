@@ -12,9 +12,17 @@ use App\WashingTotalAccount;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Services\InventoryService;
 
 class WashingTeamController extends Controller
 {
+    protected $inventoryService;
+
+    public function __construct(InventoryService $inventoryService)
+    {
+        $this->inventoryService = $inventoryService;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -81,66 +89,84 @@ class WashingTeamController extends Controller
         } else {
             $WashNo = 'WSH-' . 1;
         }
-        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo'));
+        $mapping = \App\MappingRule::where('mapping_key', 'washing_transfer')->first();
+        $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
+        $warehouses = DB::table('warehouses')->get();
+        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo', 'warehouses', 'defaultWarehouse'));
     }
 
     // WASHING GETTING DONE
     public function washing_team_selected(Request $request, Carpet $carpetId)
     {
+        $request->validate([
+            'team_id' => 'required',
+            'warehouse_id' => 'required'
+        ]);
 
-        $lastId = CarpetWash::where('team_id',$request->team_id)->latest()->first();
+        return DB::transaction(function () use ($request, $carpetId) {
+            $lastId = CarpetWash::where('team_id',$request->team_id)->latest()->first();
 
-
-
-
-        $WashNo = '';
-        if ($lastId) {
-            if ($lastId->wash_number_sh) {
-                $lastId = $lastId->wash_number_sh;
-//            $lastId = substr($lastId, -1);
-//            $lastId++;
-//            $WashNo = 'SH-' . sprintf('%01d', $lastId);
-                $WashNo = $lastId;
+            $WashNo = '';
+            if ($lastId) {
+                if ($lastId->wash_number_sh) {
+                    $lastId = $lastId->wash_number_sh;
+                    $WashNo = $lastId;
+                }
+                else {
+                    $WashNo = 'SH-0';
+                }
             }
-            else {
-//            $WashNo = 'SH-' . sprintf('%01d', '1');
-                $WashNo = 'SH-0';
 
+            $wash = new CarpetWash();
+            $wash->wash_number = $request->wash_number;
+            $wash->wash_number_sh_c = $WashNo;
+            $wash->carpetId = $carpetId->carpet_id;
+            $wash->team_id = $request->team_id;
+            $wash->save();
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر " . $carpetId->carpet_no . " به شست ارسال شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            $carpetId->status = 3;
+            $carpetId->washing_id = $request->team_id;
+            $upd =  $carpetId->update();
+
+            // ERP Integration: Log the transfer to WIP Warehouse
+            // Assume coming from Main Warehouse (1)
+            $this->inventoryService->recordMovement([
+                'item_model' => $carpetId,
+                'type' => 'Washing Transfer',
+                'direction' => 'OUT',
+                'quantity' => 1,
+                'warehouse_id' => 1,
+                'created_by' => auth()->id()
+            ]);
+
+            $this->inventoryService->recordMovement([
+                'item_model' => $carpetId,
+                'type' => 'Washing Transfer',
+                'direction' => 'IN',
+                'quantity' => 1,
+                'warehouse_id' => $request->warehouse_id,
+                'created_by' => auth()->id()
+            ]);
+
+            if($upd){
+                if ($carpetId->agent->contract_type == 'contractional') {
+                    return redirect('dashboard/contract-carpet')->with('status', 'موفقانه ارسال شد');
+
+                } elseif ($carpetId->agent->contract_type == 'weight') {
+                    return redirect('dashboard/list-weight')->with('status', 'موفقانه ارسال شد');
+                } else {
+                    return redirect('dashboard/list-buy-carpet')->with('status', 'موفقانه ارسال شد');
+                }
+            }else{
+                return redirect()->back()->with('error','ارسال نشد');
             }
-        }
-
-
-
-        $wash = new CarpetWash();
-        $wash->wash_number = $request->wash_number;
-        $wash->wash_number_sh_c = $WashNo;
-        $wash->carpetId = $carpetId->carpet_id;
-        $wash->team_id = $request->team_id;
-        $wash->save();
-        
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر " . $carpetId->carpet_no . " به شست ارسال شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-        $carpetId->status = 3;
-        $carpetId->washing_id = $request->team_id;
-       $upd =  $carpetId->update();
-        if($upd){
-            if ($carpetId->agent->contract_type == 'contractional') {
-                return redirect('dashboard/contract-carpet')->with('status', 'موفقانه ارسال شد');
-
-            } elseif ($carpetId->agent->contract_type == 'weight') {
-                return redirect('dashboard/list-weight')->with('status', 'موفقانه ارسال شد');
-            } else {
-                return redirect('dashboard/list-buy-carpet')->with('status', 'موفقانه ارسال شد');
-            }
-        }else{
-            return redirect()->back()->with('error','ارسال نشد');
-        }
-
-
+        });
     }
 
     /**

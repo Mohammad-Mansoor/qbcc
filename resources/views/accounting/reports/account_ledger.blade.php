@@ -52,7 +52,7 @@
         </div>
     </div>
 
-    @if(isset($account))
+    @if(isset($account) || count($entries) > 0)
     <!-- Analytical Snapshot Cards -->
     <div class="row mb-4 no-print">
         <div class="col-md-3">
@@ -76,7 +76,8 @@
         @php 
             $runningBalance = $openingBalance;
             foreach($entries as $entry) {
-                if ($account->normal_balance == 'debit') { $runningBalance += ($entry->debit - $entry->credit); } 
+                $normal = (isset($account) && $account->normal_balance == 'credit') ? 'credit' : 'debit';
+                if ($normal == 'debit') { $runningBalance += ($entry->debit - $entry->credit); } 
                 else { $runningBalance += ($entry->credit - $entry->debit); }
             }
         @endphp
@@ -98,7 +99,9 @@
                     <h1 class="font-weight-bold text-dark mb-1">QASIMI BROTHERS CARPET CO.</h1>
                     <h3 class="text-muted mb-2">دفتر تفصیلی حساب (Account Ledger)</h3>
                     <div class="row mt-4">
-                        <div class="col-6 text-right">حساب: <strong>{{ $account->account_name }} ({{ $account->account_code }})</strong></div>
+                        <div class="col-6 text-right">
+                            حساب: <strong>{{ isset($account) ? $account->account_name . ' (' . $account->account_code . ')' : 'گزارش تفتیش (Audit Filter)' }}</strong>
+                        </div>
                         <div class="col-6 text-left">دوره: <strong>{{ $startDate }} الی {{ $endDate }}</strong></div>
                     </div>
                 </div>
@@ -106,7 +109,13 @@
                 <div class="card-body p-5">
                     <!-- Web-Only Export Bar -->
                     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-                        <div class="text-muted">لیست تراکنش‌ها برای: <span class="badge badge-primary px-3">{{ $account->account_name }}</span></div>
+                        <div class="text-muted">
+                            @if(isset($account))
+                                لیست تراکنش‌ها برای: <span class="badge badge-primary px-3">{{ $account->account_name }}</span>
+                            @else
+                                لیست تراکنش‌ها بر اساس: <span class="badge badge-info px-3">منبع انتخابی (Audit Filter)</span>
+                            @endif
+                        </div>
                         <div id="export-buttons"></div>
                     </div>
 
@@ -132,7 +141,8 @@
 
                                 @foreach($entries as $entry)
                                     @php 
-                                        if ($account->normal_balance == 'debit') { $currentRunning += ($entry->debit - $entry->credit); } 
+                                        $normal = (isset($account) && $account->normal_balance == 'credit') ? 'credit' : 'debit';
+                                        if ($normal == 'debit') { $currentRunning += ($entry->debit - $entry->credit); } 
                                         else { $currentRunning += ($entry->credit - $entry->debit); }
                                     @endphp
                                 <tr>

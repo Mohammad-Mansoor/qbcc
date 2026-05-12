@@ -15,6 +15,25 @@ class MaterialSale extends Model
     }
     public function agent(){
         return $this->belongsTo(Agents::class,'agent_id','agent_id');
+    }
 
+    public function warehouse(){
+        return $this->belongsTo(Warehouse::class,'warehouse_id');
+    }
+
+    public function debitAccount(){
+        return $this->belongsTo(ChartOfAccount::class,'override_debit_account_id');
+    }
+
+    public function creditAccount(){
+        return $this->belongsTo(ChartOfAccount::class,'override_credit_account_id');
+    }
+
+    public function cogsDebitAccount(){
+        return $this->belongsTo(ChartOfAccount::class,'override_cogs_debit_id');
+    }
+
+    public function cogsCreditAccount(){
+        return $this->belongsTo(ChartOfAccount::class,'override_cogs_credit_id');
     }
 }

@@ -134,6 +134,42 @@
                             </div>
                     </div>
                     <div class="row" style="margin-top: 10px;">
+                        <div class="col-lg-12">
+                            <div class="row p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; margin: 0 15px;">
+                                <div class="col-lg-12">
+                                    <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Finishing Payment Accounting)</h6>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div class="form-group">
+                                        <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                        <select name="override_debit_account_id" id="override_debit_account_id" class="form-control">
+                                            @foreach($allowedDebitAccounts as $acc)
+                                                <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div class="form-group">
+                                        <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                        <select name="override_credit_account_id" id="override_credit_account_id" class="form-control">
+                                            @foreach($allowedCreditAccounts as $acc)
+                                                <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-lg-2" style="margin-top: 25px;">
+                                    <button class="btn btn-primary btn-sm btn-block marginx" type="submit"><span class="fa fa-save"></span> ذخیره و ثبت نهایی</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
                       <div class="col-lg-2 col-md-12 col-sm-12 col-xs-12">
                         
                         <button class="btn btn-warning btn-sm" type="reset">انصراف
@@ -233,6 +269,42 @@
                               @enderror
                             </div>
                     
+                    </div>
+                    <div class="row" style="margin-top: 10px;">
+                        <div class="col-lg-12">
+                            <div class="row p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; margin: 0 15px;">
+                                <div class="col-lg-12">
+                                    <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Edit Finishing Payment Accounting)</h6>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div class="form-group">
+                                        <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                        <select name="override_debit_account_id" id="override_debit_account_id_edit" class="form-control">
+                                            @foreach($allowedDebitAccounts as $acc)
+                                                <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div class="form-group">
+                                        <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                        <select name="override_credit_account_id" id="override_credit_account_id_edit" class="form-control">
+                                            @foreach($allowedCreditAccounts as $acc)
+                                                <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-lg-2" style="margin-top: 25px;">
+                                    <button class="btn btn-primary btn-sm btn-block marginx" type="submit"><span class="fa fa-save"></span> بروزرسانی</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="row" style="margin-top: 10px;">
                       <div class="form-group-inner">
@@ -427,6 +499,10 @@
   <script>
     
     $('#finish_number').select2();
+    $('#override_debit_account_id').select2();
+    $('#override_credit_account_id').select2();
+    $('#override_debit_account_id_edit').select2();
+    $('#override_credit_account_id_edit').select2();
 
       $(document).ready(function () {
           $("#finishing_payment").tableExport({

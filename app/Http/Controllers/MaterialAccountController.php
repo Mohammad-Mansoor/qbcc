@@ -9,6 +9,7 @@ use App\MaterialType;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaterialAccountController extends Controller
 {
@@ -20,24 +21,44 @@ class MaterialAccountController extends Controller
     public function index()
     {
         $accountEdit = "";
-        $accounts = MaterialAccount::all();
+        $accounts = $this->enrichAccounts(MaterialAccount::all());
         return view('material-accounts.accounts',compact('accounts','accountEdit'));
     }
 
     public function search(Request $request)
     {
         $search = $request->search;
-
-         $accountEdit = "";
-        $accounts = MaterialAccount::where('name', 'like','%'.$search.'%')
-            
-            ->get();
+        $accountEdit = "";
+        $accounts = $this->enrichAccounts(MaterialAccount::where('name', 'like','%'.$search.'%')->get());
         return view('material-accounts.accounts',compact('accounts','accountEdit'));
+    }
 
- 
-     
+    private function enrichAccounts($accounts)
+    {
+        return $accounts->map(function($acc) {
+            // 1. Accounting Balance (Real-time from ledger)
+            $acc->ledger_balance = DB::table('ledger_entries')
+                ->where('party_type', 'App\MaterialAccount')
+                ->where('party_id', $acc->id)
+                ->sum(DB::raw("credit - debit"));
 
+            // 2. Physical Weight (From MaterialAccountPayments)
+            $acc->physical_weight = DB::table('material_account_payments')
+                ->where('account_id', $acc->id)
+                ->where('status', 1)
+                ->sum(DB::raw("CASE WHEN type = 'رسید' THEN amount ELSE -amount END"));
 
+            // 3. Stock Valuation (WAC based)
+            // Get average WAC for material types associated with this account
+            $avgWac = DB::table('material_account_payments')
+                ->join('items', 'material_account_payments.type_id', '=', 'items.ref_id')
+                ->where('material_account_payments.account_id', $acc->id)
+                ->avg('items.current_cost') ?? 0;
+            
+            $acc->valuation = $acc->physical_weight * $avgWac;
+
+            return $acc;
+        });
     }
     /**
      * Show the form for creating a new resource.
@@ -81,18 +102,32 @@ class MaterialAccountController extends Controller
      */
     public function show($id)
     {
-
         $account = MaterialAccount::find($id);
         $payments = MaterialAccountPayment::where('account_id',$id)->orderBy('created_at', 'DESC')->paginate(50);
         
-       
-
         $debits = MaterialAccountPayment::where('type','=','گرفت')->where('account_id',$id)->where('status',1)->sum('amount');
         $credits = MaterialAccountPayment::where('type','=','رسید')->where('account_id',$id)->where('status',1)->sum('amount');
 
         $paymentEdit = '';
         $material_type = MaterialType::all();
-        return view('material-accounts.account-payment',compact('account','payments','paymentEdit','material_type','debits','credits'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        
+        // For Payment OUT (گرفت)
+        $allowedDebitAccountsOut = $selectionService->getValidAccounts('MATERIAL_PAYMENT', 'debit');
+        $allowedCreditAccountsOut = $selectionService->getValidAccounts('MATERIAL_PAYMENT', 'credit');
+        $mappingOut = \App\MappingRule::where('mapping_key', 'MATERIAL_PAYMENT')->first();
+
+        // For Receipt IN (رسید)
+        $allowedDebitAccountsIn = $selectionService->getValidAccounts('MATERIAL_RECEIPT', 'debit');
+        $allowedCreditAccountsIn = $selectionService->getValidAccounts('MATERIAL_RECEIPT', 'credit');
+        $mappingIn = \App\MappingRule::where('mapping_key', 'MATERIAL_RECEIPT')->first();
+
+        return view('material-accounts.account-payment', compact(
+            'account', 'payments', 'paymentEdit', 'material_type', 'debits', 'credits',
+            'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut',
+            'allowedDebitAccountsIn', 'allowedCreditAccountsIn', 'mappingIn'
+        ));
     }
 
     /**
@@ -153,11 +188,7 @@ class MaterialAccountController extends Controller
     public function destroy($id)
     {
         $account = MaterialAccount::find($id);
-
-
         $account->delete();
-
-
-        return response()->json(['status','error']);
+        return response()->json(['status' => 'success']);
     }
 }

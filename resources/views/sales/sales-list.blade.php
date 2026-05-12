@@ -1,571 +1,375 @@
 @extends('dsh.master')
-@section('title' , 'لیست قالین های فروخته شده')
+@section('title' , 'لیست فروشات')
 @section('content')
-  
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-sm-6 col-xs-12">
-      @if($sale)
-      <div class="card">
-        <div class="card-header">
-          <h5>ویرایش فروش</h5>
+<div class="container-fluid px-4 py-4">
+    @php($lockDate = \DB::table('financial_settings')->where('key', 'financial_lock_date')->value('value'))
+
+    <!-- Header & Search Section -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h3 class="mb-0 font-weight-bold text-dark"><i class="fa fa-shopping-cart text-primary mr-2"></i> مدیریت فروشات</h3>
+            <p class="text-muted small mb-0">لیست تمامی قالین‌های فروخته شده و تحلیل مفاد</p>
+        </div>
+        <div class="col-md-6 text-right">
+            <div class="d-flex justify-content-end align-items-center">
+                <form action="/dashboard/search-carpet-from-sales" method="post" class="mr-2">
+                    @csrf
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control form-control-sm border-0 shadow-sm px-3" 
+                               placeholder="جستجوی نمبر قالین، انوایس یا مشتری..." style="border-radius: 20px; width: 250px;">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary btn-sm px-3 shadow-sm" type="submit" style="border-radius: 0 20px 20px 0;">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <button class="btn btn-outline-primary btn-sm px-3 shadow-sm" onclick="printPage('salesTableCard')">
+                    <i class="fa fa-print mr-1"></i> چاپ لیست
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Summary Section -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-lg p-3 bg-gradient-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 opacity-7">تعداد فروشات</p>
+                        <h4 class="mb-0 font-weight-bold">{{ $sales->total() }}</h4>
+                    </div>
+                    <i class="fa fa-shopping-bag fa-2x opacity-5"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-lg p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع سایز (متر مربع)</p>
+                        <h4 class="mb-0 font-weight-bold text-dark">{{ round($sales->sum('carpet_area'), 2) }}</h4>
+                    </div>
+                    <i class="fa fa-expand fa-2x text-info opacity-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-lg p-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع فروشات ($)</p>
+                        <h4 class="mb-0 font-weight-bold text-success">{{ number_format($sales->sum('sale_cost_total'), 2) }}</h4>
+                    </div>
+                    <i class="fa fa-money fa-2x text-success opacity-2"></i>
+                </div>
+            </div>
+        </div>
+        @if(auth()->user()->role == 'SP')
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-lg p-3 bg-white border-left-success" style="border-left: 4px solid #28a745 !important;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع مفاد خالص ($)</p>
+                        <h4 class="mb-0 font-weight-bold text-dark">{{ number_format($sales->sum('profit'), 2) }}</h4>
+                    </div>
+                    <i class="fa fa-line-chart fa-2x text-success opacity-2"></i>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    @if(isset($sale) && $sale)
+    <!-- Edit Sale Modal-like Section -->
+    <div class="card border-0 shadow-sm rounded-lg mb-4 border-top-primary" style="border-top: 4px solid #007bff !important;">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 font-weight-bold"><i class="fa fa-edit text-primary mr-2"></i> ویرایش اطلاعات فروش</h5>
         </div>
         <div class="card-body">
-          <div class="all-form-element-inner">
-           
-              <form action="/dashboard/sales/{{$sale->id}}" method="post">
-  
+            <form action="/dashboard/sales/{{$sale->id}}" method="post">
                 @method('PATCH')
                 @csrf
                 <input type="hidden" name="old_invoice" value="{{$sale->invoice_id}}">
                 
                 <div class="row">
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      
-                      <label class=""> نمبر انوایس</label>
-                      
-                      <select name="invoice_id" id="invoice_id" required class="form-control">
-                        @foreach($invoices as $invoice)
-                          <option {{ ($sale->invoice_id == $invoice->id ? 'selected' : '') }} value="{{$invoice->id}}"
-                                  customer_name="{{$invoice->customer->name}}"
-                                  customer_company="{{$invoice->customer->company_name}}"
-                                  customer_address="{{$invoice->customer->company_address}}"
-                          
-                          >{{$invoice->invoice_no}}</option>
-                        @endforeach
-                      </select>
-                      <small class="text-danger">@error('invoice_id') {{ __('message.'.$message) }} @enderror</small>
+                    <div class="col-md-3 form-group">
+                        <label class="small font-weight-bold">نمبر انوایس</label>
+                        <select name="invoice_id" id="invoice_id" required class="form-control form-control-sm select2">
+                            @foreach($invoices as $invoice)
+                                <option {{ ($sale->invoice_id == $invoice->id ? 'selected' : '') }} value="{{$invoice->id}}"
+                                        customer_name="{{$invoice->customer->name}}"
+                                        customer_company="{{$invoice->customer->company_name}}"
+                                        customer_address="{{$invoice->customer->company_address}}">{{$invoice->invoice_no}}</option>
+                            @endforeach
+                        </select>
                     </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label class=""> پکینگ نمبر</label>
-                      <select name="package_id" id="packing_id" required class="form-control">
-                        <option value="">~~~</option>
-                        @foreach($packing_list as $pack)
-                          <option {{ ($package->packing_id == $pack->id ? 'selected' : '') }} value="{{$pack->id}}"
-                          
-                          >{{$pack->packing_no}}</option>
-                        @endforeach
-                      </select>
-                      <small class="text-danger">@error('packing_id') {{ __('message.'.$message) }} @enderror</small>
+                    <div class="col-md-3 form-group">
+                        <label class="small font-weight-bold">پکینگ نمبر</label>
+                        <select name="packing_id" id="packing_id" required class="form-control form-control-sm select2">
+                            <option value="">انتخاب کنید</option>
+                            @foreach($packing_list as $pack)
+                                <option {{ (isset($package) && $package->packing_id == $pack->id ? 'selected' : '') }} value="{{$pack->id}}">{{$pack->packing_no}}</option>
+                            @endforeach
+                        </select>
                     </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label class=""> پکیج نمبر</label>
-                      <select name="package_id" id="package_id" required class="form-control">
-                        <option value="{{$package->id}}">{{$package->package_no}}</option>
-                      </select>
-                      <small class="text-danger">@error('package_id') {{ __('message.'.$message) }}@enderror
-                      </small>
+                    <div class="col-md-3 form-group">
+                        <label class="small font-weight-bold">پکیج نمبر</label>
+                        <select name="package_id" id="package_id" required class="form-control form-control-sm select2">
+                            <option value="{{$sale->carpet->package_id ?? ''}}">{{$sale->carpet->package->package_no ?? '---'}}</option>
+                        </select>
                     </div>
-                  </div>
-                  
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>نام مشتری</label>
-                      <input type="text" name="customer_name" id="customer_name" class="form-control" readonly>
+                    <div class="col-md-3 form-group">
+                        <label class="small font-weight-bold">قیمت فروش فی متر ($)</label>
+                        <input type="number" step="0.01" name="sale_cost_per_meter" value="{{$sale->sale_cost_per_meter}}" id="sale_cost_per_meter" class="form-control form-control-sm">
                     </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label class="login2 pull-right pull-right-pro">نام کمپنی</label>
-                      <input type="text" name="company_name" id="company_name" class="form-control" readonly>
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>ادرس کمپنی</label>
-                      <input type="text" name="company_address" id="company_address" class="form-control" readonly>
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label class="">نمبر قالین</label>
-                      <input type="text" name="carpet_no" id="carpet_no" class="form-control" value="{{$sale->carpet->carpet_no}}" readonly>
-                      <input type="hidden" name="carpet_id"  class="form-control" value="{{$sale->carpet_id}}">
-                      
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>نوعیت قالین</label>
-                      <input type="text" name="carpet_type" value="{{$sale->type}}" class="form-control" readonly>
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>کوالتی</label>
-                      <input type="text" name="carpet_quality"  value="{{$sale->quality}}" class="form-control" readonly>
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>طول قالین</label>
-                      <input type="text" name="carpet_height" id="carpet_height"  value="{{$sale->carpet_height}}"
-                             class="form-control">
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>عرض قالین</label>
-                      <input type="text" name="carpet_width" id="carpet_width" value="{{$sale->carpet_width}}"
-                             class="form-control">
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>سایز قالین</label>
-                      <input type="text" name="carpet_area" readonly id="carpet_area" value="{{$sale->carpet_area}}"
-                             class="form-control">
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      
-                      <label>قیمت تمام شد فی متر</label>
-                      <input type="text" name="price_per_meter" id="price_per_meter"  class="form-control" readonly>
-                    
-                    </div>
-                  </div>
-                  
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      
-                      <label>قیمت مجموع تمام شد</label>
-                      <input type="text" name="total_price_cost" id="total_price_cost" value="{{$sale->carpet->total_price}}" class="form-control" readonly>
-                    </div>
-                  </div>
-                  
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label>قیمت فروش فی متر</label>
-                      <input type="text" required name="sale_cost_per_meter" value="{{$sale->sale_cost_per_meter}}"
-                             id="sale_cost_per_meter" class="form-control">
-                      <input type="hidden" value="{{$sale->sale_cost_per_meter}}" name="old_cost_per_meter">
-                      <small class="text-danger">@error('sale_cost_per_meter') {{ __('message.'.$message) }}
-                        @enderror
-                      </small>
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      
-                      <label>قیمت مجموع </label>
-                      <input type="text" name="sale_cost_total" value="{{$sale->sale_cost_total}}" id="sale_cost_total"
-                             class="form-control" readonly>
-                      <input type="hidden" value="{{$sale->sale_cost_total}}" name="old_cost_total">
-                    
-                    </div>
-                  </div>
-                  
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      
-                      <label>کود مشتری</label>
-                      <input type="text" name="customer_code" value="{{$sale->customer_code}}" required
-                             id="customer_code"
-                             class="form-control">
-                    
-                    </div>
-                  </div>
-                
                 </div>
-                
-                
-                <div class="row">
-                  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                    <div class="form-group fill">
-                      <button class="btn btn-info btn-sm" type="submit"><i class="fa fa-save"></i> &nbsp; ثبت
-                      </button>
-                      <button class="btn btn-warning btn-sm" type="reset"> منصرف</button>
+
+                <div class="row bg-light p-3 rounded-lg mx-0 mb-3 border">
+                    <div class="col-md-4">
+                        <p class="mb-0 text-muted small">مشتری:</p>
+                        <h6 class="mb-0 font-weight-bold" id="display_customer_name">---</h6>
                     </div>
-                  </div>
+                    <div class="col-md-4">
+                        <p class="mb-0 text-muted small">نمبر قالین:</p>
+                        <h6 class="mb-0 font-weight-bold text-primary">{{$sale->carpet->carpet_no}}</h6>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-0 text-muted small">مجموع قیمت فروش:</p>
+                        <h6 class="mb-0 font-weight-bold text-success" id="display_total_sale">$ {{ number_format($sale->sale_cost_total, 2) }}</h6>
+                        <input type="hidden" name="sale_cost_total" id="sale_cost_total" value="{{$sale->sale_cost_total}}">
+                    </div>
                 </div>
-              
-              </form>
-         
-          </div>
-        
+
+                <!-- ACCOUNT OVERRIDES (Edit) -->
+                <div class="row mt-4 mb-3 border p-3 rounded-lg mx-0" style="background-color: #fdfdfe;">
+                    <div class="col-12 mb-2">
+                        <h6 class="small font-weight-bold text-dark border-bottom pb-1">
+                            <i class="fa fa-university text-primary mr-1"></i> تنظیمات حسابی (Accounting Overrides)
+                        </h6>
+                    </div>
+                    
+                    <div class="col-md-3 form-group mb-2">
+                        <label class="tiny font-weight-bold text-muted">حساب دریافتنی (Revenue Debit)</label>
+                        <select name="override_debit_account_id" class="form-control form-control-sm select2">
+                            @foreach($allowedRevenueDebit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($sale->override_debit_account_id == $acc->id || (!$sale->override_debit_account_id && $mappingRevenue && $mappingRevenue->debit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group mb-2">
+                        <label class="tiny font-weight-bold text-muted">حساب عاید (Revenue Credit)</label>
+                        <select name="override_credit_account_id" class="form-control form-control-sm select2">
+                            @foreach($allowedRevenueCredit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($sale->override_credit_account_id == $acc->id || (!$sale->override_credit_account_id && $mappingRevenue && $mappingRevenue->credit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group mb-2">
+                        <label class="tiny font-weight-bold text-muted">هزینه تمام شد (COGS Debit)</label>
+                        <select name="override_cogs_debit_id" class="form-control form-control-sm select2">
+                            @foreach($allowedCogsDebit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($sale->override_cogs_debit_id == $acc->id || (!$sale->override_cogs_debit_id && $mappingCogs && $mappingCogs->debit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group mb-2">
+                        <label class="tiny font-weight-bold text-muted">حساب گدام (Inventory Credit)</label>
+                        <select name="override_cogs_credit_id" class="form-control form-control-sm select2">
+                            @foreach($allowedCogsCredit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($sale->override_cogs_credit_id == $acc->id || (!$sale->override_cogs_credit_id && $mappingCogs && $mappingCogs->credit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <a href="/dashboard/sales" class="btn btn-light btn-sm px-4 mr-2">منصرف</a>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm font-weight-bold">بروزرسانی فروش</button>
+                </div>
+            </form>
         </div>
-      </div>
-      @endif
-      <div class="card" id="salePrint">
-        <div class="card-header">
-          <h5>لیست فروشات قالین</h5>
-          @if(session("status"))
-            <div class="alert alert-success status" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('status')}}
-            </div>
-          
-          @endif
-          @if(session("error"))
-            
-            <div class="alert alert-danger status" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('error')}}
-            </div>
-          
-          @endif
-          
-          <div class="row">
-            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 hideOnPrint">
-              <form action="/dashboard/search-carpet-from-sales" method="post">
-                @csrf
-                <input type="text" name="search" required
-                       placeholder="جستجو" class="form-control">
-                {{--<input type="hidden" name="invoice_id" value="">--}}
-              </form>
-            </div>
-            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4"></div>
-            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 hideOnPrint">
-              <div class="btn btn-sm btn-primary adgustbtn hideOnPrint" style="float: left"
-                   onclick="printPage('salePrint')"><i
-                        class="fa fa-print"></i> Print
-              </div>
-              <a href="/dashboard/sales-all" style="float: left"
-                 class="btn btn-sm btn-info hideOnPrint">نمایش همه</a>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover table-xs">
-              <thead>
-              <tr>
-                <th>نمبر انوایس</th>
-                
-                <th>نام مشتری</th>
-                <th>نمبر قالین</th>
-                <th>نوعیت</th>
-                <th>کوالتی</th>
-                <th>طول</th>
-                <th>عرض</th>
-                <th>سایز</th>
-               <th>قیمت خرید</th>
-               <th>فی متر مصرف</th>
-                <th>فی متر فروش</th>
-                <th>مجموع فروش</th>
-                @if(auth()->user()->role == 'SP')
-                  <th>قیمت مجموع تمام شد</th>
-                  <th>مفاد</th>
-                @endif
-                <th class="printTitle">ویرایش</th>
-              
-              
-              </tr>
-              </thead>
-              <tbody>
-                  
-                   @php($majmo_tamam_shod = 0)
-              @php($total_sale_price = 0)
-              @php($sizes = 0)
-              @php($profits = 0)
-              
-              
-              
-              @if(isset($search))
-                @foreach($sales as $sale)
-                   <?php $invoice = DB::table('invoices')->where('id',$sale->invoice_id)->first(); ?>
-                    <?php $customer = DB::table('customers')->where('id',$sale->customer_id)->first(); ?>
-                     <?php  $kachaee_expense = DB::table('carpet_repairs')->where('carpetId',$sale->carpet_id)->sum('total_price'); ?>
-               <?php  $wash_expense = DB::table('carpet_washes')->where('carpetId',$sale->carpet_id)->sum('total_price'); ?>
-              <?php  $finishing_expense = DB::table('finishing_works')->where('carpetId',$sale->carpet_id)->sum('price'); ?>
-     
-                  <tr>
-
-                    <td>{{$invoice->invoice_no}}</td>
-                
-                    <td>{{$customer->name}}</td>
-                  
-                    <td>{{$sale->carpet_no}}</td>
-                    <td>{{$sale->type}}</td>
-                    <td>{{$sale->quality}}</td>
-
-                    <td>{{$sale->carpet_height}} m</td>
-                    <td>{{$sale->carpet_width}} m</td>
-                    <td>{{$sale->carpet_area}} m <sup>2</sup></td>
-
-                   <td>{{$sale->price}} $</td>
-                       @if($sale->carpet_area > 0)
-                     <td>{{round(($kachaee_expense + $wash_expense +  $finishing_expense) / $sale->carpet_area , 2)}} $</td>
-                     @else 
-                       <td>{{round(($kachaee_expense + $wash_expense +  $finishing_expense) / $sale->carpet->area , 2)}} $</td>
-                       @endif
-                      
-                    <td>{{$sale->sale_cost_per_meter}} $</td>
-                       <td>{{$sale->carpet_area * $sale->sale_cost_per_meter}} $</td>
-                  
-                        @if(auth()->user()->role == 'SP')
-                       <td>{{round((($sale->carpet_area * $sale->price) + $kachaee_expense + $wash_expense +  $finishing_expense) , 2)}} $</td>
-                      <td>{{round(($sale->carpet_area * $sale->sale_cost_per_meter) - ($sale->carpet_area * $sale->price) + $kachaee_expense + $wash_expense +  $finishing_expense,2) }} $</td>
-
-                      @endif
-                      <td class="hideOnPrint">
-                          <a href="/dashboard/sales/{{$sale->id}}/edit" class="btn btn-sm btn-info printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
-                          @if($sale->ledger_transaction_id)
-                              <a href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success printBTN"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
-                          @endif
-                      </td>
-
-
-
-                  </tr>
-                  
-                   <span style="display: none">{{$majmo_tamam_shod += ($sale->carpet_price_us + $kachaee_expense + $wash_expense +  $finishing_expense) }}</span>
-                  <span style="display: none">{{$total_sale_price += $sale->sale_cost_total}}</span>
-                  <span style="display: none">{{$profits += $sale->profit}}</span>
-                  <span style="display: none">{{$sizes += $sale->carpet_area}}</span>
-                @endforeach
-              @else
-                @foreach($sales as $sale)
-                
-                 <?php  $kachaee_expense = DB::table('carpet_repairs')->where('carpetId',$sale->carpet_id)->sum('total_price'); ?>
-               <?php  $wash_expense = DB::table('carpet_washes')->where('carpetId',$sale->carpet_id)->sum('total_price'); ?>
-              <?php  $finishing_expense = DB::table('finishing_works')->where('carpetId',$sale->carpet_id)->sum('price'); ?>
-                  <tr>
-                    
-                    <td>{{$sale->invoice->invoice_no}}</td>
-                    
-                    <td class="hideOnPrint">{{$sale->customer->name}}</td>
-            
-                    <td>{{$sale->carpet->carpet_no}}</td>
-                    <td>{{$sale->type}}</td>
-                    <td>{{$sale->quality}}</td>
-                    <td>{{$sale->carpet_height}} m</td>
-                    <td>{{$sale->carpet_width}} m</td>
-                    <td>{{$sale->carpet_area}} m <sup>2</sup></td>
-                  <td>{{$sale->carpet->price}} $</td>
-                    
-                     
-                        @if($sale->carpet_area > 0)
-                     <td>{{round(($kachaee_expense + $wash_expense +  $finishing_expense) / $sale->carpet_area , 2)}} $</td>
-                     @else 
-                       <td>{{round(($kachaee_expense + $wash_expense +  $finishing_expense) / $sale->carpet->area , 2)}} $</td>
-                       @endif
-                      
-                    <td>{{$sale->sale_cost_per_meter}} $</td>
-                    <td>{{round($sale->carpet_area * $sale->sale_cost_per_meter,2)}} $</td>
-                  
-                @if(auth()->user()->role == 'SP')
-                      <td>{{round((($sale->carpet_area * $sale->carpet->price) + $kachaee_expense + $wash_expense +  $finishing_expense) , 2)}} $</td>
-                      <td>{{round(($sale->carpet_area * $sale->sale_cost_per_meter) - (($sale->carpet_area * $sale->carpet->price) + $kachaee_expense + $wash_expense +  $finishing_expense),2)}} $</td>
-                    
-                    @endif
-                      <td class="hideOnPrint">
-                          <a href="/dashboard/sales/{{$sale->id}}/edit" class="btn btn-sm btn-info printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
-                          @if($sale->ledger_transaction_id)
-                              <a href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success printBTN"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
-                          @endif
-                      </td>
-               
-                  
-                  
-                  </tr>
-                  
-                <span style="display: none">{{$majmo_tamam_shod += ($sale->carpet->carpet_price_us + $kachaee_expense + $wash_expense +  $finishing_expense) }}</span>
-                  <span style="display: none">{{$total_sale_price += $sale->sale_cost_total}}</span>
-                  <span style="display: none">{{$profits += $sale->profit}}</span>
-                  <span style="display: none">{{$sizes += $sale->carpet_area}}</span>
-                @endforeach
-              @endif
-              
-              </tbody>
-             <tr>
-             
-         
-                <th></th>
-                <th></th>
-                <th>Pcs {{$sales->count()}}</th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th>{{round($sizes,2)}} m <sup>2</sup></th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th>{{round($total_sale_price,2)}} $</th>
-                <th>{{round($majmo_tamam_shod,2)}} $</th>
-                <th>{{round($profits,2)}} $</th>
-              </tr>
-            </table>
-            @if(!isset($all))
-              <p class="hideOnPrint">{{$sales->links()}}</p>
-            @endif
-          </div>
-        </div>
-      </div>
     </div>
-  
-  </div>
+    @endif
 
+    <!-- Main Table Card -->
+    <div class="card border-0 shadow-sm rounded-lg overflow-hidden" id="salesTableCard">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
+                    <thead class="bg-light">
+                        <tr class="text-muted small text-uppercase">
+                            <th class="border-0 px-4 py-3">نمبر انوایس</th>
+                            <th class="border-0 py-3">مشتری</th>
+                            <th class="border-0 py-3">مشخصات قالین</th>
+                            <th class="border-0 py-3 text-center">ابعاد (m)</th>
+                            <th class="border-0 py-3 text-center">مساحت (m²)</th>
+                            <th class="border-0 py-3 text-center">قیمت فی متر</th>
+                            <th class="border-0 py-3 text-center">مجموع فروش</th>
+                            @if(auth()->user()->role == 'SP')
+                            <th class="border-0 py-3 text-center">مفاد خالص</th>
+                            @endif
+                            <th class="border-0 px-4 py-3 text-right">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($sales as $sale)
+                        <tr class="border-bottom">
+                            <td class="px-4 py-3">
+                                <span class="badge badge-soft-primary px-3 py-2 rounded-pill font-weight-bold">
+                                    <i class="fa fa-file-text-o mr-1"></i> {{ $sale->invoice->invoice_no ?? '---' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs bg-soft-info text-info rounded-circle mr-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        {{ mb_substr($sale->customer->name ?? '?', 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 font-weight-bold small">{{ $sale->customer->name ?? '---' }}</h6>
+                                        <span class="text-muted tiny">{{ $sale->customer_code }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <h6 class="mb-0 font-weight-bold text-dark small">{{ $sale->carpet->carpet_no ?? '---' }}</h6>
+                                <span class="badge badge-light tiny px-2 py-1">{{ $sale->type }} | {{ $sale->quality }}</span>
+                            </td>
+                            <td class="text-center small font-weight-bold text-muted">
+                                {{ $sale->carpet_height }} × {{ $sale->carpet_width }}
+                            </td>
+                            <td class="text-center font-weight-bold text-dark">
+                                {{ round($sale->carpet_area, 2) }}
+                            </td>
+                            <td class="text-center font-weight-bold text-info">
+                                ${{ number_format($sale->sale_cost_per_meter, 2) }}
+                            </td>
+                            <td class="text-center">
+                                <span class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</span>
+                            </td>
+                            @if(auth()->user()->role == 'SP')
+                            <td class="text-center">
+                                <span class="badge {{ $sale->profit >= 0 ? 'badge-soft-success' : 'badge-soft-danger' }} px-3 py-1 font-weight-bold">
+                                    ${{ number_format($sale->profit, 2) }}
+                                </span>
+                            </td>
+                            @endif
+                            <td class="px-4 py-3 text-right">
+                                <div class="dropdown">
+                                    <button class="btn btn-light btn-xs shadow-none border-0 bg-transparent p-0" type="button" data-toggle="dropdown">
+                                        <i class="fa fa-ellipsis-v text-muted"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-right shadow-sm border-0 py-2" style="border-radius: 10px;">
+                                        @php($isLocked = isset($sale->invoice) && Carbon\Carbon::parse($sale->invoice->invoice_date)->lte(Carbon\Carbon::parse($lockDate)))
+                                        
+                                        @if(!$isLocked)
+                                        <a class="dropdown-item py-2 px-3 small" href="/dashboard/sales/{{$sale->id}}/edit">
+                                            <i class="fa fa-pencil text-primary mr-2"></i> ویرایش اطلاعات
+                                        </a>
+                                        @else
+                                        <span class="dropdown-item py-2 px-3 small text-muted">
+                                            <i class="fa fa-lock mr-2"></i> قفل شده
+                                        </span>
+                                        @endif
+                                        
+                                        @if($sale->ledger_transaction_id)
+                                        <a class="dropdown-item py-2 px-3 small" href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank">
+                                            <i class="fa fa-book text-success mr-2"></i> مشاهده در روزنامچه
+                                        </a>
+                                        @endif
+                                        
+                                        <div class="dropdown-divider border-light"></div>
+                                        <a class="dropdown-item py-2 px-3 small" href="/dashboard/invoices/{{$sale->invoice_id}}">
+                                            <i class="fa fa-file-pdf-o text-danger mr-2"></i> مشاهده انوایس
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="9" class="py-5 text-center">
+                                <img src="/assets/img/empty-cart.png" alt="Empty" style="width: 80px; opacity: 0.5;">
+                                <p class="mt-3 text-muted">هیچ فروشاتی یافت نشد.</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small">نمایش {{ $sales->firstItem() ?? 0 }} تا {{ $sales->lastItem() ?? 0 }} از {{ $sales->total() }} مورد</span>
+                <div>
+                    {{ $sales->links() }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-primary { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); }
+    .badge-soft-primary { background-color: rgba(0, 123, 255, 0.1); color: #007bff; }
+    .badge-soft-success { background-color: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .badge-soft-danger { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+    .badge-soft-info { background-color: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+    .avatar-xs { font-size: 14px; font-weight: bold; }
+    .tiny { font-size: 10px; }
+    .table td, .table th { vertical-align: middle; }
+    .shadow-sm { box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important; }
+    .rounded-lg { border-radius: 0.75rem !important; }
+    .dropdown-item:hover { background-color: #f8f9fa; }
+    @media print {
+        .hideOnPrint { display: none !important; }
+        .card { border: none !important; shadow: none !important; }
+        .container-fluid { padding: 0 !important; }
+    }
+</style>
 @endsection
 
 @section('scripts')
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%'
+        });
 
-<script type="text/javascript">
-      $(document).ready(function () {
+        function updateEditFormLabels() {
+            let customerName = $('#invoice_id option:selected').attr('customer_name');
+            $('#display_customer_name').text(customerName || '---');
+        }
 
+        $('#invoice_id').on('change', updateEditFormLabels);
+        updateEditFormLabels();
 
-         $('#carpet_height').keyup(function () {
-              var carpet_height = $('#carpet_height').val();
-              var carpet_width = $('#carpet_width').val();
-              var carpet_area = $('#carpet_area').val(carpet_width * carpet_height);
-              var total_price = $('#total_price_cost').val();
+        $('#sale_cost_per_meter').on('input', function() {
+            let rate = parseFloat($(this).val()) || 0;
+            let area = parseFloat('{{ $sale->carpet_area ?? 0 }}');
+            let total = rate * area;
+            $('#display_total_sale').text('$ ' + total.toLocaleString(undefined, {minimumFractionDigits: 2}));
+            $('#sale_cost_total').val(total);
+        });
 
-              $('#price_per_meter').val(total_price / $('#carpet_area').val());
-
-
-              var sale_cost_per_meter = $("#sale_cost_per_meter").val();
-              if (sale_cost_per_meter != null) {
-                  $('#sale_cost_total').val(sale_cost_per_meter * $('#carpet_area').val());
-              }
-
-
-          });
-
-          $('#carpet_width').keyup(function () {
-              var carpet_height = $('#carpet_height').val();
-              var carpet_width = $('#carpet_width').val();
-              var carpet_area = $('#carpet_area').val(carpet_width * carpet_height);
-
-
-              var total_price = $('#total_price_cost').val();
-
-              $('#price_per_meter').val(total_price / $('#carpet_area').val());
-
-              var sale_cost_per_meter = $("#sale_cost_per_meter").val();
-              if (sale_cost_per_meter != null) {
-                  $('#sale_cost_total').val(sale_cost_per_meter * $('#carpet_area').val());
-              }
-
-          });
-
-
-          // $('#carpet_id').select2();
-
-          $('#invoice_id').change(function () {
-              var customer_name = $('#invoice_id option:selected').attr('customer_name');
-              $('#customer_name').val(customer_name);
-
-              var customer_company = $('#invoice_id option:selected').attr('customer_company');
-              $('#company_name').val(customer_company);
-
-              var company_address = $('#invoice_id option:selected').attr('customer_address');
-              $('#company_address').val(company_address);
-
-          });
-
-          // $('#carpet_id').change(function () {
-          //     var carpet_type = $('#carpet_id option:selected').attr('carpet_type');
-          //     $('#carpet_type').val(carpet_type);
-          //
-          //     var carpet_quality = $('#carpet_id option:selected').attr('carpet_quality');
-          //     $('#carpet_quality').val(carpet_quality);
-          //
-          //     var carpet_height = $('#carpet_id option:selected').attr('carpet_height');
-          //     $('#carpet_height').val(carpet_height);
-          //
-          //     var carpet_width = $('#carpet_id option:selected').attr('carpet_width');
-          //     $('#carpet_width').val(carpet_width);
-          //
-          //     var carpet_area = $('#carpet_id option:selected').attr('carpet_area');
-          //     $('#carpet_area').val(carpet_area);
-          //
-          //
-          //     var total_price = $('#carpet_id option:selected').attr('total_price');
-          //     $('#total_price_cost').val(total_price);
-          //
-          //     // var price_per_meter = $('#carpet_id option:selected').attr('price_per_meter');
-          //
-          //     $('#price_per_meter').val(total_price / carpet_area);
-          //
-          //
-          // })
-
-          
-          
-
-          $("#sale_cost_per_meter").keyup(function () {
-              var sale_cost_per_meter = $('#sale_cost_per_meter').val();
-              var mainCostPM = parseFloat(sale_cost_per_meter).toFixed(2);
-
-              var carpet_area = $('#carpet_area').val();
-              var mainCarpetArea = parseFloat(carpet_area).toFixed(2);
-
-
-              $("#sale_cost_per_meter").val();
-
-              $('#sale_cost_total').val(mainCostPM * mainCarpetArea);
-
-
-          });
-
-          // $('#invoice_id').onload(function () {
-          var customer_name = $('#invoice_id option:selected').attr('customer_name');
-          $('#customer_name').val(customer_name);
-
-          var customer_company = $('#invoice_id option:selected').attr('customer_company');
-          $('#company_name').val(customer_company);
-
-          var company_address = $('#invoice_id option:selected').attr('customer_address');
-          $('#company_address').val(company_address);
-
-          // })
-          // $('#carpet_id').onload(function () {
-          // var carpet_type = $('#carpet_id option:selected').attr('carpet_type');
-          // $('#carpet_type').val(carpet_type);
-          //
-          // var carpet_quality = $('#carpet_id option:selected').attr('carpet_quality');
-          // $('#carpet_quality').val(carpet_quality);
-          //
-          // var carpet_height = $('#carpet_id option:selected').attr('carpet_height');
-          // $('#carpet_height').val(carpet_height);
-          //
-          // var carpet_width = $('#carpet_id option:selected').attr('carpet_width');
-          // $('#carpet_width').val(carpet_width);
-          //
-          // var carpet_area = $('#carpet_id option:selected').attr('carpet_area');
-          // $('#carpet_area').val(carpet_area);
-
-
-          // var total_price = $('#carpet_id option:selected').attr('total_price');
-          // $('#total_price_cost').val(total_price);
-          //
-          // if (total_price != null && carpet_area != null) {
-          //     $('#price_per_meter').val(total_price / carpet_area);
-          // }
-
-
-      });
-  </script>
-  <script>
-
-      $('.status').show();
-      window.setTimeout(function () {
-          $(".status").fadeTo(500, 0).slideUp(500, function () {
-
-              $(this).remove();
-          });
-      }, 2000);
-  
-  </script>
-  <script type="text/javascript">
-      $("#packing_id").change(function () {
-          $.ajax({
-              url: "{{ route('dashboard.package_list.get_by_packing') }}?packing_id=" + $(this).val(),
-              method: 'GET',
-              success: function (data) {
-                  $('#package_id').html(data.html);
-              }
-          });
-      });
-  </script>
-
-
+        $("#packing_id").change(function () {
+            $.ajax({
+                url: "{{ route('dashboard.package_list.get_by_packing') }}?packing_id=" + $(this).val(),
+                method: 'GET',
+                success: function (data) {
+                    $('#package_id').html(data.html).trigger('change');
+                }
+            });
+        });
+    });
+</script>
 @endsection

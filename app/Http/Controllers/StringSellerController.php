@@ -8,6 +8,7 @@ use App\StringSeller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class StringSellerController extends Controller
 {
@@ -19,10 +20,37 @@ class StringSellerController extends Controller
     public function index()
     {
         $sellerEdit = "";
-        $sellers = StringSeller::all();
+        $sellers = StringSeller::all()->map(function($seller) {
+            // 1. Accounting Balance (Real-time from ledger)
+            $seller->accounting_balance = DB::table('ledger_entries')
+                ->where('party_type', 'App\StringSeller')
+                ->where('party_id', $seller->id)
+                ->sum(DB::raw("credit - debit"));
+
+            // 2. Legacy Balance (AFN & USD)
+            $seller->legacy_af = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount_af') 
+                               - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount_af');
+            
+            $seller->legacy_usd = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount') 
+                                - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount');
+            
+            // 3. Total Supplied (kg)
+            $seller->total_supplied = DB::table('purchase_materials')
+                ->where('seller_id', $seller->id)
+                ->where('status', 1)
+                ->sum('quantity');
+
+            // 4. Last Activity
+            $lastPurchase = DB::table('purchase_materials')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
+            $lastPayment = DB::table('seller_payments')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
+            $seller->last_activity = max($lastPurchase, $lastPayment);
+
+            return $seller;
+        });
+
+        // Global Aggregates (Legacy)
         $credit_us = SellerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = SellerPayment::where('type', '=', 'رسید')->sum('amount_af');
-
         $debit_us = SellerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = SellerPayment::where('type', '=', 'گرفت')->sum('amount_af');
 

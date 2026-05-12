@@ -12,7 +12,7 @@
                 <div class="card-body">
 
                     @if(!$detailEdit)
-                        <form action="/dashboard/assets-accounts-details" method="post">
+                        <form action="/dashboard/assets-accounts-details" method="post" enctype="multipart/form-data">
                             @csrf
                             <br>
                             <input type="hidden" name="assets_account_id" value="{{$account->aa_id}}">
@@ -84,20 +84,62 @@
                                 </div>
 
                                 <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                                    <label>تخمین از دست دادن ارزش جنس در یک سال</label>
+                                    <label>تخمین ارزش اسقاط (Salvage Value)</label>
                                     <input type="text" name="estimated_salvage_value" id="estimated_salvage_value"
-                                           readonly class="form-control">
+                                           class="form-control">
+                                    <small class="text-muted small">ارزش دستگاه بعد از خرابی.</small>
                                     @error('estimated_salvage_value') <p
                                         class="text-danger">{{trans('message.'.$message)}}</p>@enderror
                                 </div>
 
+                                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                    <label class="text-primary">استهلاک سالانه (Annual Dep.)</label>
+                                    <input type="text" id="annual_depreciation" readonly
+                                           class="form-control bg-light text-primary font-weight-bold">
+                                    <small class="text-muted small">کاهش ارزش در یک سال.</small>
+                                </div>
 
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 35px;">
+                                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                    <label>عکس جنس (اختیاری)</label>
+                                    <input type="file" name="asset_image" class="form-control" accept="image/*">
+                                </div>
 
-                                    <button class="btn btn-block btn-primary submit-btn"
-                                            type="submit"><span
-                                            class="fa fa-save"></span> ثبت
-                                    </button>
+                                <!-- ACCOUNT OVERRIDES -->
+                                <div class="col-lg-12 mt-4">
+                                    <div class="row p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+                                        <div class="col-lg-12">
+                                            <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Fixed Asset Accounting)</h6>
+                                        </div>
+                                        <div class="col-lg-5">
+                                            <div class="form-group">
+                                                <label class="text-info">حساب دارایی ثابت (Debit)</label>
+                                                <select name="override_debit_account_id" id="override_debit_account_id" class="form-control">
+                                                    @foreach($allowedDebitAccounts as $acc)
+                                                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-5">
+                                            <div class="form-group">
+                                                <label class="text-info">حساب پرداخت (Credit)</label>
+                                                <select name="override_credit_account_id" id="override_credit_account_id" class="form-control">
+                                                    @foreach($allowedCreditAccounts as $acc)
+                                                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-2" style="margin-top: 28px;">
+                                            <button class="btn btn-block btn-primary submit-btn" type="submit">
+                                                <span class="fa fa-save"></span> ثبت نهایی
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                             </div>
@@ -185,12 +227,26 @@
                                 </div>
 
                                 <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                                    <label>تخمین از دست دادن ارزش جنس در یک سال</label>
-                                    <input type="text" name="estimated_salvage_value" id="estimated_salvage_value"
-                                           value="{{$detailEdit->estimated_salvage_value}}" readonly
+                                    <label>تخمین ارزش اسقاط (Salvage Value)</label>
+                                    <input type="text" name="estimated_salvage_value" id="estimated_salvage_value_edit"
+                                           value="{{$detailEdit->estimated_salvage_value}}"
                                            class="form-control">
                                     @error('estimated_salvage_value') <p
                                         class="text-danger">{{trans('message.'.$message)}}</p>@enderror
+                                </div>
+
+                                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                    <label class="text-primary">استهلاک سالانه (Annual Dep.)</label>
+                                    <input type="text" id="annual_depreciation_edit" readonly
+                                           class="form-control bg-light text-primary font-weight-bold">
+                                </div>
+
+                                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+                                    <label>عکس جنس (اختیاری)</label>
+                                    <input type="file" name="asset_image" class="form-control" accept="image/*">
+                                    @if($detailEdit->asset_image)
+                                        <a href="{{ asset('uploads/assets/' . $detailEdit->asset_image) }}" target="_blank" class="small mt-1 d-block text-info"><i class="fa fa-image"></i> مشاهده عکس فعلی</a>
+                                    @endif
                                 </div>
 
 
@@ -269,7 +325,8 @@
                                 <th>تاریخ خرید</th>
                                 <th>قیمت خرید</th>
                                 <th>تعداد سال قابل استفاده</th>
-                                <th>تخمین از دست دادن ارزش در یک سال</th>
+                                <th>تخمین ارزش اسقاط</th>
+                                <th>عکس</th>
                                 <th>قیمت فعلی</th>
                                 <th>عملیات</th>
                             </tr>
@@ -300,9 +357,16 @@
                                     <td>{{$co->acquisition_cost}}</td>
                                     <td>{{$co->estimated_useful_life}}</td>
                                     <td>{{$co->estimated_salvage_value}}</td>
-                                    <td>{{$co->acquisition_cost - $year * $co->estimated_salvage_value }}
+                                    <td>
+                                        @if($co->asset_image)
+                                            <a href="{{ asset('uploads/assets/' . $co->asset_image) }}" target="_blank"><img src="{{ asset('uploads/assets/' . $co->asset_image) }}" style="width: 40px; height: 40px; border-radius: 5px;" alt="Image"></a>
+                                        @else
+                                            <span class="text-muted small">ندارد</span>
+                                        @endif
+                                    </td>
+                                    <td>{{$co->acquisition_cost - $year * (($co->acquisition_cost - $co->estimated_salvage_value) / ($co->estimated_useful_life ?: 1)) }}
 
-                                    <span style="display: none;">{{$total_current_value += $co->acquisition_cost - $year * $co->estimated_salvage_value }}</span>
+                                    <span style="display: none;">{{$total_current_value += $co->acquisition_cost - $year * (($co->acquisition_cost - $co->estimated_salvage_value) / ($co->estimated_useful_life ?: 1)) }}</span>
                                     </td>
 
                                     <td>
@@ -338,6 +402,10 @@
 
 @section('scripts')
     <script>
+        $(document).ready(function() {
+            $('#override_debit_account_id').select2();
+            $('#override_credit_account_id').select2();
+        });
 
         function deleteAssetAccountDetails(id) {
 
@@ -382,21 +450,31 @@
                 });
         }
 
-        $("#purchase_cost").on("change paste keyup", function () {
+        function calculateDepreciation() {
+            var p = parseFloat($('#purchase_cost').val()) || 0;
+            var w = parseFloat($('#estimated_useful_life').val()) || 1;
+            var s = parseFloat($('#estimated_salvage_value').val()) || 0;
+            if (w > 0) {
+                $('#annual_depreciation').val(((p - s) / w).toFixed(2));
+            }
+        }
 
-            var p = parseFloat($(this).val());
+        $("#purchase_cost, #estimated_useful_life, #estimated_salvage_value").on("change paste keyup", calculateDepreciation);
+        
+        function calculateDepreciationEdit() {
+            var p = parseFloat($('#purchase_cost').val()) || 0;
+            var w = parseFloat($('#estimated_useful_life').val()) || 1;
+            var s = parseFloat($('#estimated_salvage_value_edit').val()) || 0;
+            if (w > 0) {
+                $('#annual_depreciation_edit').val(((p - s) / w).toFixed(2));
+            }
+        }
 
-            var w = parseFloat($('#estimated_useful_life').val());
-            $('#estimated_salvage_value').val((p / w).toFixed(2));
-        });
-
-        $("#estimated_useful_life").on("change paste keyup", function () {
-
-            var w = parseFloat($(this).val());
-
-            var p = parseFloat($('#purchase_cost').val());
-            $('#estimated_salvage_value').val((p / w).toFixed(2));
-        });
+        $("#purchase_cost, #estimated_useful_life, #estimated_salvage_value_edit").on("change paste keyup", calculateDepreciationEdit);
+        
+        // Initial calculation
+        calculateDepreciation();
+        calculateDepreciationEdit();
 
 
     </script>

@@ -7,10 +7,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                        
-                            <h4 class="text-c-yellow"> @if($sales) {{$sales->sum('amount')}} kg @else 0 kg
-                                @endif</h4>
-                    
+                            <h4 class="text-c-yellow"> @if($sales) {{$sales->sum('amount')}} kg @else 0 kg @endif</h4>
                         </div>
                         <div class="col-4 text-right">
                             <i class="feather icon-bar-chart-2 f-28"></i>
@@ -29,14 +26,14 @@
                 </div>
             </div>
         </div>
+
+        @foreach($categoryTotals as $cat)
         <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
             <div class="card">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                        
-                            <h4 class="text-c-yellow">{{$firstTotal}} kg </h4>
-                    
+                            <h4 class="text-c-yellow">{{$cat->total}} kg </h4>
                         </div>
                         <div class="col-4 text-right">
                             <i class="feather icon-bar-chart-2 f-28"></i>
@@ -46,7 +43,7 @@
                 <div class="card-footer bg-c-yellow">
                     <div class="row align-items-center">
                         <div class="col-9">
-                            <h5 class="text-white m-b-0">مجموعه {{$firstName->material_category}}</h5>
+                            <h5 class="text-white m-b-0">مجموعه {{$cat->name}}</h5>
                         </div>
                         <div class="col-3 text-right">
                             <i class="feather icon-trending-up text-white f-16"></i>
@@ -55,58 +52,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-8">
-                        
-                            <h4 class="text-c-yellow">{{$secondTotal}} kg</h4>
-                    
-                        </div>
-                        <div class="col-4 text-right">
-                            <i class="feather icon-bar-chart-2 f-28"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-c-yellow">
-                    <div class="row align-items-center">
-                        <div class="col-9">
-                            <h5 class="text-white m-b-0"> مجموعه {{$secondName->material_category}}</h5>
-                        </div>
-                        <div class="col-3 text-right">
-                            <i class="feather icon-trending-up text-white f-16"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-8">
-                        
-                            <h4 class="text-c-yellow">{{$thirdTotal}} kg </h4>
-                    
-                        </div>
-                        <div class="col-4 text-right">
-                            <i class="feather icon-bar-chart-2 f-28"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-c-yellow">
-                    <div class="row align-items-center">
-                        <div class="col-9">
-                            <h5 class="text-white m-b-0"> مجموعه {{$thirdName->material_category}}</h5>
-                        </div>
-                        <div class="col-3 text-right">
-                            <i class="feather icon-trending-up text-white f-16"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        @endforeach
     </div>
     <div class="card" id="stock">
         <div class="card-header">
@@ -135,36 +81,54 @@
         </div>
         <div class="card-body">
             <div class="static-table-list table-responsive">
-                <table class="table table-hover table-xs">
+                <table class="table table-hover table-xs" id="dataTable">
                     <thead>
-                    <tr >
-                        <th>نمبر گدام</th>
+                    <tr>
                         <th>کتگوری مواد</th>
                         <th>نوعیت مواد</th>
-                        <th>مقدار</th>
-                        <th>قیمت فی کیلو</th>
-                      
+                        <th>گدام</th>
+                        <th>مقدار موجود</th>
+                        <th>قیمت فی (WAC)</th>
+                        <th>ارزش مجموعی</th>
+                        <th class="hideOnPrint">تاریخچه</th>
                     </tr>
                     </thead>
                     <tbody>
                     @forelse($stock as $p)
-                     @if($p->quantity > 0)
-                        <tr>
-                            <td>{{ $p->id }}</td>
-                            <td >{{ $p->category->material_category }}</td>
-                            <td >{{ $p->type->material_type }}</td>
-                            <td dir="ltr">{{ $p->quantity }} KG</td>
-                            <td dir="ltr">{{ $p->price_per_kilo .'AF' }}
+                        @php 
+                            $statusClass = '';
+                            if($p->quantity < 10) $statusClass = 'table-danger';
+                            elseif($p->quantity < 50) $statusClass = 'table-warning';
+                        @endphp
+                        <tr class="{{ $statusClass }}">
+                            <td><strong>{{ $p->material_category }}</strong></td>
+                            <td>{{ $p->material_type }}</td>
+                            <td><span class="badge badge-light border">{{ $p->warehouse_name ?? 'گدام مرکزی' }}</span></td>
+                            <td>
+                                <span class="font-weight-bold">{{ number_format($p->quantity, 2) }} kg</span>
+                                @if($p->quantity < 10)
+                                    <br><small class="text-danger"><i class="fa fa-warning"></i> ذخیره کم است</small>
+                                @endif
                             </td>
-                            {{--<td dir="ltr">{{ \Carbon\Carbon::parse($p->created_at)->format('d-M-Y') }}</td>--}}
+                            <td>{{ number_format($p->price_per_kilo, 2) }} AFN</td>
+                            <td class="text-primary font-weight-bold">{{ number_format($p->total_value, 2) }} AFN</td>
+                            <td class="hideOnPrint">
+                                <a href="{{ route('material-stock.history', [$p->cat_id, $p->type_id]) }}" 
+                                   class="btn btn-outline-info btn-xs" 
+                                   title="مشاهده حرکات">
+                                    <i class="fa fa-history"></i> تاریخچه
+                                </a>
+                            </td>
                         </tr>
-                        @endif
                     @empty
-                        <h5 style="color: red;text-align:center">هنوز موادی خریداری نشده</h5>
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <h5 class="text-muted">هنوز موادی در گدام ثبت نشده است</h5>
+                            </td>
+                        </tr>
                     @endforelse
                     </tbody>
                 </table>
-    
             </div>
         </div>
     </div>

@@ -1,274 +1,371 @@
 @extends('dsh.master')
 
+@section('title', 'داشبورد مالی - Financial Dashboard')
+
 @section('content')
-<div class="container-fluid">
-    <br>
-    
-    <!-- Premium Header & Filter Section -->
+<!-- Include ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<div class="container-fluid no-print-padding">
+    <!-- Dashboard Header -->
+    <div class="row align-items-center mb-4 no-print">
+        <div class="col-md-5">
+            <h2 class="font-weight-bold text-dark mb-1">داشبورد مدیریت مالی (Executive Dashboard)</h2>
+            <p class="text-muted mb-0">تحلیل لحظه‌ای وضعیت نقدینگی، سودآوری و عملکرد گدام</p>
+        </div>
+        <div class="col-md-7 text-right">
+            <!-- Currency Toggle -->
+            <div class="d-inline-block mr-3 text-right" style="vertical-align: middle;">
+                <label class="small text-muted d-block mb-0">واحد پولی نمایش</label>
+                <div class="btn-group btn-group-sm shadow-sm rounded-pill overflow-hidden bg-white border">
+                    <button type="button" onclick="setCurrency('USD')" id="btnUSD" class="btn btn-white px-3 active">USD</button>
+                    <button type="button" onclick="setCurrency('AFN')" id="btnAFN" class="btn btn-white px-3">AFN</button>
+                </div>
+            </div>
+
+            <!-- Quick Action -->
+            <button type="button" class="btn btn-info rounded-pill px-4 shadow-sm" data-toggle="modal" data-target="#quickJournalModal">
+                <i class="fa fa-plus-circle mr-2"></i> ثبت روزنامچه سریع
+            </button>
+
+            <button onclick="window.print()" class="btn btn-primary rounded-pill px-4 ml-2 shadow-sm">
+                <i class="fa fa-print mr-2"></i> چاپ داشبورد
+            </button>
+        </div>
+    </div>
+
+    <!-- 1. Top Metrics Row -->
+    <div class="row mb-4 no-print">
+        <!-- Cash Position -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-white h-100" style="border-radius: 20px; background: linear-gradient(135deg, #1a237e, #3949ab);">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="bg-white-10 p-2 rounded-circle"><i class="feather icon-briefcase f-24"></i></div>
+                    <span class="badge badge-light-success">+{{ $kpis['cash']['change'] }}%</span>
+                </div>
+                <span class="opacity-75 d-block small font-weight-bold">مجموع نقدینگی (Cash Balance)</span>
+                <h3 class="font-weight-bold mt-1 text-white">{{ number_format($metrics['cash_on_hand'], 2) }} <small class="f-12">USD</small></h3>
+            </div>
+        </div>
+        <!-- Receivables -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 20px; background: #fff;">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="bg-light-success p-2 rounded-circle"><i class="feather icon-users f-24 text-success"></i></div>
+                    <span class="badge badge-success">{{ $kpis['receivables']['change'] }}%</span>
+                </div>
+                <span class="text-muted d-block small font-weight-bold">طلبات مشتریان (Accounts Receivable)</span>
+                <h3 class="font-weight-bold mt-1 text-dark">{{ number_format($metrics['total_receivables'], 2) }} <small class="f-12">USD</small></h3>
+            </div>
+        </div>
+        <!-- Inventory Value -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 20px; background: #fff;">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="bg-light-warning p-2 rounded-circle"><i class="feather icon-archive f-24 text-warning"></i></div>
+                    <span class="text-warning small font-weight-bold">ارزش گدام</span>
+                </div>
+                <span class="text-muted d-block small font-weight-bold">ارزش کل موجودی (Inventory Value)</span>
+                <h3 class="font-weight-bold mt-1 text-dark">{{ number_format($metrics['inventory_value'], 2) }} <small class="f-12">USD</small></h3>
+            </div>
+        </div>
+        <!-- Net Profit -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-white h-100" style="border-radius: 20px; background: linear-gradient(135deg, #00c853, #2e7d32);">
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="bg-white-10 p-2 rounded-circle"><i class="feather icon-trending-up f-24"></i></div>
+                    <span class="badge badge-light-primary">MTD Profit</span>
+                </div>
+                <span class="opacity-75 d-block small font-weight-bold">مفاد ماه جاری (Net Profit)</span>
+                <h3 class="font-weight-bold mt-1 text-white">{{ number_format($kpis['profit']['value'], 2) }} <small class="f-12">USD</small></h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Main Analytics Row (Charts) -->
     <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card border-0 shadow-sm" style="border-radius: 15px; background: linear-gradient(45deg, #4099ff, #73b4ff);">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-lg-7 text-white">
-                            <h2 class="font-weight-bold text-white mb-1">داشبورد تحلیلی امور مالی</h2>
-                            <p class="mb-0 opacity-80" style="font-size: 1.1rem;">
-                                مرور عملکرد و سلامت مالی شرکت در بازه زمانی: 
-                                <span class="badge badge-light px-3 py-2 mx-1" style="font-size: 1rem; color: #4099ff;">{{ $startDate }}</span> 
-                                الی 
-                                <span class="badge badge-light px-3 py-2 mx-1" style="font-size: 1rem; color: #4099ff;">{{ $endDate }}</span>
-                            </p>
-                        </div>
-                        <div class="col-lg-5">
-                            <div class="bg-white p-3 shadow-sm" style="border-radius: 12px;">
-                                <form action="{{ route('accounting.dashboard') }}" method="GET">
-                                    <div class="row no-gutters align-items-end">
-                                        <div class="col-5 px-1">
-                                            <label class="small font-weight-bold text-muted mb-1">از تاریخ (From)</label>
-                                            <input type="date" name="start_date" value="{{ $startDate }}" class="form-control form-control-sm border-0 bg-light">
-                                        </div>
-                                        <div class="col-5 px-1">
-                                            <label class="small font-weight-bold text-muted mb-1">الی تاریخ (To)</label>
-                                            <input type="date" name="end_date" value="{{ $endDate }}" class="form-control form-control-sm border-0 bg-light">
-                                        </div>
-                                        <div class="col-2 px-1">
-                                            <button type="submit" class="btn btn-primary btn-sm btn-block shadow-sm" style="border-radius: 8px;">
-                                                <i class="feather icon-refresh-cw"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+        <!-- Revenue vs Expense Chart -->
+        <div class="col-md-8 mb-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="font-weight-bold mb-0">تحلیل عواید و مصارف (Revenue vs Expenses)</h5>
+                    <div class="small text-muted">روند ۳۰ روز گذشته</div>
+                </div>
+                <div id="revenueExpenseChart" style="min-height: 350px;"></div>
+            </div>
+        </div>
+        <!-- Inventory Distribution -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <h5 class="font-weight-bold mb-4">توزیع دارایی‌های گدام</h5>
+                <div id="inventoryDonutChart" style="min-height: 300px;"></div>
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">مواد خام (Raw Materials)</span>
+                        <span class="font-weight-bold">{{ number_format($inventoryDist['raw'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">قالین آماده (Finished Carpets)</span>
+                        <span class="font-weight-bold">{{ number_format($inventoryDist['finished'], 2) }}</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- KPI Summary Cards -->
-    <div class="row">
-        @php
-            $kpiList = [
-                ['key' => 'revenue', 'label' => 'مجموع عواید', 'icon' => 'feather icon-trending-up', 'color' => 'bg-c-green', 'detail' => 'Revenue'],
-                ['key' => 'expenses', 'label' => 'مجموع هزینه‌ها', 'icon' => 'feather icon-trending-down', 'color' => 'bg-c-yellow', 'detail' => 'Expenses'],
-                ['key' => 'profit', 'label' => 'سود خالص', 'icon' => 'feather icon-award', 'color' => 'bg-c-blue', 'detail' => 'Net Profit'],
-                ['key' => 'cash', 'label' => 'موجودی نقد', 'icon' => 'feather icon-pocket', 'color' => 'bg-info', 'detail' => 'Cash Flow'],
-                ['key' => 'receivables', 'label' => 'طلبات (AR)', 'icon' => 'feather icon-users', 'color' => 'bg-c-purple', 'detail' => 'Receivables'],
-                ['key' => 'payables', 'label' => 'بدهی‌ها (AP)', 'icon' => 'feather icon-credit-card', 'color' => 'bg-c-red', 'detail' => 'Payables'],
-            ];
-        @endphp
-
-        @foreach($kpiList as $item)
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
-            <div class="card border-0 shadow-sm h-100 overflow-hidden" style="border-radius: 12px;">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle {{ $item['color'] }} text-white p-2 mr-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                            <i class="{{ $item['icon'] }}"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-0 small">{{ $item['label'] }}</h6>
-                            <small class="text-muted opacity-50">{{ $item['detail'] }}</small>
-                        </div>
-                    </div>
-                    <h4 class="font-weight-bold mb-2">{{ number_format($kpis[$item['key']]['value'], 2) }} <small>AFN</small></h4>
-                    <div class="d-flex align-items-center">
-                        @if($kpis[$item['key']]['change'] >= 0)
-                            <span class="text-success small font-weight-bold">
-                                <i class="feather icon-arrow-up-right mr-1"></i>{{ abs($kpis[$item['key']]['change']) }}%
-                            </span>
-                        @else
-                            <span class="text-danger small font-weight-bold">
-                                <i class="feather icon-arrow-down-right mr-1"></i>{{ abs($kpis[$item['key']]['change']) }}%
-                            </span>
-                        @endif
-                        <span class="text-muted small ml-2">نسبت به قبل</span>
-                    </div>
-                </div>
+    <!-- 3. Secondary Row (Cashflow & Aging) -->
+    <div class="row mb-4">
+        <!-- Cash Flow Bar -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <h5 class="font-weight-bold mb-4">تحلیل ورود و خروج نقدینگی (Cash Flow)</h5>
+                <div id="cashFlowChart" style="min-height: 250px;"></div>
             </div>
         </div>
-        @endforeach
+        <!-- Aging Analysis -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <h5 class="font-weight-bold mb-4">تحلیل سررسید طلبات (AR Aging)</h5>
+                <div id="agingChart" style="min-height: 250px;"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="row">
-        <!-- P&L Trend -->
-        <div class="col-xl-8 col-md-12 mb-4">
-            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 py-3">
-                    <h5 class="mb-0 font-weight-bold text-dark">روند عواید و مصارف (P&L Trend)</h5>
+    <!-- 4. Intelligence & Quick Actions Row -->
+    <div class="row no-print">
+        <!-- Top Expenses -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 20px;">
+                <div class="card-header bg-white border-0 py-4 px-4">
+                    <h5 class="font-weight-bold mb-0">بیشترین مصارف (Top Expenses)</h5>
                 </div>
-                <div class="card-body">
-                    <div id="profit-loss-chart"></div>
+                <div class="card-body p-0 px-4 pb-4">
+                    @foreach($topExpenses as $expense)
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <span class="text-muted small">{{ $expense->account_name }}</span>
+                        <span class="font-weight-bold text-danger currency-val" data-usd="{{ $expense->total }}">{{ number_format($expense->total, 2) }}</span>
+                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
-
-        <!-- Financial Health -->
-        <div class="col-xl-4 col-md-12 mb-4">
-            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 py-3 text-center">
-                    <h5 class="mb-0 font-weight-bold text-dark">شاخص‌های سلامت مالی</h5>
+        <!-- Profitability by Type -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 20px;">
+                <div class="card-header bg-white border-0 py-4 px-4">
+                    <h5 class="font-weight-bold mb-0">سودآوری به تفکیک نوعیت</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-6 text-center">
-                            <div class="p-3 bg-light rounded-lg">
-                                <h3 class="text-primary font-weight-bold mb-0">{{ $ratios['liquidity']['current_ratio'] }}</h3>
-                                <p class="text-muted small mb-0 font-weight-bold">نسبت جاری</p>
-                                <span class="badge {{ $ratios['liquidity']['current_ratio'] >= 1 ? 'badge-success' : 'badge-danger' }} mt-1">
-                                    {{ $ratios['liquidity']['current_ratio'] >= 1.5 ? 'عالی' : ($ratios['liquidity']['current_ratio'] >= 1 ? 'متوسط' : 'خطرناک') }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-6 text-center">
-                            <div class="p-3 bg-light rounded-lg">
-                                <h3 class="text-success font-weight-bold mb-0">{{ $ratios['profitability']['net_margin'] }}%</h3>
-                                <p class="text-muted small mb-0 font-weight-bold">مارجین سود</p>
-                                <span class="badge badge-success mt-1">سودآور</span>
-                            </div>
-                        </div>
+                <div class="card-body p-0 px-4 pb-4">
+                    @foreach($profitability as $profit)
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <span class="text-muted small">{{ $profit->type }}</span>
+                        <span class="font-weight-bold text-success currency-val" data-usd="{{ $profit->total_profit }}">{{ number_format($profit->total_profit, 2) }}</span>
                     </div>
-                    <hr class="opacity-10">
-                    <h6 class="font-weight-bold text-dark mb-3">تحلیل طلبات (Aging Analysis)</h6>
-                    <div id="aging-chart"></div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <!-- Period Closing -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; background: #fff;">
+                <div class="card-body p-4 text-center">
+                    <h5 class="font-weight-bold mb-4">دسترسی سریع به گزارشات</h5>
+                    <div class="row">
+                        <div class="col-6 mb-2"><a href="{{ route('accounting.reports.balance_sheet') }}" class="btn btn-outline-primary btn-block rounded py-3 small font-weight-bold">ترازنامه</a></div>
+                        <div class="col-6 mb-2"><a href="{{ route('accounting.reports.profit_loss') }}" class="btn btn-outline-success btn-block rounded py-3 small font-weight-bold">مفاد و ضرر</a></div>
+                        <div class="col-6 mb-2"><a href="{{ route('accounting.reports.cash_flow') }}" class="btn btn-outline-info btn-block rounded py-3 small font-weight-bold">جریان نقد</a></div>
+                        <div class="col-6 mb-2"><a href="{{ route('accounting.reports.comparative_pl') }}" class="btn btn-outline-dark btn-block rounded py-3 small font-weight-bold">تحلیل مقایسوی</a></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Cash Flow -->
-        <div class="col-xl-6 col-md-12 mb-4">
-            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 py-3">
-                    <h5 class="mb-0 font-weight-bold text-dark">جریان وجوه نقد (Inflow vs Outflow)</h5>
-                </div>
-                <div class="card-body">
-                    <div id="cash-flow-chart"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Activity -->
-        <div class="col-xl-6 col-md-12 mb-4">
-            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 py-3">
-                    <h5 class="mb-0 font-weight-bold text-dark">حجم فعالیت‌های مالی (Transactions)</h5>
-                </div>
-                <div class="card-body">
-                    <div id="activity-chart"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="row">
+    <!-- 5. Recent Transactions Row -->
+    <div class="row no-print">
         <div class="col-md-12 mb-4">
-            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 font-weight-bold text-dark">آخرین فعالیت‌های دفتر کل</h5>
-                    <a href="{{ route('accounting.journals.index') }}" class="btn btn-outline-primary btn-sm rounded-pill">مشاهده همه</a>
+            <div class="card border-0 shadow-sm" style="border-radius: 20px;">
+                <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold mb-0">آخرین معاملات دفتر روزنامچه (Recent Ledger)</h5>
+                    <a href="{{ route('accounting.journals.index') }}" class="btn btn-light rounded-pill px-3 py-1 small">مشاهده همه</a>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="bg-light text-muted small uppercase">
-                                <tr>
-                                    <th class="border-0 py-3 px-4">تاریخ</th>
-                                    <th class="border-0 py-3">نمبر سند</th>
-                                    <th class="border-0 py-3">تفصیلات</th>
-                                    <th class="border-0 py-3">نوعیت</th>
-                                    <th class="border-0 py-3 text-right px-4">مبلغ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($recentTransactions as $tx)
-                                <tr style="cursor: pointer;">
-                                    <td class="py-3 px-4">{{ $tx->date }}</td>
-                                    <td class="py-3 font-weight-bold">{{ $tx->reference }}</td>
-                                    <td class="py-3 text-muted">{{ $tx->description }}</td>
-                                    <td class="py-3">
-                                        <span class="badge badge-light-primary">{{ strtoupper($tx->journal_type) }}</span>
-                                    </td>
-                                    <td class="py-3 text-right px-4 font-weight-bold text-dark">
-                                        {{ number_format($tx->entries->sum('debit'), 2) }} <small>AFN</small>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive px-4 pb-4">
+                    <table class="table table-hover border-top">
+                        <thead>
+                            <tr class="text-muted small uppercase">
+                                <th>تاریخ</th>
+                                <th>نمبر معامله</th>
+                                <th>شرح</th>
+                                <th class="text-right">مبلغ</th>
+                                <th class="text-center">حالت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($recentTransactions as $tx)
+                            <tr>
+                                <td class="small">{{ $tx->date }}</td>
+                                <td class="font-weight-bold">#{{ $tx->id }}</td>
+                                <td class="small">{{ $tx->description }}</td>
+                                <td class="text-right font-weight-bold currency-val" data-usd="{{ $tx->entries->sum('debit') }}">{{ number_format($tx->entries->sum('debit'), 2) }}</td>
+                                <td class="text-center">
+                                    <span class="badge badge-pill badge-light-success px-3">ثبت شده</span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
-    .opacity-80 { opacity: 0.8; }
-    .badge-light-primary { background: #e3f2fd; color: #1976d2; border-radius: 5px; padding: 4px 8px; font-weight: 600; }
-</style>
-@endsection
+<!-- Quick Journal Modal -->
+<div class="modal fade" id="quickJournalModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content border-0" style="border-radius: 20px;">
+            <div class="modal-header border-0 p-4">
+                <h5 class="modal-title font-weight-bold">ثبت روزنامچه سریع (Quick Journal Entry)</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <form action="{{ route('accounting.journals.store') }}" method="POST">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="small font-weight-bold text-muted">تاریخ</label>
+                            <input type="date" name="date" class="form-control rounded-pill" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small font-weight-bold text-muted">شرح معامله</label>
+                            <input type="text" name="description" class="form-control rounded-pill" placeholder="مثلاً: هزینه حمل و نقل" required>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-2">برای ثبت کامل و حرفه‌ای از صفحه <a href="{{ route('accounting.journals.create') }}">ثبت روزنامچه</a> استفاده کنید.</p>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">تایید و ادامه</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-@section('footer-plugins')
-<script src="/dsh/assets/js/plugins/apexcharts.min.js"></script>
 <script>
-    $(document).ready(function() {
-        // P&L Trend
-        var plOptions = {
-            series: [{ name: 'عواید (Revenue)', data: {!! json_encode($profit_loss->pluck('revenue')) !!} }, 
-                    { name: 'هزینه‌ها (Expenses)', data: {!! json_encode($profit_loss->pluck('expense')) !!} }],
-            chart: { type: 'area', height: 350, toolbar: { show: false }, zoom: { enabled: false } },
-            colors: ['#2ed8b6', '#ffb64d'],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [20, 80, 100] } },
+    const EXCHANGE_RATE = {{ $exchangeRate }};
+    let currentCurrency = 'USD';
+
+    function setCurrency(cur) {
+        currentCurrency = cur;
+        $('.currency-val').each(function() {
+            let usdVal = parseFloat($(this).data('usd'));
+            let displayVal = (cur === 'USD') ? usdVal : (usdVal * EXCHANGE_RATE);
+            $(this).text(displayVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            
+            // Update labels
+            $('.currency-label').text(cur);
+        });
+
+        // Toggle button states
+        $('#btnUSD').toggleClass('active', cur === 'USD').toggleClass('btn-primary text-white', cur === 'USD').toggleClass('btn-white', cur !== 'USD');
+        $('#btnAFN').toggleClass('active', cur === 'AFN').toggleClass('btn-primary text-white', cur === 'AFN').toggleClass('btn-white', cur !== 'AFN');
+    }
+    
+    // Auto-update USD labels on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find all H3 and other financial values and wrap them in currency-val if not already
+        $('h3.text-white, h3.text-dark').each(function() {
+            if (!$(this).hasClass('currency-val')) {
+                let text = $(this).text().replace(/,/g, '');
+                let val = parseFloat(text);
+                if (!isNaN(val)) {
+                    $(this).addClass('currency-val').data('usd', val);
+                    $(this).html(number_format(val, 2) + ' <small class="f-12 currency-label">USD</small>');
+                }
+            }
+        });
+    });
+
+    function number_format(number, decimals) {
+        return number.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+    }
+</script>
+
+<!-- Chart Scripts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 1. Revenue vs Expense Chart
+        var revExpOptions = {
+            series: [{
+                name: 'عواید (Revenue)',
+                data: {!! json_encode(collect($profit_loss)->pluck('revenue')) !!}
+            }, {
+                name: 'مصارف (Expenses)',
+                data: {!! json_encode(collect($profit_loss)->pluck('expense')) !!}
+            }],
+            chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Iran, sans-serif' },
+            colors: ['#00c853', '#d50000'],
+            dataLabels: { enabled: false },
             stroke: { curve: 'smooth', width: 3 },
-            xaxis: { categories: {!! json_encode($profit_loss->pluck('date')) !!}, axisBorder: { show: false } },
-            yaxis: { labels: { formatter: function (val) { return val.toLocaleString() + " AFN"; } } },
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f1f1' }
+            xaxis: { categories: {!! json_encode(collect($profit_loss)->pluck('date')) !!} },
+            tooltip: { theme: 'dark', x: { show: true } },
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1 } }
         };
-        new ApexCharts(document.querySelector("#profit-loss-chart"), plOptions).render();
+        new ApexCharts(document.querySelector("#revenueExpenseChart"), revExpOptions).render();
 
-        // Cash Flow
-        var cashOptions = {
-            series: [{ name: 'ورودی (In)', data: {!! json_encode($cash_flow->pluck('inflow')) !!} }, 
-                    { name: 'خروجی (Out)', data: {!! json_encode($cash_flow->pluck('outflow')) !!} }],
-            chart: { type: 'bar', height: 300, toolbar: { show: false } },
-            colors: ['#4099ff', '#ff5370'],
-            plotOptions: { bar: { columnWidth: '45%', borderRadius: 4 } },
-            xaxis: { categories: {!! json_encode($cash_flow->pluck('date')) !!}, axisBorder: { show: false } },
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f1f1' }
-        };
-        new ApexCharts(document.querySelector("#cash-flow-chart"), cashOptions).render();
-
-        // Aging
-        var agingOptions = {
-            series: {!! json_encode(array_values($aging)) !!},
-            chart: { type: 'donut', height: 250 },
-            labels: ['0-30 روز', '31-60 روز', '61-90 روز', '90+ روز'],
-            colors: ['#2ed8b6', '#4099ff', '#ffb64d', '#ff5370'],
+        // 2. Inventory Donut
+        var invOptions = {
+            series: [{{ $inventoryDist['finished'] }}, {{ $inventoryDist['raw'] }}],
+            chart: { type: 'donut', height: 300 },
+            labels: {!! json_encode($inventoryDist['labels']) !!},
+            colors: ['#1a237e', '#4caf50'],
             legend: { position: 'bottom' },
-            stroke: { width: 0 },
             plotOptions: { pie: { donut: { size: '75%' } } }
         };
-        new ApexCharts(document.querySelector("#aging-chart"), agingOptions).render();
+        new ApexCharts(document.querySelector("#inventoryDonutChart"), invOptions).render();
 
-        // Activity
-        var activityOptions = {
-            series: [{ name: 'تعداد تراکنش', data: {!! json_encode($activity->pluck('count')) !!} }],
-            chart: { type: 'line', height: 300, toolbar: { show: false } },
-            colors: ['#4099ff'],
-            stroke: { width: 4, curve: 'smooth' },
-            xaxis: { categories: {!! json_encode($activity->pluck('date')) !!} },
-            markers: { size: 5, strokeWidth: 3, hover: { size: 8 } }
+        // 3. Cash Flow Bar
+        var cfOptions = {
+            series: [{
+                name: 'ورودی (Inflow)',
+                data: {!! json_encode(collect($cash_flow)->pluck('inflow')) !!}
+            }, {
+                name: 'خروجی (Outflow)',
+                data: {!! json_encode(collect($cash_flow)->pluck('outflow')) !!}
+            }],
+            chart: { type: 'bar', height: 250, toolbar: { show: false } },
+            colors: ['#00b0ff', '#f50057'],
+            plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 5 } },
+            dataLabels: { enabled: false },
+            xaxis: { categories: {!! json_encode(collect($cash_flow)->pluck('date')) !!} }
         };
-        new ApexCharts(document.querySelector("#activity-chart"), activityOptions).render();
+        new ApexCharts(document.querySelector("#cashFlowChart"), cfOptions).render();
+
+        // 4. Aging Analysis
+        var agingOptions = {
+            series: [{{ $aging['0-30'] }}, {{ $aging['31-60'] }}, {{ $aging['61-90'] }}, {{ $aging['90+'] }}],
+            chart: { type: 'polarArea', height: 250 },
+            labels: ['0-30 روز', '31-60 روز', '61-90 روز', '90+ روز'],
+            colors: ['#4caf50', '#ffeb3b', '#ff9800', '#f44336'],
+            legend: { show: false }
+        };
+        new ApexCharts(document.querySelector("#agingChart"), agingOptions).render();
     });
 </script>
+
+<style>
+    .bg-white-10 { background: rgba(255,255,255,0.1); }
+    .bg-light-success { background: #e8f5e9; }
+    .bg-light-warning { background: #fff8e1; }
+    .badge-light-success { background: #e8f5e9; color: #2e7d32; font-weight: bold; }
+    .f-12 { font-size: 12px; }
+    .f-18 { font-size: 18px; }
+    .f-24 { font-size: 24px; }
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; }
+        .card { border: 1px solid #eee !important; box-shadow: none !important; }
+    }
+</style>
 @endsection

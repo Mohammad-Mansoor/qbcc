@@ -20,10 +20,12 @@ use App\ChartOfAccount;
 class SaleController extends Controller
 {
     protected $accountingService;
+    protected $inventoryManager;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
     {
         $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
     }
 
     /**
@@ -81,7 +83,7 @@ class SaleController extends Controller
     public function index()
     {
        
-        $sales = Sale::orderBy('created_at','DESC')->paginate(60);
+        $sales = Sale::with(['carpet', 'invoice', 'customer'])->orderBy('created_at','DESC')->paginate(60);
         $invoices = Invoice::orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
@@ -89,7 +91,7 @@ class SaleController extends Controller
         return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale'));
     }
     public function show_all(){
-        $sales = Sale::orderBy('created_at','DESC')->get();
+        $sales = Sale::with(['carpet', 'invoice', 'customer'])->orderBy('created_at','DESC')->paginate(50);
         $invoices = Invoice::orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
@@ -104,9 +106,20 @@ class SaleController extends Controller
      */
     public function create()
     {
+        $carpets = Carpet::where('status', 5)->get();
+        $invoices = Invoice::orderBy('id', 'DESC')->get();
+        $packing_list = PakingList::orderBy('id', 'DESC')->get();
 
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('SALES_REVENUE', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('SALES_REVENUE', 'credit');
+        
+        $mapping = \App\MappingRule::where('mapping_key', 'SALES_REVENUE')->first();
 
-        return view('sales.create-sale',compact('carpets','invoices','packing_list'));
+        return view('sales.create-sale', compact(
+            'carpets', 'invoices', 'packing_list',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'
+        ));
     }
 
     /**
@@ -117,6 +130,7 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        $this->accountingService->failIfLocked(Carbon::today()->format('Y-m-d'));
         return DB::transaction(function () use ($request) {
             $carpet_id = Carpet::find($request->carpet_id);
             $invoice_id = Invoice::find($request->invoice_id);
@@ -146,19 +160,24 @@ class SaleController extends Controller
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            // Accounting Posting (Dynamic Mapping)
-            $transaction = $this->accountingService->postAutoTransaction('sale', 'credit', [
+            // Unified Orchestration: Inventory OUT + Revenue Post + COGS Post
+            $results = $this->inventoryManager->processSale($carpet_id, [
                 'date' => Carbon::today()->format('Y-m-d'),
-                'amount' => $sale->sale_cost_total,
-                'party_type' => 'App\Customer',
-                'party_id' => $sale->customer_id,
+                'sale_amount' => $sale->sale_cost_total,
+                'customer_id' => $sale->customer_id,
+                'quantity' => 1,
                 'reference' => 'SALE-' . $sale->id,
                 'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
-                'source_id' => $sale->id,
+                'override_debit_account_id' => $request->override_debit_account_id,
+                'override_credit_account_id' => $request->override_credit_account_id,
+                'override_cogs_debit_id' => $request->override_cogs_debit_id,
+                'override_cogs_credit_id' => $request->override_cogs_credit_id,
             ]);
 
-            $sale->ledger_transaction_id = $transaction->id;
-            $sale->save();
+            if ($results && isset($results['revenue_transaction'])) {
+                $sale->ledger_transaction_id = $results['revenue_transaction']->id;
+                $sale->save();
+            }
 
             return redirect('/dashboard/carpet-stock')->with('status', ' موفقانه ثبت شد و در دفتر روزنامچه ثبت گردید!');
         });
@@ -191,7 +210,21 @@ class SaleController extends Controller
         $package = Package::find($carpet->package_id);
         $carpets = Carpet::where('status',5)->get();
         $sales = Sale::orderBy('created_at','DESC')->paginate(30);
-        return view('sales.sales-list',compact('carpets','invoices','sale','carpet','packing_list','package','sales'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedRevenueDebit = $selectionService->getValidAccounts('SALES_REVENUE', 'debit');
+        $allowedRevenueCredit = $selectionService->getValidAccounts('SALES_REVENUE', 'credit');
+        $mappingRevenue = \App\MappingRule::where('mapping_key', 'SALES_REVENUE')->first();
+
+        $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
+        $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
+        $mappingCogs = \App\MappingRule::where('mapping_key', 'SALES_COGS')->first();
+
+        return view('sales.sales-list', compact(
+            'carpets', 'invoices', 'sale', 'carpet', 'packing_list', 'package', 'sales',
+            'allowedRevenueDebit', 'allowedRevenueCredit', 'mappingRevenue',
+            'allowedCogsDebit', 'allowedCogsCredit', 'mappingCogs'
+        ));
     }
 
     /**
@@ -203,6 +236,7 @@ class SaleController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->accountingService->failIfLocked(Carbon::today()->format('Y-m-d'));
         return DB::transaction(function () use ($request, $id) {
             $carpet_id = Carpet::find($request->carpet_id);
             $carpet_id->package_id = $request->package_id;
@@ -231,21 +265,27 @@ class SaleController extends Controller
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            // Reverse Old Accounting Entries for this Sale and Post New One
-            $this->accountingService->reverseTransactionBySource($sale->id, 'Sale Record Edited');
+            // Reverse Old Accounting & Inventory Entries for this Sale and Post New Ones
+            $this->inventoryManager->reverseTransactions($sale, 'Sale Record Edited (Re-posting)');
             
-            $transaction = $this->accountingService->postAutoTransaction('sale', 'credit', [
+            // Re-post using Unified Orchestration
+            $results = $this->inventoryManager->processSale($carpet_id, [
                 'date' => Carbon::today()->format('Y-m-d'),
-                'amount' => $sale->sale_cost_total,
-                'party_type' => 'App\Customer',
-                'party_id' => $sale->customer_id,
+                'sale_amount' => $sale->sale_cost_total,
+                'customer_id' => $sale->customer_id,
+                'quantity' => 1,
                 'reference' => 'SALE-' . $sale->id,
                 'description' => "ویرایش فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
-                'source_id' => $sale->id,
+                'override_debit_account_id' => $request->override_debit_account_id,
+                'override_credit_account_id' => $request->override_credit_account_id,
+                'override_cogs_debit_id' => $request->override_cogs_debit_id,
+                'override_cogs_credit_id' => $request->override_cogs_credit_id,
             ]);
 
-            $sale->ledger_transaction_id = $transaction->id;
-            $sale->save();
+            if ($results && isset($results['revenue_transaction'])) {
+                $sale->ledger_transaction_id = $results['revenue_transaction']->id;
+                $sale->save();
+            }
 
             return redirect('/dashboard/sales')->with('status', 'ویرایش موفقانه ثبت شد و اسناد حسابداری بروزرسانی گردید!');
         });

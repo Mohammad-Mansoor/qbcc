@@ -198,8 +198,9 @@
                 <th>نمبر حساب</th>
                 <th>نام</th>
                 <th>تاریخ</th>
-                <th>سال حساب</th>
                 <th>باقیات(کیلو گرام)</th>
+                <th>بیلانس حسابی (AFN)</th>
+                <th>ارزش تخمینی (USD)</th>
                 <th class="hideOnPrint">ویرایش</th>
                 @if(auth()->user()->role == 'SP')
                   <th class="hideOnPrint">حذف</th>
@@ -217,28 +218,22 @@
                   <td>{{$acc->id}}</td>
                   <td>{{$acc->name}}</td>
                   <td>{{$acc->date}}</td>
-                  <td>{{$acc->account_year}}</td>
                   
-                  @php($total = 0)
-             
+                  {{-- Physical Weight --}}
+                  <td dir="ltr" class="{{ $acc->physical_weight > 0 ? 'text-success' : ($acc->physical_weight < 0 ? 'text-danger' : '') }}">
+                      {{ number_format($acc->physical_weight, 2) }} kg
+                  </td>
 
-                    <?php
+                  {{-- Ledger Balance --}}
+                  <td dir="ltr" class="{{ $acc->ledger_balance > 0 ? 'text-success' : ($acc->ledger_balance < 0 ? 'text-danger' : '') }}">
+                      {{ number_format($acc->ledger_balance, 2) }}
+                  </td>
 
-                    $total = \Illuminate\Support\Facades\DB::table('material_account_payments')->where('account_id', $acc->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('material_account_payments')->where('account_id', $acc->id)->where('type', 'گرفت')->sum('amount');
-                    ?>
+                  {{-- Valuation --}}
+                  <td dir="ltr" class="text-primary font-weight-bold">
+                      ${{ number_format($acc->valuation, 2) }}
+                  </td>
   
-  
-                  {{--for dollars balance--}}
-                  @if($total > 0)
-                    <td style="direction: ltr;color: green;">{{ $total}}</td>
-                  @elseif($total < 0)
-                    <td style="direction: ltr;color: red;">{{$total}}</td>
-                  @else
-                    <td>{{ $total }}</td>
-                  @endif
-                  {{--end dollars balance--}}
-  
-                 
                   <td class="hideOnPrint"><a href="/dashboard/material-accounts/{{$acc->id}}/edit"
                                              class="btn-sm btn-info">&nbsp; ویرایش</a></td>
                   @if(auth()->user()->role == 'SP')
@@ -246,44 +241,22 @@
                       <button onclick="deleteAccount({{$acc->id}})" class="btn btn-danger btn-sm"><i
                                 class="fa fa-tick"></i>حذف
                       </button>
-                    
                     </td>
                   @endif
                   
                   <td class="hideOnPrint"><a href="/dashboard/material-accounts/{{$acc->id}}"
                                              class="btn-sm btn-warning">
                       حسابات</a></td>
-                
                 </tr>
-
-                <?php
-                $total_rasid += \App\MaterialAccountPayment::where('type', '=', 'رسید')->where('account_id', $acc->id)->sum('amount');
-        
-                $total_gerft += \App\MaterialAccountPayment::where('type', '=', 'گرفت')->where('account_id', $acc->id)->sum('amount');
-
-                ?>
-
               @endforeach
 
 
-              <tr style="background: gainsboro">
-  
-                <td></td>
-                <td></td>
-                <td class="hideOnPrint"></td>
-                <td></td>
-  
-                @if($total_rasid - $total_gerft > 0)
-                  <td style="direction: ltr;color: green;">{{round($total_rasid -  $total_gerft  , 2)}}</td>
-                @elseif($total_rasid - $total_gerft < 0)
-                  <td style="direction: ltr;color: red;">{{round($total_rasid - $total_gerft  , 2)}}</td>
-                @else
-                  <td>{{round($total_rasid - $total_gerft  , 2)}}</td>
-                @endif
-                
-                <td>مجموعه</td>
-  
-                <td class="hideOnPrint"></td>
+              <tr style="background: #f8f9fa; font-weight: bold;">
+                <td colspan="3" class="text-right">مجموع کل:</td>
+                <td dir="ltr" class="text-info">{{ number_format($accounts->sum('physical_weight'), 2) }} kg</td>
+                <td dir="ltr" class="text-info">{{ number_format($accounts->sum('ledger_balance'), 2) }}</td>
+                <td dir="ltr" class="text-primary">${{ number_format($accounts->sum('valuation'), 2) }}</td>
+                <td colspan="3"></td>
               </tr>
               </tbody>
             </table>

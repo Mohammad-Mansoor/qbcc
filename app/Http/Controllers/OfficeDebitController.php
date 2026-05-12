@@ -21,17 +21,17 @@ class OfficeDebitController extends Controller
         $this->accountingService = $accountingService;
     }
 
-    private function postExpenseToAccounting($debit)
+    private function postExpenseToAccounting($debit, $overrides = [])
     {
         try {
             // Check if it's a generic expense mapped from expense_type or standard withdrawal
-            $this->accountingService->postAutoTransaction('office_debit', 'withdrawal', [
+            $this->accountingService->postAutoTransaction('office_debit', 'withdrawal', array_merge([
                 'date' => $debit->date,
                 'amount' => $debit->amount,
                 'reference' => 'OFF-EXP-' . $debit->id,
                 'description' => 'مصرف دفتر (Office Expense): ' . ($debit->expense_type ?? 'مصرف') . ' - ' . $debit->description,
                 'source_id' => $debit->id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Office Debit #" . $debit->id . ": " . $e->getMessage());
         }
@@ -62,6 +62,8 @@ class OfficeDebitController extends Controller
 
     public function store(Request $request)
     {
+        $this->accountingService->failIfLocked($request->date);
+        
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
                 'name'=> '',
@@ -72,7 +74,9 @@ class OfficeDebitController extends Controller
                 'employee_id'=>'',
                 'expense_type'=>'',
                 'expense_for_where'=>'',
-                'user_role' => ''
+                'user_role' => '',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id'
             ]);
 
             if($request->employee_id){
@@ -90,8 +94,12 @@ class OfficeDebitController extends Controller
                     $data['user_role'] = Auth::user()->role;
                     $debit = OfficeDebit::create($data);
                     
-                    // Accounting Posting
-                    $this->postExpenseToAccounting($debit);
+                    // Accounting Posting with Overrides
+                    $overrides = [];
+                    if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                    if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+
+                    $this->postExpenseToAccounting($debit, $overrides);
 
                     $activity = new Activity();
                     $activity->date = Carbon::today()->format('Y-m-d');
@@ -115,7 +123,16 @@ class OfficeDebitController extends Controller
     }
 
     public function add_new_expense(){
-        return  view('office-cash-book.add-expense');
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('CASH_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('CASH_OUT', 'credit');
+        
+        $mapping = \App\MappingRule::where('mapping_key', 'CASH_OUT')->first();
+        $currency = \DB::table('currencies')->where('status', 1)->value('rate');
+
+        return view('office-cash-book.add-expense', compact(
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency'
+        ));
     }
 
     public function show($id)
@@ -148,6 +165,8 @@ class OfficeDebitController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->accountingService->failIfLocked($request->date);
+        
         return DB::transaction(function () use ($request, $id) {
             $db  = OfficeDebit::find($id);
             $csh = OfficeCashBook::count();
@@ -203,6 +222,7 @@ class OfficeDebitController extends Controller
         return DB::transaction(function () use ($id) {
             $db = OfficeDebit::find($id);
             if ($db) {
+                $this->accountingService->failIfLocked($db->date);
                 // Reverse Transaction
                 $this->accountingService->reverseTransactionBySource($id, 'Office Debit Deleted');
                 

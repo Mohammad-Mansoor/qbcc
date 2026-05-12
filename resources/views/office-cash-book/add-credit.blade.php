@@ -1,561 +1,288 @@
 @extends('dsh.master')
-@section('title' , 'اضافه کردن پول')
+@section('title' , 'مدیریت نقدینگی و تزریق سرمایه')
 @section('content')
-  
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      @if(auth()->user()->role == 'SP')
-        
-        <div class="row">
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    <h4 class="text-c-yellow"><b>{{$co_cashbook}} &nbsp;$</b></h4>
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-bar-chart-2 f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-c-yellow">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <h5 class="text-white m-b-0"> پول فعلی دخل دفتر مرکزی </h5>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    <h4 class="text-c-green"> {{$so_cashbook}} &nbsp;$</h4>
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-file-text f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-c-green">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <p class="text-white m-b-0"> پول فعلی دخل دفتر فروشات</p>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                      <h4 class="text-c-yellow"> {{$center_total}} &nbsp;$</h4>
-                    @elseif(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                      <h4 class="text-c-yellow"> {{$froshat_total}} &nbsp;$</h4>
-                    @elseif(auth()->user()->role == 'SP')
-                      <h4 class="text-c-yellow"> {{$sp_total}} &nbsp;$</h4>
-                    @endif
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-bar-chart-2 f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-info">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <h5 class="text-white m-b-0">پول مجموع </h5>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<div class="container-fluid px-4 py-4">
+    <!-- Action Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h3 class="mb-0 font-weight-bold text-dark"><i class="fa fa-money text-primary mr-2"></i> مدیریت نقدینگی</h3>
+            <p class="text-muted small mb-0">تزریق سرمایه به دخل و درخواست‌های نقدینگی دفاتر</p>
         </div>
-        <br>
-      @endif
-      <div class="row">
-        @if(auth()->user()->role != 'SP')
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    <h4 class="text-c-yellow">    @if($cash > 0)
-                        <b>{{$cash}} &nbsp;$</b>
-                      @else
-                        <b>0 $</b>
-                      @endif</h4>
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-bar-chart-2 f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-success">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <h5 class="text-white m-b-0"> پول فعلی دخل </h5>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        @endif
-        @if(auth()->user()->role == 'SP')
-          <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    <h4 class="text-c-yellow">     {{$other_user}} &nbsp;$</h4>
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-bar-chart-2 f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-c-yellow">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <h5 class="text-white m-b-0"> پول گرفته شده توسط دفاتر </h5>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        @else
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                      <h4 class="text-c-yellow"> {{$center_debits}} &nbsp;$</h4>
-                    @elseif(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                      <h4 class="text-c-yellow"> {{$froshat_debits}} &nbsp;$</h4>
-                    @elseif(auth()->user()->role == 'SP')
-                      <h4 class="text-c-yellow"> {{$sp_debits}} &nbsp;$</h4>
-                    @endif
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-bar-chart-2 f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-danger">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <h5 class="text-white m-b-0">مصارف</h5>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-up text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        @endif
-          <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-8">
-                    <h4 class="text-c-blue">
-                      @if($cash > 0)
-                        <b>{{$cash}} &nbsp;$</b>
-                      @else
-                        <b>0 $</b>
-                      @endif</h4>
-                  </div>
-                  <div class="col-4 text-right">
-                    <i class="feather icon-thumbs-down f-28"></i>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer bg-c-blue">
-                <div class="row align-items-center">
-                  <div class="col-9">
-                    <p class="text-white m-b-0">پول فعلی دخل عمومی </p>
-                  </div>
-                  <div class="col-3 text-right">
-                    <i class="feather icon-trending-down text-white f-16"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-      </div>
+        <div class="col-md-6 text-right">
+            <button class="btn btn-outline-primary btn-sm px-3 shadow-sm" onclick="printPage('creditPrint')">
+                <i class="fa fa-print mr-1"></i> چاپ گزارش
+            </button>
+        </div>
     </div>
-  </div>
-  
-  <!-- form -->
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 hideOnPrint">
-      <div class="card">
-        <div class="card-header">
-          @if(!$creditEdit)
-            <h5 class="text-right">اضافه کردن پول</h5>
-          @else
-            <h5 class="text-right">ویرایش پول </h5>
-          @endif
-        </div>
-        <div class="card-body">
-          @if(!$creditEdit)
-            <form action="/dashboard/add-office-credit" method="post">
-              @csrf
-              <div class="row">
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label> مقدار
-                      پول</label>
-                    <input type="number" style="direction: rtl"
-                           name="amount"
-                           id="creditAmount" class="form-control">
-                    @error('amount') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label> توضیحات</label>
-                    <textarea name="description" class="form-control" id="" cols="1"
-                              rows="1"></textarea>
-                    
-                    @error('description') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label>تاریخ</label>
-                    <input type="date" style="direction: rtl" name="date" id="date"
-                           class="form-control">
-                    @error('date') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <a class="btn btn-sm btn-default" type="reset">انصراف</a>
-                  <button class="btn btn-sm btn-primary submit-btn"
-                          type="submit">ذخیره
-                  </button>
-                </div>
-              </div>
-            </form>
-          @else
-            <form action="/dashboard/add-office-credit/{{$creditEdit->id}}" method="post">
-              @csrf
-              @method('PATCH')
-              <div class="row">
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label> مقدار
-                      پول</label>
-                    <input type="number" style="direction: rtl"
-                           name="amount" value="{{$creditEdit->amount}}"
-                           id="creditAmount" class="form-control">
-                    @error('amount') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label> توضیحات</label>
-                    <textarea name="description" class="form-control" id="" cols="1"
-                              rows="1">{{$creditEdit->description}}</textarea>
-                    
-                    @error('description') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <div class="form-group fill">
-                    <label>تاریخ</label>
-                    <input type="date" value="{{$creditEdit->date}}" style="direction: rtl" name="date" id="date"
-                           class="form-control">
-                    @error('date') <p
-                            class="text-danger">{{trans('message.'.$message)}}</p>
-                    @enderror
-                  </div>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <a class="btn btn-sm btn-default" type="reset">انصراف</a>
-                  <button class="btn btn-sm btn-primary submit-btn"
-                          type="submit">ذخیره
-                  </button>
-                </div>
-              </div>
-            </form>
-          @endif
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row" id="creditPrint">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-header">
-          <h5>لیست عواید</h5>
-         
-        <div class="row">
-          <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10"></div>
-          <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint">
-            <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-              <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('creditPrint')"><i
-                        class="fa fa-print"></i> چاپ
-              </div>
-  
-            </div>
-          </div>
-        </div>
-          <div class="alert alert-success" style="display:none;" role="alert">
-            <button type="button" class="close" data-dismiss="alert"
-                    aria-label="Close"><span
-                      aria-hidden="true">&times;</span></button>
-            <p class="text-center"> حذف شد</p>
-          </div>
-          
-          @if(session("status"))
-            <div class="alert alert-primary status" style="display:none;"
-                 role="alert">
-              <button type="button" class="close" data-dismiss="alert"
-                      aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              <p class="text-center">{{session('status')}}</p>
-            </div>
-          
-          @endif
-          @if(session("error"))
-            
-            <div class="alert alert-danger status" style="display:none;"
-                 role="alert">
-              <button type="button" class="close" data-dismiss="alert"
-                      aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              <p class="text-center" style="color: white;">{{session('error')}}</p>
-            </div>
-          
-          @endif
-        </div>
-        <div class="card-body">
-          <table class="table table-hover table-xs" id="add_credit">
-            <thead>
-            <tr>
-              <th>مقدار پول(دالر)</th>
-              <th>توضیحات</th>
-              <th>تاریخ</th>
-              @if(auth()->user()->role != 'SP')
-                <th class=" hideOnPrint">حالت</th>
-              @endif
-              <th class=" hideOnPrint">ویرایش</th>
-              <!-- <th class="text-center">حذف</th> -->
-            </tr>
-            </thead>
-            <tbody>
-            
-            @if(auth()->user()->role =='CO' || auth()->user()->role =='CCO')
-              @forelse ($center_credits as $credit)
-                <tr class="ur{{ $credit->id }}">
-                  
-                  <td>{{$credit->amount}} </td>
-                  <td>{{$credit->description}}</td>
-                  <td>{{$credit->date}}</td>
-                  @if(auth()->user()->role != 'SP')
-                    @if($credit->status == 0)
-                      <td class="hideOnPrint">
-                        <label class="badge badge-warning">درخواست تایید
-                          نشده</label>
-                      
-                    @else
-                      <td class="hideOnPrint"><label for="" class="badge-success">درخواست تایید
-                          شد</label></td>
-                    @endif
-                  @endif
-                  @if(!$credit->customer_id &&  $credit->status == 0)
-                    <td class="hideOnPrint"><a href="/dashboard/add-office-credit/{{$credit->id}}/edit"
-                                               class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp;
-                        ویرایش</a></td>
-                  @endif
-                  @if($credit->payment_id)
-                    <td class="hideOnPrint"><a href="/dashboard/add-office-credit/{{$credit->id}}/edit"
-                                               class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp;
-                        ویرایش</a></td>
-                  @endif
-                
-                
-                </tr>
-              @empty
-                
-                <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
-              @endforelse
-            @elseif(auth()->user()->role =='SO' || auth()->user()->role =='SCO')
-              @forelse ($froshat_credits as $credit)
-                <tr class="ur{{ $credit->id }}">
-                  
-                  <td>{{$credit->amount}} </td>
-                  <td>{{$credit->description}}</td>
-                  <td>{{$credit->date}}</td>
-                  @if(auth()->user()->role != 'SP')
-                    @if($credit->status == 0)
-                      <td class="hideOnPrint"><label for="" class="badge badge-warning">درخواست تایید
-                          نشده</label></td>
-                    @else
-                      <td class="hideOnPrint"><label for="" class="badge badge-success">درخواست تایید
-                          شد</label></td>
-                    @endif
-                  @endif
-                  @if( $credit->status == 0)
-                    <td class="hideOnPrint"><a href="/dashboard/add-office-credit/{{$credit->id}}/edit"
-                                               class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp;
-                        ویرایش</a></td>
-                  @endif
-                
-                
-                
-                </tr>
-              @empty
-                
-                <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
-              @endforelse
-            @elseif(auth()->user()->role =='SP')
-              @forelse ($sp_credits as $credit)
-                <tr class="ur{{ $credit->id }}">
-                  
-                  <td>{{$credit->amount}} </td>
-                  <td>{{$credit->description}}</td>
-                  <td>{{$credit->date}}</td>
-                  @if(auth()->user()->role != 'SP')
-                    @if($credit->status == 0)
-                      <td class="hideOnPrint"><label for="" class="label label-warning">درخواست تایید
-                          نشده</label></td>
-                    @else
-                      <td class="hideOnPrint"><label for="" class="label label-success">درخواست تایید
-                          شد</label></td>
-                    @endif
-                  @endif
-                  @if(!$credit->customer_id &&  $credit->status == 0)
-                    <td class="hideOnPrint"><a href="/dashboard/add-office-credit/{{$credit->id}}/edit"
-                                               class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp;
-                        ویرایش</a></td>
-                  @endif
-                  @if($credit->payment_id)
-                    <td class="hideOnPrint"><a href="/dashboard/add-office-credit/{{$credit->id}}/edit"
-                                               class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp;
-                        ویرایش</a></td>
-                  @endif
-                
-                
-                </tr>
-              @empty
-                
-                <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
-              @endforelse
-            @endif
-            
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
 
+    <!-- Info Box (Dari) -->
+    <div class="alert bg-soft-info border-0 rounded-lg p-4 mb-4 shadow-sm text-right">
+        <div class="d-flex align-items-start">
+            <div class="ml-3">
+                <i class="fa fa-info-circle fa-2x text-info"></i>
+            </div>
+            <div>
+                <h6 class="font-weight-bold text-info mb-1">رهنمای بخش نقدینگی:</h6>
+                <p class="mb-0 text-dark small leading-relaxed">
+                    این بخش برای مدیریت گردش پول نقد در دفاتر استفاده می‌شود. 
+                    <br>
+                    • <strong>مدیر کل (SP):</strong> مستقیماً پول جدید را به سیستم وارد می‌کند (تزریق سرمایه). این عمل باعث افزایش موجودی دخل عمومی و ثبت سند در روزنامچه می‌گردد.
+                    <br>
+                    • <strong>دفاتر فرعی (CO/SO):</strong> در صورت نیاز به پول نقد، از این فورم استفاده کرده و درخواست خود را به مدیر کل ارسال می‌کنند. پس از تأیید، مبلغ از دخل عمومی کسر و به دخل دفتر مربوطه اضافه می‌گردد.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    @if(auth()->user()->role == 'SP')
+    <!-- Admin Stats Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-lg bg-gradient-warning text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 opacity-7 small font-weight-bold">موجودی دخل مرکز (CO)</p>
+                        <h4 class="mb-0 font-weight-bold">${{ number_format($co_cashbook, 2) }}</h4>
+                    </div>
+                    <i class="fa fa-building fa-2x opacity-5"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-lg bg-gradient-success text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 opacity-7 small font-weight-bold">موجودی دخل فروشات (SO)</p>
+                        <h4 class="mb-0 font-weight-bold">${{ number_format($so_cashbook, 2) }}</h4>
+                    </div>
+                    <i class="fa fa-shopping-basket fa-2x opacity-5"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-lg bg-gradient-info text-white p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 opacity-7 small font-weight-bold">مجموع تزریق سرمایه عمومی</p>
+                        <h4 class="mb-0 font-weight-bold">${{ number_format($sp_total, 2) }}</h4>
+                    </div>
+                    <i class="fa fa-bank fa-2x opacity-5"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <div class="row">
+        @if(auth()->user()->role != 'SP')
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-lg border-right-success" style="border-right: 4px solid #28a745 !important;">
+                <div class="card-body p-3">
+                    <p class="text-muted small mb-1">موجودی فعلی دخل شما</p>
+                    <h4 class="font-weight-bold text-success mb-0">${{ number_format($cash ?: 0, 2) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-lg border-right-danger" style="border-right: 4px solid #dc3545 !important;">
+                <div class="card-body p-3">
+                    <p class="text-muted small mb-1">مجموع مصارف شما</p>
+                    @php($my_debits = (auth()->user()->role == 'CO' || auth()->user()->role == 'CCO') ? $center_debits : $froshat_debits)
+                    <h4 class="font-weight-bold text-danger mb-0">${{ number_format($my_debits, 2) }}</h4>
+                </div>
+            </div>
+        </div>
+        @else
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm rounded-lg bg-soft-primary p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-primary small mb-0 font-weight-bold">مجموع پول تخصیص یافته به دفاتر</p>
+                        <h4 class="mb-0 font-weight-bold text-dark">${{ number_format($other_user, 2) }}</h4>
+                    </div>
+                    <i class="fa fa-exchange fa-2x text-primary opacity-2"></i>
+                </div>
+            </div>
+        </div>
+        @endif
+        
+        <div class="{{ auth()->user()->role == 'SP' ? 'col-md-6' : 'col-md-4' }} mb-4">
+            <div class="card border-0 shadow-sm rounded-lg bg-soft-warning p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-warning small mb-0 font-weight-bold">موجودی دخل عمومی (SP Vault)</p>
+                        <h4 class="mb-0 font-weight-bold text-dark">${{ number_format($cash ?: 0, 2) }}</h4>
+                    </div>
+                    <i class="fa fa-shield fa-2x text-warning opacity-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="card border-0 shadow-sm rounded-lg mb-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-0">
+            <h5 class="mb-0 font-weight-bold">
+                <i class="fa {{ $creditEdit ? 'fa-edit' : 'fa-plus-circle' }} text-primary mr-2"></i>
+                {{ $creditEdit ? 'ویرایش درخواست/تزریق پول' : (auth()->user()->role == 'SP' ? 'تزریق سرمایه جدید' : 'درخواست بودجه نقد') }}
+            </h5>
+        </div>
+        <div class="card-body bg-soft-light border-top">
+            <form action="/dashboard/add-office-credit{{ $creditEdit ? '/'.$creditEdit->id : '' }}" method="post">
+                @csrf
+                @if($creditEdit) @method('PATCH') @endif
+                
+                <div class="row">
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">مقدار مبلغ ($)</label>
+                        <input type="number" step="0.01" name="amount" value="{{ $creditEdit->amount ?? '' }}" 
+                               class="form-control form-control-sm border-0 shadow-sm text-right" required placeholder="0.00">
+                    </div>
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">تاریخ</label>
+                        <input type="date" name="date" value="{{ $creditEdit->date ?? date('Y-m-d') }}" 
+                               class="form-control form-control-sm border-0 shadow-sm text-right" required>
+                    </div>
+                    <div class="col-md-6 form-group text-right">
+                        <label class="small font-weight-bold">توضیحات و بابت</label>
+                        <textarea name="description" class="form-control form-control-sm border-0 shadow-sm text-right" 
+                                  rows="1" required placeholder="علت تزریق یا درخواست پول...">{{ $creditEdit->description ?? '' }}</textarea>
+                    </div>
+                </div>
+                <div class="text-right mt-2">
+                    @if($creditEdit)
+                        <a href="/dashboard/add-office-credit" class="btn btn-light btn-sm px-4 mr-2 shadow-sm rounded-pill">انصراف</a>
+                    @endif
+                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm font-weight-bold rounded-pill">
+                        <i class="fa fa-save mr-1"></i> {{ $creditEdit ? 'بروزرسانی' : 'ثبت نهایی' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- List Table Section -->
+    <div class="card border-0 shadow-sm rounded-lg overflow-hidden" id="creditPrint">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 font-weight-bold"><i class="fa fa-list text-muted mr-2"></i> تاریخچه گردش نقدینگی</h5>
+            <div id="exportButton" class="hideOnPrint"></div>
+        </div>
+        <div class="card-body p-0 text-right">
+            @if(session("status") || session("error"))
+                <div class="alert {{ session('status') ? 'alert-success' : 'alert-danger' }} status mx-3 mt-3 shadow-sm border-0 rounded-pill text-center py-2 small">
+                    {{ session('status') ?: session('error') }}
+                </div>
+            @endif
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-right" id="add_credit">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="px-4 py-3 border-0">مقدار ($)</th>
+                            <th class="py-3 border-0">توضیحات</th>
+                            <th class="py-3 border-0 text-center">تاریخ</th>
+                            @if(auth()->user()->role != 'SP')
+                                <th class="py-3 border-0 text-center hideOnPrint">حالت</th>
+                            @endif
+                            <th class="px-4 py-3 border-0 text-left hideOnPrint">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php($display_credits = (auth()->user()->role == 'SP' ? $sp_credits : (auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' ? $center_credits : $froshat_credits)))
+                        @forelse ($display_credits as $credit)
+                        <tr class="ur{{ $credit->id }} border-bottom">
+                            <td class="px-4 py-3 font-weight-bold text-dark">${{ number_format($credit->amount, 2) }}</td>
+                            <td class="small">{{ $credit->description }}</td>
+                            <td class="small text-muted text-center">{{ $credit->date }}</td>
+                            @if(auth()->user()->role != 'SP')
+                            <td class="text-center hideOnPrint">
+                                <span class="badge {{ $credit->status == 0 ? 'badge-soft-warning' : 'badge-soft-success' }} px-3 py-1 rounded-pill">
+                                    {{ $credit->status == 0 ? 'در انتظار تایید' : 'تایید شده' }}
+                                </span>
+                            </td>
+                            @endif
+                            <td class="px-4 py-3 text-left hideOnPrint">
+                                @if($credit->status == 0)
+                                <a href="/dashboard/add-office-credit/{{$credit->id}}/edit" class="btn btn-soft-primary btn-sm rounded-pill px-3 shadow-none">
+                                    <i class="fa fa-pencil"></i>
+                                </a>
+                                <button onclick="RemoveCredit({{$credit->id}})" class="btn btn-soft-danger btn-sm rounded-pill px-3 ml-1 shadow-none">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                                @else
+                                <span class="text-muted small italic"><i class="fa fa-lock mr-1"></i> قفل شده</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="py-5 text-center text-muted italic">هیچ رکوردی یافت نشد.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-warning { background: linear-gradient(135deg, #ff9800 0%, #ed6c02 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); }
+    .bg-gradient-info { background: linear-gradient(135deg, #03a9f4 0%, #01579b 100%); }
+    .bg-soft-info { background-color: rgba(3, 169, 244, 0.1); }
+    .bg-soft-primary { background-color: rgba(0, 123, 255, 0.1); }
+    .bg-soft-warning { background-color: rgba(255, 152, 0, 0.1); }
+    .bg-soft-light { background-color: #f8f9fa; }
+    .leading-relaxed { line-height: 1.6; }
+    .badge-soft-warning { background-color: rgba(255, 193, 7, 0.15); color: #856404; }
+    .badge-soft-success { background-color: rgba(40, 167, 69, 0.15); color: #155724; }
+    .btn-soft-primary { background-color: rgba(0, 123, 255, 0.1); color: #007bff; border: none; }
+    .btn-soft-danger { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; border: none; }
+    @media print { .hideOnPrint { display: none !important; } .card { box-shadow: none !important; border: 1px solid #eee !important; } }
+</style>
 @endsection
 
 @section('scripts')
-  <script>
+<script>
+    $(document).ready(function () {
+        $('.status').fadeIn().delay(3000).fadeOut();
+        
+        $("#add_credit").tableExport({
+            formats: ["xlsx"],
+            bootstrap: true,
+            position: "bottom",
+            ignoreCols: [4],
+            RTL: true,
+            sheetname: "Office Credits"
+        });
+        
+        var $buttons = $('#add_credit').find('caption').children().detach();
+        $buttons.appendTo('#exportButton');
+    });
 
-      $(document).ready(function () {
-          $("#add_credit").tableExport({
-              headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-              footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-              formats: ["xlsx"],                  // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-              filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-              bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-              exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-              position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-              ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-              ignoreCols: null,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-              trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-              RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-              sheetname: "id",
-
-          });
-          var $buttons = $('#add_credit').find('caption').children().detach();
-          // Append the buttons to an element of your choosing
-          $buttons.appendTo('#exportButton');
-
-      });
-
-
-      $('.status').show();
-      window.setTimeout(function () {
-          $(".status").fadeTo(500, 0).slideUp(500, function () {
-
-              $(this).remove();
-          });
-      }, 2000);
-
-
-      function RemoveCredit(id) {
-          swal({
-              style: "text-center",
-              text: "  مقدار حذف شود؟",
-              buttons: true,
-              dangerMode: true,
-              buttons: {
-                  confirm: {text: 'بلی', className: 'btn-danger'},
-                  cancel: 'نخیر'
-              },
-          })
-              .then((willDelete) => {
-                  if (willDelete) {
-                      $.ajax({
-                          method: 'DELETE',
-                          data: {'_token': '{{ csrf_token() }}'},
-                          url: '/dashboard/add-office-credit/' + id,
-                          success: function (data) {
-                              $('.ur' + id).hide();
-                              $('.alert').show();
-                              window.setTimeout(function () {
-                                  $(".alert").fadeTo(500, 0).slideUp(500, function () {
-
-                                      $(this).remove();
-                                  });
-                              }, 2000);
-                          }
-                      })
-                  }
-              });
-      }
-  </script>
+    function RemoveCredit(id) {
+        swal({
+            title: "حذف رکورد؟",
+            text: "آیا از حذف این درخواست اطمینان دارید؟",
+            icon: "warning",
+            buttons: {
+                confirm: {text: 'بلی، حذف شود', className: 'btn-danger'},
+                cancel: 'نخیر'
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    method: 'DELETE',
+                    data: {'_token': '{{ csrf_token() }}'},
+                    url: '/dashboard/add-office-credit/' + id,
+                    success: function (data) {
+                        $('.ur' + id).fadeOut();
+                    }
+                })
+            }
+        });
+    }
+</script>
 @endsection

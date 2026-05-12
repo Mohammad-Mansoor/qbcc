@@ -59,6 +59,16 @@
                     </small>
                   </div>
                 </div>
+                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                  <div class="form-group fill">
+                    <label class="">گودام (Warehouse)</label>
+                    <select name="warehouse_id" id="warehouse_id" class="form-control">
+                      @foreach($warehouses as $w)
+                        <option value="{{ $w->id }}" {{ old('warehouse_id') == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                   <div class="form-group fill">
                     <div class="row">
@@ -147,6 +157,47 @@
                 </div>
               
               </div>
+
+              <!-- ACCOUNT OVERRIDES -->
+              <div class="row mt-2" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <div class="col-lg-12">
+                   <h6 class="text-muted mb-3"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting)</h6>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                  <div class="form-group fill">
+                    <label class="">حساب گدام (Debit Account) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
+                    <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2" data-placeholder="انتخاب حساب گدام">
+                        <option value=""></option>
+
+                      @foreach($allowedDebitAccounts as $acc)
+                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                          {{ $acc->account_code }} - {{ $acc->account_name }}
+                        </option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                  <div class="form-group fill">
+                    <label class="">حساب تادیه (Credit Account) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
+                    <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2" data-placeholder="انتخاب حساب تادیه">
+                        <option value=""></option>
+
+                      @foreach($allowedCreditAccounts as $acc)
+                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                          {{ $acc->account_code }} - {{ $acc->account_name }}
+                        </option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                   <div class="alert alert-info py-2" style="font-size: 0.85rem;">
+                      <i class="fa fa-info-circle"></i> به صورت پیش‌فرض حساب‌های استاندارد انتخاب شده‌اند. تنها در صورت ضرورت تغییر دهید.
+                   </div>
+                </div>
+              </div>
+              <br>
               <div class="row">
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                   <div class="form-group fill">
@@ -211,6 +262,16 @@
                     </select>
                     <small class="text-danger">@error('material_type') {{ __('message.'.$message) }}@enderror
                     </small>
+                  </div>
+                </div>
+                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                  <div class="form-group fill">
+                    <label class="">گودام (Warehouse)</label>
+                    <select name="warehouse_id" id="warehouse_id_edit" class="form-control">
+                      @foreach($warehouses as $w)
+                        <option value="{{ $w->id }}" {{ $purchaseMaterial->warehouse_id == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
+                      @endforeach
+                    </select>
                   </div>
                 </div>
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -305,6 +366,40 @@
                 </div>
               
               </div>
+
+              <!-- ACCOUNT OVERRIDES EDIT -->
+              <div class="row mt-2" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <div class="col-lg-12">
+                   <h6 class="text-muted mb-3"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting Edit)</h6>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                  <div class="form-group fill">
+                    <label class="">حساب گدام (Debit Account) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
+                    <select name="override_debit_account_id" class="form-control select2" data-placeholder="انتخاب حساب گدام">
+                        <option value=""></option>
+
+                       <option value="">Standard Default</option>
+                       @foreach($allowedDebitAccounts as $acc)
+                        <option value="{{ $acc->id }}">{{ $acc->account_code }} - {{ $acc->account_name }}</option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                  <div class="form-group fill">
+                    <label class="">حساب تادیه (Credit Account) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
+                    <select name="override_credit_account_id" class="form-control select2" data-placeholder="انتخاب حساب تادیه">
+                        <option value=""></option>
+
+                       <option value="">Standard Default</option>
+                       @foreach($allowedCreditAccounts as $acc)
+                        <option value="{{ $acc->id }}">{{ $acc->account_code }} - {{ $acc->account_name }}</option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <br>
               <div class="row">
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                   <div class="form-group fill">
@@ -384,6 +479,7 @@
             @endforeach
             </tbody>
           </table>
+          <p class="text-center">{{$purchase->links()}}</p>
         </div>
       </div>
     </div>
@@ -395,11 +491,14 @@
         $('#seller_id').select2();
       $('#material_category').select2();
       $('#material_type').select2();
+      $('#override_debit_account_id').select2();
+      $('#override_credit_account_id').select2();
+      $('.select2').select2();
   
       $('.status').show();
       window.setTimeout(function () {
           $(".status").fadeTo(500, 0).slideUp(500, function () {
-
+ 
               $(this).remove();
           });
       }, 2000);

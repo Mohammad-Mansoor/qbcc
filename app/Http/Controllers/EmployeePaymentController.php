@@ -36,13 +36,14 @@ class EmployeePaymentController extends Controller
             $condition = $payment->type; // 'رسید' or 'گرفت'
             $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
 
-            $this->accountingService->postAutoTransaction('employee_payment', $condition, [
+            $this->accountingService->postAutoTransaction('employee_payment', 'PAYROLL_PAYMENT', [
                 'date' => $payment->date,
                 'amount' => $amount,
                 'party_type' => 'App\OfficeEmployee',
                 'party_id' => $payment->employee_id,
                 'reference' => 'EMP-PAY-' . $payment->id,
                 'description' => $payment->description,
+                'source_type' => 'EmployeePayment',
                 'source_id' => $payment->id,
             ]);
         } catch (\Exception $e) {

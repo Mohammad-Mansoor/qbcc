@@ -21,12 +21,25 @@ class NewMonthlyExpenseBalanceController extends Controller
     private function postExpenseToAccounting($expense)
     {
         try {
-            // NewMonthlyExpenseBalance category strings might match mapping rules
-            $this->accountingService->postAutoTransaction('expense', $expense->category, [
+            $slugMap = [
+                'خوراکه' => 'EXP_FOOD',
+                'متفرقه دفتر' => 'EXP_MISC',
+                'کرایه و برق' => 'EXP_RENT',
+                'ترانسپورت' => 'EXP_TRANS',
+                'برداشت' => 'CASH_OUT',
+                'ترمیمات و تیل' => 'EXP_FUEL',
+                'معاشات' => 'PAYROLL_ACCRUAL',
+                'اجوره' => 'EXP_WAGES',
+            ];
+            
+            $key = $slugMap[$expense->category] ?? 'EXP_MISC';
+
+            $this->accountingService->postAutoTransaction('expense', $key, [
                 'date' => $expense->date,
                 'amount' => $expense->amount,
                 'reference' => 'NEXP-' . $expense->id,
                 'description' => $expense->description . " (" . $expense->category . ")",
+                'source_type' => 'NewMonthlyExpenseBalance',
                 'source_id' => $expense->id,
             ]);
         } catch (\Exception $e) {
@@ -52,6 +65,8 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function store(Request $request)
     {
+        $this->accountingService->failIfLocked($request->date);
+        
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
                 'amount' => 'required',
@@ -180,6 +195,8 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function update(Request $request, $expense_id)
     {
+        $this->accountingService->failIfLocked($request->date);
+        
         return DB::transaction(function () use ($request, $expense_id) {
             $request->validate([
                 'amount' => 'required',
@@ -219,14 +236,22 @@ class NewMonthlyExpenseBalanceController extends Controller
      */
     public function destroy($expense_id)
     {
-        return DB::transaction(function () use ($expense_id) {
-            $expense = NewMonthlyExpenseBalance::find($expense_id);
-            
-            // Reversal
-            $this->accountingService->reverseTransactionBySource($expense->id, 'New Expense Record Deleted');
-            
-            $expense->delete();
-            return response()->json(['status' => 'success']);
-        });
+        try {
+            return DB::transaction(function () use ($expense_id) {
+                $expense = NewMonthlyExpenseBalance::find($expense_id);
+                if ($expense) {
+                    $this->accountingService->failIfLocked($expense->date);
+                    
+                    // Reversal
+                    $this->accountingService->reverseTransactionBySource($expense->id, 'New Expense Record Deleted');
+                    
+                    $expense->delete();
+                    return response()->json(['status' => 'success', 'message' => 'موفقانه حذف شد']);
+                }
+                return response()->json(['status' => 'error', 'message' => 'دیتا یافت نشد'], 404);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
     }
 }

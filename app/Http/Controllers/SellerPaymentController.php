@@ -31,7 +31,7 @@ class SellerPaymentController extends Controller
         //
     }
 
-    private function postPaymentToAccounting($payment)
+    private function postPaymentToAccounting($payment, $overrides = [])
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
@@ -45,6 +45,8 @@ class SellerPaymentController extends Controller
                 'reference' => 'V-PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
+                'override_debit_account_id' => $overrides['override_debit_account_id'] ?? $payment->override_debit_account_id ?? null,
+                'override_credit_account_id' => $overrides['override_credit_account_id'] ?? $payment->override_credit_account_id ?? null,
             ]);
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Vendor Payment #" . $payment->id . ": " . $e->getMessage());
@@ -53,7 +55,34 @@ class SellerPaymentController extends Controller
 
     public function request_list()
     {
-        $requests = SellerPayment::where('status', 0)->orderBy('id', 'DESC')->get();
+        $requests = SellerPayment::where('status', 0)->orderBy('id', 'DESC')->get()->map(function($req) {
+            // 1. Fetch Supplier Name and Balance
+            $seller = StringSeller::find($req->seller_id);
+            if ($seller) {
+                $req->seller_name = $seller->name;
+                $req->current_balance = DB::table('ledger_entries')
+                    ->where('party_type', 'App\StringSeller')
+                    ->where('party_id', $req->seller_id)
+                    ->sum(DB::raw("credit - debit"));
+            }
+
+            // 2. Prepare Accounting Preview
+            $rule = \App\MappingRule::where('transaction_type', 'seller_payment')
+                ->where(function($q) use ($req) {
+                    $q->where('mapping_key', $req->type)->orWhere('condition', $req->type);
+                })->first();
+
+            if ($rule) {
+                $debitAccId = $req->override_debit_account_id ?? $rule->debit_account_id;
+                $creditAccId = $req->override_credit_account_id ?? $rule->credit_account_id;
+                
+                $req->debit_account_name = DB::table('chart_of_accounts')->where('id', $debitAccId)->value('account_name');
+                $req->credit_account_name = DB::table('chart_of_accounts')->where('id', $creditAccId)->value('account_name');
+            }
+
+            return $req;
+        });
+
         return view('string-seller.requested-money-list', compact('requests'));
     }
 
@@ -63,42 +92,28 @@ class SellerPaymentController extends Controller
             $payment = SellerPayment::find($id);
             $payment->status = 1; // Approved
             $payment->update();
-
+            
+            // Post to Accounting
             $this->postPaymentToAccounting($payment);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = ($payment->amount > 0) 
-                ? " مبلغ " . $payment->amount . "دالر برای فروشنده مواد تایید شد "
-                : " مبلغ " . $payment->amount_af . "افغانی برای فروشنده مواد تایید شد ";
+                ? " مبلغ " . $payment->amount . " دالر برای فروشنده مواد اپروف شد "
+                : " مبلغ " . $payment->amount_af . " افغانی برای فروشنده مواد اپروف شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
             return response()->json(['status' => 'success']);
         });
     }
+
     public function delete_request($id){
-        $credit = SellerPayment::find($id);
-        $credit->delete();
-        return response()->json(['status','error']);
+        $payment = SellerPayment::find($id);
+        $payment->delete();
+        return response()->json(['status' => 'success']);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
@@ -126,6 +141,8 @@ class SellerPaymentController extends Controller
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->save();
 
             if ($payed->status == 1) {
@@ -145,12 +162,6 @@ class SellerPaymentController extends Controller
         });
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\SellerPayment  $sellerPayment
-     * @return \Illuminate\Http\Response
-     */
     public function show($seller_id)
     {
         $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('created_at','DESC')->paginate(30);
@@ -161,7 +172,13 @@ class SellerPaymentController extends Controller
         $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
     public function show_all_payment($seller_id){
         $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('created_at','DESC')->get();
@@ -172,16 +189,15 @@ class SellerPaymentController extends Controller
         $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
-        $all = '';
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers','all'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
+        $all = '';
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\SellerPayment  $sellerPayment
-     * @return \Illuminate\Http\Response
-     */
     public function edit($payment_id)
     {
         $paymentEdit = SellerPayment::find($payment_id);
@@ -192,17 +208,16 @@ class SellerPaymentController extends Controller
         $credit_us = SellerPayment::where('type','=','رسید')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount');
         $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount_af');
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$paymentEdit->seller_id)->distinct()->get(['purchase_number']);
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
+        $allowedDebitAccounts = $selectionService->getValidAccounts($mKey, 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
 
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\SellerPayment  $sellerPayment
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $payment_id)
     {
         return DB::transaction(function () use ($request, $payment_id) {
@@ -235,6 +250,8 @@ class SellerPaymentController extends Controller
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
             }
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->update();
 
             // Post New Accounting Entry (Only if approved)

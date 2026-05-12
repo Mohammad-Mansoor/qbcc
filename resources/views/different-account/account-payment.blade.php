@@ -80,14 +80,25 @@
                           <div class="form-group-inner">
                             <div class="row"
                                  style=" display:flex;justify-content:space-around">
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-left">مقدار پول به دالر</label>
-                                
-                                <input type="text" name="amount"
-                                       placeholder="مبلغ پول به دالر" class="form-control">
-                                @error('amount') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-left">مقدار پول</label>
+                                <input type="text" name="amount" placeholder="مبلغ پول" class="form-control" required>
+                                @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                              </div>
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-left">ارز</label>
+                                <select name="currency_code" id="currency_code" class="form-control" required>
+                                    <option value="USD">USD (دالر)</option>
+                                    <option value="AFN">AFN (افغانی)</option>
+                                    <option value="PKR">PKR (کلدار)</option>
+                                    <option value="EUR">EUR (یورو)</option>
+                                </select>
+                                @error('currency_code') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                              </div>
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-left">نرخ تبدیل (به USD)</label>
+                                <input type="text" name="exchange_rate" id="exchange_rate" value="1.000000" class="form-control" required readonly>
+                                @error('exchange_rate') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                               </div>
                               <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <label class="pull-left">نوع معامله</label>
@@ -149,14 +160,25 @@
                           <div class="form-group-inner">
                             <div class="row"
                                  style=" display:flex;justify-content:space-around">
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-right">مقدار پول به دالر</label>
-                                
-                                <input type="text" name="amount" value="{{$paymentEdit->amount}}"
-                                       class="form-control">
-                                @error('amount') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-right">مقدار پول</label>
+                                <input type="text" name="amount" value="{{$paymentEdit->amount}}" class="form-control" required>
+                                @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                              </div>
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-right">ارز</label>
+                                <select name="currency_code" id="currency_code_edit" class="form-control" required>
+                                    <option value="USD" {{ $paymentEdit->currency_code == 'USD' ? 'selected' : '' }}>USD (دالر)</option>
+                                    <option value="AFN" {{ $paymentEdit->currency_code == 'AFN' ? 'selected' : '' }}>AFN (افغانی)</option>
+                                    <option value="PKR" {{ $paymentEdit->currency_code == 'PKR' ? 'selected' : '' }}>PKR (کلدار)</option>
+                                    <option value="EUR" {{ $paymentEdit->currency_code == 'EUR' ? 'selected' : '' }}>EUR (یورو)</option>
+                                </select>
+                                @error('currency_code') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                              </div>
+                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <label class="pull-right">نرخ تبدیل</label>
+                                <input type="text" name="exchange_rate" id="exchange_rate_edit" value="{{$paymentEdit->exchange_rate}}" class="form-control" required {{ $paymentEdit->currency_code == 'USD' ? 'readonly' : '' }}>
+                                @error('exchange_rate') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                               </div>
                               <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <label class="pull-right">نوع معامله</label>
@@ -247,8 +269,11 @@
                       <thead>
                       <tr>
                         
-                        <td><b>رسید(دالر)</b></td>
-                        <td><b>گرفت(دالر)</b></td>
+                        <td><b>رسید</b></td>
+                        <td><b>گرفت</b></td>
+                        <td><b>ارز</b></td>
+                        <td><b>نرخ تبدیل</b></td>
+                        <td><b>معادل دالر</b></td>
                         
                         <td><b>تفصیلات</b></td>
                         <td><b>تاریخ</b></td>
@@ -273,6 +298,9 @@
                           @else
                             <td>0</td>
                           @endif
+                          <td><span class="badge badge-info">{{$pa->currency_code}}</span></td>
+                          <td>{{$pa->exchange_rate}}</td>
+                          <td>{{$pa->base_amount}} USD</td>
                           
                           
                           <td>{{$pa->description}}</td>
@@ -304,18 +332,13 @@
                           @endif
                         </tr>
                       @endforeach
+                      <tr><td colspan="5" style="background:#eee;text-align:center;"><b>خلاصه حساب بر اساس ارز</b></td></tr>
+                      @foreach($totals as $t)
                       <tr>
-                        <td><b>{{$debits}} </b></td>
-                        <td><b>گرفت ها(دالر)</b></td>
+                        <td colspan="3"><b>رسیدات: {{$t->total}} | گرفت ها: {{$t->paid}}</b></td>
+                        <td colspan="2"><b>بیلانس ({{$t->currency_code}}): <span dir="ltr">{{$t->remaining}}</span></b></td>
                       </tr>
-                      <tr>
-                        <td><b>{{$credits}} </b></td>
-                        <td><b>رسیدات(دالر)</b></td>
-                      </tr>
-                      <tr>
-                        <td style="direction: ltr"><b> {{$credits - $debits}} </b></td>
-                        <td><b>صرف بیلانس(دالر)</b></td>
-                      </tr>
+                      @endforeach
                       
                       </tbody>
                     </table>
@@ -337,6 +360,27 @@
     </div>
   </div>
 
+<script>
+      $(document).ready(function () {
+          // Logic for Create Form
+          $("#currency_code").change(function() {
+              if($(this).val() === "USD") {
+                  $("#exchange_rate").val("1.000000").attr("readonly", true);
+              } else {
+                  $("#exchange_rate").attr("readonly", false);
+              }
+          });
+          
+          // Logic for Edit Form
+          $("#currency_code_edit").change(function() {
+              if($(this).val() === "USD") {
+                  $("#exchange_rate_edit").val("1.000000").attr("readonly", true);
+              } else {
+                  $("#exchange_rate_edit").attr("readonly", false);
+              }
+          });
+      });
+  </script>
 @endsection
 @section('scripts')
   
@@ -361,6 +405,27 @@
           // Append the buttons to an element of your choosing
           $buttons.appendTo('#exportButton');
 
+      });
+  </script>
+<script>
+      $(document).ready(function () {
+          // Logic for Create Form
+          $("#currency_code").change(function() {
+              if($(this).val() === "USD") {
+                  $("#exchange_rate").val("1.000000").attr("readonly", true);
+              } else {
+                  $("#exchange_rate").attr("readonly", false);
+              }
+          });
+          
+          // Logic for Edit Form
+          $("#currency_code_edit").change(function() {
+              if($(this).val() === "USD") {
+                  $("#exchange_rate_edit").val("1.000000").attr("readonly", true);
+              } else {
+                  $("#exchange_rate_edit").attr("readonly", false);
+              }
+          });
       });
   </script>
 @endsection

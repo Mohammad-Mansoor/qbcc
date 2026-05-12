@@ -1,6 +1,7 @@
 @extends('dsh.master')
 
 @section('content')
+  @php($lockDate = \DB::table('financial_settings')->where('key', 'financial_lock_date')->value('value'))
   <br>
   <div class="row" id="customer_payment">
     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -152,20 +153,66 @@
                       @error('date') <p class="text-danger">
                         {{trans('message.'.$message)}}</p>
                       @enderror
-                    </div>
                   </div>
                 </div>
-                <div class="row">
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-12">
-                    <div class="form-group fill">
-                      <button class="btn btn-warning btn-sm" type="reset">انصراف
-                      </button>
-                      <button class="btn btn-primary btn-sm marginx" type="submit"><span
-                                class="fa fa-save"></span> ذخیره
-                      </button>
+
+                <div class="col-lg-12">
+                    <div class="row p-3 mb-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 10px;">
+                        <div class="col-lg-12">
+                            <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting Overrides)</h6>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="form-group">
+                                <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                <select name="override_debit_account_id" id="override_debit_account_id" class="form-control">
+                                    @foreach($allowedDebitAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="form-group">
+                                <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                <select name="override_credit_account_id" id="override_credit_account_id" class="form-control">
+                                    @foreach($allowedCreditAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-2" style="margin-top: 25px;">
+                             <button class="btn btn-primary btn-block shadow-sm" type="submit"><span class="fa fa-save"></span> ثبت نهایی</button>
+                        </div>
                     </div>
-                  </div>
                 </div>
+
+                <!-- Invoice Allocation Section -->
+                <div id="invoice_allocation_section" style="display:none; margin-top: 10px; width: 100%; padding: 15px;">
+                    <hr>
+                    <h5 class="text-primary"><i class="fa fa-list"></i> تخصیص به انوایس ها (Outstanding Invoices)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>نمبر انوایس</th>
+                                    <th>تاریخ</th>
+                                    <th>مجموع انوایس</th>
+                                    <th>باقیمانده</th>
+                                    <th width="150">مقدار تادیه</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoice_list_body">
+                                <!-- Populated via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
               </form>
             @else
               <form action="/dashboard/customer-payments/{{$paymentEdit->id}}" method="post">
@@ -264,16 +311,40 @@
                     </div>
                   </div>
                 </div>
-                <div class="row">
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-12">
-                    <div class="form-group fill">
-                      <button class="btn btn-white" type="reset">انصراف
-                      </button>
-                      <button class="btn btn-primary marginx" type="submit"><span
-                                class="fa fa-save"></span> ذخیره
-                      </button>
+
+                <div class="col-lg-12">
+                    <div class="row p-3 mb-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 10px;">
+                        <div class="col-lg-12">
+                            <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting Overrides)</h6>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="form-group">
+                                <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                <select name="override_debit_account_id" id="override_debit_account_id_edit" class="form-control">
+                                    @foreach($allowedDebitAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (($paymentEdit->override_debit_account_id ?? $mapping->debit_account_id) == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="form-group">
+                                <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                <select name="override_credit_account_id" id="override_credit_account_id_edit" class="form-control">
+                                    @foreach($allowedCreditAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (($paymentEdit->override_credit_account_id ?? $mapping->credit_account_id) == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_code }} - {{ $acc->account_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-2" style="margin-top: 25px;">
+                             <button class="btn btn-primary btn-block shadow-sm" type="submit"><span class="fa fa-save"></span> بروزرسانی نهایی</button>
+                        </div>
                     </div>
-                  </div>
                 </div>
               </form>
             @endif
@@ -378,16 +449,20 @@
                   @endif
                   @if( $pa->status == 0 || auth()->user()->role == 'SP')
                     <td class="hideOnPrint text-center">
-                      <a href="/dashboard/customer-payments/{{$pa->id}}/edit"
-                         class="btn btn-sm btn-info">ویرایش</a>
-                      
+                      @if(Carbon\Carbon::parse($pa->date)->gt(Carbon\Carbon::parse($lockDate)))
+                        <a href="/dashboard/customer-payments/{{$pa->id}}/edit"
+                           class="btn btn-sm btn-info">ویرایش</a>
+                        
+                        <button onclick="deletePayment( {{$pa->id}}, {{$pa->customer_id}})" class="btn btn-danger btn-sm">
+                          <i class="fa fa-tick"></i>حذف
+                        </button>
+                      @else
+                        <span class="badge badge-secondary"><i class="fa fa-lock"></i> قفل شده</span>
+                      @endif
+
                       @if($pa->ledger_transaction_id)
                           <a href="{{ route('accounting.journals.show', $pa->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
                       @endif
-                      
-                      <button onclick="deletePayment( {{$pa->id}}, {{$pa->customer_id}})" class="btn btn-danger btn-sm">
-                        <i class="fa fa-tick"></i>حذف
-                      </button>
                     </td>
                   @endif
                 
@@ -454,7 +529,12 @@
   
   <script>
 
-      $(document).ready(function () {
+    $(document).ready(function () {
+          $('#override_debit_account_id').select2();
+          $('#override_credit_account_id').select2();
+          $('#override_debit_account_id_edit').select2();
+          $('#override_credit_account_id_edit').select2();
+
           $("#customer_payments").tableExport({
               headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
               footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
@@ -520,5 +600,53 @@
       }
   
   
+      // Invoice Matching Logic
+      $(document).ready(function() {
+          const customerId = "{{$customer->id}}";
+          if (customerId) {
+              fetchOutstandingInvoices(customerId);
+          }
+
+          function fetchOutstandingInvoices(id) {
+              $.ajax({
+                  url: "{{ route('dashboard.customer_payments.get_outstanding') }}",
+                  data: { customer_id: id },
+                  success: function(data) {
+                      if (data.invoices.length > 0) {
+                          $('#invoice_allocation_section').show();
+                          let html = '';
+                          data.invoices.forEach(inv => {
+                              html += `
+                                  <tr>
+                                      <td>${inv.invoice_no}</td>
+                                      <td>${inv.invoice_date}</td>
+                                      <td>$${inv.total_amount}</td>
+                                      <td><b class="text-danger">$${inv.remaining_balance}</b></td>
+                                      <td>
+                                          <input type="number" step="0.01" 
+                                              name="allocations[${inv.id}]" 
+                                              class="form-control form-control-sm allocation-input" 
+                                              max="${inv.remaining_balance}" 
+                                              placeholder="0.00">
+                                      </td>
+                                  </tr>
+                              `;
+                          });
+                          $('#invoice_list_body').html(html);
+                      } else {
+                          $('#invoice_allocation_section').hide();
+                      }
+                  }
+              });
+          }
+
+          // Optional: Auto-fill help
+          $(document).on('keyup', 'input[name="amount"]', function() {
+              const totalPay = parseFloat($(this).val()) || 0;
+              if ($('input[name="money_type"]').val() === 'دالر') {
+                  // We could add auto-fill logic here if desired
+              }
+          });
+      });
   </script>
 @endsection

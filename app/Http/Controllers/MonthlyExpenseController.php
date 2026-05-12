@@ -22,12 +22,25 @@ class MonthlyExpenseController extends Controller
     private function postExpenseToAccounting($expense)
     {
         try {
-            // The 'condition' here will be the expense category
-            $this->accountingService->postAutoTransaction('expense', $expense->category, [
+            $slugMap = [
+                'خوراکه' => 'EXP_FOOD',
+                'متفرقه دفتر' => 'EXP_MISC',
+                'کرایه و برق' => 'EXP_RENT',
+                'ترانسپورت' => 'EXP_TRANS',
+                'برداشت' => 'CASH_OUT',
+                'ترمیمات و تیل' => 'EXP_FUEL',
+                'معاشات' => 'PAYROLL_ACCRUAL',
+                'اجوره' => 'EXP_WAGES',
+            ];
+            
+            $key = $slugMap[$expense->category] ?? 'EXP_MISC';
+
+            $this->accountingService->postAutoTransaction('expense', $key, [
                 'date' => $expense->date,
                 'amount' => $expense->amount,
                 'reference' => 'EXP-' . $expense->id,
                 'description' => $expense->description . " (" . $expense->category . ")",
+                'source_type' => 'MonthlyExpense',
                 'source_id' => $expense->id,
             ]);
         } catch (\Exception $e) {

@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Support\Facades\DB;
+
 class CustomerController extends Controller
 {
     /**
@@ -20,14 +22,50 @@ class CustomerController extends Controller
     {
 
         $customerEdit = "";
-        $customers = Customer::all();
+        $customers = Customer::paginate(30);
+        $customers->getCollection()->transform(function($cust) {
+            return $this->enrichCustomerRecord($cust);
+        });
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af'));
+        
+        // Global Receivable Total from Ledger
+        $total_receivable = DB::table('ledger_entries')
+            ->where('party_type', 'App\Customer')
+            ->sum(DB::raw('credit - debit'));
+
+        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af', 'total_receivable'));
     }
+
+    private function enrichCustomerRecord($cust)
+    {
+        // 1. Live Ledger Balance (Net Position)
+        $cust->ledger_balance = DB::table('ledger_entries')
+            ->where('party_type', 'App\Customer')
+            ->where('party_id', $cust->id)
+            ->sum(DB::raw('credit - debit'));
+
+        // 2. Lifetime Sales Value
+        $cust->lifetime_sales = DB::table('sales')
+            ->where('customer_id', $cust->id)
+            ->sum('sale_cost_total');
+
+        // 3. Last Activity Date
+        $last_payment = DB::table('customer_payments')->where('customer_id', $cust->id)->max('date');
+        $last_sale = DB::table('sales')->where('customer_id', $cust->id)->max('sale_date');
+        $cust->last_activity = max($last_payment, $last_sale);
+        
+        // 4. Activity Ageing (Days)
+        if ($cust->last_activity) {
+            $cust->days_since_active = Carbon::now()->diffInDays(Carbon::parse($cust->last_activity));
+        }
+
+        return $cust;
+    }
+
     public function search(Request $request)
     {
         $search = $request->search;
@@ -41,26 +79,44 @@ class CustomerController extends Controller
             ->orWhere('phone', 'like', '%'.$search.'%')
             ->orWhere('email', 'like', '%'.$search.'%')
             ->orWhere('website', 'like', '%'.$search.'%')
-            ->get();
+            ->paginate(30);
+        
+        $customers->getCollection()->transform(function($cust) {
+            return $this->enrichCustomerRecord($cust);
+        });
+
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','search'));
 
+        $total_receivable = DB::table('ledger_entries')
+            ->where('party_type', 'App\Customer')
+            ->sum(DB::raw('credit - debit'));
 
+        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','search', 'total_receivable'));
     }
+
     public function accounts(){
         $customerEdit = "";
-        $customers = Customer::all();
+        $customers = Customer::paginate(30);
+        $customers->getCollection()->transform(function($cust) {
+            return $this->enrichCustomerRecord($cust);
+        });
+        
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        
+        $total_receivable = DB::table('ledger_entries')
+            ->where('party_type', 'App\Customer')
+            ->sum(DB::raw('credit - debit'));
+
         $accounts = '';
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','accounts'));
+        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','accounts', 'total_receivable'));
     }
     /**
      * Show the form for creating a new resource.
@@ -116,7 +172,7 @@ class CustomerController extends Controller
     {
 
         $customerEdit = Customer::find($id);
-        $customers = Customer::all();
+        $customers = Customer::paginate(30);
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
 

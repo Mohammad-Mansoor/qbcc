@@ -17,16 +17,16 @@ class AjnasAccountDetailsController extends Controller
         $this->accountingService = $accountingService;
     }
 
-    private function postAssetToAccounting($id, $amount, $date, $name)
+    private function postAssetToAccounting($id, $amount, $date, $name, $overrides = [])
     {
         try {
-            $this->accountingService->postAutoTransaction('ajnas_account', 'purchase', [
+            $this->accountingService->postAutoTransaction('ajnas_account', 'purchase', array_merge([
                 'date' => $date,
                 'amount' => $amount,
                 'reference' => 'AJN-' . $id,
                 'description' => 'خریداری جنس ثابت (Fixed Asset): ' . $name,
                 'source_id' => $id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Ajnas Account Detail #" . $id . ": " . $e->getMessage());
         }
@@ -59,6 +59,13 @@ class AjnasAccountDetailsController extends Controller
                 'assets_account_id' => 'required',
             ]);
 
+            $imageName = null;
+            if ($request->hasFile('asset_image')) {
+                $image = $request->file('asset_image');
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $image->move('uploads/assets', $imageName);
+            }
+
             $id = DB::table('ajnas_account_details')->insertGetId([
                 'asset_name' => $request->asset_name, 
                 'asset_class' => $request->asset_class,
@@ -70,12 +77,17 @@ class AjnasAccountDetailsController extends Controller
                 'acquisition_cost'=>$request->acquisition_cost,
                 'estimated_useful_life'=>$request->estimated_useful_life,
                 'estimated_salvage_value'=>$request->estimated_salvage_value,
+                'asset_image'=>$imageName,
                 'ajnas_account_id'=>$request->assets_account_id
             ]);
 
             if ($id) {
-                // Post to ledger
-                $this->postAssetToAccounting($id, $request->acquisition_cost, $request->acquisition_date, $request->asset_name);
+                // Post to ledger with overrides
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+
+                $this->postAssetToAccounting($id, $request->acquisition_cost, $request->acquisition_date, $request->asset_name, $overrides);
                 return redirect('/dashboard/assets-accounts/'.$request->assets_account_id)->with('status', 'موفقانه ذخیره شد و در دفتر روزنامچه ثبت گردید');
             } else {
                 return redirect('/dashboard/assets-accounts/'.$request->assets_account_id)->with('error', 'ذخیره نشد');
@@ -118,7 +130,7 @@ class AjnasAccountDetailsController extends Controller
             // Reversal
             $this->accountingService->reverseTransactionBySource($details_id, 'Asset details edited');
 
-            $updated = DB::table('ajnas_account_details')->where('aad_id',$details_id)->update([
+            $updateData = [
                 'asset_name' => $request->asset_name, 
                 'asset_class' => $request->asset_class,
                 'asset_description'=>$request->asset_description,
@@ -129,7 +141,16 @@ class AjnasAccountDetailsController extends Controller
                 'acquisition_cost'=>$request->acquisition_cost,
                 'estimated_useful_life'=>$request->estimated_useful_life,
                 'estimated_salvage_value'=>$request->estimated_salvage_value
-            ]);
+            ];
+
+            if ($request->hasFile('asset_image')) {
+                $image = $request->file('asset_image');
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $image->move('uploads/assets', $imageName);
+                $updateData['asset_image'] = $imageName;
+            }
+
+            $updated = DB::table('ajnas_account_details')->where('aad_id',$details_id)->update($updateData);
 
             // Re-post
             $this->postAssetToAccounting($details_id, $request->acquisition_cost, $request->acquisition_date, $request->asset_name);
@@ -140,9 +161,10 @@ class AjnasAccountDetailsController extends Controller
 
     public function destroy($detail_id)
     {
-        return DB::transaction(function () use ($detail_id) {
+        $accountingService = $this->accountingService;
+        return DB::transaction(function () use ($detail_id, $accountingService) {
             // Reversal
-            $this->accountingService->reverseTransactionBySource($detail_id, 'Asset details deleted');
+            $accountingService->reverseTransactionBySource($detail_id, 'Asset details deleted', 'Ajnas_account');
 
             $ord = DB::table('ajnas_account_details')->where('aad_id', $detail_id)->delete();
 

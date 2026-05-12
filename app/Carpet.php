@@ -50,5 +50,8 @@ class Carpet extends Model
     public function quality(){
         return $this->belongsTo(Quality::class,'quality_id','id');
     }
+    public function warehouse(){
+        return $this->belongsTo(Warehouse::class,'warehouse_id','id');
+    }
 
 }

@@ -103,28 +103,18 @@ class DifferentAccountController extends Controller
     public function show($id)
     {
         $account = DifferentAccount::find($id);
-
         $payments = DifferentAccountPayment::where('account_id',$id)->orderBy('created_at','DESC')->paginate(30);
-
-        $total = DifferentAccountTotal::where('account_id',$id)->sum('total');
-        $debits = DifferentAccountPayment::where('type','=','گرفت')->where('account_id',$id)->where('status',1)->sum('amount');
-        $credits = DifferentAccountPayment::where('type','=','رسید')->where('account_id',$id)->where('status',1)->sum('amount');
+        $totals = \App\DifferentAccountTotal::where('account_id', $id)->get();
         $paymentEdit = '';
-
-        return view('different-account.account-payment',compact('account','payments','total','debits','credits','paymentEdit'));
-
-
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit'));
     }
     public function show_all_payment($account_id){
         $account = DifferentAccount::find($account_id);
-
         $payments = DifferentAccountPayment::where('account_id',$account_id)->orderBy('created_at','DESC')->get();
-        $total = DifferentAccountTotal::where('account_id',$account_id)->sum('total');
-        $debits = DifferentAccountPayment::where('type','=','گرفت')->where('account_id',$account_id)->where('status',1)->sum('amount');
-        $credits = DifferentAccountPayment::where('type','=','رسید')->where('account_id',$account_id)->where('status',1)->sum('amount');
+        $totals = \App\DifferentAccountTotal::where('account_id', $account_id)->get();
         $paymentEdit = '';
         $all = '';
-        return view('different-account.account-payment',compact('account','payments','total','debits','credits','paymentEdit','all'));
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all'));
     }
 
     /**

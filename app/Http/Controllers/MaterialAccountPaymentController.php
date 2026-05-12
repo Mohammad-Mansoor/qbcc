@@ -6,12 +6,48 @@ use App\Activity;
 use App\MaterialAccount;
 use App\MaterialAccountPayment;
 use App\MaterialType;
+use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaterialAccountPaymentController extends Controller
 {
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
+    private function postPaymentToAccounting($payment, $request = null)
+    {
+        try {
+            $txType = ($payment->type === 'گرفت') ? 'material_payment_out' : 'material_payment_in';
+            $mappingKey = ($payment->type === 'گرفت') ? 'MATERIAL_PAYMENT' : 'MATERIAL_RECEIPT';
+
+            $this->accountingService->postAutoTransaction(
+                $txType,
+                $mappingKey,
+                [
+                    'date' => $payment->date,
+                    'amount' => $payment->amount,
+                    'party_type' => 'App\MaterialAccount',
+                    'party_id' => $payment->account_id,
+                    'reference' => 'MAP-' . $payment->id,
+                    'description' => $payment->description,
+                    'source_type' => get_class($payment),
+                    'source_id' => $payment->id,
+                    'override_debit_account_id' => $request ? $request->override_debit_account_id : null,
+                    'override_credit_account_id' => $request ? $request->override_credit_account_id : null,
+                ]
+            );
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Material Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -25,45 +61,34 @@ class MaterialAccountPaymentController extends Controller
     public function request_material()
     {
         $requests = MaterialAccountPayment::where('status', 0)->orderBy('id', 'DESC')->get();
-        
-        
-     
-
         return view('material-accounts.requested-material-list', compact('requests'));
     }
 
 
     public function approve_request($id)
     {
+        return DB::transaction(function () use ($id) {
+            $payment = MaterialAccountPayment::find($id);
 
-        $payment = MaterialAccountPayment::find($id);
+            $payment->status = 1;
+            $payment->update();
 
+            $this->postPaymentToAccounting($payment);
 
-        $payment->status = 1;
-        $payment->update();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " مقدار " . $payment->amount . "کیلوگرام توسط سوپر ادمین اپروف شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-
-        $activity->description = " مقدار " . $payment->amount . "کیلوگرام توسط سوپر ادمین اپروف شد ";
-
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-        return response()->json(['status' => 'success']);
-
+            return response()->json(['status' => 'success']);
+        });
     }
 
     public function delete_request($id)
     {
         $credit = MaterialAccountPayment::find($id);
-
-
         $credit->delete();
-
-
         return response()->json(['status', 'error']);
     }
 
@@ -85,7 +110,6 @@ class MaterialAccountPaymentController extends Controller
      */
     public function store(Request $request)
     {
-
         $data = $request->validate([
             'amount' => 'required',
             'description' => 'required',
@@ -93,9 +117,7 @@ class MaterialAccountPaymentController extends Controller
             'type' => 'required',
             'type_id' => 'required',
             'account_id' => 'required',
-
         ]);
-
 
         $payed = new MaterialAccountPayment();
         $payed->amount = $request->amount;
@@ -111,16 +133,16 @@ class MaterialAccountPaymentController extends Controller
         else{
             $payed->status = 0;
         }
-        $payed->save();
 
-        if ($payed) {
+        return DB::transaction(function () use ($payed, $request) {
+            $payed->save();
+
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed, $request);
+            }
 
             return redirect()->back()->with('status', 'موفقانه ثبت شد !');
-        } else {
-            return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
-        }
-
-
+        });
     }
 
     /**
@@ -151,8 +173,23 @@ class MaterialAccountPaymentController extends Controller
         $credits = MaterialAccountPayment::where('type','=','رسید')->where('account_id',$paymentEdit->account_id)->where('status',1)->sum('amount');
         $material_type = MaterialType::all();
 
-        return view('material-accounts.account-payment',compact('account','payments','paymentEdit','material_type','debits','credits'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        
+        // For Payment OUT (گرفت)
+        $allowedDebitAccountsOut = $selectionService->getValidAccounts('MATERIAL_PAYMENT', 'debit');
+        $allowedCreditAccountsOut = $selectionService->getValidAccounts('MATERIAL_PAYMENT', 'credit');
+        $mappingOut = \App\MappingRule::where('mapping_key', 'MATERIAL_PAYMENT')->first();
 
+        // For Receipt IN (رسید)
+        $allowedDebitAccountsIn = $selectionService->getValidAccounts('MATERIAL_RECEIPT', 'debit');
+        $allowedCreditAccountsIn = $selectionService->getValidAccounts('MATERIAL_RECEIPT', 'credit');
+        $mappingIn = \App\MappingRule::where('mapping_key', 'MATERIAL_RECEIPT')->first();
+
+        return view('material-accounts.account-payment', compact(
+            'account', 'payments', 'paymentEdit', 'material_type', 'debits', 'credits',
+            'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut',
+            'allowedDebitAccountsIn', 'allowedCreditAccountsIn', 'mappingIn'
+        ));
     }
 
     /**
@@ -164,28 +201,36 @@ class MaterialAccountPaymentController extends Controller
      */
     public function update(Request $request, $payment_id)
     {
-        $data = $request->validate([
-            'amount' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'type' => '',
-            'type_id' => '',
-            'account_id' => '',
+        return DB::transaction(function () use ($request, $payment_id) {
+            $data = $request->validate([
+                'amount' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'type' => '',
+                'type_id' => '',
+                'account_id' => '',
+            ]);
 
-        ]);
-        $payed = MaterialAccountPayment::find($payment_id);
-        $payed->amount = $request->amount;
-        $payed->description = $request->description;
-        $payed->date = $request->date;
-        $payed->type = $request->type;
-        $payed->type_id = $request->type_id;
-        $payed->account_id = $request->account_id;
-        $payed->update();
-        if ($payed) {
-            return redirect('/dashboard/material-accounts/'.$request->account_id)->with('status', 'موفقانه ثبت شد !');
-        } else {
-            return redirect('/dashboard/material-accounts/'.$request->account_id)->with('error', 'مشکل در سرور وجود داره!');
-        }
+            $payed = MaterialAccountPayment::find($payment_id);
+
+            if ($payed->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Material Payment Edited', get_class($payed));
+            }
+
+            $payed->amount = $request->amount;
+            $payed->description = $request->description;
+            $payed->date = $request->date;
+            $payed->type = $request->type;
+            $payed->type_id = $request->type_id;
+            $payed->account_id = $request->account_id;
+            $payed->update();
+
+            if ($payed->status == 1) {
+                $this->postPaymentToAccounting($payed, $request);
+            }
+
+            return redirect('/dashboard/material-accounts/'.$request->account_id)->with('status', 'موفقانه ویرایش و بروزرسانی شد !');
+        });
     }
 
     /**
@@ -196,11 +241,15 @@ class MaterialAccountPaymentController extends Controller
      */
     public function destroy($id)
     {
-        $payment = MaterialAccountPayment::find($id);
-        $payment->delete();
+        return DB::transaction(function () use ($id) {
+            $payment = MaterialAccountPayment::find($id);
 
-        if ($payment) {
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Material Payment Deleted', get_class($payment));
+            }
+
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

@@ -102,6 +102,38 @@
                     </small>
                   </div>
                 </div>
+
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+                  <div class="form-group fill">
+                    <label class="">گدام</label>
+                    <select name="warehouse_id" id="warehouse_id" class="form-control">
+                      @foreach($warehouses as $wh)
+                        <option
+                                {{ (old('warehouse_id', $defaultWarehouseId) == $wh->id ? 'selected' : '') }}
+                                value="{{$wh->id}}">{{$wh->name}}</option>
+                      @endforeach
+                    </select>
+                    <small class="text-danger">@error('warehouse_id')
+                      {{ __('message.'.$message) }} @enderror
+                    </small>
+                  </div>
+                </div>
+
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+                  <div class="form-group fill">
+                    <label class="">حساب انبار (Inventory)</label>
+                    <select name="override_inventory_account_id" id="override_inventory_account_id" class="form-control">
+                      @foreach($inventoryAccounts as $acc)
+                        <option
+                                {{ (old('override_inventory_account_id', 15) == $acc->id ? 'selected' : '') }}
+                                value="{{$acc->id}}">{{$acc->account_name}} ({{$acc->account_code}})</option>
+                      @endforeach
+                    </select>
+                    <small class="text-danger">@error('override_inventory_account_id')
+                      {{ __('message.'.$message) }} @enderror
+                    </small>
+                  </div>
+                </div>
                 
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
                   <div class="form-group fill">
@@ -330,6 +362,38 @@
                     
                     </select>
                     <small class="text-danger">@error('quality_id') {{ __('message.'.$message) }}@enderror
+                    </small>
+                  </div>
+                </div>
+
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+                  <div class="form-group fill">
+                    <label class="">حساب انبار (Inventory)</label>
+                    <select name="override_inventory_account_id" id="override_inventory_account_id" class="form-control">
+                      @foreach($inventoryAccounts as $acc)
+                        <option
+                                {{ ($editCarpet->override_inventory_account_id == $acc->id ? 'selected' : '') }}
+                                value="{{$acc->id}}">{{$acc->account_name}} ({{$acc->account_code}})</option>
+                      @endforeach
+                    </select>
+                    <small class="text-danger">@error('override_inventory_account_id')
+                      {{ __('message.'.$message) }} @enderror
+                    </small>
+                  </div>
+                </div>
+
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
+                  <div class="form-group fill">
+                    <label class="">گدام</label>
+                    <select name="warehouse_id" id="warehouse_id" class="form-control">
+                      @foreach($warehouses as $wh)
+                        <option
+                                {{ ($editCarpet->warehouse_id == $wh->id ? 'selected' : '') }}
+                                value="{{$wh->id}}">{{$wh->name}}</option>
+                      @endforeach
+                    </select>
+                    <small class="text-danger">@error('warehouse_id')
+                      {{ __('message.'.$message) }} @enderror
                     </small>
                   </div>
                 </div>

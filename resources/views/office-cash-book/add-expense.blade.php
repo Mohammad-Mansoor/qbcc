@@ -116,6 +116,47 @@
                         </div>
                       </div>
                     </div>
+
+                    <!-- ACCOUNT OVERRIDES -->
+                    <div class="mt-4 p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+                        <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting)</h6>
+                        <div class="form-group-inner">
+                            <div class="row">
+                                <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                                    <select name="override_debit_account_id" id="override_debit_account_id" class="form-control">
+                                        @foreach($allowedDebitAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                                    <label class="">حساب هزینه (Debit)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group-inner">
+                            <div class="row">
+                                <div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
+                                    <select name="override_credit_account_id" id="override_credit_account_id" class="form-control">
+                                        @foreach($allowedCreditAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                                    <label class="">حساب پرداخت (Credit)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info py-1 mt-2" style="font-size: 0.8rem;">
+                            <i class="fa fa-info-circle"></i> به صورت خودکار حساب‌های پیش‌فرض انتخاب شده‌اند.
+                        </div>
+                    </div>
+                    <br>
                     
                     <div class="login-horizental cancel-wp ">
                       <button class="btn btn-white" type="button">انصراف</button>
@@ -132,5 +173,35 @@
     </div>
   </div>
 
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        $('#override_debit_account_id').select2();
+        $('#override_credit_account_id').select2();
+        $('#expense_type').select2();
+
+        // Calculation logic
+        $("#fp").keyup(function () {
+            var fp = $('#fp').val();
+            var c = $('#currency').val();
+            var mainP = fp / c;
+            var total = parseFloat(mainP).toFixed(2);
+            if (isNaN(total)) {
+                $("#mainP").val();
+            } else {
+                $("#mainP").val(total);
+            }
+        });
+
+        $('.status').show();
+        window.setTimeout(function () {
+            $(".status").fadeTo(500, 0).slideUp(500, function () {
+                $(this).remove();
+            });
+        }, 2000);
+    });
+</script>
 @endsection
 

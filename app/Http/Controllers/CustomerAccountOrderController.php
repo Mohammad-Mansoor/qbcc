@@ -60,9 +60,10 @@ class CustomerAccountOrderController extends Controller
     {
         $customer = CustomerAccountOrder::find($customer_id);
         $customer_orders = DB::table('customer_orders')->where('customer_id',$customer_id)->orderBy('co_id','DESC')->get();
-        $orderEdit = '';
+        $orderEdit = null;
+        $main_customers = \App\Customer::all();
 
-        return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders'));
+        return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders', 'main_customers'));
 
 
 

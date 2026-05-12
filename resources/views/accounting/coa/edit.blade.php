@@ -101,6 +101,21 @@
                                 </select>
                             </div>
 
+                            <!-- Cashflow Group -->
+                            <div class="col-md-12 mb-4">
+                                <label class="font-weight-bold text-dark">گروه جریان وجوه نقد (Cashflow Group)</label>
+                                <select name="cashflow_group" class="form-control select2 bg-light">
+                                    <option value="">-- انتخاب (اختیاری) --</option>
+                                    <option value="Operating" {{ $account->cashflow_group == 'Operating' ? 'selected' : '' }}>Operating Activities (فعالیت‌های عملیاتی)</option>
+                                    <option value="Investing" {{ $account->cashflow_group == 'Investing' ? 'selected' : '' }}>Investing Activities (فعالیت‌های سرمایه‌گذاری)</option>
+                                    <option value="Financing" {{ $account->cashflow_group == 'Financing' ? 'selected' : '' }}>Financing Activities (فعالیت‌های تأمین مالی)</option>
+                                </select>
+                                <small class="form-text text-info mt-2">
+                                    <i class="feather icon-info mr-1"></i>
+                                    برای تهیه صورت جریان وجوه نقد (Indirect Method) ضروری است.
+                                </small>
+                            </div>
+
                             <!-- Currency -->
                             <div class="col-md-6 mb-4">
                                 <label class="font-weight-bold text-dark">ارز (Currency)</label>

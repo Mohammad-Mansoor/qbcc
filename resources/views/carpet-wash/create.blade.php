@@ -122,28 +122,57 @@
                 </div>
               </div>
 
+              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                <div class="form-group fill">
+                  <label class="pull-right">حساب مالی (Expense Account)</label>
+                  <select name="account_id" class="form-control" required>
+                    @foreach($accounts as $acc)
+                      <option value="{{$acc->id}}" {{ $acc->id == $defaultAccount ? 'selected' : '' }}>{{$acc->account_name}} - {{$acc->account_code}}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </div>
+
               <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
-                  <label class="pull-right">قیمت مجموعی به دالر</label>
-                  <input type="text" id="af_total_price" name="af_total_price" required readonly
-                         class="form-control">
-                  @error('af_total_price') <p class="text-danger">{{trans('message.'.$message)}}</p>
-                  @enderror
+                  <label class="pull-right">واحد پولی</label>
+                  <select name="currency_code" id="currency_code" class="form-control" required>
+                    <option value="USD">USD ($)</option>
+                    <option value="AFN">AFN (؋)</option>
+                  </select>
                 </div>
               </div>
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="display: none">
+
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
-                  <label class="pull-right">قیمت مجموعی به دالر</label>
-                  <input type="text" id="total_price" name="total_price" required readonly class="form-control">
-                  @error('total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                  <label class="pull-right">نرخ تبادله (به دالر)</label>
+                  <input type="text" name="exchange_rate" id="exchange_rate" value="{{ $currency }}" class="form-control" required>
                 </div>
               </div>
+
               <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
                   <label class="pull-right">تاریخ شست قالین</label>
                   <input type="date" name="date" placeholder="تاریخ را وارد کنید" required class="form-control"
                          value="{{old('date')}}">
                   @error('date') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                </div>
+              </div>
+
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="form-group fill">
+                  <label class="pull-right">قیمت مجموعی (ارز انتخابی)</label>
+                  <input type="text" id="af_total_price" name="af_total_price" required readonly
+                         class="form-control">
+                  @error('af_total_price') <p class="text-danger">{{trans('message.'.$message)}}</p>
+                  @enderror
+                </div>
+              </div>
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="form-group fill">
+                  <label class="pull-right">معادل به دالر (Base USD)</label>
+                  <input type="text" id="total_price" name="total_price" required readonly class="form-control">
+                  @error('total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                 </div>
               </div>
               <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">

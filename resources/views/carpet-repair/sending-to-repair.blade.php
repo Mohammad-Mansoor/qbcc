@@ -22,6 +22,17 @@
                     @error('team_id') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                   </div>
                 </div>
+                <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">
+                  <div class="form-group fill">
+                    <label class="pull-right">گدام ارسالی (Destination Warehouse)</label>
+                    <select name="warehouse_id" class="form-control" style="direction: rtl">
+                      @foreach ($warehouses as $wh)
+                        <option value="{{$wh->id}}" {{ $wh->id == $defaultWarehouse ? 'selected' : '' }}>{{$wh->name}}</option>
+                      @endforeach
+                    </select>
+                    @error('warehouse_id') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                  </div>
+                </div>
               </div>
               
               

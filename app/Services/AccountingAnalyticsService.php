@@ -45,7 +45,7 @@ class AccountingAnalyticsService
         $previous = $this->getPeriodSummary($pStart, $pEnd);
 
         $kpis = [];
-        $metrics = ['revenue', 'expenses', 'profit', 'cash', 'receivables', 'payables'];
+        $metrics = ['revenue', 'expenses', 'profit', 'cash', 'receivables', 'payables', 'inventory'];
 
         foreach ($metrics as $metric) {
             $curVal = $current[$metric] ?? 0;
@@ -100,25 +100,46 @@ class AccountingAnalyticsService
 
         $summary = [
             'revenue' => 0, 'expenses' => 0, 'profit' => 0,
-            'cash' => 0, 'receivables' => 0, 'payables' => 0
+            'cash' => 0, 'receivables' => 0, 'payables' => 0, 'inventory' => 0
         ];
 
         foreach ($plData as $row) {
-            if ($row->account_type == 'Revenue') {
+            $type = strtolower($row->account_type);
+            if ($type == 'revenue' || $type == 'income') {
                 $summary['revenue'] += ($row->total_credit - $row->total_debit);
-            } elseif ($row->account_type == 'Expense') {
+            } elseif ($type == 'expense') {
                 $summary['expenses'] += ($row->total_debit - $row->total_credit);
             }
         }
         $summary['profit'] = $summary['revenue'] - $summary['expenses'];
 
-        foreach ($bsData as $row) {
-            if (strpos($row->account_code, '11') === 0 || strpos($row->account_code, '12') === 0) {
+        // BS data uses account codes and report groups
+        $bsDataFull = DB::table('chart_of_accounts as coa')
+            ->leftJoin('ledger_entries as le', 'coa.id', '=', 'le.account_id')
+            ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->select(
+                'coa.account_code',
+                'coa.report_group',
+                'coa.is_cash_account',
+                DB::raw('SUM(le.debit) as total_debit'),
+                DB::raw('SUM(le.credit) as total_credit')
+            )
+            ->where('lt.status', 'posted')
+            ->where('lt.date', '<=', $end)
+            ->groupBy('coa.id', 'coa.account_code', 'coa.report_group', 'coa.is_cash_account')
+            ->get();
+
+        foreach ($bsDataFull as $row) {
+            if ($row->is_cash_account) {
                 $summary['cash'] += ($row->total_debit - $row->total_credit);
-            } elseif (strpos($row->account_code, '13') === 0) {
+            }
+            
+            if ($row->report_group == 'Current Asset' && strpos($row->account_code, '13') === 0) {
                 $summary['receivables'] += ($row->total_debit - $row->total_credit);
-            } elseif (strpos($row->account_code, '21') === 0) {
+            } elseif ($row->report_group == 'Current Liability' && strpos($row->account_code, '21') === 0) {
                 $summary['payables'] += ($row->total_credit - $row->total_debit);
+            } elseif ($row->report_group == 'Inventory' || strpos($row->account_code, '14') === 0) {
+                $summary['inventory'] += ($row->total_debit - $row->total_credit);
             }
         }
 
@@ -202,7 +223,6 @@ class AccountingAnalyticsService
         $netProfit = $summary['profit'];
 
         // 2. Calculate Working Capital Changes
-        // We need balances at the exact start and exact end
         $openingBalances = $this->getBalancesAtDate($start->copy()->subDay());
         $closingBalances = $this->getBalancesAtDate($end);
 
@@ -221,15 +241,97 @@ class AccountingAnalyticsService
             ],
             'net_cash_operating' => $netProfit - $arChange + $apChange - $invChange,
             'investing' => [
-                'fixed_assets' => -$fixedAssetsChange, // Increase in fixed asset = Cash out
+                'fixed_assets' => -$fixedAssetsChange,
             ],
             'net_cash_investing' => -$fixedAssetsChange,
             'financing' => [
-                'equity' => $equityChange, // Increase in equity = Cash in
+                'equity' => $equityChange,
             ],
             'net_cash_financing' => $equityChange,
             'net_change_in_cash' => ($netProfit - $arChange + $apChange - $invChange) - $fixedAssetsChange + $equityChange
         ];
+    }
+
+    /**
+     * Get Historical Inventory Valuation
+     */
+    public function getInventoryValuation($date)
+    {
+        return DB::table('inventory_transactions as it')
+            ->join('items', 'it.item_id', '=', 'items.id')
+            ->select(
+                'items.type as item_type',
+                DB::raw("SUM(CASE WHEN direction = 'IN' THEN it.total_cost ELSE -it.total_cost END) as total_value"),
+                DB::raw("SUM(CASE WHEN it.is_value_adjustment = 0 AND direction = 'IN' THEN it.quantity WHEN direction = 'OUT' THEN -it.quantity ELSE 0 END) as on_hand_qty")
+            )
+            ->where('it.status', 1)
+            ->where('it.created_at', '<=', Carbon::parse($date)->endOfDay())
+            ->groupBy('items.type')
+            ->get();
+    }
+
+    /**
+     * Get Comparative P&L (Current vs Previous)
+     */
+    public function getComparativePL($start, $end)
+    {
+        $current = $this->getPeriodSummary($start, $end);
+        
+        $startP = Carbon::parse($start)->subYear();
+        $endP = Carbon::parse($end)->subYear();
+        $previous = $this->getPeriodSummary($startP, $endP);
+
+        return [
+            'current' => $current,
+            'previous' => $previous,
+            'variance' => [
+                'revenue' => $current['revenue'] - $previous['revenue'],
+                'expenses' => $current['expenses'] - $previous['expenses'],
+                'profit' => $current['profit'] - $previous['profit'],
+            ]
+        ];
+    }
+
+    /**
+     * Get FX Exposure Analysis
+     */
+    public function getFXExposure($date)
+    {
+        return DB::table('ledger_entries as le')
+            ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->select(
+                'le.currency_code',
+                DB::raw("SUM(CASE WHEN le.debit > 0 THEN le.original_amount ELSE -le.original_amount END) as net_balance_original"),
+                DB::raw("SUM(le.base_currency_amount) as net_balance_base")
+            )
+            ->where('lt.status', 'posted')
+            ->where('lt.date', '<=', $date)
+            ->groupBy('le.currency_code')
+            ->get();
+    }
+
+    /**
+     * Get Cost Center Performance
+     */
+    public function getCostCenterPerformance($start, $end)
+    {
+        return DB::table('cost_centers as cc')
+            ->leftJoin('ledger_entries as le', 'cc.id', '=', 'le.cost_center_id')
+            ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->join('chart_of_accounts as coa', 'le.account_id', '=', 'coa.id')
+            ->select(
+                'cc.name',
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Revenue' THEN (le.credit - le.debit) ELSE 0 END) as revenue"),
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Expense' THEN (le.debit - le.credit) ELSE 0 END) as expenses")
+            )
+            ->where('lt.status', 'posted')
+            ->whereBetween('lt.date', [$start, $end])
+            ->groupBy('cc.id', 'cc.name')
+            ->get()
+            ->map(function($item) {
+                $item->profit = $item->revenue - $item->expenses;
+                return $item;
+            });
     }
 
     private function getBalancesAtDate($date)
@@ -239,26 +341,32 @@ class AccountingAnalyticsService
             ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->select(
                 'coa.account_code',
+                'coa.report_group',
+                'coa.cashflow_group',
+                'coa.account_type',
                 DB::raw('SUM(le.debit - le.credit) as balance_debit_base'),
                 DB::raw('SUM(le.credit - le.debit) as balance_credit_base')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $date)
-            ->groupBy('coa.account_code')
+            ->groupBy('coa.id', 'coa.account_code', 'coa.report_group', 'coa.cashflow_group', 'coa.account_type')
             ->get();
 
         $balances = ['receivables' => 0, 'payables' => 0, 'inventory' => 0, 'equity' => 0, 'investing' => 0];
 
         foreach ($data as $row) {
-            if (strpos($row->account_code, '13') === 0) {
+            $type = strtolower($row->account_type);
+            
+            // Logic based on Tags first, then fallback to code ranges
+            if ($row->report_group == 'Current Asset' && strpos($row->account_code, '13') === 0) {
                 $balances['receivables'] += $row->balance_debit_base;
-            } elseif (strpos($row->account_code, '21') === 0) {
+            } elseif ($row->report_group == 'Current Liability' && strpos($row->account_code, '21') === 0) {
                 $balances['payables'] += $row->balance_credit_base;
-            } elseif (strpos($row->account_code, '14') === 0) {
+            } elseif ($row->report_group == 'Inventory' || strpos($row->account_code, '14') === 0) {
                 $balances['inventory'] += $row->balance_debit_base;
-            } elseif (strpos($row->account_code, '3') === 0) {
+            } elseif ($type == 'equity' || strpos($row->account_code, '3') === 0) {
                 $balances['equity'] += $row->balance_credit_base;
-            } elseif (strpos($row->account_code, '15') === 0 || strpos($row->account_code, '16') === 0) {
+            } elseif ($row->cashflow_group == 'Investing' || strpos($row->account_code, '15') === 0) {
                 $balances['investing'] += $row->balance_debit_base;
             }
         }

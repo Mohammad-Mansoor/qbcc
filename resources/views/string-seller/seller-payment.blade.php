@@ -448,6 +448,12 @@
 @section('scripts')
   
   <script>
+      $(document).ready(function() {
+          $('#override_debit_account_id').select2();
+          $('#override_credit_account_id').select2();
+          $('#override_debit_account_id_edit').select2();
+          $('#override_credit_account_id_edit').select2();
+      });
 
 
       function deletePayment(id, seller_id) {

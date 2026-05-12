@@ -9,28 +9,52 @@
             <div class="card" style="direction: ltr !important;">
                 <div class="card-header" style="direction: rtl;">
                     @if(!$accountEdit)
-                        <h4 style="direction: ltr !important;float: left;">Add New Customer</h4>
+                        <h4 style="direction: ltr !important;float: left;">ثبت مشتری جدید (Add New Customer)</h4>
                     @else
-                        <h4>Edit Customer </h4>
+                        <h4>ویرایش معلومات مشتری (Edit Customer)</h4>
                     @endif
                 </div>
+
+                <!-- Dari Explanation Section -->
+                <div class="card-body bg-light-info border-bottom mb-3" style="direction: rtl; text-align: right; background: #e3f2fd; border-radius: 10px; margin: 15px; padding: 20px;">
+                    <h5 class="text-primary"><i class="fa fa-info-circle mr-2"></i> راهنمای مدیریت مشتریان فرمایشی</h5>
+                    <p class="mb-2">این بخش مخصوص مدیریت مشتریانی است که فرمایشات خاص (Custom Orders) دارند. اطلاعات ثبت شده در اینجا برای پیگیری مراحل تولید و تسویه حساب‌های مالی استفاده می‌شود.</p>
+                    <ul class="pr-4 mt-2" style="list-style-type: square;">
+                        <li><strong>نام مشتری:</strong> نام شخص یا شرکت فرمایش دهنده را وارد کنید.</li>
+                        <li><strong>کشور:</strong> کشور محل اقامت مشتری را برای تنظیمات گمرکی و حمل و نقل انتخاب کنید.</li>
+                        <li><strong>دکمه فرمایشات (Orders):</strong> با کلیک بر روی این دکمه در جدول پایین، شما به صفحه اختصاصی فرمایشات این مشتری هدایت می‌شوید تا بتوانید قراردادهای جدید ثبت کنید.</li>
+                    </ul>
+                </div>
+
                 <div class="card-body">
                     @if(!$accountEdit)
                         <form method="post" id="" action="/dashboard/customer-account-for-orders">
                             @csrf
                             <div class="row" style="direction: ltr !important;;">
                                 <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label" style="float: left;">Customer Name</span>
-                                    <input type="text" name="customer_name" class="form-control">
+                                    <span class="date-label" style="float: right;">نام مشتری (Customer Name)</span>
+                                    <input type="text" name="customer_name" class="form-control" style="direction: rtl;">
+                                    <small class="text-muted" style="direction: rtl; display: block; margin-top: 5px;">نام کامل مشتری یا نام شرکت را اینجا وارد کنید.</small>
                                     @error('customer_name') <p
                                         class="text-danger">{{trans('message.'.$message)}}</p>
                                     @enderror
                                 </div>
 
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 12px">
-                                    <span class="date-label" style="float: left;">Customer Country</span>
-                                    <select name="customer_country" id="customer_country" class="form-control">
+                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                                    <span class="date-label" style="float: right;">کشور (Customer Country)</span>
+                                    <select name="customer_country" id="customer_country" class="form-control" style="direction: rtl;">
                                         <option>Afghanistan</option>
+                                        <option>United Arab Emirates</option>
+                                        <option>United Kingdom</option>
+                                        <option>United States</option>
+                                        <option>Germany</option>
+                                        <option>Turkey</option>
+                                        <option>Pakistan</option>
+                                        <option>Iran</option>
+                                        <!-- ... other countries ... -->
+                                    </select>
+                                    <small class="text-muted" style="direction: rtl; display: block; margin-top: 5px;">کشور محل فعالیت مشتری را انتخاب کنید.</small>
+                                </div>
                                         <option>&Aring;land Islands</option>
                                         <option>Albania</option>
                                         <option>Algeria</option>
@@ -288,7 +312,7 @@
                         </form>
                     @else
                         <form method="post" id=""
-                              action="/dashboard/customer-account-for-orders/{{$accountEdit->c_id}}">
+                               action="/dashboard/customer-account-for-orders/{{$accountEdit->c_id}}">
                             {{method_field('patch')}}
                             @csrf
                             <div class="row">
@@ -572,7 +596,7 @@
         <div class="col-sm-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 style="float: left;">Customer List</h5>
+                    <h5 style="float: right; direction: rtl;">لیست مشتریان (Customer List)</h5>
                     @if(session("status"))
                         <div class="alert alert-success status" style="display:none;" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
@@ -595,13 +619,12 @@
                     <div class="table-responsive">
                         <table class="table table-xs table-hover" style="direction: ltr;">
                             <thead>
-                            <tr>
-                                <th><span style="float: left">#</span></th>
-                                <th><span style="float: left;">Customer Name</span></th>
-                                <th><span style="float: left;">Customer Country</span></th>
-                                <th class="hideOnPrint"><span style="float: left;">Orders</span></th>
-                                <th class="hideOnPrint"><span style="float: left;">Action</span></th>
-
+                             <tr>
+                                <th><span style="float: right">#</span></th>
+                                <th><span style="float: right;">نام مشتری (Customer Name)</span></th>
+                                <th><span style="float: right;">کشور (Country)</span></th>
+                                <th class="hideOnPrint"><span style="float: right;">فرمایشات (Orders)</span></th>
+                                <th class="hideOnPrint"><span style="float: right;">عملیات (Action)</span></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -610,17 +633,17 @@
                                     <td><span style="float:left;">{{$m->c_id}}</span></td>
                                     <td><span style="float:left;">{{$m->customer_name}}</span></td>
                                     <td><span style="float:left;">{{$m->customer_country}}</span></td>
-                                    <td class="hideOnPrint"> <span style="float:left;"><a
+                                    <td class="hideOnPrint"> <span style="float:right;"><a
                                                 href="/dashboard/customer-account-for-orders/{{$m->c_id}}"
                                                 class="btn btn-sm btn-warning">&nbsp;
-                                            Orders</a></span></td>
+                                            فرمایشات (Orders)</a></span></td>
                                     <td class="hideOnPrint">
-                                        <span style="float:left;"><a
+                                        <span style="float:right;"><a
                                                 href="/dashboard/customer-account-for-orders/{{$m->c_id}}/edit"
-                                                class="btn btn-sm btn-info">&nbsp;Edit</a></span>
+                                                class="btn btn-sm btn-info">&nbsp;ویرایش</a></span>
                                         @if(auth()->user()->role == 'SP')
-                                            <span style="float:left;"> <button onclick="deleteCustomer({{$m->c_id}})"
-                                                                               class="btn btn-danger btn-sm ">Delete</button></span>
+                                            <span style="float:right;"> <button onclick="deleteCustomer({{$m->c_id}})"
+                                                                               class="btn btn-danger btn-sm ">حذف</button></span>
                                         @endif
                                     </td>
 
@@ -689,4 +712,3 @@
 
     </script>
 @endsection
-

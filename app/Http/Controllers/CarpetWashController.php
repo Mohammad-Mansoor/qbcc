@@ -16,28 +16,14 @@ use Carbon\Carbon;
 class CarpetWashController extends Controller
 {
     protected $accountingService;
+    protected $inventoryManager;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
     {
         $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
     }
 
-    private function postWashToAccounting($wash)
-    {
-        try {
-            $this->accountingService->postAutoTransaction('washing', 'credit', [
-                'date' => $wash->date,
-                'amount' => $wash->af_total_price,
-                'party_type' => 'App\WashingTeam',
-                'party_id' => $wash->team_id,
-                'reference' => $wash->wash_number,
-                'description' => "هزینه شست قالین نمبر " . Carpet::find($wash->carpetId)->carpet_no,
-                'source_id' => $wash->id,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error("Accounting posting failed for Wash #" . $wash->id . ": " . $e->getMessage());
-        }
-    }
 
     /**
      * Display a listing of the resource.
@@ -234,7 +220,15 @@ class CarpetWashController extends Controller
         $carpet_wash = CarpetWash::find($id);
         $lastId = CarpetWash::where('team_id',$carpet_wash->team_id)->latest()->first();
         $WashNo = $lastId ? $lastId->wash_number_sh_c + 1 : 1;
-        return view('carpet-wash.create', compact('carpet_wash','WashNo'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $accounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');
+        $mapping = \App\MappingRule::where('mapping_key', 'WASHING_CREDIT')->first();
+        $defaultAccount = $mapping ? $mapping->debit_account_id : null;
+        
+        $currency = \App\Currency::getLegacyAFNRate();
+
+        return view('carpet-wash.create', compact('carpet_wash','WashNo', 'accounts', 'defaultAccount', 'currency'));
     }
 
     /**
@@ -245,10 +239,33 @@ class CarpetWashController extends Controller
      */
     public function store(Request $request)
     {
-        return DB::transaction(function () use ($request) {
-            $carpet_wash = CarpetWash::find($request->wash_id);
-            $team_id = $carpet_wash->team_id;
+        $request->validate([
+            'currency_code' => 'required|in:USD,AFN',
+            'exchange_rate' => 'required|numeric|min:0.0001',
+            'account_id' => 'required|integer',
+        ]);
 
+        $carpet_wash = CarpetWash::find($request->wash_id);
+        $team_id = $carpet_wash->team_id;
+        $carpet = Carpet::find($request->carpetId);
+
+        // Convert amount to Base Currency (USD) for the ledger
+        $baseAmount = ($request->currency_code === 'USD') 
+            ? $request->total_price 
+            : $request->total_price; // Total price comes from JS as USD base
+
+        $result = $this->inventoryManager->recordProductionService($carpet_wash, $carpet, [
+            'type' => 'WASHING',
+            'amount' => $baseAmount,
+            'date' => $request->date,
+            'party_type' => 'App\WashingTeam',
+            'party_id' => $carpet_wash->team_id,
+            'reference' => $request->wash_number,
+            'description' => "هزینه شست قالین نمبر " . $carpet->carpet_no,
+            'warehouse_id' => $carpet->warehouse_id ?? 1,
+            'override_debit_account_id' => $request->account_id,
+        ], function () use ($request, $carpet_wash, $carpet, $baseAmount) {
+            // Legacy Data Sync + New ERP Fields
             $carpet_wash->wash_number = $request->wash_number;
             $carpet_wash->wash_number_sh = $request->wash_number_sh;
             $carpet_wash->height = $request->height;
@@ -256,28 +273,35 @@ class CarpetWashController extends Controller
             $carpet_wash->area = $request->area;
             $carpet_wash->price = $request->price;
             $carpet_wash->af_total_price = $request->af_total_price;
-            $carpet_wash->total_price = $request->af_total_price;
+            $carpet_wash->total_price = $request->total_price;
+            $carpet_wash->currency_code = $request->currency_code;
+            $carpet_wash->exchange_rate = $request->exchange_rate;
+            $carpet_wash->base_currency_amount = $baseAmount;
             $carpet_wash->date = $request->date;
             $carpet_wash->description = $request->description;
+            // inventory_transaction_id will be saved outside the callback if possible, 
+            // but recordProductionService saves the model internally, so we'll update it after.
             $carpet_wash->update();
 
             $carpet = Carpet::where('carpet_id', '=', $request->carpetId)->first();
             $carpet->status = 13;
             $carpet->total_price = $carpet->total_price + $request->af_total_price;
-            $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->currency ?? 1));
+            $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->exchange_rate ?? 1));
             $carpet->update();
-
-            // Accounting Posting
-            $this->postWashToAccounting($carpet_wash);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = " قالین نمبر " . $carpet->carpet_no . " شسته شد و در سیستم مالی ثبت گردید ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
-
-            return redirect('/dashboard/carpet-wash/wash-numbers/'.$team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
         });
+
+        if ($result && isset($result['inventory_transaction_id'])) {
+            $carpet_wash->inventory_transaction_id = $result['inventory_transaction_id']->id;
+            $carpet_wash->save();
+        }
+
+        return redirect('/dashboard/carpet-wash/wash-numbers/'.$team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
     }
 
     /**
@@ -300,7 +324,14 @@ class CarpetWashController extends Controller
     public function edit(CarpetWash $wash)
     {
         $washing_team = WashingTeam::all();
-        return view('carpet-wash.edit', compact('wash','washing_team'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $accounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');
+        $mapping = \App\MappingRule::where('mapping_key', 'WASHING_CREDIT')->first();
+        $defaultAccount = $mapping ? $mapping->debit_account_id : null;
+        
+        $currency = \App\Currency::getLegacyAFNRate();
+
+        return view('carpet-wash.edit', compact('wash','washing_team', 'accounts', 'defaultAccount', 'currency'));
     }
 
     /**
@@ -312,16 +343,27 @@ class CarpetWashController extends Controller
      */
     public function update(Request $request, CarpetWash $wash)
     {
+        $request->validate([
+            'currency_code' => 'required|in:USD,AFN',
+            'exchange_rate' => 'required|numeric|min:0.0001',
+            'account_id' => 'required|integer',
+        ]);
+
         return DB::transaction(function () use ($request, $wash) {
             $carpet = Carpet::find($request->carpetId);
 
-            $carpet->total_price = $carpet->total_price - $request->af_old_price + $request->af_total_price;
-            $carpet->total_price_af = $carpet->total_price_af - $request->af_old_price + $request->af_total_price;
+            $carpet->total_price = $carpet->total_price - $wash->af_total_price + $request->af_total_price;
+            $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + ($request->af_total_price * ($request->exchange_rate ?? 1));
             $carpet->washing_id = $request->team_id;
             $carpet->update();
 
             // Accounting Reversal
             $this->accountingService->reverseTransactionBySource($wash->id, 'Wash Record Edited');
+            $this->inventoryManager->reverseTransactions($wash, 'Wash Record Edited');
+
+            $baseAmount = ($request->currency_code === 'USD') 
+                ? $request->total_price 
+                : $request->total_price;
 
             $wash->wash_number = $request->wash_number;
             $wash->wash_number_sh = $request->wash_number_sh;
@@ -330,14 +372,32 @@ class CarpetWashController extends Controller
             $wash->area = $request->area;
             $wash->price = $request->price;
             $wash->af_total_price = $request->af_total_price;
-            $wash->total_price = $request->af_total_price;
+            $wash->total_price = $request->total_price;
+            $wash->currency_code = $request->currency_code;
+            $wash->exchange_rate = $request->exchange_rate;
+            $wash->base_currency_amount = $baseAmount;
             $wash->date = $request->date;
             $wash->description = $request->description;
             $wash->team_id = $request->team_id;
             $wash->update();
 
-            // Re-post
-            $this->postWashToAccounting($wash);
+            // ERP Integration: Re-post value addition and accounting
+            $result = $this->inventoryManager->recordProductionService($wash, $carpet, [
+                'type' => 'WASHING_EDIT',
+                'amount' => $baseAmount,
+                'date' => $wash->date,
+                'party_type' => 'App\WashingTeam',
+                'party_id' => $wash->team_id,
+                'reference' => $wash->wash_number,
+                'description' => "ویرایش هزینه شست قالین نمبر " . $carpet->carpet_no,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'override_debit_account_id' => $request->account_id,
+            ]);
+
+            if ($result && isset($result['inventory_transaction_id'])) {
+                $wash->inventory_transaction_id = $result['inventory_transaction_id']->id;
+                $wash->save();
+            }
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');

@@ -70,8 +70,12 @@
         @php
             $types = [
                 'sale' => ['title' => 'طی مراحل فروشات (Sales Cycle)', 'color' => '#4099ff', 'icon' => 'shopping-cart', 'sub' => 'مدیریت حساب‌های درآمد و نقدینگی فروش'],
-                'purchase' => ['title' => 'طی مراحل خریداری (Purchase Cycle)', 'color' => '#2ed8b6', 'icon' => 'package', 'sub' => 'مدیریت حساب‌های موجودی کالا و بدهی به فروشندگان'],
-                'customer_payment' => ['title' => 'رسیدات از مشتریان (Customer Receipts)', 'color' => '#ffb64d', 'icon' => 'user-check', 'sub' => 'مدیریت دریافت پول و تسویه حساب مشتریان']
+                'purchase' => ['title' => 'طی مراحل خریداری مواد (Material Purchase)', 'color' => '#2ed8b6', 'icon' => 'package', 'sub' => 'مدیریت حساب‌های موجودی کالا و بدهی به فروشندگان'],
+                'washing' => ['title' => 'طی مراحل شست (Washing Cycle)', 'color' => '#673ab7', 'icon' => 'droplet', 'sub' => 'مدیریت حساب‌های هزینه شست و سرمایه‌گذاری در موجودی (WIP)'],
+                'finishing' => ['title' => 'طی مراحل تیاری (Finishing Cycle)', 'color' => '#e91e63', 'icon' => 'check-circle', 'sub' => 'مدیریت حساب‌های هزینه تیاری و سرمایه‌گذاری در موجودی (WIP)'],
+                'kachaee' => ['title' => 'طی مراحل کچایی و ترمیم (Kachaee/Repair)', 'color' => '#ff5722', 'icon' => 'tool', 'sub' => 'مدیریت حساب‌های هزینه ترمیم و سرمایه‌گذاری در موجودی (WIP)'],
+                'customer_payment' => ['title' => 'رسیدات از مشتریان (Customer Receipts)', 'color' => '#ffb64d', 'icon' => 'user-check', 'sub' => 'مدیریت دریافت پول و تسویه حساب مشتریان'],
+                'payment' => ['title' => 'پرداخت‌های تیم‌ها و فروشندگان (Team/Seller Payments)', 'color' => '#009688', 'icon' => 'credit-card', 'sub' => 'مدیریت پرداخت‌های نقدی از صندوق به حساب‌های پرداختنی'],
             ];
         @endphp
 
@@ -99,10 +103,11 @@
                                     <div class="d-flex align-items-center">
                                         <div class="bg-light rounded p-2 mr-2 text-center shadow-sm" style="min-width: 100px; border: 1px solid #ddd;">
                                             <span class="font-weight-bold text-dark small">
-                                                @if($rule->condition == 'cash') نقدی (Cash)
-                                                @elseif($rule->condition == 'credit') نسیه (Credit)
-                                                @elseif($rule->condition == 'receipt') رسید (Receipt)
-                                                @elseif($rule->condition == 'withdrawal') گرفت (Withdrawal)
+                                                @if($rule->condition == 'cash' || $rule->condition == 'نقدی') نقدی (Cash)
+                                                @elseif($rule->condition == 'credit' || $rule->condition == 'نسیه') نسیه (Credit)
+                                                @elseif($rule->condition == 'receipt' || $rule->condition == 'رسید') رسید (Receipt)
+                                                @elseif($rule->condition == 'withdrawal' || $rule->condition == 'گرفت') گرفت (Withdrawal/Payment)
+                                                @elseif($rule->condition == 'transfer') انتقال (Transfer)
                                                 @else {{ strtoupper($rule->condition) }} @endif
                                             </span>
                                         </div>

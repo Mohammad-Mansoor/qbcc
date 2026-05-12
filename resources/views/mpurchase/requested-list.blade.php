@@ -101,6 +101,7 @@
             </table>
           
           </div>
+          <p class="text-center">{{$requests->links()}}</p>
         </div>
       </div>
     </div>

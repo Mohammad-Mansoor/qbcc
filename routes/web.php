@@ -27,9 +27,17 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     /** Route For Users **/
     Route::resource('/users', 'UserController');
     Route::post('/user-search', 'UserController@search');
-    // EDITING CURRENCY
-    Route::get('/edit-currency/{id}', 'DashboardController@editCurrency');
-    Route::put('/update-currency/{id}', 'DashboardController@updateCurrency');
+    // Route::get('/edit-currency/{id}', 'DashboardController@editCurrency');
+    // Route::put('/update-currency/{id}', 'DashboardController@updateCurrency');
+
+    Route::resource('/currencies', 'Accounting\CurrencyController')->names([
+        'index' => 'accounting.currencies.index',
+        'create' => 'accounting.currencies.create',
+        'store' => 'accounting.currencies.store',
+        'edit' => 'accounting.currencies.edit',
+        'update' => 'accounting.currencies.update',
+        'destroy' => 'accounting.currencies.destroy',
+    ]);
 
 
     /** route for all carpets list */
@@ -287,11 +295,13 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
 
     /** Route for Material stock */
     Route::resource('/material-stock', 'MaterialStockController');
+    Route::get('/material-stock/history/{cat}/{type}', 'MaterialStockController@history')->name('material-stock.history');
     Route::post('/material-stock/search', 'MaterialStockController@search');
 
     /** Route for material sales */
     Route::resource('/material-sales', 'MaterialSaleController');
     Route::get('/material-sales/search-sale-number/{sale_number},{agent_id}', 'MaterialSaleController@search_sale_number');
+    Route::get('/material-sales-info', 'MaterialSaleController@get_sale_info')->name('dashboard.material-sales-info');
 
     /** Route for  Received of Material */
     Route::resource('/carpet-material', 'CarpetMaterialController')->parameters(['carpet-material' => 'material']);
@@ -485,6 +495,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
       Route::resource('/customer-account-for-orders','CustomerAccountOrderController');
     Route::resource('/customer-orders','CustomerOrderController');
     Route::resource('/customer-order-details','CustomerOrderDetailsController');
+    Route::post('/customer-order-details/{id}/receive', 'CustomerOrderDetailsController@receiveIntoStock');
+    Route::post('/customer-order-details/{id}/sell', 'CustomerOrderDetailsController@processFinalSale');
 
     Route::get('/close-to-end-customer-order','CustomerOrderDetailsController@close_to_end_customer_order');
     
@@ -523,7 +535,17 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
     Route::resource('/customers', 'CustomerController');
 
     /** Route For customer payments */
-    Route::resource('/customer-payments', 'CustomerPaymentController');
+    Route::get('/get-outstanding-invoices', 'CustomerPaymentController@get_outstanding_invoices')->name('dashboard.customer_payments.get_outstanding');
+    Route::resource('customer-payments', 'CustomerPaymentController');
+    
+    /** Accounting Reports */
+    Route::group(['prefix' => 'reports/accounting'], function () {
+        Route::get('/dashboard', 'AccountingReportController@dashboard')->name('accounting.dashboard');
+        Route::get('/trial-balance', 'AccountingReportController@trialBalance')->name('accounting.reports.trial-balance');
+        Route::get('/income-statement', 'AccountingReportController@incomeStatement')->name('accounting.reports.income-statement');
+        Route::get('/ar-aging', 'AccountingReportController@arAging')->name('accounting.reports.ar-aging');
+        Route::post('/close-period', 'AccountingReportController@closePeriod')->name('accounting.close_period');
+    });
     Route::get('customer-payments-all/{customer_id}', 'CustomerPaymentController@show_all_payment');
 
     Route::get('/customer-accounts', 'CustomerController@accounts');
@@ -556,16 +578,29 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
     Route::get('/mapping-rules', 'Accounting\MappingRuleController@index')->name('accounting.mappings.index');
     Route::post('/mapping-rules', 'Accounting\MappingRuleController@update')->name('accounting.mappings.update');
 
+    /** Warehouse Management */
+    Route::resource('/warehouses', 'Accounting\WarehouseController')->names([
+        'index' => 'accounting.warehouses.index',
+        'store' => 'accounting.warehouses.store',
+        'update' => 'accounting.warehouses.update',
+        'destroy' => 'accounting.warehouses.destroy',
+    ]);
+
     /** Financial Reports */
     Route::get('/reports/trial-balance', 'Accounting\ReportController@trialBalance')->name('accounting.reports.trial_balance');
     Route::get('/reports/profit-loss', 'Accounting\ReportController@profitLoss')->name('accounting.reports.profit_loss');
     Route::get('/reports/balance-sheet', 'Accounting\ReportController@balanceSheet')->name('accounting.reports.balance_sheet');
+    Route::get('/reports/comparative-pl', 'Accounting\ReportController@comparativePL')->name('accounting.reports.comparative_pl');
+    Route::get('/reports/inventory-valuation', 'Accounting\ReportController@inventoryValuation')->name('accounting.reports.inventory_valuation');
+    Route::get('/reports/fx-exposure', 'Accounting\ReportController@fxExposure')->name('accounting.reports.fx_exposure');
+    Route::get('/reports/cost-centers', 'Accounting\ReportController@costCenterPerformance')->name('accounting.reports.cost_center_performance');
+    Route::get('/reports/audit-corrections', 'Accounting\ReportController@auditCorrections')->name('accounting.reports.audit_corrections');
     Route::get('/reports/cash-flow', 'Accounting\ReportController@cashFlow')->name('accounting.reports.cash_flow');
     Route::get('/reports/account-ledger', 'Accounting\ReportController@accountLedger')->name('accounting.reports.account_ledger');
     Route::get('/reports/customer-statement', 'Accounting\ReportController@customerStatement')->name('accounting.reports.customer_statement');
 
 
-    
+    Route::get('/api/allowed-accounts', 'Accounting\AccountController@getAllowedAccounts')->name('accounting.api.allowed_accounts');
 });
 /**  */
 
@@ -632,8 +667,13 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
     
      Route::get('/purchase_carpet_report','ReportController@purchase_carpet_report');
     Route::any('/get_purchase_carpet_report','ReportController@get_purchase_carpet_report');
-     Route::get('/sales_report','ReportController@sales_report');
+    Route::get('/sales_report','ReportController@sales_report');
     Route::any('/get_sales_report','ReportController@get_sales_report');
+
+    /** ERP Inventory Reports (Phase 4) */
+    Route::get('/erp-inventory-report', 'InventoryReportController@index')->name('inventory.reports.index');
+    Route::get('/erp-inventory-report/{id}', 'InventoryReportController@detail')->name('inventory.reports.detail');
+    Route::get('/erp-wip-report', 'InventoryReportController@wipReport')->name('inventory.reports.wip');
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,CO,SP,AO,FI']], function () {
@@ -648,7 +688,7 @@ Auth::routes();
 Route::redirect('/', '/login');
 
 Route::fallback(function () {
-    return back();
+    abort(404);
 });
 
 

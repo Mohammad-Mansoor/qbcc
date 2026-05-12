@@ -48,13 +48,6 @@
                             </div>
                             <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                                 <div class="form-group fill">
-                                    <label class="pull-right">تاریخ شست قالین</label>
-                                    <input type="date" name="date" id="repair_date" value="{{$wash->date}}" class="form-control">
-                                    @error('date') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                                </div>
-                            </div>
-                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <div class="form-group fill">
                                     <label class="pull-right">طول بعد از شست</label>
                                     <input type="text" id="wheight" name="height" value="{{$wash->height}}" class="form-control" >
                                     @error('height') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
@@ -78,29 +71,63 @@
                                 <div class="form-group fill">
                                     <label class="pull-right">قیمت شست قالین فی متر مربع دالر</label>
                                     <input type="text" name="price" value="{{$wash->price}}"  class="form-control" id="wprice">
-                                    <input type="hidden" value="{{$currency}}" id="currency">
-                                    <input type="hidden" name="old_price" value="{{$wash->total_price}}">
-                                    <input type="hidden" name="af_old_price" value="{{$wash->af_total_price}}">
                                     <input type="hidden" value="{{$wash->carpetId}}" name="carpetId">
-
                                     @error('price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                                 </div>
                             </div>
+                            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                                <div class="form-group fill">
+                                    <label class="pull-right">حساب مالی (Expense Account)</label>
+                                    <select name="account_id" class="form-control" required>
+                                        @foreach($accounts as $acc)
+                                            <option value="{{$acc->id}}" {{ $acc->id == $defaultAccount ? 'selected' : '' }}>{{$acc->account_name}} - {{$acc->account_code}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                                 <div class="form-group fill">
-                                    <label class="pull-right"> قیمت مجموع به دالر</label>
+                                    <label class="pull-right">واحد پولی</label>
+                                    <select name="currency_code" id="currency_code" class="form-control" required>
+                                        <option value="USD" {{ $wash->currency_code == 'USD' ? 'selected' : '' }}>USD ($)</option>
+                                        <option value="AFN" {{ $wash->currency_code == 'AFN' ? 'selected' : '' }}>AFN (؋)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <div class="form-group fill">
+                                    <label class="pull-right">نرخ تبادله (به دالر)</label>
+                                    <input type="text" name="exchange_rate" id="exchange_rate" value="{{ $wash->exchange_rate ?? $currency }}" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <div class="form-group fill">
+                                    <label class="pull-right">تاریخ شست قالین</label>
+                                    <input type="date" name="date" id="repair_date" value="{{$wash->date}}" class="form-control">
+                                    @error('date') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                                <div class="form-group fill">
+                                    <label class="pull-right">قیمت مجموعی (ارز انتخابی)</label>
                                     <input type="text" id="af_total_price" name="af_total_price"  value="{{$wash->af_total_price}}" readonly class="form-control" >
                                     @error('af_total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                                 </div>
                             </div>
-                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="display: none;">
+
+                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                                 <div class="form-group fill">
-                                    <label class="pull-right">قیمت مجموع به دالر</label>
+                                    <label class="pull-right">معادل به دالر (Base USD)</label>
                                     <input type="text" id="total_price" name="total_price" value="{{$wash->total_price}}"   readonly class="form-control" >
                                     @error('total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                                 </div>
                             </div>
-                            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+
+                            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                                 <div class="form-group fill">
                                     <label class="">توضیحات</label>
                                     <textarea name="description" id="description" rows="1" class="form-control">{{$wash->description}}</textarea>

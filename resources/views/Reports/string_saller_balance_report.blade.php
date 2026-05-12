@@ -21,22 +21,20 @@
                             <div class="form-group col-lg-3 col-md-3 col-sm-12 col-xs-12" style="margin-top: 34px;">
                                 <?php $string_seller_accounts = \Illuminate\Support\Facades\DB::table('string_sellers')->get(); ?>
                                 <select name="seller_id" id="customer_select_id" class="form-control">
-                                    <option value="" selected>انتخاب حساب فروشنده</option>
-                                    <option value="all"> همه</option>
+                                    <option value="all" {{ ($seller_id ?? 'all') == 'all' ? 'selected' : '' }}> همه</option>
                                     @foreach($string_seller_accounts as $t)
-
-                                        <option value="{{$t->id}}">{{$t->name}}</option>
+                                        <option value="{{$t->id}}" {{ (isset($account) && $account->id == $t->id) ? 'selected' : '' }}>{{$t->name}}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
                                 <label class="">تاریخ شروع</label>
-                                <input type="date" class="form-control" name="from_date"
+                                <input type="date" class="form-control" name="from_date" value="{{ $from_date ?? '2000-01-01' }}"
                                        placeholder=" تاریخ شروع..." />
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
                                 <label class="">تاریخ ختم</label>
-                                <input type="date" class="form-control" name="to_date"
+                                <input type="date" class="form-control" name="to_date" value="{{ $to_date ?? date('Y-m-d') }}"
                                        placeholder=" تاریخ ختم..." />
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12" style="margin-top: 30px">
@@ -48,144 +46,206 @@
                         </div>
                     </form>
 
-                    @if($balances)
-
-                        <div class="row">
-
-                            <div class="col-lg-8 col-md-8 col-sm-8">
-                                <h5>بیلانس محترم {{ $account->name }} از تاریخ {{ $from_date }} الی
-                                    تاریخ {{ $to_date }}</h5>
-
+                    @if(isset($ledgerTransactions))
+                        <!-- Seller Snapshot -->
+                        <div class="row mb-4 no-print">
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm" style="border-radius: 15px; background: #f8f9fa; border-right: 5px solid #4caf50;">
+                                    <div class="card-body p-3">
+                                        <span class="text-muted small d-block mb-1">بیلانس انتقالی (Opening)</span>
+                                        <h4 class="font-weight-bold mb-0 {{ $openingBalance >= 0 ? 'text-success' : 'text-danger' }}">
+                                            ${{ number_format(abs($openingBalance), 2) }}
+                                            <small>{{ $openingBalance >= 0 ? '(Cr)' : '(Dr)' }}</small>
+                                        </h4>
+                                    </div>
+                                </div>
                             </div>
-
-
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12">
-                                <div class="table-responsive">
-                                    <table class="table table-xs table-hover">
-                                        <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>تاریخ</th>
-                                            <th>تفصیلات</th>
-                                            <th>نرخ دالر</th>
-                                            <th>مبلغ</th>
-                                            <th>رسید</th>
-                                            <th>گرفت</th>
-                                            <th>بیلانس (دالر)</th>
-                                            <th>بیلانس (افغانی)</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php $e = 1; $total_balance_usd = 0; $total_balance_afg=0; ?>
-                                        @foreach($balances as $balance)
-
-                                            <tr>
-                                                <td>{{$e}}</td>
-                                                <td>{{$balance->date}}</td>
-                                                <td>{{$balance->description}}</td>
-                                                <td>{{$balance->dollar_rate}}</td>
-                                                <td>@if($balance->amount > 0) {{$balance->amount . ' دالر '}} @else {{$balance->amount_af . ' افغانی '}} @endif </td>
-                                                @if($balance->type == 'رسید')
-                                                    @if($balance->amount > 0)
-                                                        <td> {{round($balance->amount,2)}}</td>
-                                                            <?php
-                                                            $total_balance_usd += $balance->amount;
-                                                            ?>
-                                                    @else
-                                                        <td>{{$balance->amount_af}}</td>
-                                                            <?php
-                                                            $total_balance_afg += $balance->amount_af;
-                                                            ?>
-                                                    @endif
-                                                @else
-                                                    <td>0</td>
-                                                @endif
-                                                @if($balance->type == 'گرفت')
-                                                    @if($balance->amount_af > 0)
-                                                        <td>  {{round($balance->amount_af,2)}} </td>
-                                                            <?php
-                                                            $total_balance_afg -= $balance->amount_af;
-                                                            ?>
-                                                    @else
-                                                        <td> {{$balance->amount}}</td>
-                                                            <?php
-                                                            $total_balance_usd -= $balance->amount;
-                                                            ?>
-                                                    @endif
-                                                @else
-                                                    <td>0</td>
-                                                @endif
-                                                <td>{{round($total_balance_usd, 2)}}</td>
-                                                <td>{{round($total_balance_afg,2)}}</td>
-
-                                            </tr>
-                                                <?php $e++; ?>
-
-
-                                        @endforeach
-                                        </tbody>
-                                    </table>
-
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm" style="border-radius: 15px; background: #f8f9fa; border-right: 5px solid #ff9800;">
+                                    <div class="card-body p-3">
+                                        <span class="text-muted small d-block mb-1">مجموع مواد خریداری شده</span>
+                                        <h4 class="font-weight-bold mb-0 text-warning">{{ number_format($totalPurchasedWeight, 2) }} <small>کیلوگرام</small></h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm" style="border-radius: 15px; background: #f8f9fa; border-right: 5px solid #2196f3;">
+                                    <div class="card-body p-3">
+                                        <span class="text-muted small d-block mb-1">وضعیت تامین‌کننده</span>
+                                        <h4 class="font-weight-bold mb-0 text-primary">فعال</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 shadow-sm" style="border-radius: 15px; background: #4caf50; color: white;">
+                                    <div class="card-body p-3 text-center">
+                                        <span class="opacity-80 small d-block mb-1 text-white">نام فروشنده مواد</span>
+                                        <h5 class="font-weight-bold mb-0 text-white">{{ $account->name }}</h5>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                    @endif
-                    @if($all_accounts)
-
-                        <h4>
-                            گزارش بیلانس فروشنده های تار ازتاریخ {{ $from_date  }} الی {{ $to_date }}
-                        </h4>
                         <div class="row">
-                            <div class="table-responsive container">
+                            <div class="col-lg-12">
+                                <h5 class="mb-3 font-weight-bold">
+                                    <i class="feather icon-list mr-2"></i> صورت حساب مالی تفصیلی (GL Ledger)
+                                    <span class="text-muted small font-weight-normal">| {{ $from_date }} الی {{ $to_date }}</span>
+                                </h5>
+                                
+                                <div class="table-responsive shadow-sm" style="border-radius: 10px;">
+                                    <table class="table table-xs table-hover bg-white mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="py-3">تاریخ</th>
+                                                <th class="py-3">تفصیلات</th>
+                                                <th class="py-3 text-center">بدهکار (Debit)</th>
+                                                <th class="py-3 text-center">طلبکار (Credit)</th>
+                                                <th class="py-3 text-right">بیلانس (Balance)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="bg-lightest">
+                                                <td colspan="2" class="font-weight-bold">بیلانس قبلی</td>
+                                                <td class="text-center">-</td>
+                                                <td class="text-center">-</td>
+                                                <td class="text-right font-weight-bold {{ $openingBalance >= 0 ? 'text-success' : 'text-danger' }}">
+                                                    ${{ number_format(abs($openingBalance), 2) }}
+                                                </td>
+                                            </tr>
 
-                                <table class="table table-xs table-hover customer_demands">
-                                    <thead>
-                                    <tr>
-                                        <th rowspan="2" style="vertical-align: inherit;">#</th>
-                                        <th rowspan="2" style="vertical-align: inherit;">نام فروشنده</th>
-                                        <th colspan="2" style="vertical-align: inherit;"> بیلانس</th>
-                                    </tr>
-                                    <tr>
-                                        <th>افغانی</th>
-                                        <th>دالر</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php $c = 1; $total_afg = 0; $total_usd = 0; ?>
-                                    @foreach($all_accounts as $cr)
-                                            <?php
-                                            $afg_temp = \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $cr->id)->where('type', 'رسید')->where('amount_af','>', 0)->whereBetween('date', [$from_date, $to_date])->sum('amount_af')
-                                                - \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $cr->id)->where('type', 'گرفت')->where('amount_af','>', 0)->whereBetween('date', [$from_date, $to_date])->sum('amount_af');
+                                            @php 
+                                                $runningBalance = $openingBalance;
+                                                $totalDebit = 0;
+                                                $totalCredit = 0;
+                                            @endphp
 
-                                            $usd_temp = \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $cr->id)->where('type', 'رسید')->where('amount','>', 0)->whereBetween('date', [$from_date, $to_date])->sum('amount')
-                                                - \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $cr->id)->where('type', 'گرفت')->where('amount','>', 0)->whereBetween('date', [$from_date, $to_date])->sum('amount');
-
-                                            ?>
-                                        <tr>
-                                            <td>{{$c}}</td>
-                                            <td>{{$cr->name}}</td>
-                                            <td>{{round($afg_temp , 2)}}</td>
-                                                <?php $total_afg += $afg_temp; ?>
-
-                                            <td>{{round($usd_temp , 2)}}</td>
-                                                <?php $total_usd += $usd_temp; ?>
-                                        </tr>
-                                            <?php $c++; ?>
-                                    @endforeach
-                                    </tbody>
-                                    <tfoot>
-                                    <th colspan="2">مجموعه</th>
-                                    <th style="text-align: right; direction: ltr;">{{round($total_afg ,2)}}</th>
-                                    <th style="text-align: right; direction: ltr;">{{round($total_usd ,2)}}</th>
-                                    </tfoot>
-                                </table>
+                                            @foreach($ledgerTransactions as $tx)
+                                                @php 
+                                                    $runningBalance += ($tx->credit - $tx->debit);
+                                                    $totalDebit += $tx->debit;
+                                                    $totalCredit += $tx->credit;
+                                                @endphp
+                                                <tr>
+                                                    <td>{{ $tx->date }}</td>
+                                                    <td>
+                                                        <span class="font-weight-bold d-block text-dark">{{ $tx->description }}</span>
+                                                        <small class="text-muted">ID: #{{ $tx->id }} | Ref: {{ $tx->reference }}</small>
+                                                    </td>
+                                                    <td class="text-center text-danger font-weight-bold">
+                                                        {{ $tx->debit > 0 ? '$' . number_format($tx->debit, 2) : '-' }}
+                                                    </td>
+                                                    <td class="text-center text-success font-weight-bold">
+                                                        {{ $tx->credit > 0 ? '$' . number_format($tx->credit, 2) : '-' }}
+                                                    </td>
+                                                    <td class="text-right font-weight-bold {{ $runningBalance >= 0 ? 'text-success' : 'text-danger' }}">
+                                                        ${{ number_format(abs($runningBalance), 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="bg-light">
+                                            <tr>
+                                                <th colspan="2" class="text-right py-3">مجموعه دوره:</th>
+                                                <th class="text-center text-danger py-3">${{ number_format($totalDebit, 2) }}</th>
+                                                <th class="text-center text-success py-3">${{ number_format($totalCredit, 2) }}</th>
+                                                <th class="text-right py-3 font-weight-bold" style="font-size: 1.1em;">
+                                                    ${{ number_format(abs($runningBalance), 2) }}
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
-
                         </div>
 
+                        <hr class="my-5">
+
+                        <!-- Legacy Records -->
+                        <div class="row no-print">
+                            <div class="col-lg-12">
+                                <h6 class="text-muted mb-3 cursor-pointer" data-toggle="collapse" data-target="#legacySellerTable">
+                                    <i class="feather icon-clock mr-1"></i> مشاهده جزئیات پرداخت‌های قدیمی (Legacy Logs)
+                                </h6>
+                                <div class="collapse" id="legacySellerTable">
+                                    <div class="table-responsive">
+                                        <table class="table table-xs table-hover border">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>تاریخ</th>
+                                                    <th>تفصیلات</th>
+                                                    <th>مبلغ</th>
+                                                    <th>رسید (CR)</th>
+                                                    <th>گرفت (DR)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($balances as $index => $b)
+                                                <tr>
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>{{ $b->date }}</td>
+                                                    <td>{{ $b->description }}</td>
+                                                    <td>@if($b->amount > 0) {{$b->amount . ' USD'}} @else {{$b->amount_af . ' AFN'}} @endif</td>
+                                                    <td>{{ $b->type == 'رسید' ? ($b->amount > 0 ? $b->amount : $b->amount_af) : '-' }}</td>
+                                                    <td>{{ $b->type == 'گرفت' ? ($b->amount > 0 ? $b->amount : $b->amount_af) : '-' }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(isset($all_accounts))
+                        <div class="row mt-4">
+                            <div class="col-lg-12">
+                                <h4 class="mb-3 font-weight-bold text-center">خلاصه وضعیت تمامی فروشندگان مواد</h4>
+                                <div class="table-responsive shadow-sm" style="border-radius: 10px;">
+                                    <table class="table table-xs table-hover bg-white customer_demands">
+                                        <thead class="bg-dark text-white">
+                                            <tr>
+                                                <th class="py-3">#</th>
+                                                <th class="py-3">نام فروشنده</th>
+                                                <th class="py-3 text-right">بیلانس نهایی (USD)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @php $totalOverall = 0; @endphp
+                                            @foreach($all_accounts as $index => $t)
+                                                @php
+                                                    $balance = DB::table('ledger_entries')
+                                                        ->where('party_type', 'App\StringSeller')
+                                                        ->where('party_id', $t->id)
+                                                        ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                                                        ->where('ledger_transactions.status', 'posted')
+                                                        ->sum(DB::raw('credit - debit'));
+                                                    $totalOverall += $balance;
+                                                @endphp
+                                                <tr>
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td class="font-weight-bold text-dark">{{ $t->name }}</td>
+                                                    <td class="text-right font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
+                                                        ${{ number_format(abs($balance), 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="bg-light">
+                                            <tr>
+                                                <th colspan="2" class="text-right py-3 font-weight-bold">مجموع کل بدهی/طلبات:</th>
+                                                <th class="text-right py-3 font-weight-bold" style="font-size: 1.2em;">
+                                                    ${{ number_format(abs($totalOverall), 2) }}
+                                                    <small class="text-muted">({{ $totalOverall >= 0 ? 'Cr' : 'Dr' }})</small>
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>

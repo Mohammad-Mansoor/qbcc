@@ -1,235 +1,135 @@
 @extends('dsh.master')
+@section('title', 'حساب‌های مصارف ماهانه')
 @section('content')
-    <!-- navbar -->
+<div class="container-fluid px-4 py-4 text-right">
+    <!-- Action Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h3 class="mb-0 font-weight-bold text-dark"><i class="fa fa-folder-open text-primary mr-2"></i> مدیریت حسابات ماهانه</h3>
+            <p class="text-muted small mb-0">ایجاد و سازماندهی مصارف بر اساس ماه و سال</p>
+        </div>
+    </div>
 
-    <!-- form -->
+    <!-- Info Box (Dari) -->
+    <div class="alert bg-soft-primary border-0 rounded-lg p-4 mb-4 shadow-sm">
+        <div class="d-flex align-items-start">
+            <div class="ml-3">
+                <i class="fa fa-info-circle fa-2x text-primary"></i>
+            </div>
+            <div>
+                <h6 class="font-weight-bold text-primary mb-1">راهنمای حسابات ماهانه:</h6>
+                <p class="mb-0 text-dark small leading-relaxed">
+                    در این بخش می‌توانید حساب‌های مصارف ماهانه را برای نظم بیشتر ایجاد کنید. 
+                    <br>
+                    • <strong>ایجاد حساب:</strong> برای هر ماه و سال یک پوشه (حساب) جداگانه ایجاد کنید تا مصارف همان دوره در آن ثبت شود.
+                    <br>
+                    • <strong>مشاهده و ثبت:</strong> با کلیک بر روی دکمه «نمایش مصارف»، وارد لیست پرداختی‌های آن ماه شده و می‌توانید مصارف را ثبت یا ویرایش کنید.
+                </p>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-header">
-                    @if(!$accountEdit)
-                        <h4>ایجاد حساب مصارف ماهانه</h4>
-                    @else
-                        <h4>ویرایش حساب مصارف ماهانه</h4>
-                    @endif
+        <!-- New Account Form -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 font-weight-bold text-dark">
+                        <i class="fa {{ $accountEdit ? 'fa-edit' : 'fa-plus-circle' }} mr-2"></i>
+                        {{ $accountEdit ? 'ویرایش حساب' : 'ایجاد حساب جدید' }}
+                    </h5>
                 </div>
-                <div class="card-body">
-                    @if(!$accountEdit)
-                        <form method="post" id="" action="/dashboard/monthly-expense-accounts">
-                            @csrf
-                            <div class="row">
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label">ماه</span>
-                                    <select name="month_name" id="month" class="form-control">
-                                        <option value="جنوری">1-جنوری</option>
-                                        <option value="فبروری">2-فبروری</option>
-                                        <option value="مارچ">3-مارچ</option>
-                                        <option value="اپریل">4-اپریل</option>
-                                        <option value="می">5-می</option>
-                                        <option value="جون">6-جون</option>
-                                        <option value="جولای">7-جولای</option>
-                                        <option value="اگست">8-اگست</option>
-                                        <option value="سپتمبر">9-سپتمبر</option>
-                                        <option value="اکتبر">10-اکتبر</option>
-                                        <option value="نومبر">11-نومبر</option>
-                                        <option value="دسمبر">12-دسمبر</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label">سال</span>
-                                    <select name="year_name" id="year" class="form-control">
-                                        <option value="2025">2025</option>
-                                        <option value="2026">2026</option>
-                                        <option value="2027">2027</option>
-                                        <option value="2028">2028</option>
-                                        <option value="2029">2029</option>
-                                        <option value="2030">2030</option>
-
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 20px">
-                                    <button class="btn btn-block btn-primary submit-btn" type="submit">ثبت</button>
-                                </div>
-                            </div>
-
-
-                        </form>
-                    @else
-                        <form method="post" id="" action="/dashboard/monthly-expense-accounts/{{$accountEdit->id}}">
-                            {{method_field('patch')}}
-                            @csrf
-                            <div class="row">
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label">ماه</span>
-                                    <select name="month" id="month" class="form-control">
-                                        <option value="جنوری" {{($accountEdit->month_name == 'جنوری' ? 'selected' : '')}}>
-                                            1-جنوری
-                                        </option>
-
-                                        <option value="فبروری" {{($accountEdit->month_name == 'فبروری' ? 'selected' : '')}}>
-                                            2-فبروری
-                                        </option>
-                                        <option value="مارچ" {{($accountEdit->month_name == 'مارچ' ? 'selected' : '')}}>
-                                            3-مارچ
-                                        </option>
-                                        <option value="اپریل" {{($accountEdit->month_name == 'اپریل' ? 'selected' : '')}}>
-                                            4-اپریل
-                                        </option>
-                                        <option value="می" {{($accountEdit->month_name == 'می' ? 'selected' : '')}}>5-می
-                                        </option>
-                                        <option value="جون" {{($accountEdit->month_name == 'جون' ? 'selected' : '')}}>
-                                            6-جون
-                                        </option>
-                                        <option value="جولای" {{($accountEdit->month_name == 'جولای' ? 'selected' : '')}}>
-                                            7-جولای
-                                        </option>
-                                        <option value="اگست" {{($accountEdit->month_name == 'اگست' ? 'selected' : '')}}>
-                                            8-اگست
-                                        </option>
-                                        <option value="سپتمبر" {{($accountEdit->month_name == 'سپتمبر' ? 'selected' : '')}}>
-                                            9-سپتمبر
-                                        </option>
-                                        <option value="اکتبر" {{($accountEdit->month_name == 'اکتبر' ? 'selected' : '')}}>
-                                            10-اکتبر
-                                        </option>
-                                        <option value="نومبر" {{($accountEdit->month_name == 'نومبر' ? 'selected' : '')}}>
-                                            11-نومبر
-                                        </option>
-                                        <option value="دسمبر" {{($accountEdit->month_name == 'دسمبر' ? 'selected' : '')}}>
-                                            12-دسمبر
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label">سال</span>
-                                    <select name="year" id="year" class="form-control">
-
-                                        <option value="2025" {{($accountEdit->year_name == '2025' ? 'selected' : '')}}>
-                                            2025
-                                        </option>
-                                        <option value="2026" {{($accountEdit->year_name == '2026' ? 'selected' : '')}}>
-                                            2026
-                                        </option>
-                                        <option value="2027" {{($accountEdit->year_name == '2027' ? 'selected' : '')}}>
-                                            2027
-                                        </option>
-                                        <option value="2028" {{($accountEdit->year_name == '2028' ? 'selected' : '')}}>
-                                            2028
-                                        </option>
-                                        <option value="2029" {{($accountEdit->year_name == '2029' ? 'selected' : '')}}>
-                                            2029
-                                        </option>
-                                        <option value="2030" {{($accountEdit->year_name == '2030' ? 'selected' : '')}}>
-                                            2030
-                                        </option>
-
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 20px">
-                                    <button class="btn btn-block btn-primary submit-btn" type="submit">ثبت</button>
-                                </div>
-
-
-                            </div>
-
-                        </form>
-                    @endif
-
+                <div class="card-body bg-soft-light border-top">
+                    <form action="/dashboard/monthly-expense-accounts{{ $accountEdit ? '/'.$accountEdit->id : '' }}" method="post">
+                        @csrf
+                        @if($accountEdit) @method('PUT') @endif
+                        
+                        <div class="form-group">
+                            <label class="small font-weight-bold">نام ماه</label>
+                            <select name="month_name" class="form-control border-0 shadow-sm">
+                                @php($mn = ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت'])
+                                @foreach($mn as $m)
+                                    <option {{ ($accountEdit && $accountEdit->month_name == $m) ? 'selected' : '' }}>{{ $m }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="small font-weight-bold">سال</label>
+                            <input name="year_name" type="number" value="{{ $accountEdit->year_name ?? date('Y') }}" class="form-control border-0 shadow-sm text-right">
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm font-weight-bold py-2">
+                                <i class="fa fa-save mr-1"></i> ذخیره حساب
+                            </button>
+                            @if($accountEdit)
+                                <a href="/dashboard/monthly-expense-accounts" class="btn btn-light btn-block mt-2">انصراف</a>
+                            @endif
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
 
-    </div>
-
-    <div class="row" id="accounts">
-        <!-- Extra small table start-->
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>حسابات مصارف ماهانه</h5>
-                    @if(session("status"))
-                        <div class="alert alert-success status" style="display:none;" role="alert">
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                                    aria-hidden="true">&times;</span></button>
-                            {{session('status')}}
-                        </div>
-
-                    @endif
-                    @if(session("error"))
-
-                        <div class="alert alert-danger status" style="display:none;" role="alert">
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                                    aria-hidden="true">&times;</span></button>
-                            {{session('error')}}
-                        </div>
-
-                    @endif
+        <!-- Accounts List -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-lg overflow-hidden">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 font-weight-bold text-dark"><i class="fa fa-list text-muted mr-2"></i> لیست حساب‌های ایجاد شده</h5>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-xs table-hover" id="monthly_expense_account_list">
-                            <thead>
-                            <tr>
-                                <th>شماره</th>
-                                <th>نام ماه</th>
-                                <th>سال</th>
-                                <th class="hideOnPrint">حسابات</th>
+                <div class="card-body p-0">
+                    @if(session("status") || session("error"))
+                        <div class="alert {{ session('status') ? 'alert-success' : 'alert-danger' }} status mx-3 mt-3 shadow-none border-0 rounded-pill text-center py-2 small">
+                            {{ session('status') ?: session('error') }}
+                        </div>
+                    @endif
 
-                            </tr>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 border-0">نام ماه</th>
+                                    <th class="py-3 border-0">سال</th>
+                                    <th class="px-4 py-3 border-0 text-left">عملیات</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            @foreach($months  as $m)
-                                <tr>
-                                    <td>{{$m->me_id}}</td>
-                                    <td>{{$m->month_name}}</td>
-                                    <td>{{$m->year_name}}</td>
-                                    <td class="hideOnPrint"><a href="/dashboard/monthly-expense-accounts/{{$m->me_id}}"
-                                                               class="btn btn-sm btn-warning">&nbsp;
-                                            حسابات</a></td>
+                                @forelse($months as $m)
+                                <tr class="border-bottom">
+                                    <td class="px-4 py-3 font-weight-bold text-dark">{{ $m->month_name }}</td>
+                                    <td class="py-3">{{ $m->year_name }}</td>
+                                    <td class="px-4 py-3 text-left">
+                                        <a href="/dashboard/monthly-expense-accounts/{{ $m->me_id }}" class="btn btn-soft-primary btn-sm rounded-pill px-3 shadow-none font-weight-bold">
+                                            <i class="fa fa-eye mr-1"></i> نمایش مصارف
+                                        </a>
+                                    </td>
                                 </tr>
-                            @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="3" class="py-5 text-center text-muted italic">هیچ حسابی ثبت نشده است.</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Extra small table start-->
     </div>
+</div>
+
+<style>
+    .bg-soft-primary { background-color: rgba(0, 123, 255, 0.1); }
+    .bg-soft-light { background-color: #f8f9fa; }
+    .btn-soft-primary { background-color: rgba(0, 123, 255, 0.1); color: #007bff; border: none; }
+    .leading-relaxed { line-height: 1.6; }
+</style>
 @endsection
 
 @section('scripts')
-    <script>
-        $(document).ready(function () {
-            $("#monthly_expense_account_list").tableExport({
-                headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-                footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-                formats: ["xlsx"],                  // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-                filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-                bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-                exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-                position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-                ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-                ignoreCols: 7,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-                trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-                RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-                sheetname: "id",
-
-            });
-            var $buttons = $('#monthly_expense_account_list').find('caption').children().detach();
-            // Append the buttons to an element of your choosing
-            $buttons.appendTo('#exportButton');
-
-        });
-        $('#form2').hide();
-
-
-
-
-
-    </script>
+<script>
+    $(document).ready(function() {
+        $('.status').fadeIn().delay(3000).fadeOut();
+    });
+</script>
 @endsection
-

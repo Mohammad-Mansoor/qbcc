@@ -11,6 +11,8 @@ class LedgerEntry extends Model
         'account_id', 
         'debit', 
         'credit', 
+        'currency_code',
+        'original_amount',
         'exchange_rate', 
         'base_currency_amount', 
         'party_type', 
@@ -36,5 +38,22 @@ class LedgerEntry extends Model
     public function costCenter()
     {
         return $this->belongsTo(CostCenter::class, 'cost_center_id');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updating(function ($model) {
+            if ($model->transaction->status === 'posted') {
+                throw new \Exception("Linked ledger entries are immutable. Use reversals for corrections.");
+            }
+        });
+
+        static::deleting(function ($model) {
+            if ($model->transaction->status === 'posted') {
+                throw new \Exception("Cannot delete ledger entries of a posted transaction.");
+            }
+        });
     }
 }

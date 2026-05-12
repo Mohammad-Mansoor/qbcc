@@ -31,13 +31,13 @@ class FinishingTeamPaymentController extends Controller
         //
     }
 
-    private function postPaymentToAccounting($payment)
+    private function postPaymentToAccounting($payment, $overrides = [])
     {
         try {
-            $condition = $payment->type; // 'رسید' or 'گرفت'
+            $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
             $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
 
-            $this->accountingService->postAutoTransaction('finishing_payment', $condition, [
+            $this->accountingService->postAutoTransaction('payment', $mKey, array_merge([
                 'date' => $payment->date,
                 'amount' => $amount,
                 'party_type' => 'App\FinishingTeam',
@@ -45,7 +45,7 @@ class FinishingTeamPaymentController extends Controller
                 'reference' => 'F-PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Finishing Payment #" . $payment->id . ": " . $e->getMessage());
         }
@@ -130,7 +130,10 @@ class FinishingTeamPaymentController extends Controller
             $payed->save();
 
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $team_name = DB::table('finishing_teams')->where('id', $request->team_id)->first();
@@ -162,7 +165,13 @@ class FinishingTeamPaymentController extends Controller
         $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
     public function show_all_payment($team_id){
         $payments = FinishingTeamPayment::where('team_id',$team_id)->orderBy('created_at','DESC')->get();
@@ -173,9 +182,14 @@ class FinishingTeamPaymentController extends Controller
         $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
-        $all = '';
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers','all'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
+        $all = '';
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
     /**
      * Show the form for editing the specified resource.
@@ -193,7 +207,13 @@ class FinishingTeamPaymentController extends Controller
         $credit_us = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
         $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
         $finish_numbers = FinishingWork::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['finish_number']);
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
 
     }
 
@@ -240,7 +260,10 @@ class FinishingTeamPaymentController extends Controller
 
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $activity = new Activity();

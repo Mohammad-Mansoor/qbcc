@@ -21,26 +21,35 @@
                   @error('team_id') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
                 </div>
               </div>
-  
               <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                <div class="form-group fill">
+                  <label class="pull-right">گدام شست (WIP Warehouse)</label>
+                  <select name="warehouse_id" class="form-control" style="direction: rtl" required>
+                    @foreach ($warehouses as $wh)
+                      <option value="{{$wh->id}}" {{ $wh->id == $defaultWarehouse ? 'selected' : '' }}>{{$wh->name}}</option>
+                    @endforeach
+                  </select>
+                  @error('warehouse_id') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
+                </div>
+              </div>
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
                   <label class="pull-right">نمبر شست</label>
                   <input type="text" name="wash_number" value="{{$WashNo}}" class="form-control" required>
                 </div>
               </div>
-              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
                   <label class="pull-right">طول</label>
                   <input type="text" name="" value="{{$carpetId->height}}" class="form-control" readonly>
                 </div>
               </div>
-              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                 <div class="form-group fill">
                   <label class="pull-right">عرض</label>
                   <input type="text" name="" value="{{$carpetId->width}}" class="form-control" readonly="">
                 </div>
               </div>
-            
             </div>
             <div class="row">
               <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5">

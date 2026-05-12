@@ -27,7 +27,7 @@ class AgentsController extends Controller
     public function index()
     {
 
-        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->get();
+        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->paginate(30);
 
         $agent= '';
         $lastId = Agents::latest()->first();
@@ -81,7 +81,7 @@ class AgentsController extends Controller
 
 
     public function accounts(){
-        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->get();
+        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->paginate(30);
 
 
         $accounts = '';
@@ -100,7 +100,7 @@ class AgentsController extends Controller
         return view('agents.index', compact('data', 'accounts','agent','AccountNo','province'));
     }
     public  function deactive_accounts(){
-        $data = Agents::where('account_status',0)->orderBy('agent_id', 'desc')->get();
+        $data = Agents::where('account_status',0)->orderBy('agent_id', 'desc')->paginate(30);
 
 
         $agent= '';
@@ -131,7 +131,7 @@ class AgentsController extends Controller
             ->orWhere('account_no', 'like', '%'.$search.'%')
             ->orwhereHas('phone', function ($query) use ($search) {
                 $query->where('phone_no', 'like', '%'.$search.'%');
-            })->get();
+            })->paginate(30);
 
         $agent= '';
         $lastId = Agents::latest()->first();
@@ -248,7 +248,7 @@ class AgentsController extends Controller
     public function edit(Agents $agent)
     {
 
-        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->get();
+        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->paginate(30);
 
 
 

@@ -10,13 +10,35 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Services\AccountingService;
+
 class NewDifferentAccountPaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    protected $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
+
+    private function postPaymentToAccounting($payment)
+    {
+        try {
+            $condition = $payment->type; // 'رسید' or 'گرفت'
+            
+            $this->accountingService->postAutoTransaction('different_account', $condition, [
+                'date' => $payment->date,
+                'amount' => $payment->amount,
+                'party_type' => 'App\NewDifferentAccount',
+                'party_id' => $payment->account_id,
+                'reference' => 'MISC-PAY-' . $payment->id,
+                'description' => $payment->description,
+                'source_id' => $payment->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Accounting posting failed for Misc Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
     public function index()
     {
         //
@@ -167,44 +189,42 @@ class NewDifferentAccountPaymentController extends Controller
      */
     public function update(Request $request,$id)
     {
+        return DB::transaction(function () use ($request, $id) {
+            $request->validate([
+                'amount' => 'required',
+                'currency' => 'required',
+                'description' => 'required',
+                'date' => 'required',
+                'type' => '',
+                'account_id' => ''
+            ]);
 
-        $payment_data = $request->validate([
-            'amount' => 'required',
-            'currency' => 'required',
-            'description' => 'required',
-            'date' => 'required',
-            'insert_credit' => '',
-            'type' => '',
-            'account_id' => ''
+            $payment = NewDifferentAccountPayment::find($id);
+            
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Misc Payment Edited');
+            }
 
-        ]);
+            $payment->amount = $request->amount;
+            $payment->currency = $request->currency;
+            $payment->description = $request->description;
+            $payment->date = $request->date;
+            $payment->type = $request->type;
+            $payment->save();
 
+            if ($payment->status == 1) {
+                $this->postPaymentToAccounting($payment);
+            }
 
+            $account = NewDifferentAccount::find($request->account_id);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " حساب متفرقه به نام " . $account->name .  ' اکونت نمبر '. $account->id. " مبلغ " . $request->amount . ' ' . $request->currency . ' ' . $request->type . 'کرد' ;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        $payment = NewDifferentAccountPayment::find($id);
-        $payment->amount = $request->amount;
-        $payment->currency = $request->currency;
-        $payment->description = $request->description;
-        $payment->date = $request->date;
-        $payment->type = $request->type;
-        $payment->save();
-
-        $account = NewDifferentAccount::find($request->account_id);
-
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " حساب متفرقه به نام " . $account->name .  ' اکونت نمبر '. $account->id. " مبلغ " . $request->amount . ' ' . $request->currency . ' ' . $request->type . 'کرد' ;
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-
-
-
-        if ($payment) {
-            return redirect()->to('/dashboard/new-different-account/' . $request->account_id)->with('status', '  رسید پول موفقانه بروز شد !');
-        } else {
-            return redirect()->to('/dashboard/new-different-account/' . $request->account_id)->with('error', 'مشکل در سرور وجود داره!');
-        }
+            return redirect()->to('/dashboard/new-different-account/' . $request->account_id)->with('status', ' رسید پول موفقانه بروز شد !');
+        });
     }
 
     /**
@@ -215,12 +235,15 @@ class NewDifferentAccountPaymentController extends Controller
      */
     public function destroy($id)
     {
-        $payment = NewDifferentAccountPayment::find($id);
+        return DB::transaction(function () use ($id) {
+            $payment = NewDifferentAccountPayment::find($id);
 
-        $payment->delete();
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Misc Payment Deleted');
+            }
 
-        if ($payment) {
+            $payment->delete();
             return response()->json(['status' => 'success']);
-        }
+        });
     }
 }

@@ -161,8 +161,8 @@
                 @if(auth()->user()->role == 'SP')
                   <th>دفتر</th>
                 @endif
-                <th>باقیات(دالر)</th>
-                <th>طلبات(دالر)</th>
+                <th>باقیات</th>
+                <th>طلبات</th>
                 <th class="hideOnPrint">ویرایش</th>
                 @if(auth()->user()->role == 'SP')
                   <th class="hideOnPrint">حذف</th>
@@ -173,8 +173,7 @@
               </thead>
               <tbody>
               @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                @php($remaining = 0)
-                @php($talab = 0)
+                
                 @foreach($center_accounts as $account)
                   <tr class="ur{{ $account->id }}">
                     <td>{{$account->id}}</td>
@@ -182,29 +181,21 @@
                     <td>{{$account->phone}}</td>
                     <td>{{$account->address}}</td>
                     
-                    @if($account->total)
-                      
-                      @if($account->total->remaining <= 0)
-                        <span style="display: none">{{$remaining +=$account->total->remaining }}</span>
-                        <td style="direction: ltr;color: red;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
-                    @if($account->total)
-                      @if($account->total->remaining >= 0)
-                        <span style="display: none">{{$talab += $account->total->remaining }}</span>
-                        <td style="direction: ltr;color: green;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
+                    
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining <= 0)
+                          <div style="direction: ltr;color: red;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining > 0)
+                          <div style="direction: ltr;color: green;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
                     <td class="hideOnPrint"><a href="/dashboard/different-account/{{$account->id}}/edit"
                                                class="btn-sm btn-info">&nbsp; ویرایش</a></td>
                     <td class="hideOnPrint"><a href="/dashboard/different-account/{{$account->id}}"
@@ -214,20 +205,9 @@
                   </tr>
                 @endforeach
                 
-                @if(!isset($search))
-                  <tr style="background: gainsboro">
-                    
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>{{$remaining}}</td>
-                    <td style="direction: ltr">{{$talab}}</td>
-                    <td>مجموعه</td>
-                  </tr>
-                @endif
+                
               @elseif(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                @php($remaining = 0)
-                @php($talab = 0)
+                
                 @foreach($froshat_accounts as $account)
                   <tr class="ur{{ $account->id }}">
                     <td>{{$account->id}}</td>
@@ -235,29 +215,21 @@
                     <td>{{$account->phone}}</td>
                     <td>{{$account->address}}</td>
                     
-                    @if($account->total)
-                      
-                      @if($account->total->remaining <= 0)
-                        <span style="display: none">{{$remaining +=$account->total->remaining }}</span>
-                        <td style="direction: ltr;color: red;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
-                    @if($account->total)
-                      @if($account->total->remaining >= 0)
-                        <span style="display: none">{{$talab += $account->total->remaining }}</span>
-                        <td style="direction: ltr;color: green;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
+                    
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining <= 0)
+                          <div style="direction: ltr;color: red;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining > 0)
+                          <div style="direction: ltr;color: green;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
                     <td class="hideOnPrint">
                       
                       <a href="/dashboard/different-account/{{$account->id}}/edit"
@@ -273,20 +245,9 @@
                   </tr>
                 @endforeach
                 
-                @if(!isset($search))
-                  <tr style="background: gainsboro">
-                    
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>{{$remaining}}</td>
-                    <td style="direction: ltr">{{$talab}}</td>
-                    <td>مجموعه</td>
-                  </tr>
-                @endif
+                
               @elseif(auth()->user()->role == 'MO')
-                @php($remaining = 0)
-                @php($talab = 0)
+                
                 @foreach($mo_accounts as $account)
                   <tr class="ur{{ $account->id }}">
                     <td>{{$account->id}}</td>
@@ -294,29 +255,21 @@
                     <td>{{$account->phone}}</td>
                     <td>{{$account->address}}</td>
                     
-                    @if($account->total)
-                      
-                      @if($account->total->remaining <= 0)
-                        <span style="display: none">{{$remaining +=$account->total->remaining }}</span>
-                        <td style="direction: ltr;color: red;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
-                    @if($account->total)
-                      @if($account->total->remaining >= 0)
-                        <span style="display: none">{{$talab += $account->total->remaining }}</span>
-                        <td style="direction: ltr;color: green;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
+                    
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining <= 0)
+                          <div style="direction: ltr;color: red;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining > 0)
+                          <div style="direction: ltr;color: green;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
                     <td class="hideOnPrint"><a href="/dashboard/different-account/{{$account->id}}/edit"
                                                class="btn-sm btn-info">&nbsp; ویرایش</a></td>
                     <td class="hideOnPrint"><a href="/dashboard/different-account/{{$account->id}}"
@@ -326,20 +279,9 @@
                   </tr>
                 @endforeach
                 
-                @if(!isset($search))
-                  <tr style="background: gainsboro">
-                    
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>{{$remaining}}</td>
-                    <td style="direction: ltr">{{$talab}}</td>
-                    <td>مجموعه</td>
-                  </tr>
-                @endif
+                
               @elseif(auth()->user()->role == 'SP')
-                @php($remaining = 0)
-                @php($talab = 0)
+                
                 @foreach($sp_accounts as $account)
                   <tr class="ur{{ $account->id }} ">
                     <td>{{$account->id}}</td>
@@ -358,29 +300,21 @@
                       @endif
                     @endif
                     
-                    @if($account->total)
-                      
-                      @if($account->total->remaining <= 0)
-                        <span style="display: none">{{$remaining +=$account->total->remaining }}</span>
-                        <td style="direction: ltr;color: red;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
-                    @if($account->total)
-                      @if($account->total->remaining >= 0)
-                        <span style="display: none">{{$talab += $account->total->remaining }}</span>
-                        <td style="direction: ltr;color: green;">{{$account->total->remaining }}</td>
-                      
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    @else
-                      <td></td>
-                    @endif
+                    
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining <= 0)
+                          <div style="direction: ltr;color: red;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
+                    <td>
+                      @foreach($account->totals as $t)
+                        @if($t->remaining > 0)
+                          <div style="direction: ltr;color: green;font-size: 11px;">{{$t->remaining}} {{$t->currency_code}}</div>
+                        @endif
+                      @endforeach
+                    </td>
                     
                     <td class="hideOnPrint">
                       
@@ -407,18 +341,7 @@
                 
                 
                 @endforeach
-                @if(!isset($search))
-                  <tr style="background: gainsboro">
-                    
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>{{$remaining}}</td>
-                    <td style="direction: ltr">{{$talab}}</td>
-                    <td>مجموعه</td>
-                  </tr>
-                @endif
+                
               @endif
               </tbody>
             </table>

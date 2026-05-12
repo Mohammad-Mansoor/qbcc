@@ -11,40 +11,52 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
 class InvoiceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    protected $accountingService;
+    protected $inventoryManager;
 
-    public function sending_to_stock($carpet_id){
-        $carpet = Carpet::find($carpet_id);
-        
-         $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "  قالین نمبر  " . $carpet->carpet_no . " از لیست فروشات به گدام بازگشت شد. ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        $carpet->status = 5;
-        $upd = $carpet->update();
+    public function __construct(\App\Services\AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
+    {
+        $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
+    }
 
-        $sale = Sale::where('carpet_id' , $carpet_id)->first();
-       $del = $sale->delete();
-        if ($del){
+    public function sending_to_stock($carpet_id)
+    {
+        return DB::transaction(function () use ($carpet_id) {
+            $carpet = Carpet::findOrFail($carpet_id);
+            $sale = Sale::where('carpet_id', $carpet_id)->first();
+
+            if (!$sale) {
+                return response()->json(['error' => 'success']);
+            }
+
+            // 1. Unified Reversal (Inventory + Accounting)
+            $this->inventoryManager->reverseTransactions($sale, 'Carpet Returned to Stock (Invoice Action)');
+
+            // 2. Log Activity
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "  قالین نمبر  " . $carpet->carpet_no . " از لیست فروشات به گدام بازگشت شد و اسناد مالی معکوس گردید. ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            // 3. Return Carpet to Stock
+            $carpet->status = 5;
+            $carpet->package_id = null; 
+            $carpet->update();
+
+            // 4. Delete Sale Record
+            $sale->delete();
+
             return response()->json(['status' => 'success']);
-        }else{
-            return response()->json(['error' => 'success']);
-        }
-
+        });
     }
     public function index()
     {
         $customers = Customer::where('type','مشتری قالین')->get();
-        $invoices = Invoice::paginate(10);
+        $invoices = Invoice::paginate(30);
         $invoiceEdit = "";
         $lastId = Invoice::latest()->first();
 
@@ -99,7 +111,7 @@ class InvoiceController extends Controller
             ->orWhere('carpets.height', 'like', '%' . $search . '%')
             ->orWhere('carpets.area', 'like', '%' . $search . '%')
             ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%')
-            ->get();
+            ->paginate(30);
 
 
 
@@ -115,7 +127,7 @@ class InvoiceController extends Controller
         $customer = Customer::find($customer_id);
         $invoice = Invoice::Where('customer_id', '=', $customer_id)->where('invoice_no','=',$invoice_number)->first();
 
-        $sales = Sale::where('invoice_id',$invoice->id)->where('customer_id',$customer_id)->get();
+        $sales = Sale::where('invoice_id',$invoice->id)->where('customer_id',$customer_id)->paginate(30);
 
         return view('customers.invoice-number-list', compact('sales','customer','invoice_number'));
 
@@ -141,6 +153,7 @@ class InvoiceController extends Controller
      */
     public function store(Request $request)
     {
+        $this->accountingService->failIfLocked($request->invoice_date);
         $data = $request->validate([
             'invoice_no' => 'required',
             'invoice_date' => 'required',
@@ -174,7 +187,7 @@ class InvoiceController extends Controller
     public function show($id)
     {
         $invoice = Invoice::find($id);
-        $sales  = Sale::where('invoice_id',$id)->get();
+        $sales  = Sale::where('invoice_id',$id)->paginate(30);
         return view('invoices.invoice-details',compact('invoice','sales'));
     }
 
@@ -204,6 +217,7 @@ class InvoiceController extends Controller
      */
     public function update(Request $request, Invoice $invoice)
     {
+        $this->accountingService->failIfLocked($request->invoice_date);
         $data = $request->validate([
             'invoice_no' => 'required',
             'invoice_date' => 'required',

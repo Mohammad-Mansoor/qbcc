@@ -26,7 +26,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         if (\Illuminate\Support\Facades\Schema::hasTable('currencies')) {
-            View::share('currency', Currency::sum('amount'));
+            $afn = \App\Currency::where('code', 'AFN')->first();
+            // The legacy system expected 'amount' to be "How many AFN = 1 USD"
+            // Our new system stores "How many USD = 1 AFN"
+            $legacyRate = ($afn && $afn->exchange_rate > 0) ? (1 / $afn->exchange_rate) : 70;
+            View::share('currency', $legacyRate);
         }
     }
 }

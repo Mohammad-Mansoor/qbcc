@@ -23,62 +23,77 @@ class MaterialStockController extends Controller
      */
     public function index()
     {
+        // Fetch stock data from inventory_transactions to get warehouse breakdown and asset value
+        $stock = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+            ->leftJoin('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
+            ->join('material_categories', 'purchase_materials.material_category', '=', 'material_categories.material_category_id')
+            ->join('material_types', 'purchase_materials.material_type', '=', 'material_types.material_type_id')
+            ->where('items.type', 'App\PurchaseMaterial')
+            ->where('inventory_transactions.status', 1)
+            ->select(
+                'purchase_materials.material_category as cat_id',
+                'purchase_materials.material_type as type_id',
+                'material_categories.material_category',
+                'material_types.material_type',
+                'warehouses.name as warehouse_name',
+                'inventory_transactions.warehouse_id',
+                DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as quantity"),
+                DB::raw('AVG(items.current_cost) as price_per_kilo'),
+                DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_value")
+            )
+            ->groupBy(
+                'purchase_materials.material_category', 
+                'purchase_materials.material_type', 
+                'inventory_transactions.warehouse_id',
+                'material_categories.material_category',
+                'material_types.material_type',
+                'warehouses.name'
+            )
+            ->having('quantity', '>', 0)
+            ->get();
 
-        $stock = MaterialStock::all();
-        if (count($stock) == 0) {
-            $firstName = (object)['material_category' => 'تار پخته'];
+        $sales = MaterialSale::all();
+        
+        $categories = MaterialCategory::all();
+        $categoryTotals = [];
+        foreach ($categories as $category) {
+            $total = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+                ->where('items.type', 'App\PurchaseMaterial')
+                ->where('purchase_materials.material_category', $category->material_category_id)
+                ->where('inventory_transactions.status', 1)
+                ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as balance")
+                ->value('balance') ?? 0;
 
-            $firstTotal = '0';
-            $secondName = (object)['material_category' => 'تار پشم'];
-            $secondTotal = '0';
-            $thirdName = (object)['material_category' => 'تار ابریشم'];
-            $thirdTotal = '0';
-            $sales = MaterialSale::all();
-        } else {
-            $ids = MaterialStock::distinct()->get('material_category');
-            $id_count = $ids->count();
-
-            if ($id_count == 1) {
-                $first = $ids[0]->material_category;
-                $firstName = MaterialCategory::where('material_category_id', $first)->first('material_category');
-                $firstTotal = MaterialStock::where('material_category', $first)->sum('quantity');
-
-                $secondName = (object)['material_category' => 'تار پشم'];
-                $secondTotal = '0';
-                $thirdName = (object)['material_category' => 'تار ابریشم'];
-                $thirdTotal = '0';
-
-            } elseif ($id_count == 2) {
-                $first = $ids[0]->material_category;
-                $firstName = MaterialCategory::where('material_category_id', $first)->first('material_category');
-                $firstTotal = MaterialStock::where('material_category', $first)->sum('quantity');
-
-                $second = $ids[1]->material_category;
-                $secondName = MaterialCategory::where('material_category_id', $second)->first('material_category');
-                $secondTotal = MaterialStock::where('material_category', $second)->sum('quantity');
-                $thirdName = (object)['material_category' => 'تار ابریشم'];
-                $thirdTotal = '0';
-
-            } else {
-                $first = $ids[0]->material_category;
-                $firstName = MaterialCategory::where('material_category_id', $first)->first('material_category');
-                $firstTotal = MaterialStock::where('material_category', $first)->sum('quantity');
-
-                $second = $ids[1]->material_category;
-                $secondName = MaterialCategory::where('material_category_id', $second)->first('material_category');
-                $secondTotal = MaterialStock::where('material_category', $second)->sum('quantity');
-
-                $third = $ids[2]->material_category;
-                $thirdName = MaterialCategory::where('material_category_id', $third)->first('material_category');
-                $thirdTotal = MaterialStock::where('material_category', $third)->sum('quantity');
-            }
-
-
-            $sales = MaterialSale::all();
-
+            $categoryTotals[] = (object)[
+                'name' => $category->material_category,
+                'total' => $total
+            ];
         }
 
-        return view('mstock.index', compact('stock', 'firstName', 'firstTotal', 'secondName', 'secondTotal', 'thirdName', 'thirdTotal', 'sales'));
+        return view('mstock.index', compact('stock', 'sales', 'categoryTotals'));
+    }
+
+    public function history($cat, $type)
+    {
+        $category = MaterialCategory::where('material_category_id', $cat)->firstOrFail();
+        $typeModel = MaterialType::where('material_type_id', $type)->firstOrFail();
+
+        $movements = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+            ->leftJoin('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
+            ->where('items.type', 'App\PurchaseMaterial')
+            ->where('purchase_materials.material_category', $cat)
+            ->where('purchase_materials.material_type', $type)
+            ->select('inventory_transactions.*', 'warehouses.name as warehouse_name')
+            ->orderBy('inventory_transactions.created_at', 'DESC')
+            ->get();
+
+        return view('mstock.history', compact('movements', 'category', 'typeModel'));
     }
 
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Accounting;
 use App\Http\Controllers\Controller;
 use App\ChartOfAccount;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ChartOfAccountController extends Controller
 {
@@ -24,6 +25,30 @@ class ChartOfAccountController extends Controller
         }
 
         $accounts = $query->get();
+
+        // Enrich with Balances and Protection Status
+        $protectedIds = DB::table('mapping_rules')
+            ->select('debit_account_id', 'credit_account_id')
+            ->get()
+            ->flatMap(function($row) {
+                return [$row->debit_account_id, $row->credit_account_id];
+            })
+            ->unique()
+            ->toArray();
+
+        foreach ($accounts as $acc) {
+            // 1. Calculate Live Balance
+            $acc->balance = DB::table('ledger_entries')
+                ->where('account_id', $acc->id)
+                ->sum(DB::raw('debit - credit'));
+            
+            // Adjust balance sign based on normal balance if needed for display
+            // But usually raw (debit-credit) is standard for trial balance.
+            
+            // 2. Protection Status
+            $acc->is_protected = in_array($acc->id, $protectedIds);
+        }
+
         return view('accounting.coa.index', compact('accounts'));
     }
 

@@ -18,18 +18,70 @@ use Illuminate\Support\Facades\DB;
 class MaterialSaleController extends Controller
 {
     protected $accountingService;
+    protected $inventoryManager;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
     {
         $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
     }
 
-    private function postMaterialSaleToAccounting($sale)
+    public function get_sale_info(Request $request)
+    {
+        $agentId = $request->agent_id;
+        $catId = $request->category_id;
+        $typeId = $request->type_id;
+
+        \Log::info("Fetching sale info for Agent: $agentId, Category: $catId, Type: $typeId");
+
+        $info = [
+            'wac' => 0,
+            'balance' => 0
+        ];
+
+        try {
+            if ($agentId) {
+                $info['balance'] = $this->accountingService->getAccountBalance('App\Agents', $agentId);
+            }
+
+            if ($catId && $typeId) {
+                // Find the latest purchase to get a reference cost, or check MaterialStock
+                $stock = MaterialStock::where('material_category', $catId)
+                    ->where('material_type', $typeId)
+                    ->first();
+                
+                if ($stock) {
+                    $info['wac'] = $stock->price_per_kilo;
+                    
+                    // Also check if we have a WAC item registered
+                    $item = DB::table('items')
+                        ->where('type', 'App\PurchaseMaterial')
+                        ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+                        ->where('purchase_materials.material_category', $catId)
+                        ->where('purchase_materials.material_type', $typeId)
+                        ->orderBy('purchase_materials.id', 'DESC')
+                        ->select('items.current_cost')
+                        ->first();
+                    
+                    if ($item) {
+                        $info['wac'] = $item->current_cost;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error("Error in get_sale_info: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return response()->json($info);
+    }
+
+    private function postMaterialSaleToAccounting($sale, $overrides = [])
     {
         try {
             // Material sale is also a sale, but we might want a different category
             // For now, let's use 'material_sale' type
-            $this->accountingService->postAutoTransaction('material_sale', 'credit', [
+            $this->accountingService->postAutoTransaction('material_sale', 'credit', array_merge([
                 'date' => $sale->date,
                 'amount' => $sale->total_price_af,
                 'party_type' => 'App\Agents',
@@ -37,7 +89,7 @@ class MaterialSaleController extends Controller
                 'reference' => $sale->sale_number,
                 'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
                 'source_id' => $sale->id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Material Sale #" . $sale->id . ": " . $e->getMessage());
         }
@@ -66,7 +118,22 @@ class MaterialSaleController extends Controller
             $SaleNo = 'SA-'.sprintf('%01d'  , '1');
         }
 
-        return view('mstock.material-sale', compact('material_sales', 'categories', 'material_types', 'saleEdit', 'agents','SaleNo'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'credit');
+        
+        // Add COGS accounts for overrides
+        $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
+        $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
+
+        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $warehouses = \App\Warehouse::all();
+
+        return view('mstock.material-sale', compact(
+            'material_sales', 'categories', 'material_types', 'saleEdit', 'agents','SaleNo', 
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
+            'mapping', 'warehouses'
+        ));
     }
 
     public function search_sale_number($sale_number,$agent_id){
@@ -78,7 +145,45 @@ class MaterialSaleController extends Controller
 
     public function request_list()
     {
-        $requests = MaterialSale::where('status', 0)->orderBy('id', 'DESC')->get();
+        $requests = MaterialSale::with(['agent.user', 'category', 'type', 'warehouse', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
+            ->where('status', 0)
+            ->orderBy('id', 'DESC')
+            ->get();
+
+        foreach ($requests as $req) {
+            // Get WAC
+            $wac = 0;
+            $stockRec = MaterialStock::where('material_category', $req->category_id)
+                ->where('material_type', $req->type_id)
+                ->first();
+            
+            if ($stockRec) {
+                $wac = $stockRec->price_per_kilo;
+                $item = DB::table('items')
+                    ->where('type', 'App\PurchaseMaterial')
+                    ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+                    ->where('purchase_materials.material_category', $req->category_id)
+                    ->where('purchase_materials.material_type', $req->type_id)
+                    ->orderBy('purchase_materials.id', 'DESC')
+                    ->select('items.current_cost')
+                    ->first();
+                if ($item) $wac = $item->current_cost;
+            }
+            $req->estimated_wac = $wac;
+
+            // Get Stock (Warehouse-specific from inventory_transactions)
+            $req->available_stock = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+                ->where('items.type', 'App\PurchaseMaterial')
+                ->where('purchase_materials.material_category', $req->category_id)
+                ->where('purchase_materials.material_type', $req->type_id)
+                ->where('inventory_transactions.warehouse_id', $req->warehouse_id ?? 1)
+                ->where('inventory_transactions.status', 1)
+                ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as balance")
+                ->value('balance') ?? 0;
+        }
+
         return view('mstock.material-sale-requested-list', compact('requests'));
     }
 
@@ -86,24 +191,30 @@ class MaterialSaleController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $sale = MaterialSale::find($id);
-            $material_stock = MaterialStock::where('material_category', '=', $sale->category_id)->where('material_type', '=', $sale->type_id)->first();
 
-            if ($material_stock) {
-                $material_stock->quantity = $material_stock->quantity - $sale->amount;
-                $material_stock->update();
-            }
+            $this->inventoryManager->processSale($sale, [
+                'quantity' => $sale->amount,
+                'unit_cost' => 0, // WAC handled
+                'warehouse_id' => $sale->warehouse_id ?? 1,
+                'date' => $sale->date,
+                'sale_amount' => $sale->total_price_af,
+                'customer_id' => $sale->agent_id,
+                'reference' => $sale->sale_number,
+                'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
+                'override_debit_account_id' => $sale->override_debit_account_id,
+                'override_credit_account_id' => $sale->override_credit_account_id,
+                'override_cogs_debit_id' => $sale->override_cogs_debit_id,
+                'override_cogs_credit_id' => $sale->override_cogs_credit_id,
+            ], function () use ($sale) {
+                $sale->status = 1;
+                $sale->update();
 
-            $sale->status = 1 ;
-            $sale->update();
-
-            // Accounting Posting
-            $this->postMaterialSaleToAccounting($sale);
-
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " به مقدار " . $sale->amount . "کیلوگرام مواد تایید و در سیستم مالی ثبت شد ";
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
+                $activity = new Activity();
+                $activity->date = Carbon::today()->format('Y-m-d');
+                $activity->description = " به مقدار " . $sale->amount . "کیلوگرام مواد تایید و در سیستم مالی ثبت شد ";
+                $activity->user_id = Auth::user()->id;
+                $activity->save();
+            });
 
             return response()->json(['status' => 'success']);
         });
@@ -128,16 +239,8 @@ class MaterialSaleController extends Controller
 
             if (!$material_stock) {
                 return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
-            } else {
-                if ($request->amount > $material_stock->quantity) {
-                    return redirect()->back()->with('error', ' مواد در گدام ' . $material_stock->quantity . 'kg' . ' میباشد');
-                }
-                else {
-                    if (Auth::user()->role == 'SP'){
-                        $material_stock->quantity = $material_stock->quantity - $request->amount;
-                        $material_stock->update();
-                    }
-                }
+            } elseif ($request->amount > $material_stock->quantity) {
+                return redirect()->back()->with('error', ' مواد در گدام ' . $material_stock->quantity . 'kg' . ' میباشد');
             }
 
             $data = $request->validate([
@@ -150,15 +253,37 @@ class MaterialSaleController extends Controller
                 'category_id' => 'required',
                 'date' => 'required',
                 'sale_number' => 'required',
+                'warehouse_id' => '',
+                'override_debit_account_id' => '',
+                'override_credit_account_id' => '',
+                'override_cogs_debit_id' => '',
+                'override_cogs_credit_id' => '',
                 'status' => ''
             ]);
 
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
 
-            $sale = MaterialSale::create($data);
+            $sale = new MaterialSale($data);
 
             if ($sale->status == 1) {
-                $this->postMaterialSaleToAccounting($sale);
+                $this->inventoryManager->processSale($sale, [
+                    'quantity' => $sale->amount,
+                    'unit_cost' => 0, // WAC handled
+                    'warehouse_id' => $sale->warehouse_id ?? 1,
+                    'date' => $sale->date,
+                    'sale_amount' => $sale->total_price_af,
+                    'customer_id' => $sale->agent_id,
+                    'reference' => $sale->sale_number,
+                    'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
+                    'override_debit_account_id' => $sale->override_debit_account_id,
+                    'override_credit_account_id' => $sale->override_credit_account_id,
+                    'override_cogs_debit_id' => $sale->override_cogs_debit_id,
+                    'override_cogs_credit_id' => $sale->override_cogs_credit_id,
+                ], function () use ($sale) {
+                    $sale->save();
+                });
+            } else {
+                $sale->save();
             }
 
             $activity = new Activity();
@@ -184,7 +309,21 @@ class MaterialSaleController extends Controller
         $material_types = MaterialType::all();
         $saleEdit = MaterialSale::find($id);
         $agents = Agents::all();
-        return view('mstock.material-sale', compact('material_sales', 'agents', 'categories', 'material_types', 'saleEdit'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'credit');
+        $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
+        $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
+        
+        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $warehouses = \App\Warehouse::all();
+
+        return view('mstock.material-sale', compact(
+            'material_sales', 'agents', 'categories', 'material_types', 'saleEdit',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
+            'mapping', 'warehouses'
+        ));
     }
 
     /**
@@ -198,27 +337,17 @@ class MaterialSaleController extends Controller
     {
         return DB::transaction(function () use ($request, $id) {
             $materialSale = MaterialSale::find($id);
-            $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
 
-            if (!$material_stock) {
-                return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
-            } else {
-               if (Auth::user()->role == 'SP') {
-                    $old_amount = $materialSale->amount;
-                    $material_stock->quantity = $material_stock->quantity + $old_amount;
-                    
-                    if ($request->amount > $material_stock->quantity) {
-                        return redirect()->back()->with('error', 'موجودی گدام کافی نیست!');
-                    }
-                    
-                    $material_stock->quantity = $material_stock->quantity - $request->amount;
-                    $material_stock->update();
-                }
+            // Reverse old transactions (Inventory + Accounting)
+            if ($materialSale->status == 1) {
+                $this->inventoryManager->reverseTransactions($materialSale, 'Material Sale Edited');
             }
 
-            // Accounting Reversal
-            if ($materialSale->status == 1) {
-                $this->accountingService->reverseTransactionBySource($materialSale->id, 'Material Sale Edited');
+            if (Auth::user()->role == 'SP') {
+                $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
+                if (!$material_stock || $request->amount > $material_stock->quantity) {
+                    return redirect()->back()->with('error', 'موجودی گدام کافی نیست!');
+                }
             }
 
             $materialSale->agent_id = $request->agent_id;
@@ -232,9 +361,22 @@ class MaterialSaleController extends Controller
             $materialSale->type_id = $request->type_id;
             $materialSale->update();
 
-            // Re-post if approved
+            // Re-process if approved
             if ($materialSale->status == 1) {
-                $this->postMaterialSaleToAccounting($materialSale);
+                $this->inventoryManager->processSale($materialSale, [
+                    'quantity' => $materialSale->amount,
+                    'unit_cost' => 0, // WAC handled
+                    'warehouse_id' => $request->warehouse_id ?? 1,
+                    'date' => $materialSale->date,
+                    'sale_amount' => $materialSale->total_price_af,
+                    'customer_id' => $materialSale->agent_id,
+                    'reference' => $materialSale->sale_number,
+                    'description' => "فروش مواد به نماینده " . Agents::find($materialSale->agent_id)->name,
+                    'override_debit_account_id' => $request->override_debit_account_id,
+                    'override_credit_account_id' => $request->override_credit_account_id,
+                    'override_cogs_debit_id' => $request->override_cogs_debit_id,
+                    'override_cogs_credit_id' => $request->override_cogs_credit_id,
+                ]);
             }
 
             $activity = new Activity();
@@ -259,7 +401,7 @@ class MaterialSaleController extends Controller
             $sale = MaterialSale::find($id);
 
             if ($sale->status == 1) {
-                $this->accountingService->reverseTransactionBySource($sale->id, 'Material Sale Deleted');
+                $this->inventoryManager->reverseTransactions($sale, 'Material Sale Deleted');
             }
 
             $sale->delete();

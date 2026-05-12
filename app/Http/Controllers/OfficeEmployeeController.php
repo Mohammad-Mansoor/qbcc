@@ -24,21 +24,21 @@ class OfficeEmployeeController extends Controller
         $department = EmployeeDepartment::all();
         $employeeEdit = '';
 
-        return view('office-employee.employee-list',compact('employees','department','employeeEdit'));
+        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit'));
     }
 
     public function search(Request $request)
     {
         $search = $request->search;
-          $employeeEdit = '';
-             $department = EmployeeDepartment::all();
-        $employees = OfficeEmployee::where('name','like','%'.$search.'%')
-            ->orWhere('job_title','like','%'.$search.'%')
+        $employeeEdit = '';
+        $department = EmployeeDepartment::all();
+        $employees = OfficeEmployee::where('name', 'like', '%' . $search . '%')
+            ->orWhere('job_title', 'like', '%' . $search . '%')
 
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('email','like','%'.$search.'%')
+            ->orWhere('phone', 'like', '%' . $search . '%')
+            ->orWhere('email', 'like', '%' . $search . '%')
             ->paginate(5);
-              return view('office-employee.employee-list',compact('employees','employeeEdit','department'));
+        return view('office-employee.employee-list', compact('employees', 'employeeEdit', 'department'));
     }
 
     /**
@@ -49,7 +49,7 @@ class OfficeEmployeeController extends Controller
     public function create()
     {
         $department = EmployeeDepartment::all();
-        return view('office-employee.create-employee',compact('department'));
+        return view('office-employee.create-employee', compact('department'));
     }
 
     /**
@@ -61,14 +61,14 @@ class OfficeEmployeeController extends Controller
     public function store(Request $request)
     {
         $image = '';
-        if($request->has('image')) {
+        if ($request->has('image')) {
             $file = $request->file('image');
             $fileExt = $file->getClientOriginalExtension();
-            if(!in_array($fileExt , ['jpg' , 'png' , 'jpeg'] )) {
+            if (!in_array($fileExt, ['jpg', 'png', 'jpeg'])) {
                 return redirect()->back()->withErrors(['msg' => 'فایل باید عکس باشد.']);
             }
-            $fileName = time().''.rand(1000,9999).'-employee-image.'.$fileExt;
-            $image = $file->move('uploads/employee-image' , $fileName);
+            $fileName = time() . '' . rand(1000, 9999) . '-employee-image.' . $fileExt;
+            $image = $file->move('uploads/employee-image', $fileName);
         }
         // return $request->all();
         $employeeData = $request->validate([
@@ -87,9 +87,9 @@ class OfficeEmployeeController extends Controller
 
         // dd($data);
         $employee = OfficeEmployee::create($employeeData);
-        
-        
-        if ($employee){
+
+
+        if ($employee) {
             $salary = new EmployeeSalary();
             $salary->contract_number = 'CO-1';
             $salary->salary = $request->salary;
@@ -99,7 +99,7 @@ class OfficeEmployeeController extends Controller
             $salary->in_words = $request->in_words;
             $salary->save();
         }
-        if($employee) {
+        if ($employee) {
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
@@ -107,8 +107,7 @@ class OfficeEmployeeController extends Controller
             $activity->user_id = Auth::user()->id;
             $activity->save();
             return redirect('/dashboard/office-employee')->with('status', 'کارمند موفقانه ثبت شد !');
-        }
-        else{
+        } else {
             return redirect('/dashboard/office-employee')->with('error', 'مشکل در سرور وجود داره!');
         }
     }
@@ -135,7 +134,7 @@ class OfficeEmployeeController extends Controller
         $employeeEdit = OfficeEmployee::find($id);
         $employees = OfficeEmployee::with('department')->get();
         $department = EmployeeDepartment::all();
-        return view('office-employee.employee-list',compact('employees','department','employeeEdit'));
+        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit'));
     }
 
     /**
@@ -150,17 +149,17 @@ class OfficeEmployeeController extends Controller
         $employee = OfficeEmployee::find($id);
 
         $image = '';
-        if($request->has('image')) {
+        if ($request->has('image')) {
 
             $file = $request->file('image');
 
 
             $fileExt = $file->getClientOriginalExtension();
-            if(!in_array($fileExt , ['jpg' , 'png' , 'jpeg'] )) {
+            if (!in_array($fileExt, ['jpg', 'png', 'jpeg'])) {
                 return redirect()->back()->withErrors(['msg' => 'فایل باید عکس باشد.']);
             }
-            $fileName = time().''.rand(1000,9999).'-employee-image.'.$fileExt;
-            $image = $file->move('uploads/employee-image' , $fileName);
+            $fileName = time() . '' . rand(1000, 9999) . '-employee-image.' . $fileExt;
+            $image = $file->move('uploads/employee-image', $fileName);
             $employee->image = $image;
         }
         $employee->name = $request->name;
@@ -170,17 +169,16 @@ class OfficeEmployeeController extends Controller
 
         $employee->department_id = $request->department_id;
         $employee->save();
-        
-        
+
+
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
         $activity->description = " کارمند به نام " . $request->name . " در سیستم ویرایش شد ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
-        if($employee) {
+        if ($employee) {
             return redirect('/dashboard/office-employee')->with('status', 'کارمند موفقانه بروز شد !');
-        }
-        else{
+        } else {
             return redirect('/dashboard/office-employee')->with('error', 'مشکل در سرور وجود داره!');
         }
     }
@@ -200,9 +198,9 @@ class OfficeEmployeeController extends Controller
         $activity->description = " کارمند به نام " . $employee->name . " از سیستم حذف شد ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
-        
+
         $employee->delete();
-        if($employee) {
+        if ($employee) {
             return response()->json(['status' => 'success']);
         }
     }

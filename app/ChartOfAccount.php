@@ -11,6 +11,7 @@ class ChartOfAccount extends Model
         'account_name', 
         'account_type', 
         'report_group', 
+        'cashflow_group',
         'currency', 
         'is_cash_account', 
         'normal_balance'

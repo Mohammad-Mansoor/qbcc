@@ -77,6 +77,7 @@ class OfficeCreditController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $credit = OfficeCredit::find($id);
+            $this->accountingService->failIfLocked($credit->date);
 
             $sp_cashbook = OfficeCashBook::where('user_role','SP')->first();
             $user_cashbook = OfficeCashBook::where('user_role',$credit->user_role)->first();
@@ -140,6 +141,7 @@ class OfficeCreditController extends Controller
 
     public function store(Request $request)
     {
+        $this->accountingService->failIfLocked($request->date);
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
                 'amount' => 'required',
@@ -245,6 +247,7 @@ class OfficeCreditController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->accountingService->failIfLocked($request->date);
         return DB::transaction(function () use ($request, $id) {
             $credit = OfficeCredit::find($id);
             $sp = OfficeCashBook::where('user_role', 'SP')->first();

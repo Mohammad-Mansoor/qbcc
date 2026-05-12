@@ -111,6 +111,37 @@
                           {{trans('message.'.$message)}}</p>
                         @enderror
                       </div>
+                      <div class="col-lg-12">
+                          <div class="row p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; margin: 15px 0;">
+                              <div class="col-lg-12">
+                                  <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Kachaee Payment Accounting)</h6>
+                              </div>
+                              <div class="col-lg-5">
+                                  <div class="form-group">
+                                      <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                      <select name="override_debit_account_id" id="override_debit_account_id" class="form-control">
+                                          @foreach($allowedDebitAccounts as $acc)
+                                              <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                              </option>
+                                          @endforeach
+                                      </select>
+                                  </div>
+                              </div>
+                              <div class="col-lg-5">
+                                  <div class="form-group">
+                                      <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                      <select name="override_credit_account_id" id="override_credit_account_id" class="form-control">
+                                          @foreach($allowedCreditAccounts as $acc)
+                                              <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                              </option>
+                                          @endforeach
+                                      </select>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
                       
                       <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
                         <label class="">توضیحات</label>
@@ -213,6 +244,37 @@
                         @error('type') <p class="text-danger">
                           {{trans('message.'.$message)}}</p>
                         @enderror
+                      </div>
+                      <div class="col-lg-12">
+                          <div class="row p-3" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; margin: 15px 0;">
+                              <div class="col-lg-12">
+                                  <h6 class="mb-3 text-muted"><i class="fa fa-university"></i> تنظیمات حسابی (Edit Kachaee Payment Accounting)</h6>
+                              </div>
+                              <div class="col-lg-5">
+                                  <div class="form-group">
+                                      <label class="text-info pull-right">حساب بدهکار (Debit)</label>
+                                      <select name="override_debit_account_id" id="override_debit_account_id_edit" class="form-control">
+                                          @foreach($allowedDebitAccounts as $acc)
+                                              <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                              </option>
+                                          @endforeach
+                                      </select>
+                                  </div>
+                              </div>
+                              <div class="col-lg-5">
+                                  <div class="form-group">
+                                      <label class="text-info pull-right">حساب بستانکار (Credit)</label>
+                                      <select name="override_credit_account_id" id="override_credit_account_id_edit" class="form-control">
+                                          @foreach($allowedCreditAccounts as $acc)
+                                              <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                              </option>
+                                          @endforeach
+                                      </select>
+                                  </div>
+                              </div>
+                          </div>
                       </div>
   
                       <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
@@ -437,6 +499,10 @@
   
   <script>
       $('#kachaee_number').select2();
+      $('#override_debit_account_id').select2();
+      $('#override_credit_account_id').select2();
+      $('#override_debit_account_id_edit').select2();
+      $('#override_credit_account_id_edit').select2();
  
 
       $(document).ready(function () {

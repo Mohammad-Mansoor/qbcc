@@ -71,7 +71,7 @@ class NewMonthlyExpenseController extends Controller
      */
     public function show($id)
     {
-        $month = NewMonthlyExpense::find($id);
+        $month_obj = NewMonthlyExpense::find($id);
         $expenses = DB::table('new_monthly_expense_balances')->where('month_id',$id)->where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
         $expenses_sp = DB::table('new_monthly_expense_balances')->where('month_id',$id)->orderBy('id','DESC')->paginate(50);
 
@@ -151,7 +151,7 @@ class NewMonthlyExpenseController extends Controller
                 'bardasht_sp_af','bardasht_sp_usd','bardasht_sp_cd',
                 'tel_sp_af','tel_sp_usd','tel_sp_cd',
                 'mashat_sp_af','mashat_sp_usd','mashat_sp_cd',
-                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month'));
+                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month_obj'));
 
 
     }

@@ -11,8 +11,8 @@ class DifferentAccount extends Model
 
 
 
-    public function total(){
-        return $this->hasOne(DifferentAccountTotal::class,'account_id','id');
+    public function totals(){
+        return $this->hasMany(DifferentAccountTotal::class,'account_id','id');
     }
     public function payment(){
         return $this->hasMany(DifferentAccountPayment::class,'account_id','id');

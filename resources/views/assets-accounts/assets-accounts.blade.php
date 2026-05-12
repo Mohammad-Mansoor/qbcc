@@ -200,6 +200,8 @@
                                     $('.ur' + id).hide();
                                     window.location = '/dashboard/assets-accounts'
 
+                                } else if (res.status == 'error') {
+                                    swal("خطا!", res.message, "error");
                                 } else {
                                     $('.alert-danger').show();
                                 }

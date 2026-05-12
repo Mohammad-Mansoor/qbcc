@@ -47,12 +47,14 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">نام نماینده</label>
-                      <select name="agent_id" required class="form-control"
+                      <select name="agent_id" id="agent_id" required class="form-control select2"
                               style="direction: rtl">
+                        <option value="">انتخاب نماینده</option>
                         @foreach ($agents as $ag)
                           <option value="{{$ag->agent_id}}">{{$ag->user->name}}</option>
                         @endforeach
                       </select>
+                      <small id="agent-balance" class="text-muted"></small>
                       @error('agent_id') <p
                               class="text-danger">{{trans('message.'.$message)}}</p>
                       @enderror
@@ -73,8 +75,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">نوعیت مواد</label>
-                      <select name="type_id" required class="form-control"
+                      <select name="type_id" id="type_id" required class="form-control select2"
                               style="direction: rtl">
+                         <option value="">انتخاب نوعیت</option>
                         @foreach ($material_types as $type)
                           <option value="{{$type->material_type_id}}">{{$type->material_type}}</option>
                         @endforeach
@@ -87,17 +90,31 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">دسته بندی مواد</label>
-                      <select name="category_id" required class="form-control"
+                      <select name="category_id" id="category_id" required class="form-control select2"
                               style="direction: rtl">
+                         <option value="">انتخاب دسته بندی</option>
                         @foreach ($categories as $category)
                           <option value="{{$category->material_category_id}}">{{$category->material_category}}</option>
                         @endforeach
                       </select>
+                      <small id="material-wac" class="text-success" style="font-weight:bold"></small>
                       @error('category_id') <p
                               class="text-danger">{{trans('message.'.$message)}}</p>
                       @enderror
                     </div>
                   </div>
+
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="form-group fill">
+                      <label class="pull-right">گدام (Warehouse)</label>
+                      <select name="warehouse_id" required class="form-control select2">
+                        @foreach ($warehouses as $w)
+                          <option value="{{$w->id}}">{{$w->name}}</option>
+                        @endforeach
+                      </select>
+                    </div>
+                  </div>
+
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right"> قیمت فی کیلو به افغانی</label>
@@ -145,7 +162,64 @@
                     </div>
                   </div>
                 </div>
-                <div class="row">
+
+                <hr>
+                <!-- ACCOUNT OVERRIDES -->
+                <div class="row mt-3 p-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px;">
+                    <div class="col-lg-12">
+                        <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Material Sale Accounting)</h6>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب دریافتنی (Debit) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
+                            <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2">
+                                @foreach($allowedDebitAccounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب فروش مواد (Credit) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
+                            <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2">
+                                @foreach($allowedCreditAccounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب مصرف (COGS Debit) <span class="badge badge-info">{{ count($allowedCogsDebit) }}</span></label>
+                            <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2">
+                                @foreach($allowedCogsDebit as $acc)
+                                    <option value="{{ $acc->id }}">
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب گدام (COGS Credit) <span class="badge badge-info">{{ count($allowedCogsCredit) }}</span></label>
+                            <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2">
+                                @foreach($allowedCogsCredit as $acc)
+                                    <option value="{{ $acc->id }}">
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <button class="btn btn-white" type="reset">انصراف</button>
@@ -159,9 +233,9 @@
             @else
               <form action="/dashboard/material-sales/{{$saleEdit->id}}" method="post">
                 @csrf
-                @method('PUT ')
+                @method('PUT')
                 <input type="hidden" name="old_agent_id" value="{{$saleEdit->agent_id}}">
-                <div class="row" style=" display:flex;justify-content:center">
+                <div class="row">
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="">فاکتور فروش</label>
@@ -171,15 +245,13 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">نام نماینده</label>
-                      <select name="agent_id" required class="form-control"
+                      <select name="agent_id" id="agent_id" required class="form-control select2"
                               style="direction: rtl">
                         @foreach ($agents as $ag)
                           <option {{($ag->agent_id == $saleEdit->agent_id ? 'selected' : '')}} value="{{$ag->agent_id}}">{{$ag->user->name}}</option>
                         @endforeach
                       </select>
-                      @error('agent_id') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
+                      <small id="agent-balance" class="text-muted"></small>
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -188,9 +260,6 @@
                       <input type="date" name="date" value="{{$saleEdit->date}}" required
                              placeholder="تاریخ را وارد کنید"
                              class="form-control">
-                      @error('date') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -199,25 +268,43 @@
                       <input type="text" name="amount" required
                              placeholder="مقدار را به کیلو گرام وارد کنید"
                              class="form-control" value="{{$saleEdit->amount}}" id="material-amount">
-                      @error('amount') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
+                    </div>
+                  </div>
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="form-group fill">
+                      <label class="pull-right">نوعیت مواد</label>
+                      <select name="type_id" id="type_id" required class="form-control select2"
+                              style="direction: rtl">
+                        @foreach ($material_types as $type)
+                          <option {{($saleEdit->type_id == $type->material_type_id ? 'selected' : '')}} value="{{$type->material_type_id}}">{{$type->material_type}}</option>
+                        @endforeach
+                      </select>
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">دسته بندی مواد</label>
-                      <select name="category_id" required class="form-control"
+                      <select name="category_id" id="category_id" required class="form-control select2"
                               style="direction: rtl">
                         @foreach ($categories as $category)
                           <option {{($saleEdit->category_id == $category->material_category_id ? 'selected' : '')}} value="{{$category->material_category_id}}">{{$category->material_category}}</option>
                         @endforeach
                       </select>
-                      @error('category_id') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
+                      <small id="material-wac" class="text-success" style="font-weight:bold"></small>
                     </div>
                   </div>
+
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="form-group fill">
+                      <label class="pull-right">گدام (Warehouse)</label>
+                      <select name="warehouse_id" required class="form-control select2">
+                        @foreach ($warehouses as $w)
+                          <option value="{{$w->id}}" {{ $saleEdit->warehouse_id == $w->id ? 'selected' : '' }}>{{$w->name}}</option>
+                        @endforeach
+                      </select>
+                    </div>
+                  </div>
+
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right"> قیمت فی کیلو به افغانی</label>
@@ -225,9 +312,6 @@
                              placeholder="قیمت مواد مذکور" class="form-control"
                              id="material-price">
                       <input type="hidden" value="{{$currency}}" id="currency">
-                      @error('price') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -236,9 +320,6 @@
                       <input type="text" name="total_price_af" value="{{$saleEdit->total_price_af}}" readonly required
                              class="form-control"
                              id="material-af-total-price">
-                      @error('total_price_af') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -247,27 +328,71 @@
                       <input type="text" name="total_price" value="{{$saleEdit->total_price}}" readonly required
                              class="form-control"
                              id="material-total-price">
-                      @error('total_price') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
-                    </div>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <label class="pull-right">نوعیت مواد</label>
-                      <select name="type_id" required class="form-control"
-                              style="direction: rtl">
-                        @foreach ($material_types as $type)
-                          <option {{($saleEdit->type_id == $type->material_type_id ? 'selected' : '')}} value="{{$type->material_type_id}}">{{$type->material_type}}</option>
-                        @endforeach
-                      </select>
-                      @error('type_id') <p
-                              class="text-danger">{{trans('message.'.$message)}}</p>
-                      @enderror
                     </div>
                   </div>
                 </div>
-                <div class="row">
+
+                <hr>
+                <!-- ACCOUNT OVERRIDES EDIT -->
+                <div class="row mt-3 p-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px;">
+                    <div class="col-lg-12">
+                        <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Material Sale Accounting Edit)</h6>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب دریافتنی (Debit) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
+                            <select name="override_debit_account_id" class="form-control select2">
+                                <option value="">Standard Default</option>
+                                @foreach($allowedDebitAccounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب فروش مواد (Credit) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
+                            <select name="override_credit_account_id" class="form-control select2">
+                                <option value="">Standard Default</option>
+                                @foreach($allowedCreditAccounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب مصرف (COGS Debit) <span class="badge badge-info">{{ count($allowedCogsDebit) }}</span></label>
+                            <select name="override_cogs_debit_id" class="form-control select2">
+                                <option value="">Standard Default</option>
+                                @foreach($allowedCogsDebit as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_cogs_debit_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="form-group">
+                            <label class="pull-right text-muted">حساب گدام (COGS Credit) <span class="badge badge-info">{{ count($allowedCogsCredit) }}</span></label>
+                            <select name="override_cogs_credit_id" class="form-control select2">
+                                <option value="">Standard Default</option>
+                                @foreach($allowedCogsCredit as $acc)
+                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_cogs_credit_id == $acc->id) ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->account_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <button class="btn btn-white" type="reset">انصراف</button>
@@ -337,7 +462,7 @@
                    @if($material->status == 1 || auth()->user()->role == 'SP')
                   <td class="hideOnPrint"><a class="btn btn-sm btn-info"
                                              href="/dashboard/material-sales/{{$material->id}}/edit"><i
-                              class="fa fa-pencil">&nbsp;&nbsp;&nbsp;</i>ویرایش</a>
+                               class="fa fa-pencil">&nbsp;&nbsp;&nbsp;</i>ویرایش</a>
                   </td>
                   @endif
                 </tr>
@@ -357,81 +482,72 @@
 @endsection
 
 
-@section('footer-plugins')
-  <script>
-
-
-      $(document).ready(function () {
-
-
-          $('.status').show();
-          window.setTimeout(function () {
-              $(".status").fadeTo(500, 0).slideUp(500, function () {
-
-                  $(this).remove();
-              });
-          }, 5000);
-
-      });
-  
-  </script>
-@endsection
-
-
 @section('scripts')
   <script>
+      $(document).ready(function() {
+          $('.select2').select2({
+              width: '100%',
+              dir: 'rtl'
+          });
+
+          // AJAX Sale Info
+          $('#agent_id, #category_id, #type_id').on('change', function() {
+              fetchSaleInfo();
+          });
+
+          // Initial load if edit
+          if ($('#agent_id').val() || $('#category_id').val()) {
+              fetchSaleInfo();
+          }
+
+          function fetchSaleInfo() {
+              var agentId = $('#agent_id').val();
+              var catId = $('#category_id').val();
+              var typeId = $('#type_id').val();
+
+              if (agentId || (catId && typeId)) {
+                  $.ajax({
+                      url: "{{ route('dashboard.material-sales-info') }}",
+                      data: {
+                          agent_id: agentId,
+                          category_id: catId,
+                          type_id: typeId
+                      },
+                      success: function(res) {
+                          if (agentId && res.balance !== undefined) {
+                              $('#agent-balance').html('Balance: ' + parseFloat(res.balance).toLocaleString() + ' AFN');
+                          }
+                          if (catId && typeId && res.wac !== undefined) {
+                              $('#material-wac').html('Current Cost (WAC): ' + parseFloat(res.wac).toLocaleString() + ' AFN');
+                          }
+                      },
+                      error: function(err) {
+                          console.error("AJAX Error:", err);
+                      }
+                  });
+              }
+          }
+      });
+
       $('.status').show();
       window.setTimeout(function () {
           $(".status").fadeTo(500, 0).slideUp(500, function () {
-
               $(this).remove();
           });
       }, 2000);
 
-      // Material Amount
-      $("#material-amount").blur(function () {
+      // Calculations
+      $("#material-amount, #material-price").blur(function () {
           var ma = $('#material-amount').val();
-          var mainma = parseFloat(ma).toFixed(2);
-          if (isNaN(mainma)) {
-              $("#material-amount").val();
-          } else {
-              $("#material-amount").val(mainma);
-          }
-      });
-      // Material Price
-      $("#material-price").blur(function () {
           var mp = $('#material-price').val();
-          var mainmp = parseFloat(mp).toFixed(2);
-          if (isNaN(mainmp)) {
-              $("#material-price").val();
-          } else {
-              $("#material-price").val(mainmp);
-          }
-      });
-      //total price
-      $("#material-amount,#material-price").blur(function () {
-          var mp = $('#material-price').val();
-          var midmp = parseFloat(mp).toFixed(2);
           var c = $('#currency').val();
-          var mainmp = midmp / c;
-          var ma = $('#material-amount').val();
-          var mainma = parseFloat(ma).toFixed(2);
-          if (mainma != '' && mainmp != '') {
-              var t = mainmp * mainma;
-              var at = midmp * mainma;
-              var total = parseFloat(t).toFixed(2);
-              var atotal = parseFloat(at).toFixed(2);
-              if (isNaN(total)) {
-                  $("#material-total-price").val();
-
-              } else {
-                  $("#material-total-price").val(total);
-              }
-              if (isNaN(atotal)) {
-                  $("#material-af-total-price").val();
-              } else {
-                  $("#material-af-total-price").val(atotal);
-              }
+          
+          if (ma && mp) {
+              var totalAf = parseFloat(ma) * parseFloat(mp);
+              var totalUsd = totalAf / parseFloat(c);
+              
+              $("#material-af-total-price").val(totalAf.toFixed(2));
+              $("#material-total-price").val(totalUsd.toFixed(2));
           }
       });
   

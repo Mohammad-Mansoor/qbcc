@@ -21,6 +21,50 @@
           <div class="all-form-element-inner">
             <form action="/dashboard/finishing-center" method="post">
               @csrf
+              <div class="row mb-4 p-3" style="background: #fdfdfe; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 25px;">
+                  <div class="col-lg-12">
+                      <h6 class="text-primary mb-3"><i class="fa fa-money"></i> تنظیمات عمومی مالی (Global Financial Settings)</h6>
+                  </div>
+                  <div class="col-lg-3">
+                      <div class="form-group">
+                          <label class="pull-right">واحد پولی (Currency)</label>
+                          <select name="currency_code" id="currency_code" class="form-control" required>
+                              <option value="USD">USD ($)</option>
+                              <option value="AFN">AFN (؋)</option>
+                          </select>
+                      </div>
+                  </div>
+                  <div class="col-lg-3">
+                      <div class="form-group">
+                          <label class="pull-right">نرخ تبادله (به دالر)</label>
+                          <input type="text" name="exchange_rate" id="exchange_rate" value="{{ $currency }}" class="form-control" required>
+                      </div>
+                  </div>
+                  <div class="col-lg-3">
+                      <div class="form-group">
+                          <label class="text-info pull-right">حساب بدهکار (Debit Account)</label>
+                          <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2">
+                              @foreach($allowedDebitAccounts as $acc)
+                                  <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                      {{ $acc->account_code }} - {{ $acc->account_name }}
+                                  </option>
+                              @endforeach
+                          </select>
+                      </div>
+                  </div>
+                  <div class="col-lg-3">
+                      <div class="form-group">
+                          <label class="text-info pull-right">حساب بستانکار (Credit Account)</label>
+                          <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2">
+                              @foreach($allowedCreditAccounts as $acc)
+                                  <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                      {{ $acc->account_code }} - {{ $acc->account_name }}
+                                  </option>
+                              @endforeach
+                          </select>
+                      </div>
+                  </div>
+              </div>
               @if(!$qaitan_check)
                 <div class="row">
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
@@ -787,7 +831,7 @@
                     <button class="btn btn-warning btn-sm"><a href="/dashboard/finishing-center">
                         انصراف </a></button>
                     <button class="btn btn-primary btn-sm" onclick="valid()" type="submit"> <span
-                              class="fa fa-save"></span> ذخیره
+                              class="fa fa-save"></span> ذخیره و ثبت نهایی در حسابات
                     </button>
                   </div>
                 </div>
@@ -805,8 +849,11 @@
 
   <script>
       $(document).ready(function () {
-
-
+          $('.select2').select2();
+          $('#override_debit_account_id').select2();
+          $('#override_credit_account_id').select2();
+          $('#currency_code').select2();
+          $('select').select2();
       });
       function valid() {
           var qaitan_checkbox = $('.qaitan_checkbox').prop('checked');

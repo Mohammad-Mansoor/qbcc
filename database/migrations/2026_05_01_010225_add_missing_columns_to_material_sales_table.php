@@ -15,7 +15,7 @@ class AddMissingColumnsToMaterialSalesTable extends Migration
     {
         Schema::table('material_sales', function (Blueprint $table) {
             $table->tinyInteger('status')->default(1)->nullable();
-            
+
         });
     }
 

@@ -98,7 +98,7 @@ class DashboardController extends Controller
 
         $loged_user_cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
 
-        $currency = Currency::find(1)->amount;
+        $currency = Currency::getLegacyAFNRate();
 
         /** talab start */
 
@@ -292,7 +292,7 @@ class DashboardController extends Controller
 
         $loged_user_cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
 
-        $currency = Currency::find(1)->amount;
+        $currency = Currency::getLegacyAFNRate();
 
         /** talab start */
 
@@ -459,7 +459,7 @@ class DashboardController extends Controller
 
         $loged_user_cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
 
-        $currency = Currency::find(1)->amount;
+        $currency = Currency::getLegacyAFNRate();
 
         /** talab start */
 
@@ -642,7 +642,7 @@ class DashboardController extends Controller
 
         $loged_user_cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
 
-        $currency = Currency::find(1)->amount;
+        $currency = Currency::getLegacyAFNRate();
 
         /** talab start */
 

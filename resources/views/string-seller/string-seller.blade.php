@@ -149,65 +149,67 @@
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-xs table-hover" style="font-size: 10px; ">
-              <thead>
+                <thead>
               <tr>
-                <th>نام</th>
+                <th>نام فروشنده</th>
                 <th>شماره تماس</th>
-                <th>ادرس</th>
-                <th>باقیات(دالر)</th>
-                <th>باقیات(افغانی)</th>
-                <th>ویرایش</th>
-                <th>حساب</th>
+                <th>مجموع خرید (kg)</th>
+                <th>باقیات حسابداری (AFN)</th>
+                <th>باقیات (USD)</th>
+                <th>باقیات (AFN)</th>
+                <th>آخرین فعالیت</th>
+                <th class="hideOnPrint">عملیات</th>
               </tr>
               </thead>
               <tbody>
               @if(!isset($accounts))
                 @foreach($sellers as $seller)
-                  
                   <tr>
-                    <td>{{$seller->name}}</td>
+                    <td><strong>{{$seller->name}}</strong><br><small class="text-muted">{{$seller->address}}</small></td>
                     <td>{{$seller->phone}}</td>
-                    <td>{{$seller->address}}</td>
+                    <td><span class="badge badge-light border">{{number_format($seller->total_supplied, 2)}} kg</span></td>
                     
-                    @php($total_af = 0)
-                    @php($total_usd = 0)
-
-                      <?php
-
-                      $total_af = \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount_af') - \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount_af');
-                      $total_usd = \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount');
-
-                      ?>
-  
-                    {{--for dollars balance--}}
-                    @if($total_usd > 0)
-                      <td style="direction: ltr;color: green;">{{ $total_usd}}</td>
-                    @elseif($total_usd < 0)
-                      <td style="direction: ltr;color: red;">{{$total_usd}}</td>
+                    {{-- Accounting Balance --}}
+                    @if($seller->accounting_balance > 0)
+                      <td style="direction: ltr;color: green;" class="font-weight-bold">{{number_format($seller->accounting_balance, 2)}}</td>
+                    @elseif($seller->accounting_balance < 0)
+                      <td style="direction: ltr;color: red;" class="font-weight-bold">{{number_format($seller->accounting_balance, 2)}}</td>
                     @else
-                      <td>{{ $total_usd }}</td>
+                      <td style="direction: ltr;">0.00</td>
                     @endif
-                    {{--end dollars balance--}}
-  
-                    {{--afghani balance--}}
-                    @if($total_af > 0)
-                      <td style="direction: ltr;color: green;">{{$total_af }}</td>
-                    @elseif($total_af < 0)
-                      <td style="direction: ltr;color: red;">{{$total_af }}</td>
+
+                    {{-- Legacy USD Balance --}}
+                    @if($seller->legacy_usd > 0)
+                      <td style="direction: ltr;color: green;">{{number_format($seller->legacy_usd, 2)}}</td>
+                    @elseif($seller->legacy_usd < 0)
+                      <td style="direction: ltr;color: red;">{{number_format($seller->legacy_usd, 2)}}</td>
                     @else
-                      <td>{{ $total_af }}</td>
+                      <td style="direction: ltr;">0.00</td>
                     @endif
-                    
+
+                    {{-- Legacy AFN Balance --}}
+                    @if($seller->legacy_af > 0)
+                      <td style="direction: ltr;color: green;">{{number_format($seller->legacy_af, 2)}}</td>
+                    @elseif($seller->legacy_af < 0)
+                      <td style="direction: ltr;color: red;">{{number_format($seller->legacy_af, 2)}}</td>
+                    @else
+                      <td style="direction: ltr;">0.00</td>
+                    @endif
+
                     <td>
-                      <a href="/dashboard/string-seller/{{$seller->id}}/edit"
-                         class="btn btn-sm btn-primary hideOnPrint">ویرایش</a>
+                        <small>{{ $seller->last_activity ? \Carbon\Carbon::parse($seller->last_activity)->format('Y-m-d') : 'بدون فعالیت' }}</small>
                     </td>
                     
-                    <td>
-                      <a href="/dashboard/string-seller-payments/{{$seller->id}}"
-                         class="btn btn-sm btn-primary hideOnPrint">حساب</a>
+                    <td class="hideOnPrint">
+                      <div class="btn-group">
+                        <a href="/dashboard/string-seller/{{$seller->id}}/edit"
+                           class="btn btn-xs btn-primary" title="ویرایش"><i class="fa fa-edit"></i></a>
+                        <a href="/dashboard/string-seller-payments/{{$seller->id}}"
+                           class="btn btn-xs btn-info" title="حساب میراثی"><i class="fa fa-list"></i></a>
+                        <a href="{{ route('accounting.reports.account_ledger', ['account_id' => 1]) }}?party_type=App\StringSeller&party_id={{$seller->id}}" 
+                           class="btn btn-xs btn-success" title="صورت حساب مالی"><i class="fa fa-calculator"></i></a>
+                      </div>
                     </td>
-                  
                   </tr>
                 @endforeach
               @else

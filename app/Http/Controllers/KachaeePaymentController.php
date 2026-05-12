@@ -21,24 +21,23 @@ class KachaeePaymentController extends Controller
         $this->accountingService = $accountingService;
     }
 
-    private function postPaymentToAccounting($payment)
+    private function postPaymentToAccounting($payment, $overrides = [])
     {
         try {
-            $team = Kachaee::find($payment->team_id);
-            $isUsd = $payment->amount > 0;
-            $amount = $isUsd ? $payment->amount : $payment->amount_af;
-            $rate = $isUsd ? ($payment->dollar_rate ?? 1) : 1;
+            $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            $rate = $payment->dollar_rate ?? 1;
 
-            $this->accountingService->postAutoTransaction('kachaee_payment', $payment->type, [
+            $this->accountingService->postAutoTransaction('payment', $mKey, array_merge([
                 'date' => $payment->date,
                 'amount' => $amount,
                 'exchange_rate' => $rate,
                 'party_type' => 'App\Kachaee',
                 'party_id' => $payment->team_id,
                 'reference' => 'KCH-' . $payment->id,
-                'description' => "پرداخت بخش کچایی: " . ($team->name ?? 'N/A') . " - " . $payment->description,
+                'description' => "پرداخت بخش کچایی: " . $payment->description,
                 'source_id' => $payment->id,
-            ]);
+            ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Kachaee Payment #" . $payment->id . ": " . $e->getMessage());
         }
@@ -115,7 +114,10 @@ class KachaeePaymentController extends Controller
             $payed->save();
 
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $team = Kachaee::find($request->team_id);
@@ -145,7 +147,13 @@ class KachaeePaymentController extends Controller
         $credit_af = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -164,7 +172,13 @@ class KachaeePaymentController extends Controller
         $credit_us = KachaeePayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
         $credit_af = KachaeePayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
         $kachaee_numbers = CarpetRepair::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['kachaee_number']);
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
     }
 
     /**
@@ -210,7 +224,10 @@ class KachaeePaymentController extends Controller
 
             // Re-post
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $team = Kachaee::find($request->team_id);

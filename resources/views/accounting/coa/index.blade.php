@@ -60,7 +60,7 @@
                             <th class="border-0 py-3 px-4">کد حساب</th>
                             <th class="border-0 py-3">نام حساب</th>
                             <th class="border-0 py-3">نوعیت</th>
-                            <th class="border-0 py-3 text-center">بیلانس نارمل</th>
+                            <th class="border-0 py-3 text-right">بیلانس فعلی (Trial Balance)</th>
                             <th class="border-0 py-3 text-center">ارز</th>
                             <th class="border-0 py-3 text-right px-4">عملیات</th>
                         </tr>
@@ -68,8 +68,16 @@
                     <tbody>
                         @foreach($accounts as $acc)
                         <tr>
-                            <td class="py-3 px-4 font-weight-bold">{{ $acc->account_code }}</td>
-                            <td class="py-3">{{ $acc->account_name }}</td>
+                            <td class="py-3 px-4">
+                                <span class="font-weight-bold">{{ $acc->account_code }}</span>
+                                @if($acc->is_protected)
+                                    <i class="feather icon-lock text-danger ml-1" title="حساب سیستمی (محافظت شده)"></i>
+                                @endif
+                            </td>
+                            <td class="py-3">
+                                <strong>{{ $acc->account_name }}</strong>
+                                <br><small class="text-muted">{{ $acc->normal_balance == 'debit' ? 'دیبت' : 'کریدت' }} نارمل</small>
+                            </td>
                             <td class="py-3">
                                 @php
                                     $typeColors = ['Asset' => 'badge-light-success', 'Liability' => 'badge-light-danger', 'Equity' => 'badge-light-primary', 'Revenue' => 'badge-light-info', 'Expense' => 'badge-light-warning'];
@@ -78,12 +86,24 @@
                                     {{ $acc->account_type }}
                                 </span>
                             </td>
-                            <td class="py-3 text-center">{{ $acc->normal_balance == 'debit' ? 'دیبت' : 'کریدت' }}</td>
-                            <td class="py-3 text-center">{{ $acc->currency }}</td>
+                            <td class="py-3 text-right">
+                                <span class="font-weight-bold {{ $acc->balance > 0 ? 'text-success' : ($acc->balance < 0 ? 'text-danger' : 'text-muted') }}" dir="ltr">
+                                    {{ number_format($acc->balance, 2) }}
+                                </span>
+                            </td>
+                            <td class="py-3 text-center">
+                                <span class="badge badge-dark px-2">{{ $acc->currency }}</span>
+                            </td>
                             <td class="py-3 text-right px-4">
-                                <a href="{{ route('accounting.coa.edit', $acc->id) }}" class="btn btn-sm btn-icon btn-outline-primary rounded-circle border-0 mr-2" title="ویرایش">
-                                    <i class="feather icon-edit-2"></i>
-                                </a>
+                                <div class="btn-group">
+                                    <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $acc->id]) }}" class="btn btn-sm btn-outline-info mr-2" title="مشاهده صورت حساب (Ledger)">
+                                        <i class="feather icon-file-text"></i> صورت حساب
+                                    </a>
+                                    
+                                    <a href="{{ route('accounting.coa.edit', $acc->id) }}" class="btn btn-sm btn-outline-primary" title="ویرایش">
+                                        <i class="feather icon-edit-2"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @endforeach

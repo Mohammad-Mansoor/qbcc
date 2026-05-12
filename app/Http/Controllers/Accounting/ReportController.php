@@ -79,36 +79,48 @@ class ReportController extends Controller
     public function accountLedger(Request $request)
     {
         $accountId = $request->account_id;
+        $sourceId = $request->source_id;
+        $sourceType = $request->source_type;
+        if ($sourceType == 'ORD') $sourceType = 'App\CustomerOrderDetails';
         $startDate = $request->start_date ?? date('Y-m-01');
         $endDate = $request->end_date ?? date('Y-m-d');
 
-        $account = ChartOfAccount::find($accountId);
+        $account = $accountId ? ChartOfAccount::find($accountId) : null;
         $accounts = ChartOfAccount::orderBy('account_code')->get();
 
         $entries = [];
         $openingBalance = 0;
 
-        if ($accountId) {
-            // 1. Calculate Opening Balance
-            $opening = DB::table('ledger_entries as le')
+        // If filtering by source (e.g. from the Order screen), we don't necessarily need an account_id
+        if ($accountId || ($sourceId && $sourceType)) {
+            $query = DB::table('ledger_entries as le')
                 ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select(DB::raw('SUM(le.debit - le.credit) as balance'))
-                ->where('le.account_id', $accountId)
-                ->where('lt.date', '<', $startDate)
-                ->where('lt.status', 'posted')
-                ->first();
-            
-            $openingBalance = $opening->balance ?? 0;
-            if ($account->normal_balance == 'credit') {
-                $openingBalance = -$openingBalance;
+                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.debit', 'le.credit', 'le.account_id');
+
+            if ($accountId) {
+                // 1. Calculate Opening Balance for Account
+                $opening = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->select(DB::raw('SUM(le.debit - le.credit) as balance'))
+                    ->where('le.account_id', $accountId)
+                    ->where('lt.date', '<', $startDate)
+                    ->where('lt.status', 'posted')
+                    ->first();
+                
+                $openingBalance = $opening->balance ?? 0;
+                if ($account && $account->normal_balance == 'credit') {
+                    $openingBalance = -$openingBalance;
+                }
+                
+                $query->where('le.account_id', $accountId);
             }
 
-            // 2. Get Transactions for the period
-            $entries = DB::table('ledger_entries as le')
-                ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.debit', 'le.credit')
-                ->where('le.account_id', $accountId)
-                ->whereBetween('lt.date', [$startDate, $endDate])
+            if ($sourceId && $sourceType) {
+                $query->where('lt.source_type', $sourceType)
+                      ->where('lt.source_id', $sourceId);
+            }
+
+            $entries = $query->whereBetween('lt.date', [$startDate, $endDate])
                 ->where('lt.status', 'posted')
                 ->orderBy('lt.date')
                 ->orderBy('lt.id')
@@ -162,13 +174,66 @@ class ReportController extends Controller
         $liabilities = $this->getAccountTypeBalance('Liability', null, $endDate);
         $equity = $this->getAccountTypeBalance('Equity', null, $endDate);
 
-        // P&L Net Profit for the year to date needs to be added to Equity
-        $yearStart = date('Y-01-01', strtotime($endDate));
-        $revenue = $this->getAccountTypeBalance('Revenue', $yearStart, $endDate);
-        $expenses = $this->getAccountTypeBalance('Expense', $yearStart, $endDate);
+        // P&L Lifetime Net Profit up to the end date ensures the Balance Sheet stays balanced
+        // (Assets = Liabilities + Equity + Lifetime Profit)
+        $revenue = $this->getAccountTypeBalance('Revenue', null, $endDate);
+        $expenses = $this->getAccountTypeBalance('Expense', null, $endDate);
         $currentNetProfit = $revenue->sum('balance') - $expenses->sum('balance');
 
         return view('accounting.reports.balance_sheet', compact('assets', 'liabilities', 'equity', 'currentNetProfit', 'endDate'));
+    }
+
+    /**
+     * Advanced Reports (Dari Afghanistan)
+     */
+
+    public function comparativePL(Request $request)
+    {
+        $startDate = $request->start_date ?? date('Y-01-01');
+        $endDate = $request->end_date ?? date('Y-m-d');
+        
+        $data = $this->analyticsService->getComparativePL($startDate, $endDate);
+        
+        return view('accounting.reports.comparative_pl', array_merge($data, compact('startDate', 'endDate')));
+    }
+
+    public function inventoryValuation(Request $request)
+    {
+        $date = $request->date ?? date('Y-m-d');
+        $report = $this->analyticsService->getInventoryValuation($date);
+        
+        return view('accounting.reports.inventory_valuation', compact('report', 'date'));
+    }
+
+    public function fxExposure(Request $request)
+    {
+        $date = $request->date ?? date('Y-m-d');
+        $report = $this->analyticsService->getFXExposure($date);
+        
+        return view('accounting.reports.fx_exposure', compact('report', 'date'));
+    }
+
+    public function costCenterPerformance(Request $request)
+    {
+        $startDate = $request->start_date ?? date('Y-01-01');
+        $endDate = $request->end_date ?? date('Y-m-d');
+        $report = $this->analyticsService->getCostCenterPerformance($startDate, $endDate);
+        
+        return view('accounting.reports.cost_center_performance', compact('report', 'startDate', 'endDate'));
+    }
+
+    public function auditCorrections(Request $request)
+    {
+        $startDate = $request->start_date ?? date('Y-01-01');
+        $endDate = $request->end_date ?? date('Y-m-d');
+        
+        $report = DB::table('ledger_transactions')
+            ->where('reference', 'LIKE', 'REV-%')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date', 'desc')
+            ->get();
+            
+        return view('accounting.reports.audit_corrections', compact('report', 'startDate', 'endDate'));
     }
 
     private function getAccountTypeBalance($type, $startDate, $endDate)

@@ -14,49 +14,75 @@ use App\OfficeCashBook;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Services\AccountingService;
+use App\Services\InventoryService;
 
 class CarpetRepairController extends Controller
 {
+    protected $accountingService;
+    protected $inventoryManager;
+
+    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
+    {
+        $this->accountingService = $accountingService;
+        $this->inventoryManager = $inventoryManager;
+    }
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
     public function return_to_center_from_non_repair($carpet_id){
+        return DB::transaction(function () use ($carpet_id) {
+            $carpet = Carpet::find($carpet_id);
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای نشده ها به دفتر مرکزی بازگشت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+            
+            $carpet->status = 1;
+            $carpet->kachaee_id = null;
+            $carpet->update();
 
-        $carpet = Carpet::find($carpet_id);
-        
-         $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای نشده ها به دفتر مرکزی بازگشت شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        $carpet->status = 1;
-        $carpet->kachaee_id = null;
-        $carpet->update();
+            // Reverse inventory movement
+            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Non-Repair)');
 
-        return back()->with('status','موفقانه بازگشت شد !');
+            return back()->with('status','موفقانه بازگشت شد !');
+        });
     }
+
     public function return_to_center_from_repair($carpet_id){
+        return DB::transaction(function () use ($carpet_id) {
+            $carpet_repair = CarpetRepair::where('carpetId',$carpet_id)->first();
+            
+            if ($carpet_repair) {
+                // Reverse Accounting
+                $this->accountingService->reverseTransactionBySource($carpet_repair->id, 'Returned to center from repair');
+                // Reverse Value Adjustment
+                $this->inventoryService->reverseMovement($carpet_repair, 'Reversing Repair Cost');
+                $carpet_repair->delete();
+            }
+            
+            $carpet = Carpet::find($carpet_id);
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای شده ها به دفتر مرکزی بازگشت شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+            
+            $carpet->status = 1;
+            $carpet->kachaee_id = null;
+            $carpet->update();
 
-        $carpet_repair = CarpetRepair::where('carpetId',$carpet_id)->first();
-    
-        
-        $carpet_repair->delete();
-        $carpet = Carpet::find($carpet_id);
-        
-          $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای شده ها به دفتر مرکزی بازگشت شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        $carpet->status = 1;
-        $carpet->kachaee_id = null;
-        $carpet->update();
+            // Reverse the physical transfer
+            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Repaired)');
 
-        return back()->with('status','موفقانه بازگشت شد !');
+            return back()->with('status','موفقانه بازگشت شد !');
+        });
     }
     public function index()
     {
@@ -84,12 +110,17 @@ class CarpetRepairController extends Controller
     // SENDING CARPET FOR REPAIR
     public function sending_to_repair(Carpet $carpetId){
         $check = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
+        // Fetch warehouse mappings
+        $mapping = DB::table('mapping_rules')->where('transaction_type', 'kachaee_transfer')->first();
+        $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
+        $warehouses = DB::table('warehouses')->get();
+
         if(Auth::user()->role != 'SO' && Auth::user()->role != 'SP'){
             if(!empty($check)){
                 $okay = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
                 if($okay->kachaee_amount != 0 || $okay->kachaee_amount != null){
                     $kachaee_team = Kachaee::all();
-                    return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId'));
+                    return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse'));
                 }else{
                     return back()->with('error','قالین مذکور برای کچایی ثبت نشده است !');
                 }
@@ -98,32 +129,59 @@ class CarpetRepairController extends Controller
             }
         }else{
             $kachaee_team = Kachaee::all();
-            return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId'));
+            return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse'));
         }
 
 
     }
     // REPAIR GETTING DONE
-    public function repair_team_selected(Request  $request,Carpet $carpetId){
-        $carpetId->status = 2;
-        $carpetId->kachaee_id = $request->team_id;
-        $carpetId->update();
-        
-         $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $carpetId->carpet_no . " به کچایی ارسال شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        if($carpetId->agent->contract_type == 'contractional')
-        {
-            return redirect('/dashboard/contract-carpet');
-        }elseif($carpetId->agent->contract_type == 'weight')
-        {
-            return redirect('/dashboard/list-weight');
-        }else{
-            return redirect('/dashboard/list-buy-carpet');
-        }
+    public function repair_team_selected(Request $request, Carpet $carpetId){
+        $request->validate([
+            'team_id' => 'required',
+            'warehouse_id' => 'required'
+        ]);
+
+        return DB::transaction(function () use ($request, $carpetId) {
+            $carpetId->status = 2;
+            $carpetId->kachaee_id = $request->team_id;
+            $carpetId->update();
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $carpetId->carpet_no . " به کچایی ارسال شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            // ERP Integration: Log the transfer to WIP Warehouse
+            // Assume coming from Main Warehouse (1)
+            $this->inventoryService->recordMovement([
+                'item_model' => $carpetId,
+                'type' => 'Kachaee Transfer',
+                'direction' => 'OUT',
+                'quantity' => 1,
+                'warehouse_id' => 1,
+                'created_by' => auth()->id()
+            ]);
+
+            $this->inventoryService->recordMovement([
+                'item_model' => $carpetId,
+                'type' => 'Kachaee Transfer',
+                'direction' => 'IN',
+                'quantity' => 1,
+                'warehouse_id' => $request->warehouse_id,
+                'created_by' => auth()->id()
+            ]);
+            
+            if($carpetId->agent->contract_type == 'contractional')
+            {
+                return redirect('/dashboard/contract-carpet');
+            }elseif($carpetId->agent->contract_type == 'weight')
+            {
+                return redirect('/dashboard/list-weight');
+            }else{
+                return redirect('/dashboard/list-buy-carpet');
+            }
+        });
     }
 
     /**
@@ -143,7 +201,15 @@ class CarpetRepairController extends Controller
         } else {
             $KachaeeNo = 'KCH-'.sprintf('%01d'  , '1');
         }
-        return view('carpet-repair.create',compact('id','KachaeeNo'));
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'kachaee_repair_cost')->first();
+        $defaultAccount = $mapping ? $mapping->debit_account_id : 1;
+        $currency = \App\ExchangeRate::latest()->first()->rate ?? 1;
+
+        return view('carpet-repair.create',compact('id','KachaeeNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency'));
     }
 
     /**
@@ -154,20 +220,52 @@ class CarpetRepairController extends Controller
      */
     public function store(Request $request, CarpetRepair $carpetRepair)
     {
+        return DB::transaction(function () use ($request, $carpetRepair) {
+            $data = $this->validAll();
 
-        $data = $this->validAll();
-        $carpetRepair->create($data);
-        $finish = Carpet::where('carpet_id','=',$request->carpetId)->first();
-        
-          $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $finish->carpet_no . " کچایی شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        $finish->status = 12;
-        $finish->update();
-        return redirect('/dashboard/carpet-repair')->with('status',' مراحل ترمیم موفقانه ثبت شد');
+            // Strict Currency Processing
+            $currency = $request->currency_code ?? 'AFN';
+            if ($currency == 'USD') {
+                $base_amount = $request->total_price;
+                $rate = 1;
+            } else {
+                $rate = $request->exchange_rate ?? 1;
+                $base_amount = $request->af_total_price / ($rate > 0 ? $rate : 1);
+            }
+
+            $data['currency_code'] = $currency;
+            $data['exchange_rate'] = $rate;
+            $data['base_currency_amount'] = $base_amount;
+
+            $record = $carpetRepair->create($data);
+            $finish = Carpet::where('carpet_id','=',$request->carpetId)->first();
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $finish->carpet_no . " کچایی شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+            
+            $finish->status = 12;
+            $finish->update();
+
+            // ERP Integration: Capitalize Cost and Post Payable
+            $this->inventoryManager->recordProductionService($record, $finish, [
+                'type' => 'KACHAEE',
+                'mapping_key' => 'kachaee_repair_cost',
+                'amount' => $base_amount,
+                'date' => $request->date,
+                'party_type' => 'App\Kachaee',
+                'party_id' => $request->team_id,
+                'reference' => $request->kachaee_number,
+                'description' => "مصرف ترمیم قالین نمبر " . $finish->carpet_no . " - " . $request->description,
+                'warehouse_id' => $finish->warehouse_id ?? 1,
+                'override_debit_account_id' => $request->account_id,
+                'override_credit_account_id' => $request->override_credit_account_id
+            ]);
+
+            return redirect('/dashboard/carpet-repair')->with('status',' مراحل ترمیم موفقانه ثبت شد');
+        });
     }
 
     /**
@@ -189,7 +287,14 @@ class CarpetRepairController extends Controller
      */
     public function edit(CarpetRepair $carpetRepair)
     {
-        return view('carpet-repair.edit',compact('carpetRepair'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'kachaee_repair_cost')->first();
+        $defaultAccount = $mapping ? $mapping->debit_account_id : 1;
+        $currency = \App\ExchangeRate::latest()->first()->rate ?? 1;
+
+        return view('carpet-repair.edit',compact('carpetRepair', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency'));
     }
 
     /**
@@ -201,21 +306,53 @@ class CarpetRepairController extends Controller
      */
     public function update(Request $request, CarpetRepair $carpetRepair)
     {
+        return DB::transaction(function () use ($request, $carpetRepair) {
+            $data = $this->validAll();
+            
+            // Reversals
+            $this->accountingService->reverseTransactionBySource($carpetRepair->id, 'Kachaee Repair Edited');
+            $this->inventoryService->reverseMovement($carpetRepair, 'Reversing Repair Cost for Edit');
 
-        $data = $this->validAll();
-        
-        $carpet = Carpet::find($request->carpetId);
+            // Strict Currency Processing
+            $currency = $request->currency_code ?? 'AFN';
+            if ($currency == 'USD') {
+                $base_amount = $request->total_price;
+                $rate = 1;
+            } else {
+                $rate = $request->exchange_rate ?? 1;
+                $base_amount = $request->af_total_price / ($rate > 0 ? $rate : 1);
+            }
 
-         $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = "کچایی قالین نمبر  " . $carpet->carpet_no . " ویرایش شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-        
-        $carpetRepair->update($data);
+            $data['currency_code'] = $currency;
+            $data['exchange_rate'] = $rate;
+            $data['base_currency_amount'] = $base_amount;
+            
+            $carpetRepair->update($data);
 
-        return redirect('/dashboard/carpet-repair')->with('status', ' مراحل ترمیم موفقانه بروز شد');
+            $carpet = Carpet::find($request->carpetId);
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = "کچایی قالین نمبر  " . $carpet->carpet_no . " ویرایش شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+            
+            // ERP Integration: Re-post Value addition and accounting
+            $this->inventoryManager->recordProductionService($carpetRepair, $carpet, [
+                'type' => 'KACHAEE_EDIT',
+                'mapping_key' => 'kachaee_repair_cost',
+                'amount' => $base_amount,
+                'date' => $request->date,
+                'party_type' => 'App\Kachaee',
+                'party_id' => $request->team_id,
+                'reference' => $request->kachaee_number,
+                'description' => "ویرایش مصرف ترمیم قالین نمبر " . $carpet->carpet_no . " - " . $request->description,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'override_debit_account_id' => $request->account_id,
+                'override_credit_account_id' => $request->override_credit_account_id
+            ]);
 
+            return redirect('/dashboard/carpet-repair')->with('status', ' مراحل ترمیم موفقانه بروز شد');
+        });
     }
 
     /**
@@ -239,6 +376,9 @@ class CarpetRepairController extends Controller
             'carpetId' => 'required',
             'team_id' => 'required',
             'description' => 'required',
+            'account_id' => 'nullable',
+            'currency_code' => 'nullable',
+            'exchange_rate' => 'nullable',
         ]);
     }
 

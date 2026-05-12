@@ -20,13 +20,26 @@ use App\CarpetMaterial;
 use App\MaterialType;
 use App\PakingList;
 use App\Quality;
+use App\Warehouse;
+use App\MappingRule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Services\InventoryTransactionManager;
+use App\Services\AccountSelectionService;
+
 class CarpetsController extends Controller
 {
+    protected $inventoryManager;
+    protected $accountSelectionService;
+
+    public function __construct(InventoryTransactionManager $inventoryManager, AccountSelectionService $accountSelectionService)
+    {
+        $this->inventoryManager = $inventoryManager;
+        $this->accountSelectionService = $accountSelectionService;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -50,6 +63,7 @@ class CarpetsController extends Controller
 
     public function index()
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
 
         $carpets  = DB::table('carpets')
             ->join('agents','carpets.agent_id','agents.agent_id')
@@ -79,7 +93,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -93,12 +107,14 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $editCarpet = '';
 
-        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'warehouses', 'inventoryAccounts'));
     }
 
 
     public function show_all_contract_carpet()
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
         $carpets  = DB::table('carpets')
             ->join('agents','carpets.agent_id','agents.agent_id')
             ->join('users','agents.user_id','users.id')
@@ -109,7 +125,7 @@ class CarpetsController extends Controller
             ->where('status',0)
             ->where('contract_type','contractional')
             ->orderBy('parcha_number','DESC')
-            ->get();
+            ->paginate(50);
 
 
 
@@ -129,7 +145,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -145,11 +161,13 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet', 'warehouses', 'inventoryAccounts'));
     }
 
     public function search_contract_carpet(Request $request)
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
 
         $search = $request->search;
 
@@ -167,7 +185,7 @@ class CarpetsController extends Controller
             ->orWhere('qualities.quality', 'like', '%' . $search . '%')
 
 
-            ->get();
+            ->paginate(50);
 
 
 
@@ -188,7 +206,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -203,13 +221,15 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet','search'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet','search', 'warehouses', 'inventoryAccounts'));
 
     }
 
 
     public function search_contract_carpet_by_agent(Request $request)
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
 
         $agent_id = $request->agent_id;
 
@@ -222,7 +242,7 @@ class CarpetsController extends Controller
 
             ->where('carpets.status',0)
             ->where('carpets.agent_id',$agent_id)
-            ->get();
+            ->paginate(50);
 
 
         $tar_pakhta  = DB::table('carpet_materials')
@@ -274,7 +294,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -289,7 +309,8 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet','agent_id','tar_pakhta','tar_pashm','tar_abrishm','afg_money','usd_money'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet','agent_id','tar_pakhta','tar_pashm','tar_abrishm','afg_money','usd_money', 'warehouses', 'inventoryAccounts'));
 
     }
 
@@ -310,7 +331,7 @@ class CarpetsController extends Controller
          if ($upd){
              return response()->json(['status' => 'success']);
          }else{
-             return response()->json(['error' => 'success']);
+              return response()->json(['error' => 'success']);
          }
 
 
@@ -349,7 +370,7 @@ class CarpetsController extends Controller
             ->orWhereHas('quality', function ($query) use ($search) {
                 $query->where('quality', 'like', '%' . $search . '%');
             })
-            ->get();
+            ->paginate(50);
 
         $agents = Agents::all();
         $carpet_types = CarpetType::all();
@@ -358,7 +379,7 @@ class CarpetsController extends Controller
 
     public function all_carpets_view()
     {
-        $carpets = Carpet::whereNotIn('status', [6,0])->get();
+        $carpets = Carpet::whereNotIn('status', [6,0])->paginate(50);
         $agents = Agents::all();
         $carpet_types = CarpetType::all();
         return view('carpets.all-carpets', compact('carpets', 'agents', 'carpet_types'));
@@ -367,43 +388,56 @@ class CarpetsController extends Controller
     public function filter_based_carpet_type(Request $request)
     {
         $carpet_type = $request->carpet_type;
-        $carpets = Carpet::where('status', 1)->where('type_id', $carpet_type)->get();
+        $carpets = Carpet::where('status', 1)->where('type_id', $carpet_type)->paginate(50);
         $agents = Agents::all();
         $carpet_types = CarpetType::all();
         return view('carpets.all-carpets', compact('carpets', 'agents', 'carpet_types'));
-
     }
 
 
-   public
-    function carpet_stock()
+    public function carpet_stock(Request $request)
     {
-        $carpets = Carpet::where('status', 5)->orderBY('carpet_no', 'DESC')->paginate(50);
-        $carpet_types = CarpetType::all();
-        $invoices = Invoice::orderBy('id','DESC')->get();
-        $packing_list = PakingList::orderBy('id','DESC')->get();
+        $query = Carpet::where('status', 5);
 
-        return view('carpet-stock.carpet-stock', compact('carpets', 'carpet_types','invoices','packing_list'));
+        if ($request->has('warehouse_id') && $request->warehouse_id != '') {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+
+        $carpets = $query->with(['type', 'warehouse', 'carpet_order'])->orderBy('carpet_no', 'DESC')->paginate(50);
+        
+        $data = $this->getStockDependencies();
+        $data['carpets'] = $carpets;
+
+        return view('carpet-stock.carpet-stock', $data);
     }
 
 
     public function filter_ba_asas_type(Request $request)
     {
-        $carpets = Carpet::where('status', 5)->where('type_id', $request->carpet_type)->get();
-        $carpet_types = CarpetType::all();
-        return view('carpet-stock.carpet-stock', compact('carpets', 'carpet_types'));
+        $carpets = Carpet::where('status', 5)->where('type_id', $request->carpet_type)->paginate(50);
+        
+        $data = $this->getStockDependencies();
+        $data['carpets'] = $carpets;
+
+        return view('carpet-stock.carpet-stock', $data);
     }
 
 
     public function carpet_stock_details($carpet_id)
     {
-        $carpet = Carpet::find($carpet_id);
+        $carpet = Carpet::with(['type', 'warehouse', 'quality'])->find($carpet_id);
         $checkBook = CarpetCheckBook::where('carpet_id', $carpet_id)->first();
 
         $kachaee_expense = CarpetRepair::where('carpetId', $carpet_id)->first();
         $wash_expense = CarpetWash::where('carpetId', $carpet_id)->sum('total_price');
-        $finishing_expense = FinishingWork::where('carpetId', $carpet_id)->get();
-        return view('carpet-stock.carpet-stock-details', compact('carpet', 'checkBook', 'kachaee_expense', 'wash_expense', 'finishing_expense'));
+        $finishing_expense = FinishingWork::with('category')->where('carpetId', $carpet_id)->get();
+        
+        // Fetch movement log based on carpet number in description
+        $history = Activity::where('description', 'like', '%' . $carpet->carpet_no . '%')
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
+
+        return view('carpet-stock.carpet-stock-details', compact('carpet', 'checkBook', 'kachaee_expense', 'wash_expense', 'finishing_expense', 'history'));
     }
 
     public function carpet_stock_search(Request $request)
@@ -417,23 +451,28 @@ class CarpetsController extends Controller
             ->orWhereHas('type', function ($query) use ($search) {
                 $query->where('carpet_type', 'like', '%' . $search . '%');
             })
-            ->get();
-        $carpet_types = CarpetType::all();
+            ->paginate(50);
         
-             $invoices = Invoice::orderBy('id','DESC')->get();
-        $packing_list = PakingList::orderBy('id','DESC')->get();
-        return view('carpet-stock.carpet-stock', compact('carpets', 'carpet_types','search','invoices','packing_list'));
+        $data = $this->getStockDependencies();
+        $data['carpets'] = $carpets;
+        $data['search'] = $search;
+
+        return view('carpet-stock.carpet-stock', $data);
     }
 
     public function stock_search_date_range(Request $request)
     {
         $from_date = $request->from_date;
-
         $to_date = $request->to_date;
 
-        $carpets = Carpet::where('status', 5)->whereBetween('date', [$from_date, $to_date])->get();
-        $carpet_types = CarpetType::all();
-        return view('carpet-stock.carpet-stock', compact('carpets','carpet_types','from_date','to_date'));
+        $carpets = Carpet::where('status', 5)->whereBetween('date', [$from_date, $to_date])->paginate(50);
+        
+        $data = $this->getStockDependencies();
+        $data['carpets'] = $carpets;
+        $data['from_date'] = $from_date;
+        $data['to_date'] = $to_date;
+
+        return view('carpet-stock.carpet-stock', $data);
     }
 
     /**
@@ -456,7 +495,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -508,7 +547,7 @@ class CarpetsController extends Controller
 
         $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -523,8 +562,14 @@ class CarpetsController extends Controller
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
+        $warehouses = Warehouse::all();
+        $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
+        $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+
         $editCarpet = '';
-        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet'));
+        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
     }
 
     public function show_all_weight_carpet()
@@ -541,7 +586,7 @@ class CarpetsController extends Controller
             ->where('status',0)
             ->where('contract_type','weight')
             ->orderBy('parcha_number','DESC')
-            ->get();
+            ->paginate(50);
 
 
 
@@ -561,7 +606,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -578,7 +623,13 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet'));
+        $warehouses = Warehouse::all();
+        $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
+        $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+
+        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'agents_contract_carpet', 'orders', 'types', 'employees', 'all', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
     }
 
 
@@ -600,7 +651,7 @@ class CarpetsController extends Controller
             ->orWhere('qualities.quality', 'like', '%' . $search . '%')
 
 
-            ->get();
+            ->paginate(50);
 
 
 //        $lastId = Carpet::latest()->first();
@@ -616,7 +667,7 @@ class CarpetsController extends Controller
 
         $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -631,7 +682,13 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $editCarpet = '';
         $all = '';
-        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'all','search'));
+        $warehouses = Warehouse::all();
+        $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
+        $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+
+        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'all','search', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
     }
 
     public function search_weight_carpet_by_agent(Request $request)
@@ -648,7 +705,7 @@ class CarpetsController extends Controller
             ->where('carpets.status',0)
             ->where('carpets.agent_id',$agent_id)
 
-            ->get();
+            ->paginate(50);
 
 
         $tar_pakhta  = DB::table('carpet_materials')
@@ -699,7 +756,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -714,7 +771,13 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $editCarpet = '';
         $all = '';
-        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'all','tar_pakhta','tar_pashm','tar_abrishm','afg_money','usd_money'));
+        $warehouses = Warehouse::all();
+        $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
+        $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+
+        return view('carpets.list-weight', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'all','tar_pakhta','tar_pashm','tar_abrishm','afg_money','usd_money', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
     }
 
 
@@ -802,7 +865,7 @@ class CarpetsController extends Controller
 
          $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -818,7 +881,13 @@ class CarpetsController extends Controller
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $qualities = Quality::all();
-        return view('carpets.list-weight', compact('carpets', 'editCarpet', 'agents', 'orders', 'types', 'employees', 'AccountNo', 'qualities'));
+        $warehouses = Warehouse::all();
+        $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
+        $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+
+        return view('carpets.list-weight', compact('carpets', 'editCarpet', 'agents', 'orders', 'types', 'employees', 'AccountNo', 'qualities', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
     }
 
     public function UpdatetWeight(Request $request, $carpet_id)
@@ -833,7 +902,9 @@ class CarpetsController extends Controller
         }
         $data = $this->UpdateValid();
 
+        $oldWarehouse = $carpet->warehouse_id; $oldAccount = $carpet->override_inventory_account_id;
         $update = Carpet::where('carpet_id', $carpet_id)->update($data);
+        if ($update) { $this->syncAccounting(Carpet::find($carpet_id), $oldWarehouse, $oldAccount); }
         if ($update) {
             return redirect('/dashboard/list-weight')->with('status', 'پارچه موفقانه بروز شد !');
         } else {
@@ -846,22 +917,30 @@ class CarpetsController extends Controller
 
 
     public function pass_parcha(Request $request){
-
-
         $carpet = Carpet::find($request->carpet_id);
-        $carpet->carpet_no = $request->carpet_no;
-        $carpet->width = $request->width;
-        $carpet->height = $request->height;
-        $carpet->area = $request->area;
-        $carpet->map_number = $request->map_number;
-        $carpet->date = $request->date;
-        $carpet->end_date = $request->end_date;
+        if (!$carpet) return response()->json(['status' => 'error', 'message' => 'Carpet not found']);
+
         $carpet->status = 1;
         $carpet->update();
 
+        $accountingService = resolve(\App\Services\AccountingService::class);
+        $accountingService->failIfLocked(now()->format('Y-m-d'));
+
+        try {
+            $this->inventoryManager->processProductionCompletion($carpet, [
+                'quantity' => 1,
+                'amount' => $carpet->total_price,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'date' => now()->format('Y-m-d'),
+                'reference' => $carpet->parcha_number,
+                'description' => "Production Completion: #" . $carpet->parcha_number,
+                'override_debit_account_id' => $carpet->override_inventory_account_id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("ERP Sync failed: " . $e->getMessage());
+        }
 
         return response()->json(['status' => 'success']);
-
     }
 
 
@@ -869,6 +948,7 @@ class CarpetsController extends Controller
 
     public function listBuyCarpet()
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
         $carpets = Carpet::orderBy('carpet_no', 'DESC')->with('agent')->whereIn('status', [1, 12])->paginate(20);
 
         $lastId = Carpet::max('carpet_no');
@@ -885,11 +965,13 @@ class CarpetsController extends Controller
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
         $editCarpet = '';
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'warehouses', 'inventoryAccounts'));
     }
 
     public function show_all_buy_carpet()
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
         $carpets = Carpet::orderBy('carpet_no', 'DESC')->with('agent')->whereIn('status', [1, 12])->get();
         $lastId = Carpet::max('carpet_no');
         if ($lastId) {
@@ -904,12 +986,14 @@ class CarpetsController extends Controller
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'all'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'all', 'warehouses', 'inventoryAccounts'));
     }
 
 
     public function search_buy_carpet(Request $request)
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
         $search = $request->search;
 
         $carpets = Carpet::whereIn('status', [1, 12])
@@ -948,7 +1032,8 @@ class CarpetsController extends Controller
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet', 'warehouses', 'inventoryAccounts'));
     }
 
 
@@ -969,20 +1054,32 @@ class CarpetsController extends Controller
         }
 
         $data['carpet_image'] = $image;
+        
+        // Wrap legacy creation and ERP logic in a single atomic transaction via the Manager
+        $carpet = new Carpet($data);
+        
+        $this->inventoryManager->processPurchase($carpet, [
+            'quantity' => 1,
+            'unit_cost' => $carpet->total_price,
+            'warehouse_id' => $request->warehouse_id ?? 1,
+            'date' => $carpet->date ?? now()->format('Y-m-d'),
+            'total_amount' => $carpet->total_price,
+            'party_type' => 'App\Agents',
+            'party_id' => $carpet->agent_id,
+            'reference' => $carpet->carpet_no,
+            'description' => "Direct Purchase of Carpet #" . $carpet->carpet_no,
+            'override_debit_account_id' => $request->override_inventory_account_id,
+        ], function () use ($carpet, $request) {
+            $carpet->save();
+            
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $request->carpet_no . " در سیستم اضافه شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+        });
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $request->carpet_no . " در سیستم اضافه شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
-
-//        }
-        $carpet = Carpet::create($data);
-        if ($carpet) {
-            return redirect('/dashboard/list-buy-carpet')->with('status', 'پارچه موفقانه ثبت شد!');;
-        } else {
-            return redirect('/dashboard/list-buy-carpet')->with('error', 'مشکل در سرور وجود داره!');
-        }
+        return redirect('/dashboard/list-buy-carpet')->with('status', 'پارچه موفقانه ثبت شد!');
     }
 
     public function printBuyCarpet($id)
@@ -1021,6 +1118,7 @@ class CarpetsController extends Controller
 
     public function editBuyCarpet($id)
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
 
         $editCarpet = Carpet::find($id);
         $carpets = Carpet::orderBy('carpet_no', 'DESC')->with('agent')->whereIn('status', [1, 12])->paginate(20);
@@ -1037,7 +1135,8 @@ class CarpetsController extends Controller
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
         $qualities = Quality::all();
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities', 'warehouses', 'inventoryAccounts'));
     }
 
     function UpdatetBuyCarpet(Request $request, $carpet_id)
@@ -1074,7 +1173,9 @@ class CarpetsController extends Controller
 
 
 
+        $oldWarehouse = $carpet->warehouse_id; $oldAccount = $carpet->override_inventory_account_id;
         $update = Carpet::where('carpet_id', $carpet_id)->update($data);
+        if ($update) { $this->syncAccounting(Carpet::find($carpet_id), $oldWarehouse, $oldAccount); }
         if ($update) {
             return redirect('/dashboard/list-buy-carpet')->with('status', 'پارچه موفقانه بروز شد !');
         } else {
@@ -1108,13 +1209,28 @@ class CarpetsController extends Controller
 
         $data['carpet_image'] = $image;
 
-        $carpet = Carpet::create($data);
+        // Wrap legacy creation and ERP logic in a single atomic transaction via the Manager
+        $carpet = new Carpet($data);
+        
+        $this->inventoryManager->processPurchase($carpet, [
+            'quantity' => 1,
+            'unit_cost' => $carpet->total_price,
+            'warehouse_id' => $request->warehouse_id ?? 1,
+            'date' => $carpet->date ?? now()->format('Y-m-d'),
+            'total_amount' => $carpet->total_price,
+            'party_type' => 'App\Agents',
+            'party_id' => $carpet->agent_id,
+            'reference' => $carpet->carpet_no,
+            'description' => "Purchase of Carpet #" . $carpet->carpet_no,
+        ], function () use ($carpet, $request) {
+            $carpet->save();
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $request->parcha_number . " در سیستم اضافه شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر  " . $request->parcha_number . " در سیستم اضافه شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+        });
 
         if ($carpet) {
             if ($request->agent_carpet) {
@@ -1175,6 +1291,7 @@ class CarpetsController extends Controller
      */
     public function edit($id)
     {
+        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
 
         $editCarpet = Carpet::find($id);
 
@@ -1207,7 +1324,7 @@ class CarpetsController extends Controller
 
         $lastId = Carpet::where('parcha_number','!=','Null')->latest()->first();
         $ParchaNo = '';
-        if ($lastId->parcha_number) {
+        if ($lastId) {
             $lastId = $lastId->parcha_number;
             $lastId = substr($lastId, -5);
             $lastId++;
@@ -1224,7 +1341,8 @@ class CarpetsController extends Controller
         $employees = AgentEmployee::all();
         $qualities = Quality::all();
 
-        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities'));
+        $warehouses = \App\Warehouse::all();
+        return view('carpets.contract-carpet-list', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities', 'warehouses', 'inventoryAccounts'));
 
 
     }
@@ -1269,7 +1387,9 @@ class CarpetsController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
 
+        $oldWarehouse = $carpet->warehouse_id; $oldAccount = $carpet->override_inventory_account_id;
         $update = $carpet->update($data);
+        if ($update) { $this->syncAccounting($carpet, $oldWarehouse, $oldAccount); }
 
         if ($update) {
             if ($request->agent_carpet) {
@@ -1325,6 +1445,8 @@ class CarpetsController extends Controller
             'type_id' => '',
             'quality_id' => '',
             'status' => '',
+            'warehouse_id' => '',
+            'override_inventory_account_id' => '',
         ]);
     }
 
@@ -1353,8 +1475,62 @@ class CarpetsController extends Controller
             'type_id' => '',
             'quality_id' => '',
             'status' => '',
-
+            'warehouse_id' => '',
+            'override_inventory_account_id' => '',
         ]);
     }
 
+
+    /**
+     * Reverses and re-posts transactions if warehouse or account changed on a posted carpet
+     */
+    private function syncAccounting($carpet, $oldWarehouseId, $oldAccountId)
+    {
+        if ($carpet->status == 1) {
+            if ($carpet->warehouse_id != $oldWarehouseId || $carpet->override_inventory_account_id != $oldAccountId) {
+                try {
+                    $this->inventoryManager->reverseTransactions($carpet, 'Correction: Warehouse/Account change');
+                    if ($carpet->contract_type == 'buy') {
+                        $this->inventoryManager->processPurchase($carpet, [
+                            'quantity' => 1, 'unit_cost' => $carpet->total_price,
+                            'warehouse_id' => $carpet->warehouse_id, 'date' => $carpet->date ?? now()->format('Y-m-d'),
+                            'total_amount' => $carpet->total_price, 'party_type' => 'App\Agents',
+                            'party_id' => $carpet->agent_id, 'reference' => $carpet->carpet_no,
+                            'override_debit_account_id' => $carpet->override_inventory_account_id,
+                        ]);
+                    } else {
+                        $this->inventoryManager->processProductionCompletion($carpet, [
+                            'quantity' => 1, 'amount' => $carpet->total_price,
+                            'warehouse_id' => $carpet->warehouse_id, 'date' => now()->format('Y-m-d'),
+                            'reference' => $carpet->parcha_number,
+                            'override_debit_account_id' => $carpet->override_inventory_account_id,
+                        ]);
+                    }
+                } catch (\Exception $e) { \Log::error("Reversal sync failed: " . $e->getMessage()); }
+            }
+        }
+    }
+
+    private function getStockDependencies()
+    {
+        $carpet_types = CarpetType::all();
+        $warehouses = Warehouse::all();
+        $invoices = Invoice::orderBy('id','DESC')->get();
+        $packing_list = PakingList::orderBy('id','DESC')->get();
+
+        $selectionService = $this->accountSelectionService;
+        $allowedRevenueDebit = $selectionService->getValidAccounts('SALES_REVENUE', 'debit');
+        $allowedRevenueCredit = $selectionService->getValidAccounts('SALES_REVENUE', 'credit');
+        $mappingRevenue = MappingRule::where('mapping_key', 'SALES_REVENUE')->first();
+
+        $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
+        $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
+        $mappingCogs = MappingRule::where('mapping_key', 'SALES_COGS')->first();
+
+        return compact(
+            'carpet_types', 'invoices', 'packing_list', 'warehouses',
+            'allowedRevenueDebit', 'allowedRevenueCredit', 'mappingRevenue',
+            'allowedCogsDebit', 'allowedCogsCredit', 'mappingCogs'
+        );
+    }
 }

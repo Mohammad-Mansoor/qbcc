@@ -6,9 +6,6 @@ use App\Activity;
 use App\DifferentAccount;
 use App\DifferentAccountPayment;
 use App\DifferentAccountTotal;
-use App\OfficeCashBook;
-use App\OfficeCredit;
-use App\OfficeDebit;
 use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -28,15 +25,44 @@ class DifferentAccountPaymentController extends Controller
     {
         try {
             $account = DifferentAccount::find($payment->account_id);
-            $this->accountingService->postAutoTransaction('different_account', $payment->type, [
+            $key = ($payment->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
+
+            $this->accountingService->postAutoTransaction('different_account', $key, [
                 'date' => $payment->date,
-                'amount' => $payment->amount,
+                'amount' => $payment->base_amount,
+                'original_amount' => $payment->amount,
+                'currency_code' => $payment->currency_code,
                 'reference' => 'DIFF-' . $payment->id,
                 'description' => "تراکنش حساب متفرقه: " . ($account->name ?? 'N/A') . " - " . $payment->description,
+                'source_type' => 'DifferentAccountPayment',
                 'source_id' => $payment->id,
             ]);
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Different Account Payment #" . $payment->id . ": " . $e->getMessage());
+        }
+    }
+
+    private function recalculateTotals($accountId)
+    {
+        $totals = DB::table('different_account_payments')
+            ->select('currency_code', 
+                DB::raw("SUM(CASE WHEN type = 'رسید' THEN amount ELSE 0 END) as total_receipts"),
+                DB::raw("SUM(CASE WHEN type = 'گرفت' THEN amount ELSE 0 END) as total_payments")
+            )
+            ->where('account_id', $accountId)
+            ->groupBy('currency_code')
+            ->get();
+
+        DifferentAccountTotal::where('account_id', $accountId)->delete();
+
+        foreach ($totals as $t) {
+            DifferentAccountTotal::create([
+                'account_id' => $accountId,
+                'currency_code' => $t->currency_code,
+                'total' => $t->total_receipts,
+                'paid' => $t->total_payments,
+                'remaining' => $t->total_receipts - $t->total_payments
+            ]);
         }
     }
 
@@ -53,12 +79,11 @@ class DifferentAccountPaymentController extends Controller
             $payment->status = 1;
             $payment->update();
 
-            // Accounting Posting
             $this->postPaymentToAccounting($payment);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " مبلغ " . $payment->amount . " دالر توسط سوپر ادمین تایید و در سیستم مالی ثبت شد ";
+            $activity->description = " مبلغ " . $payment->amount . " " . $payment->currency_code . " توسط سوپر ادمین تایید و در سیستم مالی ثبت شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -70,39 +95,31 @@ class DifferentAccountPaymentController extends Controller
     {
         $payment = DifferentAccountPayment::find($id);
         $payment->delete();
-        return response()->json(['status', 'error']);
+        return response()->json(['status' => 'success']);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric',
+                'currency_code' => 'required',
+                'exchange_rate' => 'required|numeric|min:0.000001',
                 'description' => 'required',
                 'date' => 'required',
                 'type' => 'required',
                 'account_id' => 'required',
             ]);
 
+            if ($data['currency_code'] == 'USD') {
+                $data['exchange_rate'] = 1.000000;
+            }
+            $data['base_amount'] = $data['amount'] / $data['exchange_rate'];
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
             
             $payment = DifferentAccountPayment::create($data);
 
-            // Update Totals
-            $totalUpdate = DifferentAccountTotal::firstOrNew(['account_id' => $request->account_id]);
-            if ($request->type == 'گرفت') {
-                $totalUpdate->paid += $request->amount;
-            } else {
-                $totalUpdate->total += $request->amount;
-            }
-            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-            $totalUpdate->save();
+            $this->recalculateTotals($request->account_id);
 
             if ($payment->status == 1) {
                 $this->postPaymentToAccounting($payment);
@@ -111,7 +128,7 @@ class DifferentAccountPaymentController extends Controller
             $account = DifferentAccount::find($request->account_id);
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " حساب متفرقه: " . $account->name . " مبلغ " . $request->amount . " " . $request->type . " ثبت شد ";
+            $activity->description = " حساب متفرقه: " . $account->name . " مبلغ " . $request->amount . " " . $request->currency_code . " " . $request->type . " ثبت شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -119,67 +136,41 @@ class DifferentAccountPaymentController extends Controller
         });
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\DifferentAccountPayment $differentAccountPayment
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id)
     {
         $paymentEdit = DifferentAccountPayment::find($id);
-        $debits = DifferentAccountPayment::where('type', '=', 'گرفت')->where('account_id', $paymentEdit->account_id)->where('status',1)->sum('amount');
-        $credits = DifferentAccountPayment::where('type', '=', 'رسید')->where('account_id', $paymentEdit->account_id)->where('status',1)->sum('amount');
         $payments = DifferentAccountPayment::where('account_id', $paymentEdit->account_id)->orderBy('created_at','DESC')->paginate(30);
         $account = DifferentAccount::find($paymentEdit->account_id);
-        $total = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->sum('total');
-        return view('different-account.account-payment', compact('account', 'payments', 'total', 'debits', 'credits', 'paymentEdit'));
+        $totals = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->get();
+        return view('different-account.account-payment', compact('account', 'payments', 'totals', 'paymentEdit'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  \App\DifferentAccountPayment $differentAccountPayment
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, DifferentAccountPayment $differentAccountPayment)
     {
         return DB::transaction(function () use ($request, $differentAccountPayment) {
-            $request->validate([
-                'amount' => 'required',
+            $data = $request->validate([
+                'amount' => 'required|numeric',
+                'currency_code' => 'required',
+                'exchange_rate' => 'required|numeric|min:0.000001',
                 'description' => 'required',
                 'date' => 'required',
                 'type' => 'required',
                 'account_id' => 'required'
             ]);
 
-            // Reversal
+            if ($data['currency_code'] == 'USD') {
+                $data['exchange_rate'] = 1.000000;
+            }
+            $data['base_amount'] = $data['amount'] / $data['exchange_rate'];
+
             if ($differentAccountPayment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($differentAccountPayment->id, 'Different Account Record Edited');
             }
 
-            // Update Totals (subtract old)
-            $totalUpdate = DifferentAccountTotal::where('account_id', $request->account_id)->first();
-            if ($differentAccountPayment->type == 'گرفت') {
-                $totalUpdate->paid -= $differentAccountPayment->amount;
-            } else {
-                $totalUpdate->total -= $differentAccountPayment->amount;
-            }
+            $differentAccountPayment->update($data);
 
-            // Update record
-            $differentAccountPayment->update($request->all());
+            $this->recalculateTotals($request->account_id);
 
-            // Add new amounts to totals
-            if ($request->type == 'گرفت') {
-                $totalUpdate->paid += $request->amount;
-            } else {
-                $totalUpdate->total += $request->amount;
-            }
-            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-            $totalUpdate->update();
-
-            // Re-post if approved
             if ($differentAccountPayment->status == 1) {
                 $this->postPaymentToAccounting($differentAccountPayment);
             }
@@ -187,7 +178,7 @@ class DifferentAccountPaymentController extends Controller
             $account = DifferentAccount::find($request->account_id);
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " ویرایش تراکنش حساب متفرقه: " . $account->name . " به مبلغ " . $request->amount;
+            $activity->description = " ویرایش تراکنش حساب متفرقه: " . $account->name . " به مبلغ " . $request->amount . " " . $request->currency_code;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -195,33 +186,19 @@ class DifferentAccountPaymentController extends Controller
         });
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\DifferentAccountPayment $differentAccountPayment
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
         return DB::transaction(function () use ($id) {
             $payment = DifferentAccountPayment::find($id);
+            $accountId = $payment->account_id;
 
-            // Reversal
             if ($payment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Different Account Record Deleted');
             }
 
-            // Update Totals
-            $totalUpdate = DifferentAccountTotal::where('account_id', $payment->account_id)->first();
-            if ($payment->type == 'گرفت') {
-                $totalUpdate->paid -= $payment->amount;
-            } else {
-                $totalUpdate->total -= $payment->amount;
-            }
-            $totalUpdate->remaining = $totalUpdate->total - $totalUpdate->paid;
-            $totalUpdate->update();
-
             $payment->delete();
+            $this->recalculateTotals($accountId);
+
             return response()->json(['status' => 'success']);
         });
     }

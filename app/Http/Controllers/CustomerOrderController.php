@@ -43,19 +43,24 @@ class CustomerOrderController extends Controller
         $data = $request->validate([
             'order_name' => 'required',
             'order_date' => 'required',
-            'customer_id' => 'required',
+            'customer_account_order_id' => 'required', 
+            'customer_id' => 'required', // This is the Master Customer from the dropdown
         ]);
 
-
-        $ord = DB::table('customer_orders')->insertGetId(['order_name' => $request->order_name, 'order_date' => $request->order_date, 'customer_id' => $request->customer_id]);
-
+        $ord = DB::table('customer_orders')->insertGetId([
+            'order_name' => $request->order_name, 
+            'order_date' => $request->order_date, 
+            'customer_id' => $request->customer_account_order_id,
+            'main_customer_id' => $request->customer_id,
+            // Fallback for old column
+            'customer_order' => $request->order_name
+        ]);
 
         if ($ord) {
             return redirect()->back()->with('status', 'Order Successfully Added!');
         } else {
-            return redirect()->back()->with('error', 'Internel Server Error!');
+            return redirect()->back()->with('error', 'Internal Server Error!');
         }
-
     }
 
     /**
@@ -78,11 +83,11 @@ class CustomerOrderController extends Controller
     public function edit($order_id)
     {
         $orderEdit = CustomerOrder::find($order_id);
-        $customer_orders = DB::table('customer_orders')->orderBy('co_id','DESC')->get();
+        $customer_orders = DB::table('customer_orders')->where('customer_id', $orderEdit->customer_id)->orderBy('co_id','DESC')->get();
         $customer = CustomerAccountOrder::find($orderEdit->customer_id);
+        $main_customers = \App\Customer::all();
 
-
-        return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders'));
+        return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders', 'main_customers'));
     }
 
     /**
@@ -94,22 +99,25 @@ class CustomerOrderController extends Controller
      */
     public function update(Request $request, $order_id)
     {
-
-
-
         $data = $request->validate([
             'order_name' => 'required',
             'order_date' => 'required',
+            'customer_account_order_id' => 'required',
+            'customer_id' => 'required',
         ]);
 
-
-        $ord = DB::table('customer_orders')->where('co_id',$order_id)->update(['order_name' => $request->order_name,   'order_date' => $request->order_date]);
-
+        $ord = DB::table('customer_orders')->where('co_id', $order_id)->update([
+            'order_name' => $request->order_name,   
+            'order_date' => $request->order_date,
+            'customer_id' => $request->customer_account_order_id,
+            'main_customer_id' => $request->customer_id,
+            'customer_order' => $request->order_name
+        ]);
 
         if ($ord) {
-            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_id)->with('status', 'موفقانه ثبت شد !');
+            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_account_order_id)->with('status', 'موفقانه ثبت شد !');
         } else {
-            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_id)->with('error', 'مشکل در سرور وجود داره!');
+            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_account_order_id)->with('error', 'مشکل در سرور وجود داره!');
         }
     }
 

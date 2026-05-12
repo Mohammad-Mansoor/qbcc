@@ -593,6 +593,7 @@
               @endif
               </tbody>
             </table>
+            <span class="text-center">{{$data->links()}}</span>
           </div>
         </div>
       </div>

@@ -139,9 +139,7 @@
               </tr>
               </tbody>
             </table>
-            @if(request()->is('dashboard/all-carpets*'))
-              <p>{{$carpets->links()}}</p>
-            @endif
+            <p>{{$carpets->links()}}</p>
           </div>
         </div>
       </div>
