@@ -1,9 +1,0 @@
-@font-face {
-  font-family: iran;
-  src: url('IRAN.eot');
-  src: url('IRAN.eot?#iefix') format('embedded-opentype'),
-       url('IRAN.woff2') format('woff2'),
-       url('IRAN.woff') format('woff'),
-       url('IRAN.ttf') format('truetype');
-  font-weight: 400;
-}
