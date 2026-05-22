@@ -91,48 +91,82 @@
             </h5>
         </div>
         <div class="card-body bg-soft-light border-top">
-            <form action="/dashboard/expenses{{ $expenseEdit ? '/'.$expenseEdit->id : '' }}" method="post">
+            <form action="/dashboard/expenses{{ is_object($expenseEdit) ? '/'.$expenseEdit->id : '' }}" method="post">
                 @csrf
-                @if($expenseEdit) @method('PUT') @endif
-                <input type="hidden" value="{{$currency}}" id="currency">
+                @if(is_object($expenseEdit)) @method('PUT') @endif
                 
                 <div class="row">
-                    <div class="col-md-2 form-group">
+                    <div class="col-md-3 form-group text-right">
                         <label class="small font-weight-bold">نام دریافت کننده</label>
-                        <input name="name" type="text" value="{{ $expenseEdit->name ?? '' }}" class="form-control form-control-sm border-0 shadow-sm text-right">
+                        <input name="name" type="text" value="{{ is_object($expenseEdit) ? $expenseEdit->name : '' }}" class="form-control form-control-sm border-0 shadow-sm text-right" required>
                     </div>
-                    <div class="col-md-2 form-group">
+                    <div class="col-md-3 form-group text-right">
                         <label class="small font-weight-bold">بابت (کجا)</label>
                         <select name="expense_for_where" class="form-control form-control-sm border-0 shadow-sm">
-                            <option {{ ($expenseEdit && $expenseEdit->expense_for_where == 'دفتر') ? 'selected' : '' }}>دفتر</option>
-                            <option {{ ($expenseEdit && $expenseEdit->expense_for_where == 'خانه') ? 'selected' : '' }}>خانه</option>
-                            <option {{ ($expenseEdit && $expenseEdit->expense_for_where == 'ساختمان') ? 'selected' : '' }}>ساختمان</option>
+                            <option {{ (is_object($expenseEdit) && $expenseEdit->expense_for_where == 'دفتر') ? 'selected' : '' }}>دفتر</option>
+                            <option {{ (is_object($expenseEdit) && $expenseEdit->expense_for_where == 'خانه') ? 'selected' : '' }}>خانه</option>
+                            <option {{ (is_object($expenseEdit) && $expenseEdit->expense_for_where == 'ساختمان') ? 'selected' : '' }}>ساختمان</option>
                         </select>
                     </div>
-                    <div class="col-md-2 form-group">
+                    <div class="col-md-3 form-group text-right">
                         <label class="small font-weight-bold">نوع مصرف</label>
                         <select name="expense_type" id="expense_type" class="form-control form-control-sm border-0 shadow-sm select2">
                             @foreach($types as $t)
-                                <option {{ ($expenseEdit && $expenseEdit->expense_type == $t) ? 'selected' : '' }}>{{ $t }}</option>
+                                <option {{ (is_object($expenseEdit) && $expenseEdit->expense_type == $t) ? 'selected' : '' }}>{{ $t }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2 form-group">
+                    <div class="col-md-3 form-group text-right">
                         <label class="small font-weight-bold">تاریخ</label>
-                        <input name="date" type="date" value="{{ $expenseEdit->date ?? date('Y-m-d') }}" class="form-control form-control-sm border-0 shadow-sm text-right">
-                    </div>
-                    <div class="col-md-2 form-group">
-                        <label class="small font-weight-bold">مبلغ (افغانی)</label>
-                        <input type="number" step="1" name="amount_af" value="{{ $expenseEdit->amount_af ?? '' }}" id="fp" class="form-control form-control-sm border-0 shadow-sm text-right">
-                        <input type="hidden" name="amount" id="mainP" value="{{ $expenseEdit->amount ?? '' }}">
-                    </div>
-                    <div class="col-md-2 form-group">
-                        <label class="small font-weight-bold">توضیحات</label>
-                        <input name="description" type="text" value="{{ $expenseEdit->description ?? '' }}" class="form-control form-control-sm border-0 shadow-sm text-right" placeholder="...">
+                        <input name="date" type="date" value="{{ is_object($expenseEdit) ? $expenseEdit->date : date('Y-m-d') }}" class="form-control form-control-sm border-0 shadow-sm text-right" required>
                     </div>
                 </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">واحد پولی (Currency)</label>
+                        <select name="currency_id" id="currency_id" class="form-control form-control-sm border-0 shadow-sm text-right">
+                            @foreach($currencies as $curr)
+                                <option value="{{ $curr->id }}" data-code="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}"
+                                    {{ (is_object($expenseEdit) && $expenseEdit->currency_id == $curr->id) ? 'selected' : '' }}>
+                                    {{ $curr->code }} - {{ $curr->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">نرخ تبدیل (FX Rate to USD)</label>
+                        <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" value="{{ is_object($expenseEdit) ? $expenseEdit->exchange_rate : '' }}" class="form-control form-control-sm border-0 shadow-sm text-right">
+                    </div>
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">مقدار مبلغ (Amount)</label>
+                        <input type="number" step="0.01" name="amount" id="amount" value="{{ is_object($expenseEdit) ? $expenseEdit->amount : '' }}" class="form-control form-control-sm border-0 shadow-sm text-right" required placeholder="0.00">
+                    </div>
+                    <div class="col-md-3 form-group text-right">
+                        <label class="small font-weight-bold">توضیحات</label>
+                        <input name="description" type="text" value="{{ is_object($expenseEdit) ? $expenseEdit->description : '' }}" class="form-control form-control-sm border-0 shadow-sm text-right" placeholder="..." required>
+                    </div>
+                </div>
+
+                <!-- Forensics USD Truth Preview Box -->
+                <div class="row mt-3 justify-content-center">
+                    <div class="col-md-6">
+                        <div id="usd-preview-box" class="alert bg-soft-info border-0 rounded-lg p-3 d-none align-items-center justify-content-between shadow-sm">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-xs bg-info text-white rounded-circle ml-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="fa fa-calculator"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 font-weight-bold text-info">ارزش معادل USD (Forensic Normalize)</h6>
+                                    <small class="text-muted">مبلغ تبدیل شده پایه دالر در دفتر کل</small>
+                                </div>
+                            </div>
+                            <h4 class="mb-0 font-weight-bold text-primary" id="usd-amount-display">0.00 $</h4>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="text-right mt-2 border-top pt-3">
-                    <span class="text-muted small ml-3 italic">معادل دالری: <strong id="usd_preview">$ {{ number_format($expenseEdit->amount ?? 0, 2) }}</strong></span>
                     @if($expenseEdit)
                         <a href="/dashboard/office-cash-book" class="btn btn-light btn-sm px-4 mr-2 rounded-pill">انصراف</a>
                     @endif
@@ -215,8 +249,7 @@
                     <thead class="bg-light text-muted small text-uppercase">
                         <tr>
                             <th class="px-4 py-3 border-0">دریافت کننده</th>
-                            <th class="py-3 border-0 text-center">مبلغ (AFN)</th>
-                            <th class="py-3 border-0 text-center font-weight-bold">مبلغ (USD)</th>
+                            <th class="py-3 border-0 text-center font-weight-bold">مبلغ و ارز</th>
                             <th class="py-3 border-0">نوعیت</th>
                             <th class="py-3 border-0">توضیحات</th>
                             <th class="py-3 border-0 text-center">تاریخ</th>
@@ -227,8 +260,13 @@
                         @forelse($debits as $debit)
                         <tr class="border-bottom">
                             <td class="px-4 py-3 font-weight-bold text-dark">{{ $debit->name }}</td>
-                            <td class="text-center text-muted small">{{ number_format($debit->amount_af, 0) }} AF</td>
-                            <td class="text-center font-weight-bold text-primary">${{ number_format($debit->amount, 2) }}</td>
+                            <td class="text-center font-weight-bold text-primary">
+                                {{ number_format($debit->original_amount ?: $debit->amount, 2) }} 
+                                <span class="badge badge-soft-primary px-2 py-1 rounded-pill small">{{ $debit->currency_code ?: 'USD' }}</span>
+                                @if($debit->currency_code && $debit->currency_code != 'USD')
+                                    <span class="text-muted small d-block mt-1" style="font-size: 0.75rem;">(معادل ${{ number_format($debit->base_amount, 2) }})</span>
+                                @endif
+                            </td>
                             <td><span class="badge badge-soft-info px-3 py-1 rounded-pill">{{ $debit->expense_type }}</span></td>
                             <td class="small">{{ $debit->description }}</td>
                             <td class="text-center text-muted small">{{ $debit->date }}</td>
@@ -243,15 +281,14 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="py-5 text-center text-muted italic">هیچ تراکنشی در این بازه زمانی یافت نشد.</td>
+                            <td colspan="6" class="py-5 text-center text-muted italic">هیچ تراکنشی در این بازه زمانی یافت نشد.</td>
                         </tr>
                         @endforelse
                     </tbody>
                     @if($debits->count() > 0)
                     <tfoot class="bg-soft-light font-weight-bold">
                         <tr>
-                            <td class="px-4 py-3">مجموع صفحه:</td>
-                            <td class="text-center text-muted">{{ number_format($debits->sum('amount_af'), 0) }} AF</td>
+                            <td class="px-4 py-3">مجموع صفحه (USD Baseline):</td>
                             <td class="text-center text-primary font-weight-bold">${{ number_format($debits->sum('amount'), 2) }}</td>
                             <td colspan="4"></td>
                         </tr>
@@ -285,14 +322,34 @@
         $('.select2').select2({ width: '100%' });
         $('.status').fadeIn().delay(3000).fadeOut();
 
-        // Currency conversion
-        $('#fp').on('input', function() {
-            let rate = parseFloat($('#currency').val()) || 0;
-            let af = parseFloat($(this).val()) || 0;
-            let usd = af / rate;
-            $('#mainP').val(usd.toFixed(2));
-            $('#usd_preview').text('$ ' + usd.toLocaleString(undefined, {minimumFractionDigits: 2}));
+        // Currency calculation & Forensic Normalization
+        function updateForensicPreview() {
+            var amount = parseFloat($('#amount').val()) || 0;
+            var rate = parseFloat($('#exchange_rate').val()) || 0;
+            var usdAmount = amount * rate;
+
+            if (amount > 0) {
+                $('#usd-preview-box').attr('style', 'border-radius: 10px; display:flex !important; animation: fadeIn 0.5s;');
+                $('#usd-amount-display').text(usdAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}) + ' $');
+            } else {
+                $('#usd-preview-box').attr('style', 'display:none !important;');
+            }
+        }
+
+        $('#currency_id').change(function() {
+            var selected = $(this).find(':selected');
+            var rate = selected.data('rate');
+            $('#exchange_rate').val(rate);
+            updateForensicPreview();
         });
+
+        $('#amount, #exchange_rate').on('keyup change', function() {
+            updateForensicPreview();
+        });
+
+        if ($('#currency_id').length) {
+            $('#currency_id').trigger('change');
+        }
 
         $("#expense_list").tableExport({
             formats: ["xlsx"],

@@ -11,8 +11,8 @@
                 <div class="card-body p-4">
                     <div class="row align-items-center">
                         <div class="col-md-6">
-                            <h3 class="font-weight-bold mb-1">گزارش ترازنامه (Balance Sheet)</h3>
-                            <p class="text-muted mb-0">نمای کلی از وضعیت دارایی‌ها، بدهی‌ها و سرمایه شرکت</p>
+                            <h3 class="font-weight-bold mb-1">ترازنامه (<span class="text-primary">USD</span>)</h3>
+                            <p class="text-muted mb-0">نمای کلی از وضعیت دارایی‌ها، بدهی‌ها و سرمایه شرکت (معادل دالر)</p>
                         </div>
                         <div class="col-md-6">
                             <form action="{{ route('accounting.reports.balance_sheet') }}" method="GET">
@@ -42,14 +42,14 @@
     <div class="row mb-4 no-print">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm text-center p-4" style="border-radius: 15px; background: linear-gradient(45deg, #1a237e, #3949ab);">
-                <span class="text-white opacity-75 small font-weight-bold">مجموع دارایی‌ها (Total Assets)</span>
-                <h2 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($totalAssets, 2) }}</h2>
+                <span class="text-white opacity-75 small font-weight-bold">مجموع دارایی‌ها (Total Assets USD)</span>
+                <h2 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($totalAssets, 2) }} $</h2>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 shadow-sm text-center p-4" style="border-radius: 15px; background: linear-gradient(45deg, #4a148c, #7b1fa2);">
-                <span class="text-white opacity-75 small font-weight-bold">بدهی و سرمایه (Liabilities & Equity)</span>
-                <h2 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($totalLiabEquity, 2) }}</h2>
+                <span class="text-white opacity-75 small font-weight-bold">بدهی و سرمایه (Liabilities & Equity USD)</span>
+                <h2 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($totalLiabEquity, 2) }} $</h2>
             </div>
         </div>
         <div class="col-md-4">
@@ -74,7 +74,7 @@
                 <!-- Print Header -->
                 <div class="d-none d-print-block text-center p-5 border-bottom bg-light">
                     <h1 class="font-weight-bold text-dark mb-1" style="letter-spacing: 2px;">QASIMI BROTHERS CARPET CO.</h1>
-                    <h3 class="text-muted mb-2">تـرازنامـه (Balance Sheet)</h3>
+                    <h3 class="text-muted mb-2">تـرازنامـه (Balance Sheet - USD)</h3>
                     <p class="mb-0 font-weight-bold text-dark">به تاریخ: {{ $endDate }}</p>
                 </div>
 
@@ -108,7 +108,7 @@
                                 <tfoot class="bg-primary text-white">
                                     <tr class="font-weight-bold">
                                         <td class="py-3 px-4">مجموع دارایی‌ها</td>
-                                        <td class="py-3 text-right px-4">{{ number_format($totalAssets, 2) }}</td>
+                                        <td class="py-3 text-right px-4">{{ number_format($totalAssets, 2) }} $</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -154,7 +154,7 @@
                                 <tfoot class="bg-purple text-white" style="background: #4a148c;">
                                     <tr class="font-weight-bold">
                                         <td class="py-3 px-4">مجموع بدهی و سرمایه</td>
-                                        <td class="py-3 text-right px-4">{{ number_format($totalLiabEquity, 2) }}</td>
+                                        <td class="py-3 text-right px-4">{{ number_format($totalLiabEquity, 2) }} $</td>
                                     </tr>
                                 </tfoot>
                             </table>

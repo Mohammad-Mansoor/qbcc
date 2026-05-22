@@ -34,6 +34,8 @@ class InventoryTransactionManager
                 'quantity' => $params['quantity'],
                 'warehouse_id' => $params['warehouse_id'] ?? 1,
                 'unit_cost' => $params['unit_cost'],
+                'currency_code' => $params['currency_code'] ?? null,
+                'exchange_rate' => $params['exchange_rate'] ?? null,
                 'area' => $params['area'] ?? 0,
                 'created_by' => auth()->id(),
                 'is_value_adjustment' => false,
@@ -205,7 +207,7 @@ class InventoryTransactionManager
     }
 
     /**
-     * Process a sale of carpets
+     * Process a sale of carpets or materials
      */
     public function processSale($model, array $params, callable $legacyCallback = null)
     {
@@ -220,6 +222,8 @@ class InventoryTransactionManager
                 'quantity' => $params['quantity'] ?? 1,
                 'warehouse_id' => $params['warehouse_id'] ?? 1,
                 'unit_cost' => $params['unit_cost'] ?? 0,
+                'currency_code' => $params['currency_code'] ?? 'USD',
+                'exchange_rate' => $params['exchange_rate'] ?? 1.0,
                 'created_by' => auth()->id(),
                 'is_value_adjustment' => false,
             ]);
@@ -227,22 +231,32 @@ class InventoryTransactionManager
             if (!$inventoryTx) return null;
 
             // 2. Fetch the actual cost from the item record (WAC/Specific Cost)
+            $itemType = get_class($model);
+            $itemRefId = $model->getKey();
+            if ($model instanceof \App\MaterialSale) {
+                $itemType = 'App\MaterialType';
+                $itemRefId = $model->type_id;
+            }
+
             $item = DB::table('items')
-                ->where('type', get_class($model))
-                ->where('ref_id', $model->getKey())
+                ->where('type', $itemType)
+                ->where('ref_id', $itemRefId)
                 ->first();
             
-            $actualCost = $item ? ($item->current_cost * ($params['quantity'] ?? 1)) : 0;
+            // WAC is already in USD base
+            $actualCost = $item ? (bcmul($item->current_cost, ($params['quantity'] ?? 1), 8)) : 0;
 
             // 3. Post Revenue Entry (DR Receivable / CR Revenue)
             $revenueTx = $this->accountingService->postAutoTransaction(
-                'sale',
-                'SALES_REVENUE',
+                $params['transaction_type'] ?? 'sale',
+                $params['mapping_key'] ?? 'SALES_REVENUE',
                 [
                     'date' => $params['date'] ?? now()->format('Y-m-d'),
                     'amount' => $params['sale_amount'],
-                    'party_type' => 'App\Customer',
-                    'party_id' => $params['customer_id'],
+                    'party_type' => $params['party_type'] ?? 'App\Customer',
+                    'party_id' => $params['customer_id'] ?? $params['party_id'],
+                    'currency_code' => $params['currency_code'] ?? 'USD',
+                    'exchange_rate' => $params['exchange_rate'] ?? 1.0,
                     'reference' => $params['reference'] ?? null,
                     'description' => $params['description'] ?? "Sale of item",
                     'source_type' => get_class($model),
@@ -252,13 +266,15 @@ class InventoryTransactionManager
                 ]
             );
 
-            // 4. Post COGS Entry (DR COGS / CR Inventory)
+            // 4. Post COGS Entry (DR COGS / CR Inventory) - COGS is ALWAYS base currency (USD)
             $cogsTx = $this->accountingService->postAutoTransaction(
-                'sale',
+                $params['transaction_type'] ?? 'sale',
                 'SALES_COGS',
                 [
                     'date' => $params['date'] ?? now()->format('Y-m-d'),
                     'amount' => $actualCost,
+                    'currency_code' => 'USD', // COGS is normalized
+                    'exchange_rate' => 1.0,
                     'reference' => $params['reference'] ?? null,
                     'description' => "COGS for " . ($params['reference'] ?? "sale"),
                     'source_type' => get_class($model),

@@ -44,17 +44,25 @@
                     <p class="text-muted small text-uppercase font-weight-bold mb-2">Invoice Summary:</p>
                     <div class="d-flex justify-content-between mb-1">
                         <span class="text-muted small">Total Quantity:</span>
-                        <span class="text-dark font-weight-bold small">{{$sales->total()}} Pcs</span>
+                        <span class="text-dark font-weight-bold small">{{ $invoice->sale->where('is_returned', 0)->count() }} Pcs</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span class="text-muted small">Total Area:</span>
-                        <span class="text-dark font-weight-bold small">{{round($sales->sum('carpet_area'), 2)}} m²</span>
+                        <span class="text-dark font-weight-bold small">{{ round($invoice->sale->where('is_returned', 0)->sum('carpet.area'), 2) }} m²</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="card-body p-0">
+            @php
+                $totalPaid = $invoice->payments->sum('amount');
+            @endphp
+            @if($totalPaid > 0)
+            <div class="alert alert-warning mb-0 border-0 rounded-0 text-right py-3 px-5 hideOnPrint" style="background-color: #fff3cd; color: #856404; font-size: 13px;">
+                <i class="fa fa-exclamation-triangle mr-2"></i> <strong>توجه:</strong> این انوایس دارای پرداخت های ثبت شده به مبلغ <strong>${{ number_format($totalPaid, 2) }}</strong> می‌باشد. امکان برگشت قالین ها به گدام تا زمان حذف یا معکوس نمودن پرداخت ها قفل می‌باشد.
+            </div>
+            @endif
             @if($invoice->invoice_description)
             <div class="px-5 py-3 bg-light border-top border-bottom text-right">
                 <p class="mb-0 text-muted small"><i class="fa fa-info-circle mr-1"></i> توضیحات: {{$invoice->invoice_description}}</p>
@@ -76,20 +84,77 @@
                     </thead>
                     <tbody>
                         @foreach($sales as $sale)
-                        <tr class="border-bottom">
-                            <td class="px-4 py-3 font-weight-bold text-primary">{{$sale->carpet->carpet_no ?? $sale->carpet_no}}</td>
-                            <td>
-                                <span class="text-dark small font-weight-bold">{{$sale->type}}</span><br>
-                                <span class="text-muted tiny">{{$sale->quality}}</span>
+                        <tr class="border-bottom {{ $sale->is_returned ? 'text-muted bg-light' : '' }}">
+                            <td class="px-4 py-3 font-weight-bold text-primary">
+                                @if($sale->is_returned)
+                                    <del>{{$sale->carpet->carpet_no ?? $sale->carpet_no}}</del>
+                                    <span class="badge badge-danger ml-2 font-weight-bold px-2 py-1 tiny" style="text-decoration: none !important; display: inline-block;">
+                                        <i class="fa fa-reply mr-1"></i> مرجوع شده (Returned)
+                                    </span>
+                                @else
+                                    {{$sale->carpet->carpet_no ?? $sale->carpet_no}}
+                                @endif
                             </td>
-                            <td class="text-center small">{{$sale->carpet_height}} × {{$sale->carpet_width}}</td>
-                            <td class="text-center font-weight-bold">{{round($sale->carpet_area, 2)}}</td>
-                            <td class="text-center">${{number_format($sale->sale_cost_per_meter, 2)}}</td>
-                            <td class="text-center font-weight-bold text-dark">${{number_format($sale->sale_cost_total, 2)}}</td>
+                            <td>
+                                @if($sale->is_returned)
+                                    <del class="text-dark small font-weight-bold">{{$sale->type}}</del><br>
+                                    <del class="text-muted tiny">{{$sale->quality}}</del>
+                                    <div class="tiny text-danger mt-1" style="text-decoration: none !important;">
+                                        <i class="fa fa-calendar mr-1"></i> تاریخ برگشت: {{ $sale->returned_at }} <br>
+                                        <i class="fa fa-user mr-1"></i> توسط: {{ \App\User::find($sale->returned_by)->name ?? 'ناشناس' }}
+                                    </div>
+                                @else
+                                    <span class="text-dark small font-weight-bold">{{$sale->type}}</span><br>
+                                    <span class="text-muted tiny">{{$sale->quality}}</span>
+                                @endif
+                            </td>
+                            <td class="text-center small">
+                                @if($sale->is_returned)
+                                    <del>{{$sale->carpet_height ?? ($sale->carpet->height ?? '---')}} × {{$sale->carpet_width ?? ($sale->carpet->width ?? '---')}}</del>
+                                @else
+                                    {{$sale->carpet_height ?? ($sale->carpet->height ?? '---')}} × {{$sale->carpet_width ?? ($sale->carpet->width ?? '---')}}
+                                @endif
+                            </td>
+                            <td class="text-center font-weight-bold">
+                                @if($sale->is_returned)
+                                    <del>{{round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2)}}</del>
+                                @else
+                                    {{round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2)}}
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if($sale->is_returned)
+                                    <del>${{number_format($sale->sale_cost_per_meter, 2)}}</del>
+                                @else
+                                    ${{number_format($sale->sale_cost_per_meter, 2)}}
+                                @endif
+                            </td>
+                            <td class="text-center font-weight-bold text-dark">
+                                @if($sale->is_returned)
+                                    <del>${{number_format($sale->sale_cost_total, 2)}}</del>
+                                @else
+                                    ${{number_format($sale->sale_cost_total, 2)}}
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-left hideOnPrint">
-                                <button onclick="sendToStock({{$sale->carpet_id}})" class="btn btn-soft-danger btn-sm rounded-pill px-3">
-                                    <i class="fa fa-undo mr-1"></i> بازگشت به گدام
-                                </button>
+                                @if($sale->is_returned)
+                                    <span class="text-muted small font-weight-bold">
+                                        <i class="fa fa-check-circle text-muted mr-1"></i> برگشت شده به گدام
+                                    </span>
+                                @else
+                                    @php
+                                        $totalPaid = $invoice->payments->sum('amount');
+                                    @endphp
+                                    @if($totalPaid > 0)
+                                        <button class="btn btn-soft-danger btn-sm rounded-pill px-3" disabled title="انوایس دارای پرداخت است. برای برگشت ابتدا پرداخت را حذف کنید.">
+                                            <i class="fa fa-lock mr-1"></i> قفل شده (دارای پرداخت)
+                                        </button>
+                                    @else
+                                        <button onclick="sendToStock({{$sale->carpet_id}})" class="btn btn-soft-danger btn-sm rounded-pill px-3">
+                                            <i class="fa fa-undo mr-1"></i> بازگشت به گدام
+                                        </button>
+                                    @endif
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -113,7 +178,7 @@
                 <div class="col-md-5">
                     @php
                         $totalPaid = $invoice->payments->sum('amount');
-                        $totalDue = $sales->sum('sale_cost_total');
+                        $totalDue = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
                         $balance = $totalDue - $totalPaid;
                     @endphp
                     <div class="bg-light p-4 rounded-lg shadow-sm" style="direction: ltr;">

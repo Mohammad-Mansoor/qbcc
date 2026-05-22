@@ -31,7 +31,8 @@ class DifferentAccountPaymentController extends Controller
                 'date' => $payment->date,
                 'amount' => $payment->base_amount,
                 'original_amount' => $payment->amount,
-                'currency_code' => $payment->currency_code,
+                'currency_code' => $payment->currency_code ?: 'AFN',
+                'exchange_rate' => $payment->exchange_rate ?: 1,
                 'reference' => 'DIFF-' . $payment->id,
                 'description' => "تراکنش حساب متفرقه: " . ($account->name ?? 'N/A') . " - " . $payment->description,
                 'source_type' => 'DifferentAccountPayment',
@@ -68,7 +69,7 @@ class DifferentAccountPaymentController extends Controller
 
     public function money_request()
     {
-        $requests = DifferentAccountPayment::where('status', 0)->orderBy('id', 'DESC')->get();
+        $requests = DifferentAccountPayment::with('account')->where('status', 0)->orderBy('id', 'DESC')->get();
         return view('different-account.requested-money-list', compact('requests'));
     }
 
@@ -114,7 +115,8 @@ class DifferentAccountPaymentController extends Controller
             if ($data['currency_code'] == 'USD') {
                 $data['exchange_rate'] = 1.000000;
             }
-            $data['base_amount'] = $data['amount'] / $data['exchange_rate'];
+            // FORENSIC PILLAR 5: Multiplication for USD Normalization
+            $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
             
             $payment = DifferentAccountPayment::create($data);
@@ -142,7 +144,8 @@ class DifferentAccountPaymentController extends Controller
         $payments = DifferentAccountPayment::where('account_id', $paymentEdit->account_id)->orderBy('created_at','DESC')->paginate(30);
         $account = DifferentAccount::find($paymentEdit->account_id);
         $totals = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->get();
-        return view('different-account.account-payment', compact('account', 'payments', 'totals', 'paymentEdit'));
+        $currencies = \App\Currency::all();
+        return view('different-account.account-payment', compact('account', 'payments', 'totals', 'paymentEdit', 'currencies'));
     }
 
     public function update(Request $request, DifferentAccountPayment $differentAccountPayment)
@@ -161,7 +164,8 @@ class DifferentAccountPaymentController extends Controller
             if ($data['currency_code'] == 'USD') {
                 $data['exchange_rate'] = 1.000000;
             }
-            $data['base_amount'] = $data['amount'] / $data['exchange_rate'];
+            // FORENSIC PILLAR 5: Multiplication for USD Normalization
+            $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
 
             if ($differentAccountPayment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($differentAccountPayment->id, 'Different Account Record Edited');

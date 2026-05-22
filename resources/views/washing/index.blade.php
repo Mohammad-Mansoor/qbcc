@@ -161,8 +161,8 @@
               <th>تخلص</th>
               <th>شماره تماس</th>
               <th>آدرس</th>
-              <th>باقیات(دالر)</th>
-              <th>باقیات(افغانی)</th>
+              <th>باقیات (USD - معادل)</th>
+              <th>باقیات بر اساس اسعار</th>
               <th class="hideOnPrint">ویرایش</th>
               <th class="hideOnPrint">حساب</th>
             </tr>
@@ -177,34 +177,31 @@
                   <td style="direction: ltr">{{ $t->contact_no }}</td>
                   <td>{{ $t->address }}</td>
                   
-                  
-                  @php($total_af = 0)
-                  @php($total_usd = 0)
-                    <?php
-
-                    $total_af = \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount_af') - \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount_af');
-                    $total_usd = \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount');
-
-                    ?>
-                  {{--for dollars balance--}}
-                  @if($total_usd > 0)
-                    <td style="direction: ltr;color: green;">{{ $total_usd}}</td>
-                  @elseif($total_usd < 0)
-                    <td style="direction: ltr;color: red;">{{$total_usd}}</td>
+                  <!-- Normalized USD Balance -->
+                  @php($norm_bal = $t->normalized_balance)
+                  @if($norm_bal > 0)
+                    <td style="direction: ltr;color: green; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
+                  @elseif($norm_bal < 0)
+                    <td style="direction: ltr;color: red; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
                   @else
-                    <td>{{ $total_usd }}</td>
+                    <td style="direction: ltr;">0.00 $</td>
                   @endif
-                  {{--end dollars balance--}}
-                  
-                  {{--afghani balance--}}
-                  @if($total_af > 0)
-                    <td style="direction: ltr;color: green;">{{$total_af }}</td>
-                  @elseif($total_af < 0)
-                    <td style="direction: ltr;color: red;">{{$total_af }}</td>
-                  @else
-                    <td>{{ $total_af }}</td>
-                  @endif
-                  
+
+                  <!-- Selected Currencies Breakdown -->
+                  @php($usd_bal = $t->usd_balance)
+                  @php($af_bal = $t->af_balance)
+                  <td style="font-size: 0.9rem; direction: ltr;">
+                    @if($usd_bal != 0)
+                      <span style="color: {{ $usd_bal > 0 ? 'green' : 'red' }};">{{ number_format($usd_bal, 2) }} USD</span>
+                    @endif
+                    @if($af_bal != 0)
+                      @if($usd_bal != 0) <br> @endif
+                      <span style="color: {{ $af_bal > 0 ? 'green' : 'red' }};">{{ number_format($af_bal, 2) }} AFN</span>
+                    @endif
+                    @if($usd_bal == 0 && $af_bal == 0)
+                      <span class="text-muted">تصفیه</span>
+                    @endif
+                  </td>
                   
                   <td class="hideOnPrint">
                     <a href="/dashboard/washing-team/{{$t->id}}/edit"
@@ -220,47 +217,39 @@
             @else
               @foreach($teams as $t)
                 
+                @php($norm_bal = $t->normalized_balance)
+                @php($usd_bal = $t->usd_balance)
+                @php($af_bal = $t->af_balance)
                 
-                @php($total_af = 0)
-                @php($total_usd = 0)
-                <?php
-
-                $total_af = \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount_af') - \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount_af');
-                $total_usd = \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'رسید')->sum('amount') - \Illuminate\Support\Facades\DB::table('washing_payments')->where('team_id', $t->id)->where('type', 'گرفت')->sum('amount');
-
-                ?>
-                
-                
-                {{--end total credit and debit--}}
-                
-                @if($t->payment->count() > 0 && $total_af !=  0 || $total_usd != 0)
+                @if($norm_bal != 0 || $usd_bal != 0 || $af_bal != 0)
                   <tr>
                     <td>{{ $t->name}}</td>
                     <td>{{ $t->last_name}}</td>
                     <td style="direction: ltr">{{ $t->contact_no }}</td>
                     <td>{{ $t->address }}</td>
   
-  
-  
-                    {{--for dollars balance--}}
-                    @if($total_usd > 0)
-                      <td style="direction: ltr;color: green;">{{ $total_usd}}</td>
-                    @elseif($total_usd < 0)
-                      <td style="direction: ltr;color: red;">{{$total_usd}}</td>
+                    <!-- Normalized USD Balance -->
+                    @if($norm_bal > 0)
+                      <td style="direction: ltr;color: green; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
+                    @elseif($norm_bal < 0)
+                      <td style="direction: ltr;color: red; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
                     @else
-                      <td>{{ $total_usd }}</td>
+                      <td style="direction: ltr;">0.00 $</td>
                     @endif
-                    {{--end dollars balance--}}
-  
-                    {{--afghani balance--}}
-                    @if($total_af > 0)
-                      <td style="direction: ltr;color: green;">{{$total_af }}</td>
-                    @elseif($total_af < 0)
-                      <td style="direction: ltr;color: red;">{{$total_af }}</td>
-                    @else
-                      <td>{{ $total_af }}</td>
-                    @endif
-  
+
+                    <!-- Selected Currencies Breakdown -->
+                    <td style="font-size: 0.9rem; direction: ltr;">
+                      @if($usd_bal != 0)
+                        <span style="color: {{ $usd_bal > 0 ? 'green' : 'red' }};">{{ number_format($usd_bal, 2) }} USD</span>
+                      @endif
+                      @if($af_bal != 0)
+                        @if($usd_bal != 0) <br> @endif
+                        <span style="color: {{ $af_bal > 0 ? 'green' : 'red' }};">{{ number_format($af_bal, 2) }} AFN</span>
+                      @endif
+                      @if($usd_bal == 0 && $af_bal == 0)
+                        <span class="text-muted">تصفیه</span>
+                      @endif
+                    </td>
   
                     <td class="hideOnPrint">
                       <a href="/dashboard/washing-team/{{$t->id}}/edit" class="btn btn-xs btn-primary hideOnPrint">ویرایش</a>
@@ -277,34 +266,41 @@
             @endif
             
             @if(!isset($search))
+              @php($total_base_rec = \App\WashingPayment::where('type', 'رسید')->sum('base_amount'))
+              @php($total_base_sent = \App\WashingPayment::where('type', 'گرفت')->sum('base_amount'))
+              @php($total_normalized_sum = $total_base_rec - $total_base_sent)
               <tr style="background: gainsboro">
                 
-                
                 <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
-                @if($credit_us  -  $debit_us  > 0)
-                  <td style="font-size: 10px;direction: ltr;color: green">
-                    {{$credit_us  -  $debit_us }}</td>
-                @elseif($credit_us - $debit_us < 0)
-                  <td style="font-size: 10px;direction: ltr;color: red">
-                    {{$credit_us  - $debit_us}}</td>
+
+                <!-- Total Normalized USD Balance -->
+                @if($total_normalized_sum > 0)
+                  <td style="font-size: 11px; direction: ltr; color: green; font-weight: bold;">
+                    {{ number_format($total_normalized_sum, 2) }} $ (معادل)
+                  </td>
+                @elseif($total_normalized_sum < 0)
+                  <td style="font-size: 11px; direction: ltr; color: red; font-weight: bold;">
+                    {{ number_format($total_normalized_sum, 2) }} $ (معادل)
+                  </td>
                 @else
-                  <td style="font-size: 10px;direction: ltr;">
-                    {{$credit_us - $debit_us }}</td>
+                  <td style="font-size: 11px; direction: ltr; font-weight: bold;">
+                    0.00 $
+                  </td>
                 @endif
                 
-                @if($credit_af  -  $debit_af  > 0)
-                  <td style="font-size: 10px;direction: ltr;color: green;">
-                    {{$credit_af  -  $debit_af}}</td>
-                @elseif($credit_af - $debit_af < 0)
-                  <td style="font-size: 10px;direction: ltr;color: red;">
-                    {{$credit_af  - $debit_af }}</td>
-                @else
-                  <td style="font-size: 10px;direction: ltr;">
-                    {{$credit_af  -  $debit_af }}</td>
-                @endif
+                <!-- Total Selected Currencies Breakdown -->
+                <td style="font-size: 11px; direction: ltr; font-weight: bold;">
+                  <span style="color: {{ ($credit_us - $debit_us) >= 0 ? 'green' : 'red' }};">
+                    {{ number_format($credit_us - $debit_us, 2) }} USD
+                  </span>
+                  <br>
+                  <span style="color: {{ ($credit_af - $debit_af) >= 0 ? 'green' : 'red' }};">
+                    {{ number_format($credit_af - $debit_af, 2) }} AFN
+                  </span>
+                </td>
                 
                 <td>مجموعه</td>
                 

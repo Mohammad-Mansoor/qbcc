@@ -25,16 +25,18 @@ class KachaeePaymentController extends Controller
     {
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
-            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
-            $rate = $payment->dollar_rate ?? 1;
+            
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            $amount = $payment->base_amount;
 
-            $this->accountingService->postAutoTransaction('payment', $mKey, array_merge([
+            $this->accountingService->postAutoTransaction('kachaee_payment', $mKey, array_merge([
                 'date' => $payment->date,
                 'amount' => $amount,
-                'exchange_rate' => $rate,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
                 'party_type' => 'App\Kachaee',
                 'party_id' => $payment->team_id,
-                'reference' => 'KCH-' . $payment->id,
+                'reference' => 'KCH-PAY-' . $payment->id,
                 'description' => "پرداخت بخش کچایی: " . $payment->description,
                 'source_id' => $payment->id,
             ], $overrides));
@@ -88,28 +90,49 @@ class KachaeePaymentController extends Controller
     {
         return DB::transaction(function () use ($request) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'type' => 'required',
                 'team_id' => 'required',
             ]);
 
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+
+            // FORENSIC RULE: BCMath Calculation (base_amount = original * rate)
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             $payed = new KachaeePayment();
-            if ($request->money_type == 'دالر') {
-                $payed->amount = $request->amount;
-                $payed->amount_af = 0;
-            } else {
-                $payed->amount = 0;
-                $payed->amount_af = $request->amount;
-            }
-            
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
+            
+            // Legacy Support
+            $payed->dollar_rate = (string)$rate;
             $payed->kachaee_number = $request->kachaee_number;
+            
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else if($currency->code == 'AFN') {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
+            }
+
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
 
@@ -123,7 +146,7 @@ class KachaeePaymentController extends Controller
             $team = Kachaee::find($request->team_id);
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " تراکنش کچایی: " . $team->name . " مبلغ " . $request->amount . " " . $request->money_type . " " . $request->type . " ثبت شد ";
+            $activity->description = " تراکنش کچایی: " . $team->name . " مبلغ " . $request->amount . " " . $currency->code . " " . $request->type . " ثبت شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -137,23 +160,77 @@ class KachaeePaymentController extends Controller
      * @param  \App\KachaeePayment  $kachaeePayment
      * @return \Illuminate\Http\Response
      */
-    public function show($team_id)
+    public function show_all_payment($team_id)
     {
-        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('created_at','DESC')->paginate(30);
         $team = Kachaee::find($team_id);
-        $debits_us = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $debits_af = KachaeePayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
-        $credit_us = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $credit_af = KachaeePayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
+        if (!$team) {
+            return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
+        }
+
+        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('date','DESC')->get();
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = KachaeePayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
+        
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $all = 'true';
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'all'));
+    }
+
+    public function show($team_id)
+    {
+        $team = Kachaee::find($team_id);
+        if (!$team) {
+            return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
+        }
+
+        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('date','DESC')->paginate(30);
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = KachaeePayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
+        $paymentEdit = '';
+        $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
 
     /**
@@ -165,20 +242,33 @@ class KachaeePaymentController extends Controller
     public function edit($payment_id)
     {
         $paymentEdit = KachaeePayment::find($payment_id);
-        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->orderBy('created_at','DESC')->paginate(30);
         $team = Kachaee::find($paymentEdit->team_id);
-        $debits_us = KachaeePayment::where('type','=','گرفت')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
-        $debits_af = KachaeePayment::where('type','=','گرفت')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
-        $credit_us = KachaeePayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
-        $credit_af = KachaeePayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
+        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->orderBy('date','DESC')->paginate(30);
+
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = KachaeePayment::where('team_id', $paymentEdit->team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $kachaee_numbers = CarpetRepair::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['kachaee_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
 
     /**
@@ -192,34 +282,51 @@ class KachaeePaymentController extends Controller
     {
         return DB::transaction(function () use ($request, $payment_id) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'type' => 'required',
                 'team_id' => 'required',
             ]);
 
             $payed = KachaeePayment::find($payment_id);
 
-            // Reversal
+            // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payed->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payed->id, 'Kachaee Record Edited');
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Kachaee Record Edited', get_class($payed));
             }
 
-            if ($request->money_type == 'دالر') {
-                $payed->amount = $request->amount;
-                $payed->amount_af = 0;
-            } else {
-                $payed->amount = 0;
-                $payed->amount_af = $request->amount;
-            }
-            
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->team_id = $request->team_id;
-            $payed->dollar_rate = $request->dollar_rate;
+            $payed->dollar_rate = (string)$rate;
             $payed->kachaee_number = $request->kachaee_number;
+
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
+                $payed->amount = $request->amount;
+                $payed->amount_af = 0;
+            } else if($currency->code == 'AFN') {
+                $payed->amount = 0;
+                $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
+            }
+
             $payed->update();
 
             // Re-post
@@ -252,9 +359,9 @@ class KachaeePaymentController extends Controller
         return DB::transaction(function () use ($id) {
             $payment = KachaeePayment::find($id);
 
-            // Reversal
+            // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Kachaee Record Deleted');
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Kachaee Record Deleted', get_class($payment));
             }
 
             $payment->delete();

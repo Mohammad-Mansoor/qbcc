@@ -125,9 +125,9 @@
                                     <th class="py-3 px-4">تاریخ (Date)</th>
                                     <th class="py-3">سند (Ref)</th>
                                     <th class="py-3" style="width: 40%">تفصیلات (Description)</th>
-                                    <th class="py-3 text-right">دیبت / فروش (Debit)</th>
-                                    <th class="py-3 text-right">کریدت / رسید (Credit)</th>
-                                    <th class="py-3 text-right px-4">بیلانس نهایی</th>
+                                    <th class="py-3 text-right">دیبت / فروش ({{ \App\Currency::getBase()->code }})</th>
+                                    <th class="py-3 text-right">کریدت / رسید ({{ \App\Currency::getBase()->code }})</th>
+                                    <th class="py-3 text-right px-4">بیلانس نهایی ({{ \App\Currency::getBase()->code }})</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -145,8 +145,22 @@
                                         <a href="{{ route('accounting.journals.show', $entry->transaction_id) }}" target="_blank" class="text-indigo">{{ $entry->reference }}</a>
                                     </td>
                                     <td class="py-3 text-muted small">{{ $entry->description }}</td>
-                                    <td class="py-3 text-right text-dark">{{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}</td>
-                                    <td class="py-3 text-right text-success font-weight-bold">{{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}</td>
+                                    <td class="py-3 text-right text-dark">
+                                        {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
+                                        @if($entry->debit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                            <div class="small text-muted font-weight-normal" dir="ltr">
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 text-right text-success font-weight-bold">
+                                        {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
+                                        @if($entry->credit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                            <div class="small text-muted font-weight-normal" dir="ltr">
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="py-3 text-right px-4 font-weight-bold {{ $currentRunning >= 0 ? 'text-dark' : 'text-danger' }}">
                                         {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? '(Dr)' : '(Cr)' }}
                                     </td>

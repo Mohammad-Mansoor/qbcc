@@ -88,9 +88,16 @@
                         </div>
                     </div>
 
-                    <div class="p-2 bg-success-light rounded mb-3 text-center" style="background: rgba(76, 175, 80, 0.1);">
-                        <span class="d-block text-muted small">ارزش تخمینی دارایی گدام</span>
-                        <h5 class="mb-0 text-success font-weight-bold">${{ number_format($warehouse->total_asset_value, 2) }}</h5>
+                    <div class="p-2 bg-success-light rounded mb-3 text-center shadow-sm" style="background: rgba(76, 175, 80, 0.05); border: 1px solid rgba(76, 175, 80, 0.15); border-radius: 12px;">
+                        <span class="d-block text-muted small font-weight-bold mb-1">ارزش تخمینی دارایی گدام (Asset Value)</span>
+                        <h4 class="mb-0 text-success font-weight-bold">${{ number_format($warehouse->total_asset_value, 2) }} <span class="small" style="font-size: 0.75rem;">USD</span></h4>
+                        @foreach($currencies as $c)
+                            @if($c->code !== 'USD')
+                                <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                    معادل: {{ number_format($warehouse->total_asset_value * $c->exchange_rate, 2) }} <span class="font-weight-bold">{{ $c->code }}</span>
+                                </div>
+                            @endif
+                        @endforeach
                     </div>
 
                     <hr class="my-3 opacity-5">

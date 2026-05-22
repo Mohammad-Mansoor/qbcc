@@ -228,9 +228,14 @@
                       <td>
                         <a href="/dashboard/search-wash-numbersh-payment/{{$washed->wash_number_sh}},{{$washed->team_id}}"
                         >&nbsp; {{$washed->wash_number_sh}}</a></td>
-                      <td style="direction: ltr">{{$washed->price}} $</td>
-                      <td style="direction: ltr">{{$washed->af_total_price}} $</td>
-                      <td>{{$washed->date}}</td>
+                       <td style="direction: ltr">{{ number_format($washed->price, 2) }} $</td>
+                       <td style="direction: ltr">
+                         <span class="font-weight-bold text-success">{{ number_format($washed->af_total_price, 2) }} {{ $washed->currency_code ?: 'USD' }}</span>
+                         @if($washed->currency_code && $washed->currency_code != 'USD')
+                           <br><small class="text-muted">({{ number_format($washed->total_price, 2) }} USD)</small>
+                         @endif
+                       </td>
+                       <td>{{$washed->date}}</td>
                       <td>{{$washed->washing_team->name}}</td>
                       <td>{{$washed->description}}</td>
                       <td><a href="/dashboard/carpet-wash/{{$washed->id}}/edit"
@@ -319,7 +324,7 @@
                     
                     <th><b>مجموع پول کاریگر</b></th>
                     
-                    <th><b>AF {{$washeds->sum('af_total_price')}} </b></th>
+                     <th><b>$ {{ number_format($washeds->sum('total_price'), 2) }} </b></th>
                     <th>مجموع متراژ قالین</th>
                     <th style="direction: ltr">{{$washeds->sum('area')}} m<sup>2</sup></th>
                     <th>تعداد قالین</th>

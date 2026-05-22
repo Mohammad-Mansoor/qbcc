@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Currency;
 
 class PurchaseMaterialController extends Controller
 {
@@ -77,11 +78,12 @@ class PurchaseMaterialController extends Controller
         
         // Fetch current mapping as defaults
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
+        $currencies = Currency::where('is_active', true)->get();
 
         return view('mpurchase.index', compact(
             'purchase', 'material_type', 'material_category', 'sellers', 
             'purchaseMaterial', 'PurchaseNo', 'warehouses',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
         ));
     }
 
@@ -151,7 +153,8 @@ class PurchaseMaterialController extends Controller
         $material_category = MaterialCategory::all();
         $sellers = StringSeller::all();
         $warehouses = \App\Warehouse::all();
-        return view('mpurchase.create', compact('material_type', 'material_category', 'sellers', 'warehouses'));
+        $currencies = Currency::where('is_active', true)->get();
+        return view('mpurchase.create', compact('material_type', 'material_category', 'sellers', 'warehouses', 'currencies'));
     }
 
     /**
@@ -169,6 +172,16 @@ class PurchaseMaterialController extends Controller
             $data['status'] = 0;
         }
 
+        // FORENSIC SNAPSHOTS
+        $currency = Currency::find($request->currency_id);
+        $rate = $request->exchange_rate ?: $currency->exchange_rate;
+        
+        $data['currency_id'] = $currency->id;
+        $data['currency_code'] = $currency->code;
+        $data['exchange_rate'] = $rate;
+        $data['original_amount'] = bcmul($request->price_per_kilo, $request->quantity, 4);
+        $data['base_currency_amount'] = bcmul($data['original_amount'], $rate, 4);
+
         // For direct purchases (SP role), we use the manager's transactional callback
         if ($data['status'] == 1) {
             // Pre-create the instance to have a model reference
@@ -177,9 +190,11 @@ class PurchaseMaterialController extends Controller
             $this->inventoryManager->processPurchase($purchase, [
                 'quantity' => $purchase->quantity,
                 'unit_cost' => $purchase->price_per_kilo,
+                'currency_code' => $currency->code,
+                'exchange_rate' => $rate,
                 'warehouse_id' => $purchase->warehouse_id ?? 1,
                 'date' => $purchase->purchase_date,
-                'total_amount' => $purchase->total_af, // Use AFN for ledger
+                'total_amount' => $data['base_currency_amount'], // Use USD for ledger
                 'party_type' => 'App\StringSeller',
                 'party_id' => $purchase->seller_id,
                 'reference' => $purchase->purchase_number,
@@ -233,10 +248,11 @@ class PurchaseMaterialController extends Controller
         $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
+        $currencies = Currency::where('is_active', true)->get();
 
         return view('mpurchase.index', compact(
             'purchase', 'material_type', 'material_category', 'sellers', 'purchaseMaterial', 'warehouses',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
         ));
     }
 
@@ -256,6 +272,17 @@ class PurchaseMaterialController extends Controller
             }
 
             $data = $this->Valid();
+
+            // FORENSIC SNAPSHOTS
+            $currency = Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+            
+            $data['currency_id'] = $currency->id;
+            $data['currency_code'] = $currency->code;
+            $data['exchange_rate'] = $rate;
+            $data['original_amount'] = bcmul($request->price_per_kilo, $request->quantity, 4);
+            $data['base_currency_amount'] = bcmul($data['original_amount'], $rate, 4);
+
             $purchaseMaterial->update($data);
 
             // Re-process new transactions if approved
@@ -263,9 +290,11 @@ class PurchaseMaterialController extends Controller
                 $this->inventoryManager->processPurchase($purchaseMaterial, [
                     'quantity' => $purchaseMaterial->quantity,
                     'unit_cost' => $purchaseMaterial->price_per_kilo,
+                    'currency_code' => $currency->code,
+                    'exchange_rate' => $rate,
                     'warehouse_id' => $request->warehouse_id ?? 1,
                     'date' => $purchaseMaterial->purchase_date,
-                    'total_amount' => $purchaseMaterial->total_af,
+                    'total_amount' => $data['base_currency_amount'], // Use USD for ledger
                     'party_type' => 'App\StringSeller',
                     'party_id' => $purchaseMaterial->seller_id,
                     'reference' => $purchaseMaterial->purchase_number,
@@ -319,6 +348,8 @@ class PurchaseMaterialController extends Controller
             'total_af' => 'required',
             'purchase_number' => 'required',
             'warehouse_id' => 'required',
+            'currency_id' => 'required|exists:currencies,id',
+            'exchange_rate' => 'required|numeric',
             'override_debit_account_id' => '',
             'override_credit_account_id' => '',
             'status' => ''

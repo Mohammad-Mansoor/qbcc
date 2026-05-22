@@ -53,24 +53,43 @@
     </div>
 
     @if(isset($account) || count($entries) > 0)
+    @php
+        $accCurrency = isset($account) ? $account->currency : 'USD';
+        $accRate = (isset($currencies) && isset($currencies[$accCurrency])) ? $currencies[$accCurrency]->exchange_rate : 1.0;
+    @endphp
     <!-- Analytical Snapshot Cards -->
     <div class="row mb-4 no-print">
         <div class="col-md-3">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: #fff;">
                 <span class="text-muted small font-weight-bold">بیلانس افتتاحی (Opening)</span>
-                <h4 class="font-weight-bold text-dark mt-2 mb-0">{{ number_format($openingBalance, 2) }}</h4>
+                <h4 class="font-weight-bold text-dark mt-2 mb-0">{{ number_format($openingBalance, 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
+                @if($accCurrency !== 'USD')
+                <div class="text-muted small mt-1">
+                    {{ number_format($openingBalance * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                </div>
+                @endif
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: #fff; border-bottom: 4px solid #4099ff !important;">
                 <span class="text-primary small font-weight-bold">مجموع دیبت (Total Debit)</span>
-                <h4 class="font-weight-bold text-primary mt-2 mb-0">+ {{ number_format($entries->sum('debit'), 2) }}</h4>
+                <h4 class="font-weight-bold text-primary mt-2 mb-0">+ {{ number_format($entries->sum('debit'), 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
+                @if($accCurrency !== 'USD')
+                <div class="text-muted small mt-1">
+                    + {{ number_format($entries->sum('debit') * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                </div>
+                @endif
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: #fff; border-bottom: 4px solid #ff5370 !important;">
                 <span class="text-danger small font-weight-bold">مجموع کریدت (Total Credit)</span>
-                <h4 class="font-weight-bold text-danger mt-2 mb-0">- {{ number_format($entries->sum('credit'), 2) }}</h4>
+                <h4 class="font-weight-bold text-danger mt-2 mb-0">- {{ number_format($entries->sum('credit'), 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
+                @if($accCurrency !== 'USD')
+                <div class="text-muted small mt-1">
+                    - {{ number_format($entries->sum('credit') * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                </div>
+                @endif
             </div>
         </div>
         @php 
@@ -84,7 +103,12 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(45deg, #1a237e, #3949ab);">
                 <span class="text-white opacity-75 small font-weight-bold">بیلانس نهایی (Closing Balance)</span>
-                <h4 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($runningBalance, 2) }}</h4>
+                <h4 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($runningBalance, 2) }} <small class="text-white-50" style="font-size: 0.75rem;">USD</small></h4>
+                @if($accCurrency !== 'USD')
+                <div class="text-white opacity-75 small mt-1">
+                    {{ number_format($runningBalance * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -126,9 +150,9 @@
                                     <th class="py-3 px-4">تاریخ</th>
                                     <th class="py-3">سند (Ref)</th>
                                     <th class="py-3" style="width: 35%">شرح تراکنش (Description)</th>
-                                    <th class="py-3 text-right">دیبت (Debit)</th>
-                                    <th class="py-3 text-right">کریدت (Credit)</th>
-                                    <th class="py-3 text-right px-4">بیلانس (Running)</th>
+                                    <th class="py-3 text-right">دیبت ({{ \App\Currency::getBase()->code }})</th>
+                                    <th class="py-3 text-right">کریدت ({{ \App\Currency::getBase()->code }})</th>
+                                    <th class="py-3 text-right px-4">بیلانس ({{ \App\Currency::getBase()->code }})</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -136,7 +160,14 @@
                                 <!-- Opening Balance Row -->
                                 <tr class="bg-lightest">
                                     <td colspan="5" class="py-3 px-4 text-muted font-weight-bold">بیلانس انتقالی (Opening Balance Forwarded)</td>
-                                    <td class="py-3 text-right px-4 font-weight-bold text-dark">{{ number_format($openingBalance, 2) }}</td>
+                                    <td class="py-3 text-right px-4 font-weight-bold text-dark">
+                                        {{ number_format($openingBalance, 2) }} <small class="text-muted">USD</small>
+                                        @if($accCurrency !== 'USD')
+                                            <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
+                                                {{ number_format($openingBalance * $accRate, 2) }} {{ $accCurrency }}
+                                            </div>
+                                        @endif
+                                    </td>
                                 </tr>
 
                                 @foreach($entries as $entry)
@@ -153,12 +184,27 @@
                                     <td class="py-3 text-muted small">{{ $entry->description }}</td>
                                     <td class="py-3 text-right text-primary font-weight-bold">
                                         {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
+                                        @if($entry->debit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                            <div class="small text-muted font-weight-normal" dir="ltr">
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="py-3 text-right text-danger font-weight-bold">
                                         {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
+                                        @if($entry->credit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                            <div class="small text-muted font-weight-normal" dir="ltr">
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="py-3 text-right px-4 font-weight-bold" style="background: #fcfcfc;">
-                                        {{ number_format($currentRunning, 2) }}
+                                        {{ number_format($currentRunning, 2) }} <small class="text-muted">USD</small>
+                                        @if($accCurrency !== 'USD')
+                                            <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
+                                                {{ number_format($currentRunning * $accRate, 2) }} {{ $accCurrency }}
+                                            </div>
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach
@@ -166,9 +212,30 @@
                             <tfoot class="bg-light">
                                 <tr class="font-weight-bold">
                                     <td colspan="3" class="py-3 px-4 text-right border-0">مجموع دوره (Period Total):</td>
-                                    <td class="py-3 text-right text-primary border-0">{{ number_format($entries->sum('debit'), 2) }}</td>
-                                    <td class="py-3 text-right text-danger border-0">{{ number_format($entries->sum('credit'), 2) }}</td>
-                                    <td class="py-3 text-right px-4 border-0 text-dark" style="font-size: 1.1rem;">{{ number_format($currentRunning, 2) }}</td>
+                                    <td class="py-3 text-right text-primary border-0">
+                                        {{ number_format($entries->sum('debit'), 2) }} <small class="text-muted">USD</small>
+                                        @if($accCurrency !== 'USD')
+                                            <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
+                                                {{ number_format($entries->sum('debit') * $accRate, 2) }} {{ $accCurrency }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 text-right text-danger border-0">
+                                        {{ number_format($entries->sum('credit'), 2) }} <small class="text-muted">USD</small>
+                                        @if($accCurrency !== 'USD')
+                                            <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
+                                                {{ number_format($entries->sum('credit') * $accRate, 2) }} {{ $accCurrency }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 text-right px-4 border-0 text-dark" style="font-size: 1.1rem;">
+                                        {{ number_format($currentRunning, 2) }} <small class="text-muted">USD</small>
+                                        @if($accCurrency !== 'USD')
+                                            <div class="small text-muted font-weight-normal" style="font-size: 0.85rem;">
+                                                {{ number_format($currentRunning * $accRate, 2) }} {{ $accCurrency }}
+                                            </div>
+                                        @endif
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>

@@ -9,8 +9,8 @@
                 <div class="card-body p-4">
                     <div class="row align-items-center mb-4">
                         <div class="col-md-6">
-                            <h3 class="font-weight-bold mb-1">تراز آزمایشی (Trial Balance)</h3>
-                            <p class="text-muted mb-0">گزارش مجموع بدهکار و بستانکار تمامی حساب‌ها در بازه زمانی مشخص</p>
+                            <h3 class="font-weight-bold mb-1">تراز آزمایشی (Trial Balance <span class="text-primary">USD</span>)</h3>
+                            <p class="text-muted mb-0">گزارش مجموع بدهکار و بستانکار تمامی حساب‌ها (معادل دالر) در بازه زمانی مشخص</p>
                         </div>
                         <div class="col-md-6">
                             <form action="{{ route('accounting.reports.trial_balance') }}" method="GET">
@@ -38,9 +38,9 @@
                                 <tr>
                                     <th class="py-3 px-4">کد حساب</th>
                                     <th class="py-3">نام حساب (Account Name)</th>
-                                    <th class="py-3 text-right">دیبت (Debit)</th>
-                                    <th class="py-3 text-right">کریدت (Credit)</th>
-                                    <th class="py-3 text-right px-4">بیلانس نهایی</th>
+                                    <th class="py-3 text-right">دیبت (Debit USD)</th>
+                                    <th class="py-3 text-right">کریدت (Credit USD)</th>
+                                    <th class="py-3 text-right px-4">بیلانس (Balance USD)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -60,11 +60,11 @@
                             </tbody>
                             <tfoot class="bg-light font-weight-bold">
                                 <tr style="font-size: 1.1rem;">
-                                    <td colspan="2" class="py-4 px-4 text-right">مجموع (Grand Total):</td>
-                                    <td class="py-4 text-right text-primary border-top-double">{{ number_format($sumDebit, 2) }}</td>
-                                    <td class="py-4 text-right text-danger border-top-double">{{ number_format($sumCredit, 2) }}</td>
+                                    <td colspan="2" class="py-4 px-4 text-right">مجموع (Grand Total USD):</td>
+                                    <td class="py-4 text-right text-primary border-top-double">{{ number_format($sumDebit, 2) }} $</td>
+                                    <td class="py-4 text-right text-danger border-top-double">{{ number_format($sumCredit, 2) }} $</td>
                                     <td class="py-4 text-right px-4 border-top-double">
-                                        {{ number_format(abs($sumDebit - $sumCredit), 2) }}
+                                        {{ number_format(abs($sumDebit - $sumCredit), 2) }} $
                                     </td>
                                 </tr>
                             </tfoot>

@@ -61,7 +61,7 @@
             </table>
           </div>
 
-          <h5 class="mt-4 font-weight-bold text-dark border-bottom pb-2">تحلیل قیمت تمام شد</h5>
+          <h5 class="mt-4 font-weight-bold text-dark border-bottom pb-2">تحلیل قیمت تمام شد (به دالر - USD)</h5>
           <div class="table-responsive">
             <table class="table table-sm">
               <tbody>

@@ -25,15 +25,20 @@ class AgentsCarpetController extends Controller
     public function index()
     {
     }
-    public function carpet_details($carpet_id){
+    public function carpet_details($carpet_id)
+    {
         $carpet = Carpet::find($carpet_id);
         $carpetCheckBook = CarpetCheckBook::where('carpet_id', $carpet->carpet_id)->first();
-//        $agentRecieveds = 0; //AgentRecieved::where('carpet_id', $carpet->carpet_id)->paginate(8);
+        //        $agentRecieveds = 0; //AgentRecieved::where('carpet_id', $carpet->carpet_id)->paginate(8);
         $carpetMaterials = CarpetMaterial::where('carpet_id', $carpet->carpet_id)->paginate(8);
-//        $agentMoney = AgentRecieved::where('carpet_id', $carpet->carpet_id)->sum('amount');
+        //        $agentMoney = AgentRecieved::where('carpet_id', $carpet->carpet_id)->sum('amount');
         $materialMoney = CarpetMaterial::where('carpet_id', $carpet->carpet_id)->sum('total_price');
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
+        $currencies = \App\Currency::all();
+        $warehouses = \App\Warehouse::all();
+        $debitAccounts = \App\ChartOfAccount::where('normal_balance', 'debit')->orderBy('account_code')->get();
+        $creditAccounts = \App\ChartOfAccount::where('normal_balance', 'credit')->orderBy('account_code')->get();
 
         $lastId = CarpetCheckBook::latest()->first();
         $CheckNo = '';
@@ -47,18 +52,19 @@ class AgentsCarpetController extends Controller
         }
 
         $material = '';
-        return view('agents-carpet.agent-carpet-details', compact('carpet', 'material', 'carpetCheckBook', 'carpetMaterials', 'categories', 'material_types', 'materialMoney', 'CheckNo'));
+        return view('agents-carpet.agent-carpet-details', compact('carpet', 'material', 'carpetCheckBook', 'carpetMaterials', 'categories', 'material_types', 'materialMoney', 'CheckNo', 'currencies', 'warehouses', 'debitAccounts', 'creditAccounts'));
 
 
     }
-    
-    public function agent_balance(Carpet $carpet){
-        $agent = Agents::where('agent_id',$carpet->agent_id)->first();
+
+    public function agent_balance(Carpet $carpet)
+    {
+        $agent = Agents::where('agent_id', $carpet->agent_id)->first();
         $totalReceiv = 0;
-        $mawad_ranga = CarpetMaterial::where('carpet_id','=',$carpet->carpet_id)->where('category_id', '=',2)->sum('amount');
-        $mawad_pakhta = CarpetMaterial::where('carpet_id','=',$carpet->carpet_id)->where('category_id', '=',1)->sum('amount');
-        
-        return view('agents-carpet.carpet-balance', compact('carpet', 'agent','mawad_ranga','mawad_pakhta','totalReceiv'));
+        $mawad_ranga = CarpetMaterial::where('carpet_id', '=', $carpet->carpet_id)->where('category_id', '=', 2)->sum('amount');
+        $mawad_pakhta = CarpetMaterial::where('carpet_id', '=', $carpet->carpet_id)->where('category_id', '=', 1)->sum('amount');
+
+        return view('agents-carpet.carpet-balance', compact('carpet', 'agent', 'mawad_ranga', 'mawad_pakhta', 'totalReceiv'));
     }
 
     /**
@@ -92,31 +98,33 @@ class AgentsCarpetController extends Controller
     {
         $agent = Agents::find($id);
 
-        $carpets  = Carpet::where('agent_id', '=' , $agent->agent_id)->where('status','0')->paginate(20);
+        $carpets = Carpet::where('agent_id', '=', $agent->agent_id)->where('status', '0')->paginate(20);
         $metrazh = $carpets->sum('area');
 
-        $mawad_ranga = CarpetMaterial::where('agent_id','=',$agent->agent_id)->where('category_id', '=',2)->get();
-        $mawad_pakhta = CarpetMaterial::where('agent_id','=',$agent->agent_id)->where('category_id', '=',1)->get();
+        $mawad_ranga = CarpetMaterial::where('agent_id', '=', $agent->agent_id)->where('category_id', '=', 2)->get();
+        $mawad_pakhta = CarpetMaterial::where('agent_id', '=', $agent->agent_id)->where('category_id', '=', 1)->get();
 
 
 
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
-        if($lastId) {
+        if ($lastId) {
             $lastId = $lastId->carpet_no;
-            $lastId = substr($lastId,-5);
+            $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-'.sprintf('%05d' , $lastId);
+            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-'.sprintf('%05d'  , '10101');
+            $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
+        $currencies = \App\Currency::all();
+        $warehouses = \App\Warehouse::all();
         $editCarpet = '';
 
 
-        return view('agents-carpet.index', compact('carpets',  'agent','mawad_ranga','mawad_pakhta','metrazh','AccountNo','orders','types','employees','editCarpet'));
+        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'currencies', 'warehouses'));
 
     }
 
@@ -131,28 +139,30 @@ class AgentsCarpetController extends Controller
     {
         $editCarpet = Carpet::find($id);
         $agent = Agents::find($editCarpet->agent_id);
-        $carpets  = Carpet::where('agent_id', '=' , $editCarpet->agent_id)->where('status','0')->paginate(20);
+        $carpets = Carpet::where('agent_id', '=', $editCarpet->agent_id)->where('status', '0')->paginate(20);
         $metrazh = $carpets->sum('area');
 
-        $mawad_ranga = CarpetMaterial::where('agent_id','=',$editCarpet->agent_id)->where('category_id', '=',2)->get();
-        $mawad_pakhta = CarpetMaterial::where('agent_id','=',$editCarpet->agent_id)->where('category_id', '=',1)->get();
+        $mawad_ranga = CarpetMaterial::where('agent_id', '=', $editCarpet->agent_id)->where('category_id', '=', 2)->get();
+        $mawad_pakhta = CarpetMaterial::where('agent_id', '=', $editCarpet->agent_id)->where('category_id', '=', 1)->get();
 
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
-        if($lastId) {
+        if ($lastId) {
             $lastId = $lastId->carpet_no;
-            $lastId = substr($lastId,-5);
+            $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-'.sprintf('%05d' , $lastId);
+            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-'.sprintf('%05d'  , '10101');
+            $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $qualities = Quality::all();
+        $currencies = \App\Currency::all();
+        $warehouses = \App\Warehouse::all();
 
-        return view('agents-carpet.index', compact('carpets','agent' ,'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities','metrazh','mawad_ranga','mawad_pakhta'));
+        return view('agents-carpet.index', compact('carpets', 'agent', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities', 'metrazh', 'mawad_ranga', 'mawad_pakhta', 'currencies', 'warehouses'));
     }
 
     /**
@@ -182,7 +192,7 @@ class AgentsCarpetController extends Controller
     {
         $agent = Agents::find($request->agent_id);
         $search = $request->search;
-        $carpets = Carpet::where('agent_id',$request->agent_id)->where('status','0')->where('carpet_no', 'like', '%' . $search . '%')
+        $carpets = Carpet::where('agent_id', $request->agent_id)->where('status', '0')->where('carpet_no', 'like', '%' . $search . '%')
             ->orWhere('width', 'like', '%' . $search . '%')
             ->orWhere('height', 'like', '%' . $search . '%')
             ->orWhere('area', 'like', '%' . $search . '%')
@@ -208,20 +218,20 @@ class AgentsCarpetController extends Controller
 
         $metrazh = $carpets->sum('area');
 
-        $mawad_ranga = CarpetMaterial::where('agent_id','=',$agent->agent_id)->where('category_id', '=',2)->get();
-        $mawad_pakhta = CarpetMaterial::where('agent_id','=',$agent->agent_id)->where('category_id', '=',1)->get();
+        $mawad_ranga = CarpetMaterial::where('agent_id', '=', $agent->agent_id)->where('category_id', '=', 2)->get();
+        $mawad_pakhta = CarpetMaterial::where('agent_id', '=', $agent->agent_id)->where('category_id', '=', 1)->get();
 
 
 
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
-        if($lastId) {
+        if ($lastId) {
             $lastId = $lastId->carpet_no;
-            $lastId = substr($lastId,-5);
+            $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-'.sprintf('%05d' , $lastId);
+            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-'.sprintf('%05d'  , '10101');
+            $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
         $orders = CarpetOrder::all();
         $types = CarpetType::all();
@@ -230,7 +240,7 @@ class AgentsCarpetController extends Controller
 
 
 
-        return view('agents-carpet.index', compact('carpets',  'agent','mawad_ranga','mawad_pakhta','metrazh','AccountNo','orders','types','employees','editCarpet','search'));
+        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'search'));
 
 
 

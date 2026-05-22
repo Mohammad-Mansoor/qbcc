@@ -38,17 +38,30 @@ class FinishingWorkController extends Controller
         $teams = FinishingTeam::all();
         $team_categories = FinishingTeamCategory::whereNotIn('id', $done)->get();
         
-        $checks = [];
-        for($i=1; $i<=8; $i++) {
-            $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
-        }
+        $qaitan_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 1)->first();
+        $rofo_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 2)->first();
+        $cheet_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 3)->first();
+        $labaki_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 4)->first();
+        $popak_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 5)->first();
+        $kash_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 6)->first();
+        $rang_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 7)->first();
+        $shiraza_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 8)->first();
 
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
+        
+        $currencies = \App\Currency::all();
+        $currencyObj = \App\Currency::where('code', 'AFN')->first();
+        $currency = ($currencyObj && $currencyObj->exchange_rate > 0) ? (1 / $currencyObj->exchange_rate) : 70.0;
 
-        return view('finishing-center.create', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
+        return view('finishing-center.create', compact(
+            'carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency', 'currencies',
+            'qaitan_check', 'rofo_check', 'cheet_check', 'labaki_check', 
+            'popak_check', 'kash_check', 'rang_check', 'shiraza_check'
+        ));
     }
 
 
@@ -99,7 +112,7 @@ class FinishingWorkController extends Controller
     {
         $work = FinishingWork::find($id);
         $work->delete();
-        return response()->json(['status', 'error']);
+        return response()->json(['status' => 'error']);
     }
 
 
@@ -198,28 +211,7 @@ class FinishingWorkController extends Controller
         return view('finishing-center.index', compact('nonfinished', 'team', 'agents', 'finisheds', 'check'));
     }
 
-    public function saving_the_work(Carpet $carpet)
-    {
-        $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
-        $lastId = FinishingWork::latest()->first();
-        $FinishNo = $lastId ? 'TA-' . (substr($lastId->finish_number, -1) + 1) : 'TA-1';
 
-        $done = FinishingWork::where('carpetId', $carpet->carpet_id)->pluck('category_id')->toArray();
-        $teams = FinishingTeam::all();
-        $team_categories = FinishingTeamCategory::whereNotIn('id', $done)->get();
-        
-        $checks = [];
-        for($i=1; $i<=8; $i++) {
-            $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
-        }
-
-        $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
-
-        return view('finishing-center.create', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
-    }
 
     public function re_saving_the_work(Carpet $carpet)
     {
@@ -240,7 +232,11 @@ class FinishingWorkController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
 
-        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'), $checks));
+        $currencies = \App\Currency::all();
+        $currencyObj = \App\Currency::where('code', 'AFN')->first();
+        $currency = ($currencyObj && $currencyObj->exchange_rate > 0) ? (1 / $currencyObj->exchange_rate) : 70.0;
+
+        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'currency'), $checks));
     }
 
     private function processWorkCategory($request, $carpet, $newCarpet, $category_id, $field_suffix)
@@ -267,11 +263,27 @@ class FinishingWorkController extends Controller
                 $totalAmount = $unitPrice;
             }
 
+            // Calculate Base USD amount (division by exchange rate)
+            if ($currencyCode == 'USD') {
+                $baseUsdAmount = $totalAmount;
+            } else {
+                $baseUsdAmount = $exchangeRate > 0 ? ($totalAmount / $exchangeRate) : 0.0;
+            }
+
+            // Calculate AFN Alternative Amount for legacy reporting (multiplication of USD by active AFN exchange rate)
+            if ($currencyCode == 'AFN') {
+                $priceAf = $totalAmount;
+            } else {
+                $afnCurrency = \App\Currency::where('code', 'AFN')->first();
+                $afnRate = ($afnCurrency && $afnCurrency->exchange_rate > 0) ? (1 / $afnCurrency->exchange_rate) : 70.0;
+                $priceAf = $baseUsdAmount * $afnRate;
+            }
+
             $finish->currency_code = $currencyCode;
             $finish->exchange_rate = $exchangeRate;
-            $finish->price = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
-            $finish->price_af = ($currencyCode == 'AFN') ? $totalAmount : ($totalAmount * $exchangeRate);
-            $finish->base_currency_amount = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
+            $finish->price = $baseUsdAmount;
+            $finish->price_af = $priceAf;
+            $finish->base_currency_amount = $baseUsdAmount;
             
             if (Auth::user()->role == 'SP' || $request->is_direct_store) {
                 $finish->status = 1;
@@ -304,8 +316,9 @@ class FinishingWorkController extends Controller
 
     public function store_refinish(Request $request)
     {
-        $carpet = Carpet::find($request->carpetId);
-        $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
+        DB::transaction(function () use ($request) {
+            $carpet = Carpet::find($request->carpetId);
+            $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
             $categories = [
                 1 => 'qaitan', 2 => 'rofo', 3 => 'cheet', 4 => 'labaki',
@@ -315,6 +328,7 @@ class FinishingWorkController extends Controller
             foreach ($categories as $id => $suffix) {
                 $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix);
             }
+        });
 
         return redirect('/dashboard/finishing-center')->with('status', 'تیاری مجدد با موفقیت ثبت شد');
     }
@@ -322,6 +336,8 @@ class FinishingWorkController extends Controller
     public function store(Request $request)
     {
         $request->merge(['is_direct_store' => true]);
+        
+        DB::transaction(function () use ($request) {
             $carpet = Carpet::find($request->carpetId);
             $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
@@ -338,8 +354,33 @@ class FinishingWorkController extends Controller
                 $carpet->status = 5;
                 $carpet->update();
             }
+        });
 
         return redirect('/dashboard/finishing-center')->with('status', 'عملیات تیاری با موفقیت ثبت و در سیستم مالی درج گردید');
+    }
+
+    public function show($id)
+    {
+        $finish = FinishingWork::findOrFail($id);
+        $newCarpet = CarpetWash::where('carpetId', $finish->carpetId)->first() ?? $finish->carpet;
+        return view('finishing-center.show', compact('finish', 'newCarpet'));
+    }
+
+    public function edit($id)
+    {
+        $finish = FinishingWork::findOrFail($id);
+        $carpet = Carpet::where('carpet_id', '=', $finish->carpetId)->first();
+        $newCarpet = CarpetWash::where('carpetId', $finish->carpetId)->first() ?? $carpet;
+        $teams = FinishingTeam::all();
+        $team = FinishingTeam::find($finish->team_id);
+        $category = FinishingTeamCategory::find($finish->category_id);
+        $team_categories = FinishingTeamCategory::all();
+
+        $currency = $finish->currency_code ?? 'USD';
+        $mainPrice = $finish->price;
+        $mainPrice_af = $finish->price_af;
+
+        return view('finishing-center.edit', compact('finish', 'carpet', 'newCarpet', 'teams', 'team', 'category', 'team_categories', 'currency', 'mainPrice', 'mainPrice_af'));
     }
 
     public function update(Request $request, FinishingWork $finish)
@@ -348,32 +389,41 @@ class FinishingWorkController extends Controller
             $carpet = Carpet::find($request->carpetId);
             $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
-            // Accounting Reversal
-            $this->accountingService->reverseTransactionBySource($finish->id, 'Finishing Work Edited');
+            // Accounting Reversal - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($finish->id, 'Finishing Work Edited', get_class($finish));
 
             // Recalculate price
             $rate = $request->price_af;
-            $price = 0;
+            $totalAmount = 0;
             $category_id = $request->category_id;
             
             if (in_array($category_id, [1, 3, 5, 6, 7])) {
-                $price = $newCarpet->area * $rate;
+                $totalAmount = $newCarpet->area * $rate;
             } elseif (in_array($category_id, [4, 8])) {
-                $price = $newCarpet->height * $rate * 2;
+                $totalAmount = $newCarpet->height * $rate * 2;
             } elseif ($category_id == 2) {
-                $price = $rate;
+                $totalAmount = $rate;
             }
 
+            $currencyCode = $finish->currency_code ?? 'USD';
+            $exchangeRate = $finish->exchange_rate ?? 1.0;
+
+            $newPriceUsd = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
+            $newPriceAfn = ($currencyCode == 'AFN') ? $totalAmount : ($totalAmount * $exchangeRate);
+
             // Update Carpet total (subtract old, add new)
-            $carpet->total_price = $carpet->total_price - $finish->price + $price;
-            $carpet->total_price_af = $carpet->total_price_af - $finish->price_af + $price;
+            $carpet->total_price = $carpet->total_price - $finish->price + $newPriceUsd;
+            $carpet->total_price_af = $carpet->total_price_af - $finish->price_af + $newPriceAfn;
             $carpet->update();
 
             $finish->finish_number = $request->finish_number;
             $finish->team_id = $request->team_id;
             $finish->category_id = $category_id;
-            $finish->price = $price;
-            $finish->price_af = $price;
+            
+            $finish->price = $newPriceUsd;
+            $finish->price_af = $newPriceAfn;
+            $finish->base_currency_amount = $newPriceUsd;
+            
             $finish->date = $request->date;
             $finish->description = $request->description;
             $finish->update();
@@ -400,7 +450,8 @@ class FinishingWorkController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $work = FinishingWork::find($id);
-            $this->accountingService->reverseTransactionBySource($work->id, 'Finishing Work Deleted');
+            // Reverse Accounting - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($work->id, 'Finishing Work Deleted', get_class($work));
             $work->delete();
             return response()->json(['status' => 'success']);
         });

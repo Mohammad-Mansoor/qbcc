@@ -47,8 +47,19 @@ class InvoiceController extends Controller
             $carpet->package_id = null; 
             $carpet->update();
 
-            // 4. Delete Sale Record
-            $sale->delete();
+            // Find the reversal ledger transaction
+            $reversalTx = \App\LedgerTransaction::where('source_id', $sale->id)
+                ->where('source_type', 'App\Sale')
+                ->where('reference', 'like', 'REV-%')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            // 4. Mark Sale Record as Returned (Non-destructive)
+            $sale->is_returned = 1;
+            $sale->returned_at = Carbon::now();
+            $sale->return_ledger_transaction_id = $reversalTx ? $reversalTx->id : null;
+            $sale->returned_by = Auth::user()->id;
+            $sale->save();
 
             return response()->json(['status' => 'success']);
         });

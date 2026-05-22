@@ -20,11 +20,12 @@ class OfficeEmployeeController extends Controller
      */
     public function index()
     {
-        $employees = OfficeEmployee::with('department')->get();
+        $employees  = OfficeEmployee::with('department')->paginate(25);
         $department = EmployeeDepartment::all();
+        $currencies = \App\Currency::where('is_active', 1)->get();
         $employeeEdit = '';
 
-        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit'));
+        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit', 'currencies'));
     }
 
     public function search(Request $request)
@@ -32,13 +33,13 @@ class OfficeEmployeeController extends Controller
         $search = $request->search;
         $employeeEdit = '';
         $department = EmployeeDepartment::all();
+        $currencies = \App\Currency::where('is_active', 1)->get();
         $employees = OfficeEmployee::where('name', 'like', '%' . $search . '%')
             ->orWhere('job_title', 'like', '%' . $search . '%')
-
             ->orWhere('phone', 'like', '%' . $search . '%')
             ->orWhere('email', 'like', '%' . $search . '%')
             ->paginate(5);
-        return view('office-employee.employee-list', compact('employees', 'employeeEdit', 'department'));
+        return view('office-employee.employee-list', compact('employees', 'employeeEdit', 'department', 'currencies'));
     }
 
     /**
@@ -61,10 +62,10 @@ class OfficeEmployeeController extends Controller
     public function store(Request $request)
     {
         $image = '';
-        if ($request->has('image')) {
+        if ($request->hasFile('image')) {
             $file = $request->file('image');
             $fileExt = $file->getClientOriginalExtension();
-            if (!in_array($fileExt, ['jpg', 'png', 'jpeg'])) {
+            if (!in_array(strtolower($fileExt), ['jpg', 'png', 'jpeg'])) {
                 return redirect()->back()->withErrors(['msg' => 'فایل باید عکس باشد.']);
             }
             $fileName = time() . '' . rand(1000, 9999) . '-employee-image.' . $fileExt;
@@ -90,13 +91,24 @@ class OfficeEmployeeController extends Controller
 
 
         if ($employee) {
+            $currency = \App\Currency::find($request->currency_id);
+            if (!$currency) {
+                $currency = \App\Currency::where('is_base_currency', 1)->first();
+            }
             $salary = new EmployeeSalary();
             $salary->contract_number = 'CO-1';
-            $salary->salary = $request->salary;
-            $salary->from_date = $request->from_date;
-            $salary->to_date = $request->to_date;
-            $salary->employee_id = $employee->id;
-            $salary->in_words = $request->in_words;
+            $salary->contact_number  = 'CO-1'; // legacy column
+            $salary->salary          = $request->salary;
+            $salary->from_date       = $request->from_date;
+            $salary->to_date         = $request->to_date;
+            $salary->employee_id     = $employee->id;
+            $salary->in_words        = $request->in_words;
+            // Forensic FX snapshot
+            $salary->currency_id     = $currency->id;
+            $salary->currency_code   = $currency->code;
+            $salary->exchange_rate   = $request->exchange_rate ?? $currency->exchange_rate ?? 1;
+            $salary->salary_currency = bcmul($request->salary, 1, 4);
+            $salary->salary_usd      = bcmul($request->salary, $salary->exchange_rate, 4);
             $salary->save();
         }
         if ($employee) {
@@ -132,9 +144,10 @@ class OfficeEmployeeController extends Controller
     public function edit($id)
     {
         $employeeEdit = OfficeEmployee::find($id);
-        $employees = OfficeEmployee::with('department')->get();
-        $department = EmployeeDepartment::all();
-        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit'));
+        $employees    = OfficeEmployee::with('department')->paginate(25);
+        $department   = EmployeeDepartment::all();
+        $currencies   = \App\Currency::where('is_active', 1)->get();
+        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit', 'currencies'));
     }
 
     /**
@@ -149,13 +162,10 @@ class OfficeEmployeeController extends Controller
         $employee = OfficeEmployee::find($id);
 
         $image = '';
-        if ($request->has('image')) {
-
+        if ($request->hasFile('image')) {
             $file = $request->file('image');
-
-
             $fileExt = $file->getClientOriginalExtension();
-            if (!in_array($fileExt, ['jpg', 'png', 'jpeg'])) {
+            if (!in_array(strtolower($fileExt), ['jpg', 'png', 'jpeg'])) {
                 return redirect()->back()->withErrors(['msg' => 'فایل باید عکس باشد.']);
             }
             $fileName = time() . '' . rand(1000, 9999) . '-employee-image.' . $fileExt;
@@ -192,6 +202,9 @@ class OfficeEmployeeController extends Controller
     public function destroy($id)
     {
         $employee = OfficeEmployee::find($id);
+        if (!$employee) {
+            return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
+        }
 
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
@@ -200,8 +213,6 @@ class OfficeEmployeeController extends Controller
         $activity->save();
 
         $employee->delete();
-        if ($employee) {
-            return response()->json(['status' => 'success']);
-        }
+        return response()->json(['status' => 'success']);
     }
 }

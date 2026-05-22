@@ -148,6 +148,9 @@ class SaleController extends Controller
             $sale->carpet_height = $request->carpet_height;
             $sale->carpet_width = $request->carpet_width;
             $sale->carpet_area = $request->carpet_area;
+            $sale->currency_id = $request->currency_id;
+            $sale->currency_code = \App\Currency::find($request->currency_id)->code ?? 'USD';
+            $sale->exchange_rate = $request->exchange_rate ?? 1.0;
             $sale->save();
 
             $carpet_id->status = 6;
@@ -168,6 +171,8 @@ class SaleController extends Controller
                 'quantity' => 1,
                 'reference' => 'SALE-' . $sale->id,
                 'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'currency_code' => $sale->currency_code,
+                'exchange_rate' => $sale->exchange_rate,
                 'override_debit_account_id' => $request->override_debit_account_id,
                 'override_credit_account_id' => $request->override_credit_account_id,
                 'override_cogs_debit_id' => $request->override_cogs_debit_id,
@@ -257,6 +262,9 @@ class SaleController extends Controller
             $sale->carpet_height = $request->carpet_height;
             $sale->carpet_width = $request->carpet_width;
             $sale->carpet_area = $request->carpet_area;
+            $sale->currency_id = $request->currency_id;
+            $sale->currency_code = \App\Currency::find($request->currency_id)->code ?? 'USD';
+            $sale->exchange_rate = $request->exchange_rate ?? 1.0;
             $sale->update();
 
             $activity = new Activity();
@@ -276,6 +284,8 @@ class SaleController extends Controller
                 'quantity' => 1,
                 'reference' => 'SALE-' . $sale->id,
                 'description' => "ویرایش فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'currency_code' => $sale->currency_code,
+                'exchange_rate' => $sale->exchange_rate,
                 'override_debit_account_id' => $request->override_debit_account_id,
                 'override_credit_account_id' => $request->override_credit_account_id,
                 'override_cogs_debit_id' => $request->override_cogs_debit_id,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Currency;
 use App\Activity;
 use App\AgentPayment;
 use App\AgentRecieved;
@@ -40,8 +41,9 @@ class AgentsController extends Controller
             $AccountNo = 'AG-' . sprintf('%04d', '1');
         }
         $province = Province::orderBy('province')->get();
+        $currencies = Currency::all();
 
-        return view('agents.index', compact('data', 'agent','AccountNo','province'));
+        return view('agents.index', compact('data', 'agent','AccountNo','province', 'currencies'));
     }
     public function change_status($agent_id){
 
@@ -262,9 +264,10 @@ class AgentsController extends Controller
             $AccountNo = 'AG-' . sprintf('%04d', '1');
         }
         $province = Province::orderBy('province')->get();
+        $currencies = Currency::all();
 
 
-        return view('agents.index', compact('data', 'AccountNo','province','agent'));
+        return view('agents.index', compact('data', 'AccountNo','province','agent', 'currencies'));
 
     }
 
@@ -381,6 +384,7 @@ class AgentsController extends Controller
             'agent_address' => 'required',
             'contract_date' => 'required',
             'contract_type' => 'required',
+            'account_type' => 'required',
             'province_id' => 'required',
             'description' => '',
             'contract_scan_file' => '',

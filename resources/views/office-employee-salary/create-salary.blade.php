@@ -36,13 +36,36 @@
                     <div class="col-lg-10 col-md-10 col-sm-10 col-xs-12">
                       <label class="login2 pull-right pull-right-pro">
                         معاش</label>
-                      <input type="number" style="direction: rtl" name="salary"
-                             id="salary" class="form-control">
+                      <input type="number" step="0.01" style="direction: rtl" name="salary"
+                             id="salary_create" class="form-control">
                       @error('salary') <p
                               class="text-danger">{{trans('message.'.$message)}}</p>
                       @enderror
                     </div>
+                    <div class="col-lg-5 col-md-5 col-sm-10 col-xs-12 mt-1">
+                      <label class="login2 pull-right pull-right-pro">ارز معاش</label>
+                      <select name="currency_id" id="currency_id_salary" class="form-control">
+                        @foreach($currencies ?? [] as $curr)
+                          <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}"
+                            {{ $curr->is_base_currency ? 'selected' : '' }}>
+                            {{ $curr->code }} ({{ $curr->symbol }})
+                          </option>
+                        @endforeach
+                      </select>
+                    </div>
+                    <div class="col-lg-5 col-md-5 col-sm-10 col-xs-12 mt-1">
+                      <label class="login2 pull-right pull-right-pro">نرخ به دالر</label>
+                      <input type="number" step="0.00000001" min="0.00000001" name="exchange_rate"
+                             id="exchange_rate_salary" value="1" class="form-control">
+                    </div>
+                    <div class="col-lg-10 col-md-10 col-sm-10 col-xs-12 mt-1">
+                      <div style="background:#f0fdf4;border:1px dashed #86efac;border-radius:8px;padding:6px 14px;font-size:0.85rem;">
+                        <span style="color:#475569;">معادل USD: </span>
+                        <strong id="salary_usd_preview" style="color:#16a34a;">$0.00</strong>
+                      </div>
+                    </div>
                     <br>
+
                     
                     <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12">
                       <label class="login2 pull-right pull-right-pro">معاش به
@@ -280,26 +303,32 @@
               <tbody>
               @forelse($salaries as $sl)
                 <tr class="ur{{ $sl->id }}">
-                  
-                  <td>{{$sl->salary}}</td>
+                  <td>
+                    <span style="background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:10px;font-size:0.8rem;font-weight:600;">
+                      {{ $sl->contract_number ?? $sl->contact_number ?? '—' }}
+                    </span>
+                  </td>
+                  <td>{{ number_format($sl->salary, 2) }}</td>
+                  <td>
+                    <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:10px;font-size:0.8rem;font-weight:600;">
+                      {{ $sl->currency_code ?? '—' }}
+                    </span>
+                  </td>
+                  <td dir="ltr">
+                    @if($sl->salary_usd)
+                      <span style="color:#059669;font-weight:700;">${{ number_format($sl->salary_usd, 2) }}</span>
+                    @else
+                      <span style="color:#94a3b8;">—</span>
+                    @endif
+                  </td>
                   <td>{{$sl->in_words}}</td>
-                  
                   <td>{{$sl->from_date}}</td>
                   <td>{{$sl->to_date}}</td>
-                  
                   <td><a href="/dashboard/employee-salary/{{$sl->id}}/edit"
-                         class="btn btn-sm btn-info"><i
-                              class="fa fa-pencil"></i>&nbsp; ویرایش</a>
-                  </td>
-                <!-- <td>
-                                                            <button onclick="RemovePay({{ $sl->id }})"
-                                                                    class="btn btn-danger btn-sm"><i class="fa fa-remove"></i> &nbsp; حذف
-                                                            </button>
-                                                        </td>
-                                                        -->
+                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
                 </tr>
               @empty
-                <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
+                <tr><td colspan="8" class="text-center text-muted">هنوز موردی ثبت نشده است</td></tr>
               @endforelse
               
               </tbody>
@@ -318,11 +347,22 @@
       $('.status').show();
       window.setTimeout(function () {
           $(".status").fadeTo(500, 0).slideUp(500, function () {
-
               $(this).remove();
           });
       }, 10000);
 
+      // ─── Live Salary FX Preview (Create) ──────────────────────────────────
+      function calcSalaryPreview() {
+          var salary = parseFloat($('#salary_create').val()) || 0;
+          var rate   = parseFloat($('#exchange_rate_salary').val()) || 1;
+          $('#salary_usd_preview').text('$' + (salary * rate).toFixed(2));
+      }
+      $('#salary_create, #exchange_rate_salary').on('input', calcSalaryPreview);
+      $('#currency_id_salary').change(function() {
+          var rate = $(this).find(':selected').data('rate') || 1;
+          $('#exchange_rate_salary').val(rate);
+          calcSalaryPreview();
+      });
 
       function RemovePay(id) {
           swal({

@@ -90,9 +90,31 @@
             </div>
             <div class="col-md-6 text-right">
                 <div class="finance-summary justify-content-end">
+                    @php
+                        $usd_total = $customer_order_details->sum(function($q){
+                            $rate = $q->exchange_rate ?: 1;
+                            return $rate > 1 ? ($q->total_amount / $rate) : ($q->total_amount * $rate);
+                        });
+                        
+                        $grouped_totals = [];
+                        foreach($customer_order_details as $co_detail) {
+                            $code = $co_detail->currency_code ?: 'USD';
+                            $grouped_totals[$code] = ($grouped_totals[$code] ?? 0) + $co_detail->total_amount;
+                        }
+                    @endphp
+                    
+                    @foreach($grouped_totals as $code => $tot)
+                        @if($code != 'USD')
+                            <div class="finance-item">
+                                <small class="d-block opacity-75">Total Value ({{ $code }})</small>
+                                <span class="h4 text-white font-weight-bold">{{ number_format($tot, 2) }} {{ $code }}</span>
+                            </div>
+                        @endif
+                    @endforeach
+                    
                     <div class="finance-item">
                         <small class="d-block opacity-75">Total Value (USD)</small>
-                        <span class="h4 text-white font-weight-bold">${{ number_format($customer_order_details->sum(function($q){ return $q->total_amount / ($q->exchange_rate ?: 1); }), 2) }}</span>
+                        <span class="h4 text-white font-weight-bold">${{ number_format($usd_total, 2) }}</span>
                     </div>
                 </div>
             </div>
@@ -137,6 +159,12 @@
                             </div>
                             <p class="mt-2 mb-0 small text-muted"><strong>نکته:</strong> برای مشاهده تمام اسناد مالی صادر شده برای هر قالین، از آیکون <i class="fa fa-list-alt"></i> (دفتر تفصیلی) استفاده کنید.</p>
                         </div>
+                        <form action="{{ $orderEdit ? '/dashboard/customer-order-details/'.$orderEdit->cod_id : '/dashboard/customer-order-details' }}" method="post" enctype="multipart/form-data">
+                            @csrf
+                            @if($orderEdit)
+                                {{ method_field('patch') }}
+                            @endif
+                            <input type="hidden" name="customer_order_id" value="{{ $customer_order->co_id }}">
                                             <div class="row" style="direction: rtl; text-align: right;">
                                 <!-- Technical Specs -->
                                 <div class="col-md-2 mb-3">
@@ -174,7 +202,7 @@
                                     <input type="text" name="weaver_code" class="form-control form-control-sm" value="{{ optional($orderEdit)->weaver_code ?? '' }}">
                                     <small class="text-muted small">کد شناسایی بافنده.</small>
                                 </div>
-                                <div class="col-md-2 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <label class="small font-weight-bold">وضعیت فعلی <span class="text-danger">*</span></label>
                                     <select name="current_status" class="form-control form-control-sm select2">
                                         @foreach(['Graphing' => 'نقشه‌کشی', 'Dyeing' => 'رنگ‌ریزی', 'On loom' => 'روی دستگاه', 'Off loom' => 'ختم بافت', 'Washing' => 'شستشو', 'Finishing' => 'پرداخت', 'Repairing' => 'ترمیم', 'Ready' => 'آماده', 'Shipped' => 'تسلیم شده', 'Paused' => 'متوقف', 'Cancelled' => 'لغو شده'] as $val => $label)
@@ -187,29 +215,35 @@
                                 <!-- Finance Fields -->
                                 <div class="col-md-2 mb-3">
                                     <label class="small font-weight-bold">واحد پولی <span class="text-danger">*</span></label>
-                                    <select name="currency_code" id="currency_code" class="form-control form-control-sm select2" required>
-                                        <option value="USD" {{ (optional($orderEdit)->currency_code == 'USD') ? 'selected' : '' }}>USD (دالر)</option>
-                                        <option value="AFN" {{ (optional($orderEdit)->currency_code == 'AFN') ? 'selected' : '' }}>AFN (افغانی)</option>
+                                    <select name="currency_id" id="currency_id" class="form-control form-control-sm select2" required>
+                                        @foreach($currencies as $currency)
+                                            <option value="{{ $currency->id }}" 
+                                                    data-code="{{ $currency->code }}" 
+                                                    data-rate="{{ $currency->exchange_rate }}"
+                                                    {{ (is_object($orderEdit) && \App\Currency::where('code', $orderEdit->currency_code)->value('id') == $currency->id) ? 'selected' : ($currency->code == 'USD' ? 'selected' : '') }}>
+                                                {{ $currency->code }} ({{ $currency->name }})
+                                            </option>
+                                        @endforeach
                                     </select>
                                     <small class="text-muted small">ارز مورد معامله.</small>
                                 </div>
-                                <div class="col-md-1 mb-3">
+                                <div class="col-md-2 mb-3">
                                     <label class="small font-weight-bold">نرخ ارز</label>
-                                    <input type="number" step="0.0001" name="exchange_rate" id="exchange_rate" class="form-control form-control-sm" value="{{ optional($orderEdit)->exchange_rate ?? '1' }}" required>
+                                    <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control form-control-sm" value="{{ optional($orderEdit)->exchange_rate ?? '1' }}" required>
                                     <small class="text-muted small">نرخ تبدیل به پول پایه.</small>
                                 </div>
-                                <div class="col-md-1 mb-3">
+                                <div class="col-md-2 mb-3">
                                     <label class="small font-weight-bold">قیمت فی متر</label>
                                     <input type="number" step="0.01" name="unit_price" id="unit_price" class="form-control form-control-sm" value="{{ optional($orderEdit)->unit_price ?? '' }}">
                                     <small class="text-muted small">قیمت فروش فی متر مربع.</small>
                                 </div>
                                 <div class="col-md-2 mb-3">
                                     <label class="small font-weight-bold">مجموع مبلغ</label>
-                                    <input type="number" step="0.01" name="total_amount" id="total_amount" class="form-control form-control-sm bg-light" value="{{ optional($orderEdit)->total_amount ?? '' }}" readonly>
+                                    <input type="number" step="0.01" name="total_amount" id="total_amount" class="form-control form-control-sm bg-light font-weight-bold" value="{{ optional($orderEdit)->total_amount ?? '' }}" readonly>
                                     <small class="text-muted small">محاسبه خودکار کل مبلغ.</small>
                                 </div>
 
-                                <!-- Logistics -->
+                                <!-- Logistics & Actions Grid Row -->
                                 <div class="col-md-2 mb-3">
                                     <label class="small font-weight-bold">تاریخ شروع <span class="text-danger">*</span></label>
                                     <input type="date" name="start_date" class="form-control form-control-sm" value="{{ optional($orderEdit)->start_date ?? date('Y-m-d') }}" required>
@@ -226,8 +260,16 @@
                                     <small class="text-muted small">نقشه یا عکس نمونه.</small>
                                 </div>
 
-                                <div class="col-md-2 mb-3 align-self-end">
-                                    <button type="submit" class="btn btn-primary btn-sm btn-block">
+                                <!-- Truth Preview USD Card -->
+                                <div class="col-md-3 mb-3 align-self-center">
+                                    <div class="truth-preview-box" style="background: #e3f2fd; border-right: 4px solid #1e88e5; padding: 10px 15px; border-radius: 8px; margin-top: 5px; box-shadow: 0 4px 15px rgba(30, 136, 229, 0.05);">
+                                        <span class="truth-label" style="font-size: 0.75rem; color: #0d47a1; font-weight: 700;"><i class="fa fa-shield"></i> معادل دالر (USD Normalized):</span><br>
+                                        <span class="truth-value" id="usd_truth_preview" style="font-size: 1.3rem; color: #0d47a1; font-weight: 800; font-family: 'Courier New', monospace;">$ 0.0000</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mb-3 align-self-center">
+                                    <button type="submit" class="btn btn-primary btn-sm btn-block py-2 font-weight-bold" style="border-radius: 8px;">
                                         <i class="fa fa-save"></i> {{ $orderEdit ? 'بروزرسانی مشخصات' : 'ثبت مشخصات قالین' }}
                                     </button>
                                 </div>
@@ -282,8 +324,13 @@
                                         @endif
                                     </td>
                                     <td>
+                                        @php
+                                            $item_rate = $co->exchange_rate ?: 1;
+                                            $usd_val = $item_rate > 1 ? ($co->total_amount / $item_rate) : ($co->total_amount * $item_rate);
+                                        @endphp
                                         <span class="d-block font-weight-bold text-dark">{{ number_format($co->total_amount, 2) }} {{ $co->currency_code }}</span>
-                                        <small class="text-muted">{{ number_format($co->unit_price, 2) }}/m² (Rate: {{ $co->exchange_rate }})</small>
+                                        <small class="text-muted d-block">{{ number_format($co->unit_price, 2) }}/m² (Rate: {{ number_format($co->exchange_rate, 6) }})</small>
+                                        <small class="text-info font-weight-bold" style="color: #0d47a1 !important;">USD Eq: ${{ number_format($usd_val, 2) }}</small>
                                     </td>
                                     <td>
                                         <small class="d-block text-success">Start: {{ $co->start_date }}</small>
@@ -382,7 +429,7 @@
 
 @section('scripts')
 <script>
-    // Real-time area and total calculation
+    // Real-time area, total, and USD Normalized calculation
     function calculateTotals() {
         let h = parseFloat($('#height').val()) || 0;
         let w = parseFloat($('#width').val()) || 0;
@@ -390,20 +437,36 @@
         $('#area').val(area.toFixed(2));
 
         let up = parseFloat($('#unit_price').val()) || 0;
-        $('#total_amount').val((area * up).toFixed(2));
+        let total = area * up;
+        $('#total_amount').val(total.toFixed(2));
+        
+        updateUsdPreview();
     }
 
-    $("#height, #width, #unit_price").on("keyup change", calculateTotals);
-
-    // Auto-fill exchange rate based on currency selection
-    $('#currency_code').on('change', function() {
-        let cur = $(this).val();
-        if(cur == 'USD') {
-            $('#exchange_rate').val(1);
-        } else if(cur == 'AFN') {
-            $('#exchange_rate').val(77); // Default rate
+    function updateUsdPreview() {
+        let amount = parseFloat($('#total_amount').val()) || 0;
+        let rate = parseFloat($('#exchange_rate').val()) || 1;
+        let baseAmount = 0;
+        if (rate > 1) {
+            baseAmount = amount / rate;
+        } else {
+            baseAmount = amount * rate;
         }
+        $('#usd_truth_preview').text('$ ' + parseFloat(baseAmount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}));
+    }
+
+    $("#height, #width, #unit_price, #exchange_rate").on("keyup change input", calculateTotals);
+
+    // Auto-fill exchange rate based on currency selection from currencies table
+    $('#currency_id').on('change', function() {
+        let selectedOption = $(this).find('option:selected');
+        let rate = parseFloat(selectedOption.data('rate')) || 1;
+        $('#exchange_rate').val(rate);
+        calculateTotals();
     });
+
+    // Initial run on page load
+    calculateTotals();
 
     // Image Modal
     $('#imageModal').on('show.bs.modal', function (event) {

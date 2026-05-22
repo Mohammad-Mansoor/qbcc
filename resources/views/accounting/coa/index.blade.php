@@ -88,8 +88,13 @@
                             </td>
                             <td class="py-3 text-right">
                                 <span class="font-weight-bold {{ $acc->balance > 0 ? 'text-success' : ($acc->balance < 0 ? 'text-danger' : 'text-muted') }}" dir="ltr">
-                                    {{ number_format($acc->balance, 2) }}
+                                    {{ number_format($acc->balance, 2) }} <small class="text-muted">{{ $acc->currency }}</small>
                                 </span>
+                                @if($acc->currency !== 'USD')
+                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                    Equivalent: ${{ number_format($acc->base_balance, 2) }}
+                                </div>
+                                @endif
                             </td>
                             <td class="py-3 text-center">
                                 <span class="badge badge-dark px-2">{{ $acc->currency }}</span>

@@ -323,6 +323,7 @@
                         <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
                         <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
                         <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
+                        <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
                         
                         <!-- Advanced Financial Reports (Dari Afghanistan) -->
                         <li class="nav-item pcoded-hasmenu">

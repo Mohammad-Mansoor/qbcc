@@ -35,15 +35,19 @@ class FinishingTeamPaymentController extends Controller
     {
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
-            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            $amount = $payment->base_amount;
 
-            $this->accountingService->postAutoTransaction('payment', $mKey, array_merge([
+            $this->accountingService->postAutoTransaction('finishing_payment', $mKey, array_merge([
                 'date' => $payment->date,
                 'amount' => $amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
                 'party_type' => 'App\FinishingTeam',
                 'party_id' => $payment->team_id,
                 'reference' => 'F-PAY-' . $payment->id,
-                'description' => $payment->description,
+                'description' => "پرداخت بخش تیاری: " . $payment->description,
                 'source_id' => $payment->id,
             ], $overrides));
         } catch (\Exception $e) {
@@ -61,69 +65,73 @@ class FinishingTeamPaymentController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $payment = FinishingTeamPayment::find($id);
-            $payment->status = 1; // Approved
+            $payment->status = 1;
             $payment->update();
 
+            // Accounting Posting
             $this->postPaymentToAccounting($payment);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = ($payment->amount > 0) 
-                ? " مبلغ " . $payment->amount . "دالر برای تیم تیاری تایید شد "
-                : " مبلغ " . $payment->amount_af . "افغانی برای تیم تیاری تایید شد ";
+            $currency = ($payment->amount > 0) ? "دالر" : "افغانی";
+            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            $activity->description = " مبلغ " . $amount . " " . $currency . " توسط سوپر ادمین تایید و در سیستم مالی ثبت شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
             return response()->json(['status' => 'success']);
         });
     }
-    public function delete_request($id){
-        $credit = FinishingTeamPayment::find($id);
-        $credit->delete();
-        return response()->json(['status','error']);
-    }
 
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function delete_request($id)
     {
-        //
+        $payment = FinishingTeamPayment::find($id);
+        $payment->delete();
+        return response()->json(['status' => 'success']);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'team_id' => 'required',
             ]);
+
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+
+            // FORENSIC RULE: BCMath Calculation
+            $baseAmount = bcmul($request->amount, $rate, 4);
 
             $payed = new FinishingTeamPayment();
             $payed->team_id = $request->team_id;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->finish_number = $request->finish_number;
-            
-            if($request->money_type == 'دالر'){
+            $payed->dollar_rate = (string)$rate;
+            $payed->finish_number = $request->finish_number ?: 'General';
+
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
@@ -137,11 +145,9 @@ class FinishingTeamPaymentController extends Controller
             }
 
             $team_name = DB::table('finishing_teams')->where('id', $request->team_id)->first();
-            $currency = ($request->money_type == 'دالر') ? " دالر " : " افغانی ";
-
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " پرداخت به تیم تیاری " . $team_name->name . " اکونت نمبر " . $team_name->id . " به مبلغ " . $request->amount . $currency;
+            $activity->description = "پرداخت به تیم تیاری " . $team_name->name . " مبلغ " . $request->amount . " " . $currency->code . " " . $request->type;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -149,116 +155,165 @@ class FinishingTeamPaymentController extends Controller
         });
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\FinishingTeamPayment  $finishingTeamPayment
-     * @return \Illuminate\Http\Response
-     */
     public function show($team_id)
     {
-        $payments = FinishingTeamPayment::where('team_id',$team_id)->orderBy('created_at','DESC')->paginate(30);
         $team = FinishingTeam::find($team_id);
-        $debits_us = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $debits_af = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
-        $credit_us = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
+        if (!$team) {
+            return redirect('/dashboard/finishing-team')->with('error', 'تیم تیاری یافت نشد (Team not found).');
+        }
+
+        $payments = FinishingTeamPayment::where('team_id',$team_id)->orderBy('date','DESC')->paginate(30);
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
-        
+        $currencies = \App\Currency::where('is_active', true)->get();
+
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('finishing-center.finishing-payment',compact(
+            'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
+            'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+        ));
     }
-    public function show_all_payment($team_id){
-        $payments = FinishingTeamPayment::where('team_id',$team_id)->orderBy('created_at','DESC')->get();
+
+    public function show_all_payment($team_id)
+    {
         $team = FinishingTeam::find($team_id);
-        $debits_us = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $debits_af = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
-        $credit_us = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$team_id)->where('status',1)->sum('amount_af');
+        if (!$team) {
+            return redirect('/dashboard/finishing-team')->with('error', 'تیم تیاری یافت نشد (Team not found).');
+        }
+
+        $payments = FinishingTeamPayment::where('team_id',$team_id)->orderBy('date','DESC')->get();
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $all = 'true';
 
-        $all = '';
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\FinishingTeamPayment  $finishingTeamPayment
-     * @return \Illuminate\Http\Response
-     */
+
     public function edit($payment_id)
     {
         $paymentEdit = FinishingTeamPayment::find($payment_id);
-        $payments = FinishingTeamPayment::where('team_id',$paymentEdit->team_id)->orderBy('created_at','DESC')->paginate(30);
         $team = FinishingTeam::find($paymentEdit->team_id);
-        $debits_us = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
-        $debits_af = FinishingTeamPayment::where('type','=','گرفت')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
-        $credit_us = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type','=','رسید')->where('team_id',$paymentEdit->team_id)->where('status',1)->sum('amount_af');
+        $payments = FinishingTeamPayment::where('team_id',$paymentEdit->team_id)->orderBy('date','DESC')->paginate(30);
+
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $finish_numbers = FinishingWork::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['finish_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
-
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\FinishingTeamPayment  $finishingTeamPayment
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $payment_id)
     {
         return DB::transaction(function () use ($request, $payment_id) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
+                'team_id' => 'required',
             ]);
 
             $payed = FinishingTeamPayment::find($payment_id);
-            $team_name = DB::table('finishing_teams')->where('id', $request->team_id)->first();
 
-            // Reverse Old Accounting Entries (Only if approved)
+            // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payed->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Team Payment Edited');
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Record Edited', get_class($payed));
             }
 
-            // Update record
-            $payed->team_id = $request->team_id;
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->dollar_rate = $request->dollar_rate;
-            $payed->finish_number = $request->finish_number;
+            $payed->team_id = $request->team_id;
+            $payed->dollar_rate = (string)$rate;
+            $payed->finish_number = $request->finish_number ?: 'General';
 
-            if($request->money_type == 'دالر'){
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
             }
+
             $payed->update();
 
-            // Post New Accounting Entry (Only if approved)
+            // Re-post
             if ($payed->status == 1) {
                 $overrides = [];
                 if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
@@ -266,13 +321,14 @@ class FinishingTeamPaymentController extends Controller
                 $this->postPaymentToAccounting($payed, $overrides);
             }
 
+            $team_name = DB::table('finishing_teams')->where('id', $request->team_id)->first();
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = "ویرایش پرداخت تیم تیاری " . $team_name->name . " اکونت نمبر " . $team_name->id;
+            $activity->description = "ویرایش تراکنش تیم تیاری " . $team_name->name . " مبلغ " . $request->amount;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            return redirect('/dashboard/finishing-payments/'.$request->team_id)->with('status', 'ویرایش با موفقیت انجام شد و گزارشات مالی بروز گردید!');
+            return redirect('/dashboard/finishing-payments/'.$request->team_id)->with('status', 'بروزرسانی با موفقیت انجام شد!');
         });
     }
 
@@ -288,9 +344,9 @@ class FinishingTeamPaymentController extends Controller
             $payment = FinishingTeamPayment::find($id);
             $team_name = DB::table('finishing_teams')->where('id', $payment->team_id)->first();
 
-            // Reverse Accounting Entry (Only if approved)
+            // Reverse Accounting Entry (Only if approved) - pass class name to avoid ID collision reversals with other models
             if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted');
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted', get_class($payment));
             }
 
             $activity = new Activity();

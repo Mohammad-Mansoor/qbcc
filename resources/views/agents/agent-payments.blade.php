@@ -1,549 +1,440 @@
 @extends('dsh.master')
 
 @section('content')
-  <br>
-  <div class="row" id="agent-payment">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="sparkline8-list">
-        <div class="sparkline8-hd">
-          <div class="main-sparkline8-hd">
-            
-            @if(session("status"))
-              <div class="alert alert-success status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('status')}}
-              </div>
-            @endif
-            @if(session("error"))
-              
-              <div class="alert alert-danger status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('error')}}
-              </div>
-            
-            @endif
-          </div>
+<style>
+    /* PREMIUM FORENSIC UI STYLES */
+    .premium-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        background: #ffffff;
+        margin-bottom: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .card-header-premium {
+        background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+        padding: 20px 25px;
+        border: none;
+    }
+    .card-header-premium h5 {
+        color: #ffffff;
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .form-section-title {
+        color: #1a237e;
+        font-weight: 700;
+        border-bottom: 2px solid #e8eaf6;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+    }
+    .form-section-title i { margin-left: 10px; color: #3949ab; }
+    
+    .custom-input {
+        border-radius: 10px;
+        border: 2px solid #e8eaf6;
+        padding: 12px 15px;
+        transition: all 0.2s;
+        height: auto;
+    }
+    .custom-input:focus {
+        border-color: #3949ab;
+        box-shadow: 0 0 0 0.2rem rgba(57, 73, 171, 0.1);
+    }
+    .field-label {
+        font-weight: 600;
+        color: #455a64;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.9rem;
+    }
+    .field-explanation {
+        font-size: 0.75rem;
+        color: #78909c;
+        margin-top: 4px;
+        display: block;
+    }
+    
+    /* Live Truth Preview Box */
+    .truth-preview-box {
+        background: #f1f3f9;
+        border-right: 4px solid #3949ab;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    .truth-label { font-size: 0.8rem; color: #5c6bc0; font-weight: 600; }
+    .truth-value { font-size: 1.4rem; color: #1a237e; font-weight: 800; font-family: 'Courier New', monospace; }
+
+    .btn-premium {
+        border-radius: 10px;
+        padding: 12px 25px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s;
+    }
+    .btn-premium-primary {
+        background: #3949ab;
+        color: white;
+        border: none;
+    }
+    .btn-premium-primary:hover {
+        background: #1a237e;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(26, 35, 126, 0.3);
+    }
+    
+    /* Table Styling */
+    .premium-table thead th {
+        background: #f8f9fa;
+        color: #1a237e;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        border-top: none;
+        padding: 15px;
+    }
+    .premium-table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #455a64;
+    }
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container-fluid mt-4" id="agent-payment">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h3 class="font-weight-bold text-dark">
+                <i class="fa fa-user-secret text-primary"></i> 
+                پرداخت های نماینده (Agent Payments)
+            </h3>
+            <p class="text-muted">مدیریت معاملات مالی و اسناد پرداخت نمایندگان با سیستم چند ارزی</p>
         </div>
-        
-        <div class="card">
-          
-          <div class="card-body">
-            
-            <div class="row">
-              <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-                <div class="table-responsive">
-                  <table class="table table-xs table-hover">
-                    <thead>
-                    
-                    </thead>
-                    <tbody>
-                    
-                    <tr>
-                      <td><b>نام</b></td>
-                      <td>{{$agent->user->name}}</td>
-                    </tr>
-                    <tr>
-                      <td><b>ادرس</b></td>
-                      <td> {{$agent->agent_address}}</td>
-                    </tr>
-                    <tr>
-                      <td><b>شماره تماس</b></td>
-                      
-                      <td style="direction: ltr;">
-                        @foreach($agent->phone as $p)
-                          {{$p->phone_no}},
-                        @endforeach
-                        <i class="fa fa-phone"></i>
-                      </td>
-                    </tr>
-                    
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              
-              <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-                <h4 style="float: left;">ACCOUNT #: {{$agent->agent_id}}</h4>
-              </div>
-            
+        <div class="col-md-4 text-right">
+            <div class="btn-group">
+                <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                    <i class="fa fa-print"></i> چاپ گزارش (Print)
+                </button>
+                <a href="/dashboard/agent-payments-all/{{$agent->agent_id}}" class="btn btn-outline-info btn-sm">
+                    <i class="fa fa-list"></i> نمایش همه (Show All)
+                </a>
             </div>
-            @if(auth()->user()->role != 'AO')
-              
-              @if(!$paymentEdit)
-                <div class="row">
-                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12  hideOnPrint">
-                    <form action="/dashboard/agent-payments" method="post">
-                      @csrf
-                      <input type="hidden" name="agent_id" value="{{$agent->agent_id}}">
-                      
-                      <div class="row">
-                        
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12" style="margin-top: 10px; margin-bottom: 10px">
-                          <label>چیک نمبر</label>
-                          <select name="check_number" id="check_id" class="form-control" >
-                            <option value="نقد">نقد</option>
-                            @foreach($check_numbers as $ch)
-                              <option value="{{$ch->check_number}}">{{$ch->check_number}}</option>
-                            @endforeach
-                            @foreach($sale_numbers as $sa)
-                              <option value="{{$sa->sale_number}}">{{$sa->sale_number}}</option>
-                            @endforeach
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-1 col-lg-1 col-sm-12">
-                          <label class="pull-right">نرخ دالر</label>
-                          <input type="text" name="dollar_rate" value="{{$currency}}"
-                                 class="form-control">
-                          @error('dollar_rate') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">مقدار پول</label>
-                          <input type="text" name="amount"  value="{{old('amount')}}"
-                                 placeholder="مبلغ پول" class="form-control">
-                          @error('amount') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-1 col-lg-1 col-sm-12">
-                          <label class="pull-right">نوع پول</label>
-                          <select name="money_type"  id="money_type" class="form-control">
-                            <option disabled>انتخاب</option>
-                            <option value="افغانی">افغانی</option>
-                            <option value="دالر">دالر</option>
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">نوع معامله</label>
-                          <select name="type" id="type_id" class="form-control">
-                            <option disabled>انتخاب</option>
-                            <option value="رسید">رسید</option>
-                            <option value="گرفت">گرفت</option>
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12 center marginy">
-                          <label class="">توضیحات</label>
-                          <textarea name="description" id="description" rows="1"
-                                    class="form-control"
-                                    placeholder="توضیحات "></textarea>
-                          @error('description') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">تاریخ</label>
-                          <input type="date" name="date"
-                                 placeholder="تاریخ را وارد کنید"
-                                 class="form-control">
-                          @error('date') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                      </div>
-                      <div class="row">
-                        <button class="btn btn-warning btn-sm" type="reset">انصراف
-                        </button>
-                        <button class="btn btn-primary btn-sm" type="submit"> ذخیره
-                        </button>
-                      </div>
-                    
-                    </form>
-                  </div>
-                </div>
-              @else
-                <div class="row">
-                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 hideOnPrint">
-                    
-                    <form action="/dashboard/agent-payments/{{$paymentEdit->id}}" method="post">
-                      @csrf
-                      @method('PUT')
-                      <input type="hidden" name="agent_id" value="{{$agent->agent_id}}">
-                      
-                      <div class="row">
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12" style="margin-top: 10px;margin-bottom: 10px">
-                          <label>چیک نمبر</label>
-                          <select name="check_number" id="check_id" class="form-control">
-                            <option value="نقد">نقد</option>
-                            @foreach($check_numbers as $ch)
-                              <option {{ $paymentEdit->check_number ==  $ch->check_number  ? 'selected' : '' }}  value="{{$ch->check_number}}">{{$ch->check_number}}</option>
-                            @endforeach
-                            @foreach($sale_numbers as $sa)
-                              <option {{ $paymentEdit->check_number ==  $sa->sale_number  ? 'selected' : '' }}  value="{{$sa->sale_number}}">{{$sa->sale_number}}</option>
-                            @endforeach
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-1 col-sm-12 col-lg-1">
-                          <label class="pull-right">نرخ دالر</label>
-                          <input type="text" name="dollar_rate" value="{{$paymentEdit->dollar_rate}}"
-                                 class="form-control">
-                          @error('dollar_rate') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">مقدار پول</label>
-                          <input type="text" name="amount"
-                                 value="@if($paymentEdit->amount > 0 ) {{$paymentEdit->amount}} @elseif($paymentEdit->amount_af > 0)  {{$paymentEdit->amount_af}} @endif"
-                                 class="form-control">
-                          @error('amount') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-1 col-sm-12 col-lg-1">
-                          <label class="pull-right">نوع پول</label>
-                          <select name="money_type"  id="money_type" class="form-control">
-                            <option disabled>انتخاب</option>
-                            <option {{ $paymentEdit->amount_af > 0 ? 'selected' : '' }}  value="افغانی">افغانی
-                            </option>
-                            <option {{ $paymentEdit->amount > 0  ? 'selected' : '' }}  value="دالر">دالر
-                            </option>
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">نوع معامله</label>
-                          <select name="type" id="type_id" class="form-control">
-                            <option disabled>انتخاب</option>
-                            <option {{ $paymentEdit->type == 'رسید' ? 'selected' : '' }} value="رسید">رسید
-                            </option>
-                            <option {{ $paymentEdit->type == 'گرفت' ? 'selected' : '' }} value="گرفت">گرفت
-                            </option>
-                          </select>
-                          
-                          @error('type') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12 center marginy">
-                          <label class="">توضیحات</label>
-                          <textarea name="description" id="description" rows="1"
-                                    class="form-control"
-                                    placeholder="توضیحات ">{{$paymentEdit->description}}</textarea>
-                          @error('description') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                        <div class="col-xs-12 col-md-2 col-lg-2 col-sm-12">
-                          <label class="pull-right">تاریخ</label>
-                          <input type="date" name="date" value="{{$paymentEdit->date}}"
-                                 placeholder="تاریخ را وارد کنید"
-                                 class="form-control">
-                          @error('date') <p class="text-danger">
-                            {{trans('message.'.$message)}}</p>
-                          @enderror
-                        </div>
-                      
-                      </div>
-                      
-                      <div class="row"
-                           style="display:flex;justify-content:flex-start;padding:0 0px">
-                        <button class="btn btn-warning btn-sm" type="reset">انصراف
-                        </button>
-                        <button class="btn btn-primary btn-sm marginx" type="submit"><span
-                                  class="fa fa-save"></span> ذخیره
-                        </button>
-                      </div>
-                    
-                    </form>
-                  </div>
-                </div>
-              @endif
-            
-            @endif
-          </div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="row">
-              
-              <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10"></div>
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint">
-                
-                <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-                  <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('agent-payment')"><i
-                            class="fa fa-print"></i> چاپ
-                  </div>
-                
-                </div>
-                <a href="/dashboard/agent-payments-all/{{$agent->agent_id}}" style="float: left"
-                   class="btn btn-sm btn-info hideOnPrint">نمایش همه</a>
-              </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-sm-12">
-                
-                
-                <div class="table-responsive">
-                  <table class="table table-xs table-hover" style="font-size: 15px;" id="agent_payment">
-                    <thead>
-                    <tr>
-                      
-                      <td><b>رسید(دالر)</b></td>
-                      <td><b>گرفت(دالر)</b></td>
-                      <td><b>رسید(افغانی)</b></td>
-                      <td><b>گرفت(افغانی)</b></td>
-                      <td><b>چک نمبر</b></td>
-                      <td><b>تفصیلات</b></td>
-                      <td><b>تاریخ</b></td>
-                      
-                      <td class="hideOnPrint"><b>حالت</b></td>
-                      
-                      @if(auth()->user()->role != 'AO')
-                        <td class="hideOnPrint text-center"><b>عملیات</b></td>
-                      @endif
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach($payments as $pa)
-                      <tr class="ur{{$pa->id}}">
-                        
-                        @if($pa->type == 'رسید')
-                          @if($pa->amount > 0)
-                            <td>{{$pa->amount}} </td>
-                          @else
-                            <td>0</td>
-                          @endif
-                        @else
-                          <td>0</td>
-                        @endif
-                        @if($pa->type == 'گرفت')
-                          @if($pa->amount > 0)
-                            <td>{{$pa->amount}}</td>
-                          @else
-                            <td>0</td>
-                          @endif
-                        @else
-                          <td>0</td>
-                        @endif
-                        
-                        @if($pa->type == 'رسید')
-                          @if($pa->amount_af > 0)
-                            <td>{{$pa->amount_af}} </td>
-                          @else
-                            <td>0</td>
-                          @endif
-                        @else
-                          <td>0</td>
-                        @endif
-                        @if($pa->type == 'گرفت')
-                          @if($pa->amount_af > 0)
-                            <td>{{$pa->amount_af}}</td>
-                          @else
-                            <td>0</td>
-                          @endif
-                        @else
-                          <td>0</td>
-                        @endif
-                        
-                        
-                        @if($pa->check_number == 'نقد')
-                          <td>نقد</td>
-                        @elseif(\Illuminate\Support\Str::startsWith($pa->check_number , 'CH'))
-                          <td>
-                            <a href="/dashboard/check-book/search-check-number-payment/{{$pa->check_number}},{{$pa->agent_id}}"
-                            >&nbsp; {{$pa->check_number}}</a></td>
-                        @else
-                          
-                          
-                          <td>
-                            <a href="/dashboard/material-sales/search-sale-number/{{$pa->check_number}},{{$p->agent_id}}"
-                            >&nbsp; {{$pa->check_number}}</a></td>
-                        
-                        @endif
-                        <td>{{$pa->description}}</td>
-                        <td>{{$pa->date}}</td>
-                        
-                        @if($pa->status == 0)
-                          
-                          <td class="hideOnPrint">
-                            <label class="badge badge-warning">درخواست تایید
-                              نشده</label></td>
-                        @else
-                          
-                          <td class="hideOnPrint"><label for="" class="badge-success">درخواست تایید
-                              شد</label></td>
-                        
-                        @endif
-                        
-                        @if(auth()->user()->role != 'AO')
-                          @if( $pa->status == 0 || auth()->user()->role == 'SP')
-                            <td class="hideOnPrint text-center">
-                              <a href="/dashboard/agent-payments/{{$pa->id}}/edit"
-                                 class="btn btn-sm btn-info">ویرایش</a>
-                              
-                              <button onclick="deletePayment({{$pa->id}} ,{{$pa->agent_id}})"
-                                      class="btn btn-danger btn-sm "><i
-                                        class="fa fa-tick"></i>حذف
-                              </button>
-                            </td>
-                          @endif
-                        @endif
-                      
-                      </tr>
-                    @endforeach
-                    
-                    
-                    <tr>
-                      
-                      <th><b>گرفت ها(افغانی)</b></th>
-                      <th><b>گرفت ها(دالر)</b></th>
-                    </tr>
-                    <tr>
-                      <td><b>{{$debits_af}} </b></td>
-                      <td><b>{{$debits_us}} </b></td>
-                    </tr>
-                    
-                    <tr>
-                      <th><b>رسیدات(افغانی)</b></th>
-                      <th><b>رسیدات(دالر)</b></th>
-                    </tr>
-                    <tr>
-                      <td><b>{{$credit_af}} </b></td>
-                      <td><b>{{$credit_us}} </b></td>
-                    </tr>
-                    <tr>
-                      
-                      <th><b>صرف بیلانس(افغانی)</b></th>
-                      <th><b>صرف بیلانس(دالر)</b></th>
-                    </tr>
-                    <tr>
-                      @if($credit_af - $debits_af > 0)
-                        <td style="direction: ltr;color: green;"><b> {{$credit_af - $debits_af}} </b></td>
-                      @elseif($credit_af - $debits_af < 0)
-                        <td style="direction: ltr;color: red;"><b> {{round($credit_af - $debits_af , 2)}} </b>
-                        </td>
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                      @if($credit_us - $debits_us > 0)
-                        <td style="direction: ltr;color: green;"><b> {{$credit_us - $debits_us}} </b></td>
-                      @elseif($credit_us - $debits_us < 0)
-                        <td style="direction: ltr;color: red;"><b> {{$credit_us - $debits_us}} </b></td>
-                      @else
-                        <td style="direction: ltr">0</td>
-                      @endif
-                    </tr>
-                    
-                    </tbody>
-                  </table>
-                
-                </div>
-                <div class="row">
-                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 hideOnPrint">
-                    @if(!isset($all))
-                      <p>{{$payments->links()}}</p>
-                    @endif
-                  </div>
-                </div>
-              
-              
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
+
+    @if(session("status"))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <i class="fa fa-check-circle mr-2"></i> {{session('status')}}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
+    <!-- Profile & Form Section -->
+    <div class="row">
+        <!-- Agent Profile Card -->
+        <div class="col-lg-3">
+            <div class="premium-card text-center p-4">
+                <div class="mb-3">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg" style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ mb_substr($agent->user->name, 0, 1) }}
+                    </div>
+                </div>
+                <h4 class="font-weight-bold mb-1">{{$agent->user->name}}</h4>
+                <p class="text-primary font-weight-bold mb-3">ACCOUNT #: {{$agent->agent_id}}</p>
+                <hr>
+                <div class="text-right">
+                    <p class="mb-1"><small class="text-muted">آدرس:</small><br><strong>{{$agent->agent_address}}</strong></p>
+                    <p class="mb-0"><small class="text-muted">تماس:</small><br>
+                        <strong>
+                            @foreach($agent->phone as $p)
+                                {{$p->phone_no}}@if(!$loop->last), @endif
+                            @endforeach
+                        </strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forensic Payment Form -->
+        <div class="col-lg-9">
+            <div class="premium-card">
+                <div class="card-header-premium">
+                    <h5><i class="fa fa-credit-card-alt mr-2"></i> {{ $paymentEdit ? 'ویرایش معامله (Edit Transaction)' : 'ثبت معامله جدید (New Transaction)' }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ $paymentEdit ? '/dashboard/agent-payments/'.$paymentEdit->id : '/dashboard/agent-payments' }}" method="post" id="forensicPaymentForm">
+                        @csrf
+                        @if($paymentEdit) @method('PUT') @endif
+                        <input type="hidden" name="agent_id" value="{{$agent->agent_id}}">
+
+                        <div class="row">
+                            <!-- Column 1: Financials -->
+                            <div class="col-lg-4 col-md-6">
+                                <h6 class="form-section-title"><i class="fa fa-money"></i> جزئیات مالی (Financials)</h6>
+                                
+                                <div class="form-group mb-4">
+                                    <label class="field-label">مقدار پول (Original Amount)</label>
+                                    <input type="number" step="0.0001" name="amount" id="original_amount" class="form-control custom-input font-weight-bold" 
+                                           value="{{ $paymentEdit ? ($paymentEdit->original_amount ?: ($paymentEdit->amount ?: $paymentEdit->amount_af)) : old('amount') }}" required>
+                                    <small class="field-explanation text-right">مبلغ را بر اساس واحد پولی انتخابی وارد کنید.</small>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label class="field-label">واحد پولی (Currency)</label>
+                                    <select name="currency_id" id="currency_id" class="form-control custom-input font-weight-bold" required>
+                                        @foreach($currencies as $curr)
+                                            <option value="{{$curr->id}}" data-rate="{{$curr->exchange_rate}}" data-symbol="{{$curr->symbol}}"
+                                                {{ ($paymentEdit && $paymentEdit->currency_code == $curr->code) || (!$paymentEdit && $curr->code == 'USD') ? 'selected' : '' }}>
+                                                {{$curr->name}} ({{$curr->code}})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="field-explanation text-right">ارزی که پرداخت با آن صورت گرفته است.</small>
+                                </div>
+
+                                <!-- Live Truth Preview Box -->
+                                <div class="truth-preview-box mb-4">
+                                    <span class="truth-label"><i class="fa fa-shield"></i> معادل دالر (USD Equivalent):</span><br>
+                                    <span class="truth-value" id="usd_truth_preview">$ 0.0000</span>
+                                    <input type="hidden" name="exchange_rate" id="current_rate_snapshot">
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Transaction Details -->
+                            <div class="col-lg-4 col-md-6">
+                                <h6 class="form-section-title"><i class="fa fa-exchange"></i> نوع معامله (Type & Ref)</h6>
+
+                                <div class="form-group mb-4">
+                                    <label class="field-label">نوع معامله (Transaction Type)</label>
+                                    <select name="type" class="form-control custom-input font-weight-bold">
+                                        <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید (Payment Received)</option>
+                                        <option value="گرفت" class="text-danger" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت (Payment Sent)</option>
+                                    </select>
+                                    <small class="field-explanation text-right">آیا پول دریافت شده یا پرداخت شده؟</small>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label class="field-label">چیک نمبر / سند (Reference)</label>
+                                    <select name="check_number" id="check_id" class="form-control custom-input">
+                                        <option value="نقد">نقد (Cash)</option>
+                                        @foreach($check_numbers as $ch)
+                                            <option value="{{$ch->check_number}}" {{ ($paymentEdit && $paymentEdit->check_number == $ch->check_number) ? 'selected' : '' }}>{{$ch->check_number}}</option>
+                                        @endforeach
+                                        @foreach($sale_numbers as $sa)
+                                            <option value="{{$sa->sale_number}}" {{ ($paymentEdit && $paymentEdit->check_number == $sa->sale_number) ? 'selected' : '' }}>{{$sa->sale_number}}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="field-explanation text-right">شماره چک یا شماره حواله فروش مواد.</small>
+                                </div>
+
+                                <div class="form-group mb-4">
+                                    <label class="field-label">تاریخ (Date)</label>
+                                    <input type="date" name="date" class="form-control custom-input" value="{{ $paymentEdit ? $paymentEdit->date : date('Y-m-d') }}" required>
+                                </div>
+                            </div>
+
+                            <!-- Column 3: Audit & Submit -->
+                            <div class="col-lg-4">
+                                <h6 class="form-section-title"><i class="fa fa-commenting"></i> توضیحات (Audit Note)</h6>
+                                
+                                <div class="form-group mb-4">
+                                    <label class="field-label">شرح معامله (Description)</label>
+                                    <textarea name="description" rows="4" class="form-control custom-input" placeholder="شرح کامل معامله را اینجا بنویسید..." required>{{ $paymentEdit ? $paymentEdit->description : '' }}</textarea>
+                                    <small class="field-explanation text-right">جزئیات این تراکنش برای بررسی های بعدی بسیار مهم است.</small>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button class="btn btn-premium btn-premium-primary btn-block shadow-sm" type="submit">
+                                        <i class="fa fa-save"></i> {{ $paymentEdit ? 'بروزرسانی معامله (Update)' : 'ثبت نهایی معامله (Save)' }}
+                                    </button>
+                                    @if($paymentEdit)
+                                        <a href="/dashboard/agent-payments/{{$agent->agent_id}}" class="btn btn-outline-secondary btn-block mt-2">انصراف (Cancel)</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ledger Table Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="premium-card">
+                <div class="card-header-premium d-flex justify-content-between align-items-center">
+                    <h5><i class="fa fa-history mr-2"></i> سوابق معاملات (Transaction History)</h5>
+                    <div id="exportButton"></div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table premium-table table-hover mb-0" id="agent_payment_table">
+                            <thead>
+                                <tr class="text-right">
+                                    <th>تاریخ (Date)</th>
+                                    <th>شرح (Description)</th>
+                                    <th>سند (Ref)</th>
+                                    <th>ارز (CCY)</th>
+                                    <th>مقدار اصلی (Original)</th>
+                                    <th>نرخ (Rate)</th>
+                                    <th>معادل دالر (USD)</th>
+                                    <th>حالت (Status)</th>
+                                    <th class="hideOnPrint">عملیات (Action)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($payments as $pa)
+                                <tr class="text-right ur{{$pa->id}}">
+                                    <td class="font-weight-bold">{{ $pa->date }}</td>
+                                    <td>{{ $pa->description }}</td>
+                                    <td>
+                                        <span class="badge badge-light p-2 border">
+                                            @if($pa->check_number == 'نقد') نقد @else {{$pa->check_number}} @endif
+                                        </span>
+                                    </td>
+                                    <td class="text-center font-weight-bold text-primary">{{ $pa->currency_code ?: ($pa->amount > 0 ? 'USD' : 'AFN') }}</td>
+                                    <td class="font-weight-bold" style="direction: ltr;">
+                                        {{ number_format($pa->original_amount ?: ($pa->amount ?: $pa->amount_af), 2) }}
+                                    </td>
+                                    <td class="text-muted small" style="direction: ltr;">{{ number_format($pa->exchange_rate ?: $pa->dollar_rate, 8) }}</td>
+                                    <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                        $ {{ number_format($pa->base_amount ?: ($pa->amount ?: 0), 2) }}
+                                    </td>
+                                    <td>
+                                        @if($pa->status == 0)
+                                            <span class="status-badge bg-warning text-dark">در انتظار تایید</span>
+                                        @else
+                                            <span class="status-badge bg-success text-white">تایید شده</span>
+                                        @endif
+                                    </td>
+                                    <td class="hideOnPrint text-center">
+                                        @if(auth()->user()->role != 'AO' && ($pa->status == 0 || auth()->user()->role == 'SP'))
+                                            <div class="btn-group">
+                                                <a href="/dashboard/agent-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-info" title="ویرایش">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                                <button onclick="deletePayment({{$pa->id}} ,{{$pa->agent_id}})" class="btn btn-sm btn-outline-danger" title="حذف">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot class="bg-light">
+                                @foreach($currencyTotals as $code => $totals)
+                                <tr>
+                                    <th colspan="3" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
+                                    <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
+                                    <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
+                                    @php($balance = $totals->total_received - $totals->total_sent)
+                                    <td colspan="2" class="text-center font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ $balance >= 0 ? 'طلبکار' : 'بدهکار' }}: {{ number_format(abs($balance), 2) }} {{ $code }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                                <tr style="background: #e3f2fd;">
+                                    <th colspan="3" class="text-right"><b>مجموع کل بیلانس (Base USD)</b></th>
+                                    <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
+                                    <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
+                                    @php($baseBalance = $totalBaseReceived - $totalBaseSent)
+                                    <td colspan="2" class="text-center font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
+                                        بیلانس نهایی: $ {{ number_format(abs($baseBalance), 2) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="p-3">
+                        @if(!isset($all))
+                            {{$payments->links()}}
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
-  
-  <script>
-      $(document).ready(function () {
-          $("#agent_payment").tableExport({
-              headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-              footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-              formats: ["xlsx"],                  // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-              filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-              bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-              exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-              position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-              ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-              ignoreCols: 5,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-              trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-              RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-              sheetname: "id",
+<script>
+    $(document).ready(function () {
+        $('#check_id').select2();
+        $('#currency_id').select2();
 
-          });
-          var $buttons = $('#agent_payment').find('caption').children().detach();
-          // Append the buttons to an element of your choosing
-          $buttons.appendTo('#exportButton');
+        // LIVE TRUTH PREVIEW LOGIC
+        function updateUsdPreview() {
+            const amount = parseFloat($('#original_amount').val()) || 0;
+            const selectedCurrency = $('#currency_id option:selected');
+            const rate = parseFloat(selectedCurrency.data('rate')) || 0;
+            
+            // Formula: base_amount = original_amount * exchange_rate
+            const baseAmount = (amount * rate).toFixed(4);
+            
+            $('#usd_truth_preview').text('$ ' + parseFloat(baseAmount).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}));
+            $('#current_rate_snapshot').val(rate);
+        }
 
-      });
+        $('#original_amount, #currency_id').on('input change', updateUsdPreview);
+        updateUsdPreview(); // Initial call
 
-      $('#check_id').select2();
-    
+        // Export functionality
+        $("#agent_payment_table").tableExport({
+            formats: ["xlsx"],
+            filename: "agent_payments_{{ $agent->agent_id }}",
+            bootstrap: true,
+            position: "bottom"
+        });
+        
+        var $buttons = $('#agent_payment_table').find('caption').children().detach();
+        $buttons.appendTo('#exportButton');
+    });
 
-      function deletePayment(id, agent_id) {
-
-          swal({
-              text: "مطمعین هستید ؟",
-              buttons: true,
-              dangerMode: true,
-              buttons: {
-                  confirm: {text: 'بلی', className: 'btn-danger'},
-                  cancel: 'نخیر'
-              },
-          })
-              .then((willDelete) => {
-                  if (willDelete) {
-                      $.ajax({
-                          type: 'DELETE',
-                          data: {
-                              '_token': '{{csrf_token()}}',
-                          },
-                          url: '/dashboard/agent-payments/' + id,
-                          success: function (res) {
-
-                              if (res.status == 'success') {
-                                  $('.ur' + id).hide();
-                                  $('.alert-success').show();
-                                  window.location = '/dashboard/agent-payments/' + agent_id
-                              } else {
-                                  $('.alert-danger').show();
-                              }
-
-
-                              window.setTimeout(function () {
-                                  $(".alert-success").fadeTo(500, 0).slideUp(500, function () {
-
-                                      $(this).remove();
-                                  });
-                              }, 2000);
-                          },
-
-                      })
-                  }
-              });
-      }
-  
-  
-  </script>
+    function deletePayment(id, agent_id) {
+        swal({
+            title: "آیا مطمئن هستید؟",
+            text: "این عمل قابل بازگشت نیست!",
+            icon: "warning",
+            buttons: {
+                cancel: "نخیر",
+                confirm: { text: "بلی، حذف شود", className: "btn-danger" }
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/dashboard/agent-payments/' + id,
+                    data: { '_token': '{{csrf_token()}}' },
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("موفقانه حذف شد!", { icon: "success" });
+                            setTimeout(() => window.location = '/dashboard/agent-payments/' + agent_id, 1000);
+                        } else {
+                            swal("خطا در حذف!", { icon: "error" });
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
 @endsection

@@ -1,714 +1,309 @@
 @extends('dsh.master')
+
+@section('title', 'مدیریت مشتریان فرمایشی')
+
 @section('content')
-    <!-- navbar -->
+<style>
+    /* PREMIUM UI STYLE DESIGN - INDIGO & PURPLE THEME */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    .glass-card:hover {
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1);
+    }
+    .page-header-premium {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px rgba(118, 75, 162, 0.15);
+    }
+    .custom-input {
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        padding: 12px 15px;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    .custom-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.1);
+    }
+    .field-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.85rem;
+    }
+    .btn-premium {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-weight: 700;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(118, 75, 162, 0.2);
+        transition: all 0.2s;
+    }
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(118, 75, 162, 0.3);
+        color: white;
+    }
+    .premium-table thead th {
+        background: #f7fafc;
+        color: #4a5568;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        padding: 15px;
+        border-bottom: 2px solid #edf2f7;
+    }
+    .premium-table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    .action-badge {
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 6px 12px;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .action-badge:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+</style>
 
-    <!-- form -->
+@php
+    // Structured array of major trading & export countries for clean dynamic output
+    $countries = [
+        'Afghanistan', 'United States', 'Germany', 'United Arab Emirates', 'United Kingdom',
+        'Turkey', 'Pakistan', 'Iran', 'China', 'Saudi Arabia', 'Qatar', 'Switzerland',
+        'Canada', 'Australia', 'Italy', 'France', 'Netherlands', 'Belgium', 'Sweden',
+        'Norway', 'Denmark', 'Japan', 'South Korea', 'India', 'Russia', 'Uzbekistan',
+        'Tajikistan', 'Turkmenistan', 'Kuwait', 'Oman', 'Bahrain'
+    ];
+@endphp
 
-    <div class="row" style="direction: ltr;">
-        <div class="col-sm-12" style="direction: ltr;">
-            <div class="card" style="direction: ltr !important;">
-                <div class="card-header" style="direction: rtl;">
-                    @if(!$accountEdit)
-                        <h4 style="direction: ltr !important;float: left;">ثبت مشتری جدید (Add New Customer)</h4>
-                    @else
-                        <h4>ویرایش معلومات مشتری (Edit Customer)</h4>
-                    @endif
+<div class="container-fluid py-4 text-right" id="customer-dashboard">
+    <!-- Premium Header -->
+    <div class="page-header-premium d-flex justify-content-between align-items-center" style="direction: rtl;">
+        <div>
+            <h2 class="text-white font-weight-bold mb-1">
+                <i class="fa fa-users ml-2"></i> مدیریت مشتریان فرمایشی (Customer Accounts)
+            </h2>
+            <p class="mb-0 opacity-75">ایجاد، تصحیح و مدیریت قراردادها و حساب‌های تفصیلی خریداران قالین</p>
+        </div>
+    </div>
+
+    <!-- Dari Elegant Guide Panel -->
+    <div class="alert glass-card mb-4 border-0 p-4" style="direction: rtl; background: #eef2ff; border-right: 4px solid #667eea !important;">
+        <div class="d-flex align-items-start">
+            <div class="ml-3 mt-1">
+                <i class="fa fa-info-circle fa-2x" style="color: #667eea"></i>
+            </div>
+            <div>
+                <h6 class="font-weight-bold mb-1" style="color: #4f46e5">راهنمای جامع مدیریت خریداران فرمایشی:</h6>
+                <p class="mb-0 text-dark small leading-relaxed">
+                    در این بخش خریدارانی که پروژه‌ها یا طرح‌های سفارشی (Custom Orders) دارند را ثبت نمایید. اطلاعات و ارز معاملاتی انتخابی به طور مستقیم بر اسناد مالی و فرآیند تسلیم‌دهی گدام تاثیرگذار است.
+                    <br>
+                    • <strong>ثبت مشتری:</strong> از کارت سمت راست نام کامل و کشور خریدار را وارد و ثبت کنید.
+                    <br>
+                    • <strong>مدیریت فرمایشات:</strong> با کلیک روی دکمه طلایی <span class="badge badge-warning">فرمایشات</span> وارد پوشه فنی هر خریدار شوید.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form Column (Add / Edit Customer) -->
+        <div class="col-lg-4 mb-4">
+            <div class="card glass-card border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="mb-0 font-weight-bold text-dark">
+                        <i class="fa {{ $accountEdit ? 'fa-edit text-info' : 'fa-plus-circle text-primary' }} ml-2"></i>
+                        {{ $accountEdit ? 'ویرایش معلومات مشتری' : 'ثبت مشتری جدید' }}
+                    </h5>
                 </div>
-
-                <!-- Dari Explanation Section -->
-                <div class="card-body bg-light-info border-bottom mb-3" style="direction: rtl; text-align: right; background: #e3f2fd; border-radius: 10px; margin: 15px; padding: 20px;">
-                    <h5 class="text-primary"><i class="fa fa-info-circle mr-2"></i> راهنمای مدیریت مشتریان فرمایشی</h5>
-                    <p class="mb-2">این بخش مخصوص مدیریت مشتریانی است که فرمایشات خاص (Custom Orders) دارند. اطلاعات ثبت شده در اینجا برای پیگیری مراحل تولید و تسویه حساب‌های مالی استفاده می‌شود.</p>
-                    <ul class="pr-4 mt-2" style="list-style-type: square;">
-                        <li><strong>نام مشتری:</strong> نام شخص یا شرکت فرمایش دهنده را وارد کنید.</li>
-                        <li><strong>کشور:</strong> کشور محل اقامت مشتری را برای تنظیمات گمرکی و حمل و نقل انتخاب کنید.</li>
-                        <li><strong>دکمه فرمایشات (Orders):</strong> با کلیک بر روی این دکمه در جدول پایین، شما به صفحه اختصاصی فرمایشات این مشتری هدایت می‌شوید تا بتوانید قراردادهای جدید ثبت کنید.</li>
-                    </ul>
-                </div>
-
-                <div class="card-body">
-                    @if(!$accountEdit)
-                        <form method="post" id="" action="/dashboard/customer-account-for-orders">
-                            @csrf
-                            <div class="row" style="direction: ltr !important;;">
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label" style="float: right;">نام مشتری (Customer Name)</span>
-                                    <input type="text" name="customer_name" class="form-control" style="direction: rtl;">
-                                    <small class="text-muted" style="direction: rtl; display: block; margin-top: 5px;">نام کامل مشتری یا نام شرکت را اینجا وارد کنید.</small>
-                                    @error('customer_name') <p
-                                        class="text-danger">{{trans('message.'.$message)}}</p>
-                                    @enderror
-                                </div>
-
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label" style="float: right;">کشور (Customer Country)</span>
-                                    <select name="customer_country" id="customer_country" class="form-control" style="direction: rtl;">
-                                        <option>Afghanistan</option>
-                                        <option>United Arab Emirates</option>
-                                        <option>United Kingdom</option>
-                                        <option>United States</option>
-                                        <option>Germany</option>
-                                        <option>Turkey</option>
-                                        <option>Pakistan</option>
-                                        <option>Iran</option>
-                                        <!-- ... other countries ... -->
-                                    </select>
-                                    <small class="text-muted" style="direction: rtl; display: block; margin-top: 5px;">کشور محل فعالیت مشتری را انتخاب کنید.</small>
-                                </div>
-                                        <option>&Aring;land Islands</option>
-                                        <option>Albania</option>
-                                        <option>Algeria</option>
-                                        <option>American Samoa</option>
-                                        <option>Andorra</option>
-                                        <option>Angola</option>
-                                        <option>Anguilla</option>
-                                        <option>Antarctica</option>
-                                        <option>Antigua and Barbuda</option>
-                                        <option>Argentina</option>
-                                        <option>Armenia</option>
-                                        <option>Aruba</option>
-                                        <option>Australia</option>
-                                        <option>Austria</option>
-                                        <option>Azerbaijan</option>
-                                        <option>Bahamas</option>
-                                        <option>Bahrain</option>
-                                        <option>Bangladesh</option>
-                                        <option>Barbados</option>
-                                        <option>Belarus</option>
-                                        <option>Belgium</option>
-                                        <option>Belize</option>
-                                        <option>Benin</option>
-                                        <option>Bermuda</option>
-                                        <option>Bhutan</option>
-                                        <option>Bolivia, Plurinational State of</option>
-                                        <option>Bosnia and Herzegovina</option>
-                                        <option>Botswana</option>
-                                        <option>Bouvet Island</option>
-                                        <option>Brazil</option>
-                                        <option>British Indian Ocean Territory</option>
-                                        <option>Brunei Darussalam</option>
-                                        <option>Bulgaria</option>
-                                        <option>Burkina Faso</option>
-                                        <option>Burundi</option>
-                                        <option>Cambodia</option>
-                                        <option>Cameroon</option>
-                                        <option>Canada</option>
-                                        <option>Cape Verde</option>
-                                        <option>Cayman Islands</option>
-                                        <option>Central African Republic</option>
-                                        <option>Chad</option>
-                                        <option>Chile</option>
-                                        <option>China</option>
-                                        <option>Christmas Island</option>
-                                        <option>Cocos (Keeling) Islands</option>
-                                        <option>Colombia</option>
-                                        <option>Comoros</option>
-                                        <option>Congo</option>
-                                        <option>Congo, the Democratic Republic of the</option>
-                                        <option>Cook Islands</option>
-                                        <option>Costa Rica</option>
-                                        <option>C&ocirc;te d'Ivoire</option>
-                                        <option>Croatia</option>
-                                        <option>Cuba</option>
-                                        <option>Cyprus</option>
-                                        <option>Czech Republic</option>
-                                        <option>Denmark</option>
-                                        <option>Djibouti</option>
-                                        <option>Dominica</option>
-                                        <option>Dominican Republic</option>
-                                        <option>Ecuador</option>
-                                        <option>Egypt</option>
-                                        <option>El Salvador</option>
-                                        <option>Equatorial Guinea</option>
-                                        <option>Eritrea</option>
-                                        <option>Estonia</option>
-                                        <option>Ethiopia</option>
-                                        <option>Falkland Islands (Malvinas)</option>
-                                        <option>Faroe Islands</option>
-                                        <option>Fiji</option>
-                                        <option>Finland</option>
-                                        <option>France</option>
-                                        <option>French Guiana</option>
-                                        <option>French Polynesia</option>
-                                        <option>French Southern Territories</option>
-                                        <option>Gabon</option>
-                                        <option>Gambia</option>
-                                        <option>Georgia</option>
-                                        <option>Germany</option>
-                                        <option>Ghana</option>
-                                        <option>Gibraltar</option>
-                                        <option>Greece</option>
-                                        <option>Greenland</option>
-                                        <option>Grenada</option>
-                                        <option>Guadeloupe</option>
-                                        <option>Guam</option>
-                                        <option>Guatemala</option>
-                                        <option>Guernsey</option>
-                                        <option>Guinea</option>
-                                        <option>Guinea-Bissau</option>
-                                        <option>Guyana</option>
-                                        <option>Haiti</option>
-                                        <option>Heard Island and McDonald Islands</option>
-                                        <option>Holy See (Vatican City State)</option>
-                                        <option>Honduras</option>
-                                        <option>Hong Kong</option>
-                                        <option>Hungary</option>
-                                        <option>Iceland</option>
-                                        <option>India</option>
-                                        <option>Indonesia</option>
-                                        <option>Iran, Islamic Republic of</option>
-                                        <option>Iraq</option>
-                                        <option>Ireland</option>
-                                        <option>Isle of Man</option>
-                                        <option>Israel</option>
-                                        <option>Italy</option>
-                                        <option>Jamaica</option>
-                                        <option>Japan</option>
-                                        <option>Jersey</option>
-                                        <option>Jordan</option>
-                                        <option>Kazakhstan</option>
-                                        <option>Kenya</option>
-                                        <option>Kiribati</option>
-                                        <option>Korea, Democratic People's Republic of</option>
-                                        <option>Korea, Republic of</option>
-                                        <option>Kuwait</option>
-                                        <option>Kyrgyzstan</option>
-                                        <option>Lao People's Democratic Republic</option>
-                                        <option>Latvia</option>
-                                        <option>Lebanon</option>
-                                        <option>Lesotho</option>
-                                        <option>Liberia</option>
-                                        <option>Libyan Arab Jamahiriya</option>
-                                        <option>Liechtenstein</option>
-                                        <option>Lithuania</option>
-                                        <option>Luxembourg</option>
-                                        <option>Macao</option>
-                                        <option>Macedonia, the former Yugoslav Republic of</option>
-                                        <option>Madagascar</option>
-                                        <option>Malawi</option>
-                                        <option>Malaysia</option>
-                                        <option>Maldives</option>
-                                        <option>Mali</option>
-                                        <option>Malta</option>
-                                        <option>Marshall Islands</option>
-                                        <option>Martinique</option>
-                                        <option>Mauritania</option>
-                                        <option>Mauritius</option>
-                                        <option>Mayotte</option>
-                                        <option>Mexico</option>
-                                        <option>Micronesia, Federated States of</option>
-                                        <option>Moldova, Republic of</option>
-                                        <option>Monaco</option>
-                                        <option>Mongolia</option>
-                                        <option>Montenegro</option>
-                                        <option>Montserrat</option>
-                                        <option>Morocco</option>
-                                        <option>Mozambique</option>
-                                        <option>Myanmar</option>
-                                        <option>Namibia</option>
-                                        <option>Nauru</option>
-                                        <option>Nepal</option>
-                                        <option>Netherlands</option>
-                                        <option>Netherlands Antilles</option>
-                                        <option>New Caledonia</option>
-                                        <option>New Zealand</option>
-                                        <option>Nicaragua</option>
-                                        <option>Niger</option>
-                                        <option>Nigeria</option>
-                                        <option>Niue</option>
-                                        <option>Norfolk Island</option>
-                                        <option>Northern Mariana Islands</option>
-                                        <option>Norway</option>
-                                        <option>Oman</option>
-                                        <option>Pakistan</option>
-                                        <option>Palau</option>
-                                        <option>Palestinian Territory, Occupied</option>
-                                        <option>Panama</option>
-                                        <option>Papua New Guinea</option>
-                                        <option>Paraguay</option>
-                                        <option>Peru</option>
-                                        <option>Philippines</option>
-                                        <option>Pitcairn</option>
-                                        <option>Poland</option>
-                                        <option>Portugal</option>
-                                        <option>Puerto Rico</option>
-                                        <option>Qatar</option>
-                                        <option>R&eacute;union</option>
-                                        <option>Romania</option>
-                                        <option>Russian Federation</option>
-                                        <option>Rwanda</option>
-                                        <option>Saint Barth&eacute;lemy</option>
-                                        <option>Saint Helena, Ascension and Tristan da Cunha</option>
-                                        <option>Saint Kitts and Nevis</option>
-                                        <option>Saint Lucia</option>
-                                        <option>Saint Martin (French part)</option>
-                                        <option>Saint Pierre and Miquelon</option>
-                                        <option>Saint Vincent and the Grenadines</option>
-                                        <option>Samoa</option>
-                                        <option>San Marino</option>
-                                        <option>Sao Tome and Principe</option>
-                                        <option>Saudi Arabia</option>
-                                        <option>Senegal</option>
-                                        <option>Serbia</option>
-                                        <option>Seychelles</option>
-                                        <option>Sierra Leone</option>
-                                        <option>Singapore</option>
-                                        <option>Slovakia</option>
-                                        <option>Slovenia</option>
-                                        <option>Solomon Islands</option>
-                                        <option>Somalia</option>
-                                        <option>South Africa</option>
-                                        <option>South Georgia and the South Sandwich Islands</option>
-                                        <option>Spain</option>
-                                        <option>Sri Lanka</option>
-                                        <option>Sudan</option>
-                                        <option>Suriname</option>
-                                        <option>Svalbard and Jan Mayen</option>
-                                        <option>Swaziland</option>
-                                        <option>Sweden</option>
-                                        <option>Switzerland</option>
-                                        <option>Syrian Arab Republic</option>
-                                        <option>Taiwan, Province of China</option>
-                                        <option>Tajikistan</option>
-                                        <option>Tanzania, United Republic of</option>
-                                        <option>Thailand</option>
-                                        <option>Timor-Leste</option>
-                                        <option>Togo</option>
-                                        <option>Tokelau</option>
-                                        <option>Tonga</option>
-                                        <option>Trinidad and Tobago</option>
-                                        <option>Tunisia</option>
-                                        <option>Turkey</option>
-                                        <option>Turkmenistan</option>
-                                        <option>Turks and Caicos Islands</option>
-                                        <option>Tuvalu</option>
-                                        <option>Uganda</option>
-                                        <option>Ukraine</option>
-                                        <option>United Arab Emirates</option>
-                                        <option>United Kingdom</option>
-                                        <option>United States</option>
-                                        <option>United States Minor Outlying Islands</option>
-                                        <option>Uruguay</option>
-                                        <option>Uzbekistan</option>
-                                        <option>Vanuatu</option>
-                                        <option>Venezuela, Bolivarian Republic of</option>
-                                        <option>Viet Nam</option>
-                                        <option>Virgin Islands, British</option>
-                                        <option>Virgin Islands, U.S.</option>
-                                        <option>Wallis and Futuna</option>
-                                        <option>Western Sahara</option>
-                                        <option>Yemen</option>
-                                        <option>Zambia</option>
-                                        <option>Zimbabwe</option>
-
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 20px">
-                                    <button class="btn btn-block btn-primary submit-btn" type="submit">Save</button>
-                                </div>
-                            </div>
-
-
-                        </form>
-                    @else
-                        <form method="post" id=""
-                               action="/dashboard/customer-account-for-orders/{{$accountEdit->c_id}}">
-                            {{method_field('patch')}}
-                            @csrf
-                            <div class="row">
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 15px">
-                                    <span class="date-label" style="float: left;">Customer Name</span>
-                                    <input type="text" style="direction: rtl" name="customer_name"
-                                           value="{{$accountEdit->customer_name}}" class="form-control">
-                                    @error('customer_name') <p
-                                        class="text-danger">{{trans('message.'.$message)}}</p>
-                                    @enderror
-                                </div>
-
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
-                                    <span class="date-label" style="float: left;">Customer Country</span>
-                                    <select name="customer_country" id="customer_country" class="form-control">
-                                        <option>Afghanistan</option>
-                                        <option>&Aring;land Islands</option>
-                                        <option>Albania</option>
-                                        <option>Algeria</option>
-                                        <option>American Samoa</option>
-                                        <option>Andorra</option>
-                                        <option>Angola</option>
-                                        <option>Anguilla</option>
-                                        <option>Antarctica</option>
-                                        <option>Antigua and Barbuda</option>
-                                        <option>Argentina</option>
-                                        <option>Armenia</option>
-                                        <option>Aruba</option>
-                                        <option>Australia</option>
-                                        <option>Austria</option>
-                                        <option>Azerbaijan</option>
-                                        <option>Bahamas</option>
-                                        <option>Bahrain</option>
-                                        <option>Bangladesh</option>
-                                        <option>Barbados</option>
-                                        <option>Belarus</option>
-                                        <option>Belgium</option>
-                                        <option>Belize</option>
-                                        <option>Benin</option>
-                                        <option>Bermuda</option>
-                                        <option>Bhutan</option>
-                                        <option>Bolivia, Plurinational State of</option>
-                                        <option>Bosnia and Herzegovina</option>
-                                        <option>Botswana</option>
-                                        <option>Bouvet Island</option>
-                                        <option>Brazil</option>
-                                        <option>British Indian Ocean Territory</option>
-                                        <option>Brunei Darussalam</option>
-                                        <option>Bulgaria</option>
-                                        <option>Burkina Faso</option>
-                                        <option>Burundi</option>
-                                        <option>Cambodia</option>
-                                        <option>Cameroon</option>
-                                        <option>Canada</option>
-                                        <option>Cape Verde</option>
-                                        <option>Cayman Islands</option>
-                                        <option>Central African Republic</option>
-                                        <option>Chad</option>
-                                        <option>Chile</option>
-                                        <option>China</option>
-                                        <option>Christmas Island</option>
-                                        <option>Cocos (Keeling) Islands</option>
-                                        <option>Colombia</option>
-                                        <option>Comoros</option>
-                                        <option>Congo</option>
-                                        <option>Congo, the Democratic Republic of the</option>
-                                        <option>Cook Islands</option>
-                                        <option>Costa Rica</option>
-                                        <option>C&ocirc;te d'Ivoire</option>
-                                        <option>Croatia</option>
-                                        <option>Cuba</option>
-                                        <option>Cyprus</option>
-                                        <option>Czech Republic</option>
-                                        <option>Denmark</option>
-                                        <option>Djibouti</option>
-                                        <option>Dominica</option>
-                                        <option>Dominican Republic</option>
-                                        <option>Ecuador</option>
-                                        <option>Egypt</option>
-                                        <option>El Salvador</option>
-                                        <option>Equatorial Guinea</option>
-                                        <option>Eritrea</option>
-                                        <option>Estonia</option>
-                                        <option>Ethiopia</option>
-                                        <option>Falkland Islands (Malvinas)</option>
-                                        <option>Faroe Islands</option>
-                                        <option>Fiji</option>
-                                        <option>Finland</option>
-                                        <option>France</option>
-                                        <option>French Guiana</option>
-                                        <option>French Polynesia</option>
-                                        <option>French Southern Territories</option>
-                                        <option>Gabon</option>
-                                        <option>Gambia</option>
-                                        <option>Georgia</option>
-                                        <option>Germany</option>
-                                        <option>Ghana</option>
-                                        <option>Gibraltar</option>
-                                        <option>Greece</option>
-                                        <option>Greenland</option>
-                                        <option>Grenada</option>
-                                        <option>Guadeloupe</option>
-                                        <option>Guam</option>
-                                        <option>Guatemala</option>
-                                        <option>Guernsey</option>
-                                        <option>Guinea</option>
-                                        <option>Guinea-Bissau</option>
-                                        <option>Guyana</option>
-                                        <option>Haiti</option>
-                                        <option>Heard Island and McDonald Islands</option>
-                                        <option>Holy See (Vatican City State)</option>
-                                        <option>Honduras</option>
-                                        <option>Hong Kong</option>
-                                        <option>Hungary</option>
-                                        <option>Iceland</option>
-                                        <option>India</option>
-                                        <option>Indonesia</option>
-                                        <option>Iran, Islamic Republic of</option>
-                                        <option>Iraq</option>
-                                        <option>Ireland</option>
-                                        <option>Isle of Man</option>
-                                        <option>Israel</option>
-                                        <option>Italy</option>
-                                        <option>Jamaica</option>
-                                        <option>Japan</option>
-                                        <option>Jersey</option>
-                                        <option>Jordan</option>
-                                        <option>Kazakhstan</option>
-                                        <option>Kenya</option>
-                                        <option>Kiribati</option>
-                                        <option>Korea, Democratic People's Republic of</option>
-                                        <option>Korea, Republic of</option>
-                                        <option>Kuwait</option>
-                                        <option>Kyrgyzstan</option>
-                                        <option>Lao People's Democratic Republic</option>
-                                        <option>Latvia</option>
-                                        <option>Lebanon</option>
-                                        <option>Lesotho</option>
-                                        <option>Liberia</option>
-                                        <option>Libyan Arab Jamahiriya</option>
-                                        <option>Liechtenstein</option>
-                                        <option>Lithuania</option>
-                                        <option>Luxembourg</option>
-                                        <option>Macao</option>
-                                        <option>Macedonia, the former Yugoslav Republic of</option>
-                                        <option>Madagascar</option>
-                                        <option>Malawi</option>
-                                        <option>Malaysia</option>
-                                        <option>Maldives</option>
-                                        <option>Mali</option>
-                                        <option>Malta</option>
-                                        <option>Marshall Islands</option>
-                                        <option>Martinique</option>
-                                        <option>Mauritania</option>
-                                        <option>Mauritius</option>
-                                        <option>Mayotte</option>
-                                        <option>Mexico</option>
-                                        <option>Micronesia, Federated States of</option>
-                                        <option>Moldova, Republic of</option>
-                                        <option>Monaco</option>
-                                        <option>Mongolia</option>
-                                        <option>Montenegro</option>
-                                        <option>Montserrat</option>
-                                        <option>Morocco</option>
-                                        <option>Mozambique</option>
-                                        <option>Myanmar</option>
-                                        <option>Namibia</option>
-                                        <option>Nauru</option>
-                                        <option>Nepal</option>
-                                        <option>Netherlands</option>
-                                        <option>Netherlands Antilles</option>
-                                        <option>New Caledonia</option>
-                                        <option>New Zealand</option>
-                                        <option>Nicaragua</option>
-                                        <option>Niger</option>
-                                        <option>Nigeria</option>
-                                        <option>Niue</option>
-                                        <option>Norfolk Island</option>
-                                        <option>Northern Mariana Islands</option>
-                                        <option>Norway</option>
-                                        <option>Oman</option>
-                                        <option>Pakistan</option>
-                                        <option>Palau</option>
-                                        <option>Palestinian Territory, Occupied</option>
-                                        <option>Panama</option>
-                                        <option>Papua New Guinea</option>
-                                        <option>Paraguay</option>
-                                        <option>Peru</option>
-                                        <option>Philippines</option>
-                                        <option>Pitcairn</option>
-                                        <option>Poland</option>
-                                        <option>Portugal</option>
-                                        <option>Puerto Rico</option>
-                                        <option>Qatar</option>
-                                        <option>R&eacute;union</option>
-                                        <option>Romania</option>
-                                        <option>Russian Federation</option>
-                                        <option>Rwanda</option>
-                                        <option>Saint Barth&eacute;lemy</option>
-                                        <option>Saint Helena, Ascension and Tristan da Cunha</option>
-                                        <option>Saint Kitts and Nevis</option>
-                                        <option>Saint Lucia</option>
-                                        <option>Saint Martin (French part)</option>
-                                        <option>Saint Pierre and Miquelon</option>
-                                        <option>Saint Vincent and the Grenadines</option>
-                                        <option>Samoa</option>
-                                        <option>San Marino</option>
-                                        <option>Sao Tome and Principe</option>
-                                        <option>Saudi Arabia</option>
-                                        <option>Senegal</option>
-                                        <option>Serbia</option>
-                                        <option>Seychelles</option>
-                                        <option>Sierra Leone</option>
-                                        <option>Singapore</option>
-                                        <option>Slovakia</option>
-                                        <option>Slovenia</option>
-                                        <option>Solomon Islands</option>
-                                        <option>Somalia</option>
-                                        <option>South Africa</option>
-                                        <option>South Georgia and the South Sandwich Islands</option>
-                                        <option>Spain</option>
-                                        <option>Sri Lanka</option>
-                                        <option>Sudan</option>
-                                        <option>Suriname</option>
-                                        <option>Svalbard and Jan Mayen</option>
-                                        <option>Swaziland</option>
-                                        <option>Sweden</option>
-                                        <option>Switzerland</option>
-                                        <option>Syrian Arab Republic</option>
-                                        <option>Taiwan, Province of China</option>
-                                        <option>Tajikistan</option>
-                                        <option>Tanzania, United Republic of</option>
-                                        <option>Thailand</option>
-                                        <option>Timor-Leste</option>
-                                        <option>Togo</option>
-                                        <option>Tokelau</option>
-                                        <option>Tonga</option>
-                                        <option>Trinidad and Tobago</option>
-                                        <option>Tunisia</option>
-                                        <option>Turkey</option>
-                                        <option>Turkmenistan</option>
-                                        <option>Turks and Caicos Islands</option>
-                                        <option>Tuvalu</option>
-                                        <option>Uganda</option>
-                                        <option>Ukraine</option>
-                                        <option>United Arab Emirates</option>
-                                        <option>United Kingdom</option>
-                                        <option>United States</option>
-                                        <option>United States Minor Outlying Islands</option>
-                                        <option>Uruguay</option>
-                                        <option>Uzbekistan</option>
-                                        <option>Vanuatu</option>
-                                        <option>Venezuela, Bolivarian Republic of</option>
-                                        <option>Viet Nam</option>
-                                        <option>Virgin Islands, British</option>
-                                        <option>Virgin Islands, U.S.</option>
-                                        <option>Wallis and Futuna</option>
-                                        <option>Western Sahara</option>
-                                        <option>Yemen</option>
-                                        <option>Zambia</option>
-                                        <option>Zimbabwe</option>
-
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" style="margin-top: 20px">
-                                    <button class="btn btn-block btn-primary submit-btn" type="submit">Save</button>
-                                </div>
-                            </div>
-
-                        </form>
+                <div class="card-body bg-light-50 border-top pt-4">
+                    @if(session("status") || session("error"))
+                        <div class="alert {{ session('status') ? 'alert-success' : 'alert-danger' }} status mb-4 border-0 rounded-lg py-2 text-center small shadow-none">
+                            {{ session('status') ?: session('error') }}
+                        </div>
                     @endif
 
+                    @if(!$accountEdit)
+                        <form method="post" action="/dashboard/customer-account-for-orders">
+                            @csrf
+                            <div class="form-group mb-4">
+                                <label class="field-label">نام کامل مشتری (Customer Name)</label>
+                                <input type="text" name="customer_name" class="form-control custom-input text-right" placeholder="نام مشتری یا شرکت..." required>
+                                @error('customer_name') 
+                                    <p class="text-danger small mt-1">{{trans('message.'.$message)}}</p>
+                                @enderror
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="field-label">کشور خریدار (Country)</label>
+                                <select name="customer_country" id="customer_country" class="form-control custom-input select2" required>
+                                    @foreach($countries as $c)
+                                        <option value="{{ $c }}">{{ $c }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <button class="btn btn-premium btn-block mt-4" type="submit">
+                                <i class="fa fa-save ml-1"></i> ذخیره خریدار
+                            </button>
+                        </form>
+                    @else
+                        <form method="post" action="/dashboard/customer-account-for-orders/{{$accountEdit->c_id}}">
+                            {{ method_field('patch') }}
+                            @csrf
+                            <div class="form-group mb-4">
+                                <label class="field-label">نام کامل مشتری (Customer Name)</label>
+                                <input type="text" name="customer_name" value="{{$accountEdit->customer_name}}" class="form-control custom-input text-right" required>
+                                @error('customer_name') 
+                                    <p class="text-danger small mt-1">{{trans('message.'.$message)}}</p>
+                                @enderror
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="field-label">کشور خریدار (Country)</label>
+                                <select name="customer_country" id="customer_country" class="form-control custom-input select2" required>
+                                    @foreach($countries as $c)
+                                        <option value="{{ $c }}" {{ $accountEdit->customer_country == $c ? 'selected' : '' }}>{{ $c }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <button class="btn btn-premium btn-block mt-4" type="submit">
+                                <i class="fa fa-check-circle ml-1"></i> اعمال تغییرات
+                            </button>
+                            <a href="/dashboard/customer-account-for-orders" class="btn btn-light btn-block mt-2 font-weight-bold" style="border-radius: 10px;">انصراف</a>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>
 
-    </div>
-
-    <div class="row" id="accounts">
-        <!-- Extra small table start-->
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 style="float: right; direction: rtl;">لیست مشتریان (Customer List)</h5>
-                    @if(session("status"))
-                        <div class="alert alert-success status" style="display:none;" role="alert">
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                                    aria-hidden="true">&times;</span></button>
-                            {{session('status')}}
-                        </div>
-
-                    @endif
-                    @if(session("error"))
-
-                        <div class="alert alert-danger error" style="display:none;" role="alert">
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                                    aria-hidden="true">&times;</span></button>
-                            {{session('error')}}
-                        </div>
-
-                    @endif
+        <!-- Accounts List Table Column -->
+        <div class="col-lg-8 mb-4">
+            <div class="card glass-card border-0">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center" style="direction: rtl;">
+                    <h5 class="mb-0 font-weight-bold text-dark">
+                        <i class="fa fa-list text-muted ml-2"></i> لیست جامع خریداران سفارشی
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.print()">
+                        <i class="fa fa-print ml-1"></i> چاپ لیست
+                    </button>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-xs table-hover" style="direction: ltr;">
+                        <table class="table premium-table table-hover align-middle mb-0 text-right">
                             <thead>
-                             <tr>
-                                <th><span style="float: right">#</span></th>
-                                <th><span style="float: right;">نام مشتری (Customer Name)</span></th>
-                                <th><span style="float: right;">کشور (Country)</span></th>
-                                <th class="hideOnPrint"><span style="float: right;">فرمایشات (Orders)</span></th>
-                                <th class="hideOnPrint"><span style="float: right;">عملیات (Action)</span></th>
-                            </tr>
+                                <tr>
+                                    <th class="px-4 text-right"># ID</th>
+                                    <th class="text-right">نام کامل مشتری</th>
+                                    <th class="text-right">کشور</th>
+                                    <th class="hideOnPrint text-center">فرمایشات فنی</th>
+                                    <th class="hideOnPrint text-left pl-4">عملیات</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            @foreach($customers  as $m)
-                                <tr>
-                                    <td><span style="float:left;">{{$m->c_id}}</span></td>
-                                    <td><span style="float:left;">{{$m->customer_name}}</span></td>
-                                    <td><span style="float:left;">{{$m->customer_country}}</span></td>
-                                    <td class="hideOnPrint"> <span style="float:right;"><a
-                                                href="/dashboard/customer-account-for-orders/{{$m->c_id}}"
-                                                class="btn btn-sm btn-warning">&nbsp;
-                                            فرمایشات (Orders)</a></span></td>
-                                    <td class="hideOnPrint">
-                                        <span style="float:right;"><a
-                                                href="/dashboard/customer-account-for-orders/{{$m->c_id}}/edit"
-                                                class="btn btn-sm btn-info">&nbsp;ویرایش</a></span>
-                                        @if(auth()->user()->role == 'SP')
-                                            <span style="float:right;"> <button onclick="deleteCustomer({{$m->c_id}})"
-                                                                               class="btn btn-danger btn-sm ">حذف</button></span>
-                                        @endif
+                                @forelse($customers as $m)
+                                <tr class="ur{{$m->c_id}}">
+                                    <td class="px-4 font-weight-bold text-muted">{{ $m->c_id }}</td>
+                                    <td class="font-weight-bold text-dark">{{ $m->customer_name }}</td>
+                                    <td>
+                                        <span class="badge badge-light border px-3 py-2 rounded-pill font-weight-bold text-secondary">
+                                            <i class="fa fa-globe ml-1 text-muted"></i> {{ $m->customer_country }}
+                                        </span>
                                     </td>
-
+                                    <td class="hideOnPrint text-center">
+                                        <a href="/dashboard/customer-account-for-orders/{{$m->c_id}}" class="action-badge bg-warning text-dark font-weight-bold shadow-sm">
+                                            <i class="fa fa-folder-open"></i> فرمایشات (Orders)
+                                        </a>
+                                    </td>
+                                    <td class="hideOnPrint text-left pl-4">
+                                        <div class="btn-group">
+                                            <a href="/dashboard/customer-account-for-orders/{{$m->c_id}}/edit" class="btn btn-sm btn-outline-info border-0" title="Edit">
+                                                <i class="fa fa-edit fa-lg"></i>
+                                            </a>
+                                            @if(auth()->user()->role == 'SP')
+                                                <button onclick="deleteCustomer({{$m->c_id}})" class="btn btn-sm btn-outline-danger border-0 ml-1" title="Delete">
+                                                    <i class="fa fa-trash fa-lg"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
                                 </tr>
-                            @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-5 text-center text-muted italic">هیچ خریدار فرمایشی در سیستم ثبت نشده است.</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Extra small table start-->
     </div>
+</div>
 @endsection
 
 @section('scripts')
-    <script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({ width: '100%' });
+        $('.status').fadeIn().delay(3000).fadeOut();
+    });
 
-        $('#customer_country').select2();
-
-
-        function deleteCustomer(id) {
-
-            swal({
-                text: "مطمعین هستید ؟",
-                buttons: true,
-                dangerMode: true,
-                buttons: {
-                    confirm: {text: 'بلی', className: 'btn-danger'},
-                    cancel: 'نخیر'
-                },
-            })
-                .then((willDelete) => {
-                    if (willDelete) {
-                        $.ajax({
-                            type: 'DELETE',
-                            data: {
-                                '_token': '{{csrf_token()}}',
-                            },
-                            url: '/dashboard/customer-account-for-orders/' + id,
-                            success: function (res) {
-
-                                if (res.status == 'success') {
-                                    $('.alert-success').show();
-                                    $('.ur' + id).hide();
-                                    window.location = '/dashboard/customer-account-for-orders'
-
-                                } else {
-                                    $('.alert-danger').show();
-                                }
-                                window.setTimeout(function () {
-                                    $(".alert-success").fadeTo(500, 0).slideUp(500, function () {
-
-                                        $(this).remove();
-                                    });
-                                }, 5000);
-
-
-                            },
-
-                        })
+    function deleteCustomer(id) {
+        swal({
+            title: "آیا مطمئن هستید؟",
+            text: "این عمل تمام تاریخچه فرمایشات و محاسبات مشتری را حذف خواهد کرد!",
+            icon: "warning",
+            buttons: {
+                confirm: { text: 'بلی، حذف شود', className: 'btn-danger' },
+                cancel: 'انصراف'
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/dashboard/customer-account-for-orders/' + id,
+                    data: {
+                        '_token': '{{csrf_token()}}',
+                    },
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("حذف خریدار با موفقیت انجام شد!", { icon: "success" })
+                                .then(() => window.location = '/dashboard/customer-account-for-orders');
+                        } else {
+                            swal("خطا در برقراری ارتباط با سرور!", { icon: "error" });
+                        }
                     }
                 });
-        }
-
-
-    </script>
+            }
+        });
+    }
+</script>
 @endsection

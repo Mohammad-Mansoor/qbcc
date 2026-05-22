@@ -35,11 +35,15 @@ class SellerPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
-            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            $amount = $payment->base_amount;
 
             $this->accountingService->postAutoTransaction('seller_payment', $condition, [
                 'date' => $payment->date,
                 'amount' => $amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
                 'party_type' => 'App\StringSeller',
                 'party_id' => $payment->seller_id,
                 'reference' => 'V-PAY-' . $payment->id,
@@ -118,26 +122,44 @@ class SellerPaymentController extends Controller
     {
         return DB::transaction(function () use ($request) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'seller_id' => 'required',
             ]);
+
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+
+            // FORENSIC RULE: BCMath Calculation
+            $baseAmount = bcmul($request->amount, $rate, 4);
 
             $payed = new SellerPayment();
             $payed->seller_id = $request->seller_id;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->dollar_rate = $request->dollar_rate;
+            $payed->dollar_rate = (string)$rate;
             $payed->purchase_number = $request->purchase_number;
             
-            if($request->money_type == 'دالر'){
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
@@ -150,11 +172,9 @@ class SellerPaymentController extends Controller
             }
 
             $seller_name = DB::table('string_sellers')->where('id', $request->seller_id)->first();
-            $currency = ($request->money_type == 'دالر') ? " دالر " : " افغانی ";
-
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " پرداخت به فروشنده مواد " . $seller_name->name . " اکونت نمبر " . $seller_name->id . " به مبلغ " . $request->amount . $currency;
+            $activity->description = " پرداخت به فروشنده مواد " . $seller_name->name . " اکونت نمبر " . $seller_name->id . " به مبلغ " . $request->amount . " " . $currency->code;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -164,50 +184,97 @@ class SellerPaymentController extends Controller
 
     public function show($seller_id)
     {
-        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('created_at','DESC')->paginate(30);
         $seller = StringSeller::find($seller_id);
-        $debits_us = SellerPayment::where('type','=','گرفت')->where('seller_id',$seller_id)->where('status',1)->sum('amount');
-        $debits_af = SellerPayment::where('type','=','گرفت')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
-        $credit_us = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount');
-        $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
+        if (!$seller) {
+            return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
+        }
+
+        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('date','DESC')->paginate(30);
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
 
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
     public function show_all_payment($seller_id){
-        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('created_at','DESC')->get();
         $seller = StringSeller::find($seller_id);
-        $debits_us = SellerPayment::where('type','=','گرفت')->where('seller_id',$seller_id)->where('status',1)->sum('amount');
-        $debits_af = SellerPayment::where('type','=','گرفت')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
-        $credit_us = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount');
-        $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$seller_id)->where('status',1)->sum('amount_af');
+        if (!$seller) {
+            return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
+        }
+
+        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('date','DESC')->get();
+        
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
-        
+        $currencies = \App\Currency::where('is_active', true)->get();
+
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        $all = '';
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        $all = 'true';
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
     public function edit($payment_id)
     {
         $paymentEdit = SellerPayment::find($payment_id);
-        $payments = SellerPayment::where('seller_id',$paymentEdit->seller_id)->orderBy('created_at','DESC')->paginate(30);
         $seller = StringSeller::find($paymentEdit->seller_id);
-        $debits_us = SellerPayment::where('type','=','گرفت')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount');
-        $debits_af = SellerPayment::where('type','=','گرفت')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount_af');
-        $credit_us = SellerPayment::where('type','=','رسید')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount');
-        $credit_af = SellerPayment::where('type','=','رسید')->where('seller_id',$paymentEdit->seller_id)->where('status',1)->sum('amount_af');
+        $payments = SellerPayment::where('seller_id',$paymentEdit->seller_id)->orderBy('date','DESC')->paginate(30);
+
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = SellerPayment::where('seller_id', $paymentEdit->seller_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$paymentEdit->seller_id)->distinct()->get(['purchase_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
@@ -215,16 +282,17 @@ class SellerPaymentController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
         $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
 
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'));
+        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
     }
 
     public function update(Request $request, $payment_id)
     {
         return DB::transaction(function () use ($request, $payment_id) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
             ]);
 
             $payed = SellerPayment::find($payment_id);
@@ -235,21 +303,37 @@ class SellerPaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payed->id, 'Vendor Payment Edited');
             }
 
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             // Update record
             $payed->seller_id = $request->seller_id;
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
-            $payed->dollar_rate = $request->dollar_rate;
+            $payed->dollar_rate = (string)$rate;
             $payed->purchase_number = $request->purchase_number;
 
-            if($request->money_type == 'دالر'){
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
             }
+
             $payed->override_debit_account_id = $request->override_debit_account_id;
             $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->update();

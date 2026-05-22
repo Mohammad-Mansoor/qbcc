@@ -23,5 +23,24 @@ class WashingTeam extends Model
         return $this->hasMany(WashingPayment::class,'team_id','id');
     }
 
+    public function getNormalizedBalanceAttribute()
+    {
+        $receipts = $this->payment()->where('type', 'رسید')->sum('base_amount');
+        $payouts = $this->payment()->where('type', 'گرفت')->sum('base_amount');
+        return $receipts - $payouts;
+    }
 
+    public function getUsdBalanceAttribute()
+    {
+        $receipts = $this->payment()->where('type', 'رسید')->sum('amount');
+        $payouts = $this->payment()->where('type', 'گرفت')->sum('amount');
+        return $receipts - $payouts;
+    }
+
+    public function getAfBalanceAttribute()
+    {
+        $receipts = $this->payment()->where('type', 'رسید')->sum('amount_af');
+        $payouts = $this->payment()->where('type', 'گرفت')->sum('amount_af');
+        return $receipts - $payouts;
+    }
 }

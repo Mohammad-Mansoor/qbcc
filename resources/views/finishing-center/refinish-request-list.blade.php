@@ -39,7 +39,7 @@
   
                 <th>شماره قالین</th>
                 <th>نمبر تیاری</th>
-                <th> قیمت تیاری</th>
+                <th> قیمت تیاری (USD / اسعار)</th>
                 <th>تاریخ تیاری</th>
                 <th>تیم تیاری</th>
                 <th>نوع تیاری</th>
@@ -63,7 +63,20 @@
                     <tr class="ur{{$r->id}}">
                       <td>{{$r->carpet->carpet_no ?? ''}}</td>
                       <td>{{$r->finish_number}}</td>
-                      <td style="direction: ltr">{{round($r->price_af,2) ?? ''}} $</td>
+                      <td style="direction: ltr; font-weight: bold;">
+                        <span class="text-primary">{{ number_format($r->price, 2) }} USD</span>
+                        @if(($r->currency_code ?? 'USD') !== 'USD')
+                          <br>
+                          <span style="font-size: 11px; color: #6c757d;">
+                            {{ number_format($r->price_af, 2) }} {{ $r->currency_code }}
+                          </span>
+                        @elseif($r->price_af != $r->price)
+                          <br>
+                          <span style="font-size: 11px; color: #6c757d;">
+                            {{ number_format($r->price_af, 2) }} AFN
+                          </span>
+                        @endif
+                      </td>
                       <td>{{$r->date}}</td>
                       <td>{{$r->team->name ?? ''}}</td>
                       <td>{{$r->category->category ?? ''}}</td>

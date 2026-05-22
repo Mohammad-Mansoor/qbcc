@@ -22,11 +22,16 @@ class CarpetRepairController extends Controller
 {
     protected $accountingService;
     protected $inventoryManager;
+    protected $inventoryService;
 
-    public function __construct(AccountingService $accountingService, \App\Services\InventoryTransactionManager $inventoryManager)
-    {
+    public function __construct(
+        AccountingService $accountingService, 
+        \App\Services\InventoryTransactionManager $inventoryManager,
+        \App\Services\InventoryService $inventoryService
+    ) {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+        $this->inventoryService = $inventoryService;
     }
     /**
      * Display a listing of the resource.
@@ -59,8 +64,8 @@ class CarpetRepairController extends Controller
             $carpet_repair = CarpetRepair::where('carpetId',$carpet_id)->first();
             
             if ($carpet_repair) {
-                // Reverse Accounting
-                $this->accountingService->reverseTransactionBySource($carpet_repair->id, 'Returned to center from repair');
+                // Reverse Accounting - pass class name to avoid ID collision reversals with other models
+                $this->accountingService->reverseTransactionBySource($carpet_repair->id, 'Returned to center from repair', get_class($carpet_repair));
                 // Reverse Value Adjustment
                 $this->inventoryService->reverseMovement($carpet_repair, 'Reversing Repair Cost');
                 $carpet_repair->delete();
@@ -207,9 +212,10 @@ class CarpetRepairController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'kachaee_repair_cost')->first();
         $defaultAccount = $mapping ? $mapping->debit_account_id : 1;
-        $currency = \App\ExchangeRate::latest()->first()->rate ?? 1;
+        $currency = \App\Currency::getLegacyAFNRate();
+        $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('carpet-repair.create',compact('id','KachaeeNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency'));
+        return view('carpet-repair.create',compact('id','KachaeeNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
     }
 
     /**
@@ -236,6 +242,9 @@ class CarpetRepairController extends Controller
             $data['currency_code'] = $currency;
             $data['exchange_rate'] = $rate;
             $data['base_currency_amount'] = $base_amount;
+
+            // account_id is used for ledger entry mapping, not stored directly in carpet_repairs
+            unset($data['account_id']);
 
             $record = $carpetRepair->create($data);
             $finish = Carpet::where('carpet_id','=',$request->carpetId)->first();
@@ -292,9 +301,10 @@ class CarpetRepairController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'kachaee_repair_cost')->first();
         $defaultAccount = $mapping ? $mapping->debit_account_id : 1;
-        $currency = \App\ExchangeRate::latest()->first()->rate ?? 1;
+        $currency = \App\Currency::getLegacyAFNRate();
+        $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('carpet-repair.edit',compact('carpetRepair', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency'));
+        return view('carpet-repair.edit',compact('carpetRepair', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
     }
 
     /**
@@ -309,8 +319,8 @@ class CarpetRepairController extends Controller
         return DB::transaction(function () use ($request, $carpetRepair) {
             $data = $this->validAll();
             
-            // Reversals
-            $this->accountingService->reverseTransactionBySource($carpetRepair->id, 'Kachaee Repair Edited');
+            // Reversals - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($carpetRepair->id, 'Kachaee Repair Edited', get_class($carpetRepair));
             $this->inventoryService->reverseMovement($carpetRepair, 'Reversing Repair Cost for Edit');
 
             // Strict Currency Processing
@@ -327,6 +337,9 @@ class CarpetRepairController extends Controller
             $data['exchange_rate'] = $rate;
             $data['base_currency_amount'] = $base_amount;
             
+            // account_id is used for ledger entry mapping, not stored directly in carpet_repairs
+            unset($data['account_id']);
+            
             $carpetRepair->update($data);
 
             $carpet = Carpet::find($request->carpetId);
@@ -338,7 +351,7 @@ class CarpetRepairController extends Controller
             
             // ERP Integration: Re-post Value addition and accounting
             $this->inventoryManager->recordProductionService($carpetRepair, $carpet, [
-                'type' => 'KACHAEE_EDIT',
+                'type' => 'KACHAEE',
                 'mapping_key' => 'kachaee_repair_cost',
                 'amount' => $base_amount,
                 'date' => $request->date,

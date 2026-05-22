@@ -124,11 +124,12 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
     
     
     /**  material sale  request list  */
-
-    Route::get('material-sale-request-list', 'MaterialSaleController@request_list');
-    Route::delete('material-sale-approve-request/{id}', 'MaterialSaleController@approve_request');
-    Route::delete('material-sale-delete-request/{id}', 'MaterialSaleController@delete_request');
-
+    Route::get('material-sales/request-list', 'MaterialSaleController@request_list');
+    Route::get('material-sale-request-list', 'MaterialSaleController@request_list');   // alias (hyphenated form)
+    Route::delete('material-sales/approve-request/{id}', 'MaterialSaleController@approve_request');
+    Route::delete('material-sale-approve-request/{id}', 'MaterialSaleController@approve_request');  // alias
+    Route::delete('material-sales/delete-request/{id}', 'MaterialSaleController@delete_request');
+    Route::delete('material-sale-delete-request/{id}', 'MaterialSaleController@delete_request');    // alias
     /** end  material sale request list */
     
     
@@ -174,7 +175,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SP']],
 /** End super admin route */
 
 /** Sales and Finishing Center Routes */
-Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO,SP,DE,FI']], function () {
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO,SP,DE,FI,CO,CCO,OM']], function () {
 
 
     /** Route For Carpet Stock  */
@@ -206,8 +207,11 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('finishing-center/finish-work/{carpet}', 'FinishingWorkController@saving_the_work');
      Route::get('finishing-center/re-finish-work/{carpet}', 'FinishingWorkController@re_saving_the_work');
     Route::post('/finishing-center/refinish', 'FinishingWorkController@store_refinish');
+    Route::get('refinish-request-list', 'FinishingWorkController@request_list');
+    Route::delete('refinish-approve-request/{id}', 'FinishingWorkController@approve_request');
+    Route::delete('refinish-delete-request/{id}', 'FinishingWorkController@delete_request');
     //  FINISHING RECEIVEDS
-    Route::resource('finishing-payments', 'FinishingTeamPaymentController')->parameters(['finishing-receive' => 'recived']);
+    Route::resource('finishing-payments', 'FinishingTeamPaymentController');
     Route::get('/finishing-payments-all/{team_id}', 'FinishingTeamPaymentController@show_all_payment');
     Route::get('/finishing-accounts', 'FinishingTeamController@accounts');
     Route::get('/finishing-center/search-finish-number/{finish_number},{team_id}', 'FinishingWorkController@search_finish_number');
@@ -217,7 +221,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('carpets-in-sales-office', 'CarpetsController@carpets_in_sales_office');
 
 
-    Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
+    // Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
 
 
     Route::get('/return-to-wash/{id}','FinishingWorkController@return_to_wash');
@@ -299,8 +303,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/material-stock/search', 'MaterialStockController@search');
 
     /** Route for material sales */
-    Route::resource('/material-sales', 'MaterialSaleController');
     Route::get('/material-sales/search-sale-number/{sale_number},{agent_id}', 'MaterialSaleController@search_sale_number');
+    Route::resource('/material-sales', 'MaterialSaleController');
     Route::get('/material-sales-info', 'MaterialSaleController@get_sale_info')->name('dashboard.material-sales-info');
 
     /** Route for  Received of Material */
@@ -367,6 +371,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::get('/list-buy-carpet', 'CarpetsController@listBuyCarpet');
     Route::get('/list-buy-carpet/show-all', 'CarpetsController@show_all_buy_carpet');
     Route::post('/list-buy-carpet/search', 'CarpetsController@search_buy_carpet');
+    Route::post('/search-buy-carpet-by-agent','CarpetsController@search_buy_carpet_by_agent');
     Route::post('/post-buy-carpet', 'CarpetsController@PostBuyCarpet');
     Route::get('/edit-buy-carpet/{id}', 'CarpetsController@editBuyCarpet');
     Route::post('/upd-buy-carpet/{id}', 'CarpetsController@UpdatetBuyCarpet');
@@ -419,8 +424,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::get('/agent-carpets/{id}', 'AgentsCarpetController@carpet_details');
 
 
-    // RECEIVED OF WASHING TEAM
-    Route::resource('received-of-washing', 'ReceivedOfWashingController')->parameters(['received-of-washing' => 'r_washing']);
+    // RECEIVED OF WASHING TEAM (Controller missing - disabled)
+    // Route::resource('received-of-washing', 'ReceivedOfWashingController')->parameters(['received-of-washing' => 'r_washing']);
 
 
     // WASHING TEAM ROUTES
@@ -612,7 +617,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
     Route::post('different-account/search', 'DifferentAccountController@search');
 
     /** Route for different account received */
-    Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']);
+    // Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']); // Controller missing
 
     /** Route for different account payments */
     Route::resource('/different-account-payments', 'DifferentAccountPaymentController')->parameters(['different-account-payments' => 'differentAccountPayment']);

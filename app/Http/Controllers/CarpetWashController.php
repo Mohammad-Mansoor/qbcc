@@ -46,8 +46,8 @@ class CarpetWashController extends Controller
             $carpet->washing_id = null;
             $carpet->update();
 
-            // Reverse accounting if any
-            $this->accountingService->reverseTransactionBySource($carpet_wash->id, 'Return to Center');
+            // Reverse accounting if any - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($carpet_wash->id, 'Return to Center', get_class($carpet_wash));
 
             $carpet_wash->delete();
 
@@ -70,8 +70,8 @@ class CarpetWashController extends Controller
             $carpet->washing_id = null;
             $carpet->update();
 
-            // Reverse accounting if any
-            $this->accountingService->reverseTransactionBySource($carpet_wash->id, 'Return to Kachaee');
+            // Reverse accounting if any - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($carpet_wash->id, 'Return to Kachaee', get_class($carpet_wash));
 
             $carpet_wash->delete();
 
@@ -219,7 +219,15 @@ class CarpetWashController extends Controller
     {
         $carpet_wash = CarpetWash::find($id);
         $lastId = CarpetWash::where('team_id',$carpet_wash->team_id)->latest()->first();
-        $WashNo = $lastId ? $lastId->wash_number_sh_c + 1 : 1;
+        // Safely extract and increment the numeric part of the legacy SH-X format
+        $WashNo = 'SH-1';
+        if ($lastId && $lastId->wash_number_sh) {
+            $num = 0;
+            if (preg_match('/(\d+)/', $lastId->wash_number_sh, $matches)) {
+                $num = (int)$matches[1];
+            }
+            $WashNo = 'SH-' . ($num + 1);
+        }
         
         $selectionService = new \App\Services\AccountSelectionService();
         $accounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');
@@ -357,8 +365,7 @@ class CarpetWashController extends Controller
             $carpet->washing_id = $request->team_id;
             $carpet->update();
 
-            // Accounting Reversal
-            $this->accountingService->reverseTransactionBySource($wash->id, 'Wash Record Edited');
+            // Accounting & Inventory Reversals are safely handled in one transaction by the manager
             $this->inventoryManager->reverseTransactions($wash, 'Wash Record Edited');
 
             $baseAmount = ($request->currency_code === 'USD') 
@@ -427,7 +434,8 @@ class CarpetWashController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $wash = CarpetWash::find($id);
-            $this->accountingService->reverseTransactionBySource($wash->id, 'Wash Record Deleted');
+            // Reverse Accounting - pass class name to avoid ID collision reversals with other models
+            $this->accountingService->reverseTransactionBySource($wash->id, 'Wash Record Deleted', get_class($wash));
             $wash->delete();
             return response()->json(['status' => 'success']);
         });

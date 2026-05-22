@@ -109,7 +109,7 @@ class AccountingReportController extends Controller
             $totalOutstanding = 0;
 
             foreach ($customerInvoices as $invoice) {
-                $invoiceTotal = DB::table('sales')->where('invoice_id', $invoice->id)->sum('sale_cost_total');
+                $invoiceTotal = DB::table('sales')->where('invoice_id', $invoice->id)->where('is_returned', 0)->sum('sale_cost_total');
                 
                 $payments = DB::table('invoice_payments')
                     ->where('invoice_id', $invoice->id)
@@ -248,7 +248,7 @@ class AccountingReportController extends Controller
         $invoices = Invoice::all();
         foreach($invoices as $inv) {
             $days = Carbon::parse($inv->invoice_date)->diffInDays(now());
-            $invoiceTotal = DB::table('sales')->where('invoice_id', $inv->id)->sum('sale_cost_total');
+            $invoiceTotal = DB::table('sales')->where('invoice_id', $inv->id)->where('is_returned', 0)->sum('sale_cost_total');
             $balance = $invoiceTotal - ($inv->payments->sum('amount_applied') ?? 0);
             if ($balance <= 0.01) continue;
             

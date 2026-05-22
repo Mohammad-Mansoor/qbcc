@@ -1,84 +1,221 @@
 @extends('dsh.master')
-
+@section('title', 'مدیریت ترمیم قالین (Kachaee)')
 @section('content')
-  <!-- navbar -->
+
+<style>
+    /* PREMIUM GLASSMORPHISM UI */
+    .glass-card {
+        background: white;
+        border: 1px solid var(--qbcc-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        margin-bottom: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .glass-header {
+        background: var(--qbcc-surface);
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--qbcc-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .glass-header h4 {
+        margin: 0;
+        font-weight: 700;
+        color: var(--qbcc-primary);
+        font-size: 1.2rem;
+    }
+
+    .table-modern thead th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        border: none;
+        letter-spacing: 0.5px;
+        padding: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .table-modern tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f1f5f9;
+        color: #334155;
+    }
+
+    .table-modern tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 8px;
+        font-weight: 600;
+        color: #64748b;
+        padding: 10px 20px;
+        transition: all 0.2s;
+    }
+    .nav-pills .nav-link.active {
+        background-color: var(--qbcc-primary, #43a047) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* KEBAB MENU OVERRIDES */
+    .table-responsive, .glass-card {
+        overflow: visible !important;
+        padding-bottom: 80px; 
+    }
+    
+    .table-modern tbody tr {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .table-modern tbody tr:hover {
+        z-index: 100;
+    }
+
+    .table-modern td {
+        overflow: visible !important;
+    }
+
+    .dropdown-menu-action {
+        position: absolute !important;
+        will-change: transform;
+        z-index: 999999 !important;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        padding: 8px;
+        min-width: 180px;
+    }
+    .dropdown-menu-action .dropdown-item {
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+        color: #475569;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .dropdown-menu-action .dropdown-item:hover {
+        background-color: #f1f5f9;
+        color: var(--qbcc-primary);
+    }
+    .dropdown-menu-action .dropdown-item.text-danger:hover {
+        background-color: #fef2f2;
+        color: #ef4444;
+    }
+    .kebab-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+    .kebab-btn:hover, .kebab-btn:focus {
+        background: #f1f5f9;
+        color: var(--qbcc-primary);
+        outline: none;
+        box-shadow: none;
+    }
+    
+    /* SEARCH INPUT MODERNIZATION */
+    .search-modern .form-control {
+        border-radius: 0 8px 8px 0;
+        border: 2px solid #e2e8f0;
+        border-left: none;
+        box-shadow: none;
+        padding-left: 15px;
+        transition: all 0.2s;
+    }
+    .search-modern .form-control:focus {
+        border-color: var(--qbcc-accent, #3b82f6);
+    }
+    .search-modern .btn-search {
+        border-radius: 8px 0 0 8px;
+        background: var(--qbcc-accent, #3b82f6);
+        color: white;
+        border: none;
+        padding: 0 20px;
+    }
+    .search-modern .btn-search:hover {
+        background: #2563eb;
+    }
+    .search-modern .btn-clear {
+        border-radius: 8px;
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+        margin-right: 10px;
+        transition: all 0.2s;
+    }
+    .search-modern .btn-clear:hover {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+</style>
+
   <div class="row">
     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-header">
-          <div class="main-sparkline8-hd">
-            
-            <div class="alert alert-success" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              مرحله ترمیم حذف شد
+      <div class="glass-card">
+        <div class="glass-header">
+            <h4><i class="fa fa-wrench mr-2 text-primary"></i> بخش ترمیم قالین (Kachaee)</h4>
+            <div>
+                @if(session("status"))
+                  <span class="badge badge-success px-3 py-2"><i class="fa fa-check mr-1"></i> {{session('status')}}</span>
+                @endif
+                @if(session("error"))
+                  <span class="badge badge-danger px-3 py-2"><i class="fa fa-times mr-1"></i> {{session('error')}}</span>
+                @endif
             </div>
-            
-            @if(session("status"))
-              <div class="alert alert-success status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('status')}}
-              </div>
-            
-            @endif
-            @if(session("error"))
-              
-              <div class="alert alert-success status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('error')}}
-              </div>
-            
-            @endif
-          
-          </div>
-          <div class="card-body">
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link has-ripple {{$search == null ? 'active' : ''}}" id="pills-non-repaired-tab"
-                   data-toggle="pill"
-                   href="#non-repaired"
-                   role="tab" aria-controls="pills-non-repaired" aria-selected="true">ترمیم نشده ها<span
-                          class="ripple ripple-animate"
-                          style="height: 71.6719px; width: 71.6719px; animation-duration: 0.7s; animation-timing-function: linear; background: rgb(70, 128, 255); opacity: 0.4; top: -30.8359px; left: 9.16405px;"></span></a>
+        </div>
+        <div class="card-body p-4">
+            <ul class="nav nav-pills mb-4 pb-3 border-bottom" id="pills-tab" role="tablist">
+              <li class="nav-item mr-2">
+                <a class="nav-link {{$search == null ? 'active' : ''}}" id="pills-non-repaired-tab"
+                   data-toggle="pill" href="#non-repaired" role="tab">
+                   <i class="fa fa-clock-o mr-1"></i> ترمیم نشده ها (Pending)
+                </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link has-ripple {{$search != null ? 'active' : ''}}" id="pills-repaired-tab"
-                   data-toggle="pill" href="#repaired"
-                   role="tab" aria-controls="pills-repaired" aria-selected="false">ترمیم شده ها<span
-                          class="ripple ripple-animate"
-                          style="height: 82.2188px; width: 82.2188px; animation-duration: 0.7s; animation-timing-function: linear; background: rgb(70, 128, 255); opacity: 0.4; top: -15.1094px; left: 18.9375px;"></span></a>
+                <a class="nav-link {{$search != null ? 'active' : ''}}" id="pills-repaired-tab"
+                   data-toggle="pill" href="#repaired" role="tab">
+                   <i class="fa fa-check-circle mr-1"></i> ترمیم شده ها (Completed)
+                </a>
               </li>
             </ul>
+            
             <div class="tab-content" id="pills-tabContent">
-              
-              <div class="tab-pane fade {{$search == null ? 'active show' : ''}}" id="non-repaired" role="tabpanel"
-                   aria-labelledby="pills-non-repaired-tab">
-                <div class="row">
-                  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                    <div class="form-group fill">
-                      <form action="/dashboard/repair-search" method="POST">
-                        @csrf
-                        <input type="text" name="search" placeholder=" جستجو شماره قالین" class="form-control" required>
-                      </form>
-                    </div>
-                  </div>
-                  <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9">
-                  
-                  </div>
-                
-                
+              <!-- PENDING REPAIRS -->
+              <div class="tab-pane fade {{$search == null ? 'active show' : ''}}" id="non-repaired" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <form action="/dashboard/repair-search" method="POST" class="form-inline search-modern">
+                      @csrf
+                      <div class="input-group">
+                          <input type="text" name="search" placeholder="جستجو شماره قالین..." class="form-control" value="{{ isset($search) ? $search : '' }}" required>
+                          <div class="input-group-append">
+                              <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
+                          </div>
+                      </div>
+                      @if(isset($search))
+                          <a href="/dashboard/carpet-repair" class="btn btn-clear py-2 px-3"><i class="fa fa-times ml-1"></i> پاک کردن فیلتر</a>
+                      @endif
+                    </form>
+                    <button class="btn btn-light shadow-sm" style="border-radius: 8px;" onclick="printPage('noneRepairPrint')"><i class="fa fa-print mr-1"></i> Print</button>
                 </div>
-                <div class="btn btn-sm btn-primary" style="float: left;margin-bottom: 20px;"
-                     onclick="printPage('noneRepairPrint')"><i
-                          class="fa fa-print"></i> Print
-                </div>
-                <div class="static-table-list" style="margin-top: 20px" id="noneRepairPrint">
-                  <table class="table table-hover table-xs" id="dataTable">
+                
+                <div class="table-responsive" style="overflow: visible;" id="noneRepairPrint">
+                  <table class="table table-modern text-center" id="dataTable">
                     <thead>
                     <tr>
-                      
                       <th>شماره قالین</th>
                       <th>اسم کچایی گر</th>
                       <th>نوعیت</th>
@@ -87,103 +224,103 @@
                       <th>حاشیه</th>
                       <th>زمینه</th>
                       <th>شماره فرمایش</th>
-                      <th class="printTitle">ترمیم</th>
-                      <th class="printTitle">بازگشت</th>
-                    
+                      <th class="printTitle text-center">عملیات</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($nonrepaireds as $nonrepaired)
                       <tr class="ur{{ $nonrepaired->carpet_id }}">
-                        
-                        <td>{{$nonrepaired->carpet_no}}</td>
+                        <td class="font-weight-bold text-dark">{{$nonrepaired->carpet_no}}</td>
                         <td>{{$nonrepaired->kachaee->name}}</td>
-                        <td>{{$nonrepaired->type->carpet_type}}</td>
-                        <td>{{$nonrepaired->height}}</td>
-                        <td>{{$nonrepaired->width}}</td>
+                        <td><span class="badge badge-light border">{{$nonrepaired->type->carpet_type}}</span></td>
+                        <td style="direction: ltr;">{{$nonrepaired->height}}</td>
+                        <td style="direction: ltr;">{{$nonrepaired->width}}</td>
                         <td>{{$nonrepaired->margin}}</td>
                         <td>{{$nonrepaired->field}}</td>
-                        @if($nonrepaired->carpet_order)
-                          <td>{{$nonrepaired->carpet_order->order_number}}</td>
-                        @else
-                          <td></td>
-                        @endif
-                        <td class="hideOnPrint"><a href="/dashboard/carpet-repair-create/{{$nonrepaired->carpet_id}}"
-                               class="btn btn-sm btn-info printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; ترمیم</a></td>
-                        
-                        <td class="hideOnPrint"><a href="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}"
-                               class="btn btn-sm btn-warning printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                        <td>
+                            @if($nonrepaired->carpet_order)
+                              <span class="badge badge-info">{{$nonrepaired->carpet_order->order_number}}</span>
+                            @else
+                              <span class="text-muted">-</span>
+                            @endif
+                        </td>
+                        <td class="hideOnPrint text-center">
+                            <!-- KEBAB MENU -->
+                            <div class="dropdown">
+                                <button class="kebab-btn" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-boundary="viewport">
+                                    <i class="feather icon-more-vertical" style="font-size: 1.2rem;"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right dropdown-menu-action">
+                                    <h6 class="dropdown-header text-muted text-right">عملیات ترمیم</h6>
+                                    <a class="dropdown-item text-right" href="/dashboard/carpet-repair-create/{{$nonrepaired->carpet_id}}">
+                                        <i class="feather icon-tool text-primary"></i>
+                                        ثبت ترمیم (Repair)
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item text-right text-warning" href="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}">
+                                        <i class="feather icon-corner-up-right"></i>
+                                        بازگشت به مرکزی
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
                       </tr>
                     @endforeach
-                    <tr>
-                      <td><b>مجموع</b></td>
-                      <td>m <sup>2</sup> {{$nonrepaireds->sum('area')}}</td>
-                    
-                    </tr>
-                    <tr>
-                      <td><b>تعداد</b></td>
-                      <td>pcs {{$nonrepaireds->count()}}</td>
+                    <tr style="background: #f8fafc;" class="font-weight-bold">
+                      <td colspan="3" class="text-right">مجموع:</td>
+                      <td colspan="5" class="text-left" style="direction: ltr;">
+                          {{$nonrepaireds->count()}} pcs | {{$nonrepaireds->sum('area')}} m<sup>2</sup>
+                      </td>
+                      <td class="hideOnPrint"></td>
                     </tr>
                     </tbody>
                   </table>
-                
                 </div>
-              
-              
               </div>
-              <div class="tab-pane fade {{$search != null ? 'active show' : ''}}" id="repaired" role="tabpanel"
-                   aria-labelledby="pills-repaired-tab">
-                <div class="row">
-                  <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                    <div class="form-group fill">
-                      <form action="/dashboard/search-repaired" method="POST">
-                        @csrf
-                        <input type="text" name="search" placeholder=" جستجو " class="form-control" required>
-                      </form>
+              
+              <!-- COMPLETED REPAIRS -->
+              <div class="tab-pane fade {{$search != null ? 'active show' : ''}}" id="repaired" role="tabpanel">
+                <div class="row align-items-center mb-4 search-modern">
+                    <div class="col-md-5">
+                        <form action="/dashboard/search-repaired" method="POST" class="form-inline">
+                          @csrf
+                          <div class="input-group w-75">
+                              <input type="text" name="search" placeholder="جستجوی سریع..." class="form-control" value="{{ isset($search) ? $search : '' }}" required>
+                              <div class="input-group-append">
+                                  <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
+                              </div>
+                          </div>
+                          @if(isset($search))
+                              <a href="/dashboard/carpet-repair" class="btn btn-clear py-2 px-3"><i class="fa fa-times ml-1"></i> پاک</a>
+                          @endif
+                        </form>
                     </div>
-                  </div>
-                  <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9">
-                    
-                    <form action="/dashboard/repair-date-search" method="POST">
-                      @csrf
-                      <div class="row">
-                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2"></div>
-                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                          <div class="form-group fill">
-                            <input type="submit" value="جستجو" style="float: left;margin-top: 30px;"
-                                   class="date-submit btn btn-sm btn-primary btn-block">
+                    <div class="col-md-7 text-right">
+                        <form action="/dashboard/repair-date-search" method="POST" class="form-inline justify-content-end">
+                          @csrf
+                          <div class="input-group input-group-sm mr-2">
+                              <div class="input-group-prepend"><span class="input-group-text bg-light" style="border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0;">از</span></div>
+                              <input type="date" name="start" class="form-control" style="border-radius: 6px 0 0 6px; border: 1px solid #e2e8f0;" required>
                           </div>
-                        </div>
-                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-8">
-                          <div class="form-group fill">
-                            <span class="date-label">شروع</span><input type="date" name="start" class="form-control"
-                                                                       required>
+                          <div class="input-group input-group-sm mr-2">
+                              <div class="input-group-prepend"><span class="input-group-text bg-light" style="border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0;">تا</span></div>
+                              <input type="date" name="end" class="form-control" style="border-radius: 6px 0 0 6px; border: 1px solid #e2e8f0;" required>
                           </div>
-                        </div>
-                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-8">
-                          <div class="form-group fill">
-                            <span class="date-label">ختم</span><input type="date" name="end" class="form-control"
-                                                                      required>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  
-                  </div>
-                
-                
+                          <button type="submit" class="btn btn-sm btn-info py-1 px-3" style="border-radius: 6px;"><i class="fa fa-filter"></i> فیلتر تاریخ</button>
+                          
+                          @if(isset($search))
+                              <a href="/dashboard/carpet-repair" class="btn btn-sm btn-clear py-1 px-2 ml-2"><i class="fa fa-times"></i></a>
+                          @endif
+                          
+                          <button type="button" class="btn btn-sm btn-light ml-2 border" style="border-radius: 6px;" onclick="printPage('repairPrint')"><i class="fa fa-print text-primary"></i></button>
+                        </form>
+                    </div>
                 </div>
-                <div class="btn btn-sm btn-primary" style="float: left;margin-bottom: 20px;"
-                     onclick="printPage('repairPrint')"><i
-                          class="fa fa-print"></i> Print
-                </div>
-                <div class="static-table-list" style="margin-top: 20px" id="repairPrint">
-                  <table class="table table-hover table-xs" id="secondDataTable">
+
+                <div class="table-responsive" style="overflow: visible;" id="repairPrint">
+                  <table class="table table-modern text-center" id="secondDataTable">
                     <thead>
                     <tr>
-                      
                       <th>شماره قالین</th>
                       <th>نمبر کچایی</th>
                       <th>نوعیت</th>
@@ -194,92 +331,99 @@
                       <th>تاریخ</th>
                       <th>تیم ترمیم کننده</th>
                       <th>شرح</th>
-                      <th class="printTitle">ویرایش</th>
-                      <th class="printTitle">ارسال به شست</th>
-                      <th class="printTitle">جزئیات کلی</th>
-                      <th class="printTitle">بازگشت</th>
+                      <th class="printTitle text-center">وضعیت / عملیات</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($repaireds as $repaired)
                       <tr class="ur{{ $repaired->id }}">
-                        <td>{{$repaired->carpet->carpet_no}}</td>
+                        <td class="font-weight-bold text-dark">{{$repaired->carpet->carpet_no}}</td>
                         <td>
-                          <a href="/dashboard/carpet-repair/search-kachaee-number/{{$repaired->kachaee_number}}{{$repaired->team_id}}"
-                          >&nbsp; {{$repaired->kachaee_number}}</a></td>
+                          <a href="/dashboard/carpet-repair/search-kachaee-number/{{$repaired->kachaee_number}}{{$repaired->team_id}}" class="badge badge-light border">
+                          {{$repaired->kachaee_number}}</a>
+                        </td>
                         <td>{{$repaired->carpet->type->carpet_type}}</td>
                         <td>{{$repaired->carpet->margin}}</td>
                         <td>{{$repaired->carpet->field}}</td>
                         
-                        <td style="direction: ltr">{{$repaired->price}} af</td>
-                        <td style="direction: ltr">{{$repaired->af_total_price}} af</td>
+                        <td style="direction: ltr" class="text-muted">{{ number_format($repaired->price, 2) }}</td>
+                        <td style="direction: ltr" class="font-weight-bold text-primary">{{ number_format($repaired->af_total_price, 2) }}</td>
                         <td>{{$repaired->date}}</td>
                         <td>{{$repaired->team->name}}</td>
-                        <td>{{$repaired->description}}</td>
-                        <td class="hideOnPrint"><a href="/dashboard/carpet-repair/{{$repaired->id}}/edit"
-                               class="btn btn-sm btn-info printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
-                        @if ($repaired->carpet->status ==12)
-                          <td class="hideOnPrint"><a href="/dashboard/washing-team/sending-to-washing/{{$repaired->carpet->carpet_id}}"
-                                 class="btn btn-sm btn-info printBTN"><i
-                                      class="fa fa-send"></i>&nbsp; ارسال به شست</a></td>
-                        @else
-                          <td class="hideOnPrint">قبلا ارسال شده</td>
-                        @endif
-                        <td><a href="/dashboard/carpet-repair/{{$repaired->id}}" class="btn btn-sm btn-info printBTN"><i
-                                    class="fa fa-eye"></i>&nbsp; نمایش</a></td>
-                        @if($repaired->carpet->status == 12)
-                          <td><a href="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}"
-                                 class="btn btn-sm btn-warning printBTN"><i
-                                      class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
-                        @else
+                        <td><small>{{ Str::limit($repaired->description, 20) }}</small></td>
                         
-                          <td class="hideOnPrint">
-      
-                            @if($repaired->carpet->status == 3)
-        
-                              <label for="" class="badge badge-light-warning">در شست نشده ها</label>
-                            @elseif($repaired->carpet->status == 13)
-        
-                              <label for="" class="badge badge-primary">در شست شده ها</label>
-                            @elseif($repaired->carpet->status == 4)
-                              <label for="" class="badge badge-light-primary">در بخش تیاری</label>
-                            @elseif($repaired->carpet->status == 5)
-                              <label for="" class="badge badge-info">در گدام فروشات</label>
-                            @elseif($repaired->carpet->status == 6)
-                              <label for="" class="badge badge-success">فروخته شده</label>
-      
-                            @endif
-                          </td>
-                   
-                        @endif
+                        <td class="hideOnPrint text-center">
+                             <!-- KEBAB MENU -->
+                            <div class="dropdown">
+                                <button class="kebab-btn" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-boundary="viewport">
+                                    <i class="feather icon-more-vertical" style="font-size: 1.2rem;"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right dropdown-menu-action">
+                                    <h6 class="dropdown-header text-muted text-right">عملیات</h6>
+                                    
+                                    <a class="dropdown-item text-right" href="/dashboard/carpet-repair/{{$repaired->id}}">
+                                        <i class="feather icon-eye text-info"></i>
+                                        نمایش جزئیات (View)
+                                    </a>
+                                    
+                                    <a class="dropdown-item text-right" href="/dashboard/carpet-repair/{{$repaired->id}}/edit">
+                                        <i class="feather icon-edit-2 text-warning"></i>
+                                        ویرایش مالی (Edit)
+                                    </a>
+                                    
+                                    <div class="dropdown-divider"></div>
+                                    
+                                    @if ($repaired->carpet->status == 12)
+                                      <a class="dropdown-item text-right text-success font-weight-bold" href="/dashboard/washing-team/sending-to-washing/{{$repaired->carpet->carpet_id}}">
+                                          <i class="feather icon-send"></i>
+                                          ارسال به شست (Send to Wash)
+                                      </a>
+                                      <a class="dropdown-item text-right text-danger" href="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
+                                          <i class="feather icon-corner-up-right"></i>
+                                          بازگشت به مرکزی
+                                      </a>
+                                    @else
+                                      <div class="dropdown-item text-right text-muted" style="cursor: not-allowed; opacity: 0.6;">
+                                          <i class="feather icon-lock"></i>
+                                          @if($repaired->carpet->status == 3)
+                                              در شست نشده ها
+                                          @elseif($repaired->carpet->status == 13)
+                                              در شست شده ها
+                                          @elseif($repaired->carpet->status == 4)
+                                              در بخش تیاری
+                                          @elseif($repaired->carpet->status == 5)
+                                              در گدام فروشات
+                                          @elseif($repaired->carpet->status == 6)
+                                              فروخته شده
+                                          @else
+                                              قفل شده
+                                          @endif
+                                      </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
                       </tr>
                     @endforeach
-                    <tr>
-                      <td><b>مجموع</b></td>
-                      <td>m <sup>2</sup> {{$repaireds->sum('area')}}</td>
-                    
-                    </tr>
-                    <tr>
-                      <td><b>تعداد</b></td>
-                      <td>pcs {{$repaireds->count()}}</td>
+                    <tr style="background: #f8fafc;" class="font-weight-bold">
+                      <td colspan="3" class="text-right">مجموع:</td>
+                      <td colspan="7" class="text-left" style="direction: ltr;">
+                          {{$repaireds->count()}} pcs | {{$repaireds->sum('area')}} m<sup>2</sup>
+                      </td>
+                      <td class="hideOnPrint"></td>
                     </tr>
                     </tbody>
                   </table>
                   @if(!isset($search))
-                    <p>{{$repaireds->links()}}</p>
+                    <div class="mt-3">
+                        {{$repaireds->links()}}
+                    </div>
                   @endif
-                
                 </div>
               </div>
-            
             </div>
-          
-          </div>
         </div>
       </div>
     </div>
-  
-  
   </div>
-@endsection
+@endsection

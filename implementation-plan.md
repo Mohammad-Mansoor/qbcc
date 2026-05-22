@@ -347,26 +347,65 @@ Every completed module will include a report with the following:
 2.  **Revenue**: Ensure revenue is posted in USD base amount.
 3.  **COGS**: Verify COGS is pulled from the WAC (which is already USD).
 
-### 19.3 Implementation Steps for Module 7 (Material Purchase)
-1.  **Vendor Accounts**: Update vendor sub-ledgers to show original PKR/AFN balances.
-2.  **Inventory Sync**: Ensure the purchase price is correctly translated to USD WAC.
+### 19.3 Implementation Steps for Module 7 (Material Purchase Hardening)
+1.  **Database Migration**: Add forensic columns to `purchase_materials` table.
+    *   `currency_id`, `exchange_rate`, `original_amount`, `base_currency_amount`.
+2.  **Service Refactoring**: Update `InventoryTransactionManager@processPurchase`.
+    *   Accept `currency_code` and `exchange_rate` in `$params`.
+    *   Pass these through to `InventoryService@recordMovement`.
+3.  **Controller Migration**: Refactor `PurchaseMaterialController`.
+    *   Inject `currencies` into `index`, `create`, `edit`.
+    *   Update `store` and `update` to capture the visible exchange rate and currency.
+    *   Ensure normalization to USD base using BCMath before calling `processPurchase`.
+4.  **UI Overhaul**: Redesign `mpurchase/index.blade.php`.
+    *   Add **Currency Selection** and **ReadOnly Exchange Rate** fields.
+    *   Synchronize JS calculation to use the selected rate for "USD Grand Truth".
+    *   Update the Ledger Table to display the **Rate** used for each purchase.
+
+### 19.4 Implementation Steps for Module 8 (Raw Material Sales Hardening)
+1.  **Database Migration**: Add forensic columns to `material_sales` table.
+    *   `currency_id`, `exchange_rate`, `original_amount`, `base_currency_amount`.
+2.  **Service Refactoring**: Update `InventoryTransactionManager` to handle `processSale`.
+    *   Ensure the system fetches the **WAC (USD)** from the `items` table (managed by `InventoryService`).
+    *   Calculate **COGS** (Qty * WAC) in USD base.
+3.  **Controller Migration**: Refactor `MaterialSaleController`.
+    *   Inject `AccountingService` and `currencies`.
+    *   Refactor `store` to perform atomic postings:
+        - **Debit Customer/Cash** (Original Currency & USD Normalized).
+        - **Credit Revenue** (USD Normalized).
+        - **Debit COGS** (USD WAC).
+        - **Credit Inventory** (USD WAC).
+4.  **UI Overhaul**: Redesign `msale/index.blade.php`.
+    *   Implement the **Premium "Emerald/Green" Theme** for sales.
+    *   Add **Live USD Truth Preview** (showing Profit/Margin estimate if possible).
+    *   Add forensic metadata fields (Currency, Rate).
+5.  **Verification**: 
+    - [ ] Verify that a sale in PKR correctly calculates COGS in USD based on WAC.
+    - [ ] Verify that the Ledger shows the Revenue in USD base amount.
 
 ---
 
-## 20. Phase-Specific Detail: Phase 3 (Manufacturing)
+## 20. Phase 3 — Manufacturing & Production Flows (Forensic Hardening)
 
-### 20.1 Implementation Steps for Module 9 (Washing)
-1.  **Service Posting**: When a carpet is sent to wash, the labor cost (AFN) must be capitalized.
-2.  **Ledger**: Debit WIP-Washing (USD), Credit Accrued Labor (USD).
-3.  **Carpet Value**: Increase `carpets.current_cost` by the USD equivalent.
+### 20.1 Module 9: Washing Team Payments (Blue/Cyan Theme)
+**Objective**: Transition washing labor payments to high-precision forensic architecture.
+1.  **Controller Migration**: Refactor `WashingPaymentController` to:
+    *   Inject `AccountingService` and `AccountSelectionService`.
+    *   Implement `postPaymentToAccounting` using `base_amount`.
+    *   Enforce BCMath for normalization.
+    *   Capture forensic snapshots (`exchange_rate`, `currency_code`).
+2.  **UI Overhaul**: Redesign `washing/washing-payment.blade.php` with a Blue-themed premium dashboard.
 
-### 20.2 Implementation Steps for Module 10 (Finishing)
-1.  **Service Posting**: Similar to washing, but for finishing teams.
-2.  **Category Rates**: If finishing is paid per meter, ensure the meter-to-USD calculation is precise.
+### 20.2 Module 10: Finishing Team Payments (Amber/Gold Theme)
+**Objective**: Harden finishing labor payments with premium auditing capabilities.
+1.  **Controller Migration**: Refactor `FinishingTeamPaymentController` similarly to Washing.
+2.  **Account Overrides**: Enable direct GL account selection for specialized finishing costs.
+3.  **UI Overhaul**: Redesign `finishing-center/finishing-payment.blade.php` with an Amber/Gold premium dashboard.
 
-### 20.3 Implementation Steps for Module 13 (Carpet Inventory)
-1.  **Stock Valuation**: Ensure the "Carpet Inventory" report aggregates the `current_cost` of all carpets in the warehouse.
-2.  **Audit Trail**: Maintain a history of value additions for each carpet (Purchase + Wash + Finish + Repair).
+### 20.3 Common Labor Forensic Features
+*   **Live USD Truth Preview**: Real-time calculation of USD equivalent during data entry.
+*   **Multi-Currency Summaries**: Dynamic totals for each currency (AFN/PKR/USD) plus a USD "Grand Truth" balance.
+*   **Journal Links**: Direct links from the payment ledger to the accounting journal entries.
 
 ---
 

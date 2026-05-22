@@ -21,7 +21,7 @@ class WarehouseController extends Controller
                 ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
                 ->where('inventory_transactions.warehouse_id', $w->id)
                 ->where('inventory_transactions.status', 1)
-                ->where('items.type', 'App\PurchaseMaterial')
+                ->where('items.type', 'App\MaterialType')
                 ->select(
                     \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as total_qty"),
                     \DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_val")
@@ -45,7 +45,8 @@ class WarehouseController extends Controller
             $w->total_asset_value = ($materialStats->total_val ?? 0) + ($carpetStats->total_val ?? 0);
         }
 
-        return view('accounting.warehouses.index', compact('warehouses'));
+        $currencies = \App\Currency::where('is_active', 1)->get();
+        return view('accounting.warehouses.index', compact('warehouses', 'currencies'));
     }
 
     public function store(Request $request)

@@ -133,9 +133,10 @@
                             <!-- Currency -->
                             <div class="col-md-6 mb-4">
                                 <label class="font-weight-bold text-dark">ارز (Currency)</label>
-                                <select name="currency" class="form-control bg-light">
-                                    <option value="USD">USD - دالر</option>
-                                    <option value="AFN">AFN - افغانی</option>
+                                <select name="currency" class="form-control bg-light select2" required>
+                                    @foreach($currencies as $c)
+                                        <option value="{{ $c->code }}">{{ $c->code }} - {{ $c->name }}</option>
+                                    @endforeach
                                 </select>
                                 <small class="form-text text-info mt-2">
                                     <i class="feather icon-info mr-1"></i>

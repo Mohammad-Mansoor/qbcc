@@ -14,4 +14,7 @@ class MaterialAccountPayment extends Model
     public function materialtype() {
         return $this->belongsTo(MaterialType::class , 'type_id', 'material_type_id');
     }
+    public function warehouse() {
+        return $this->belongsTo(\App\Warehouse::class, 'warehouse_id', 'id');
+    }
 }

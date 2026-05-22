@@ -23,6 +23,13 @@
                     <form action="{{ route('accounting.coa.update', $account->id) }}" method="POST">
                         @csrf
                         @method('PUT')
+
+                        @if($hasEntries)
+                        <div class="alert alert-warning border-0 shadow-sm mb-4" style="border-radius: 10px;">
+                            <i class="feather icon-alert-triangle mr-2"></i>
+                            <strong>توجه:</strong> این حساب دارای معامله در دفتر کل می‌باشد. جهت حفظ انسجام تاریخی، نمبر حساب، نوعیت، بیلانس نارمل و ارز قفل شده است.
+                        </div>
+                        @endif
                         
                         <div class="row">
                             <!-- Account Code -->
@@ -32,7 +39,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text bg-light border-right-0"><i class="feather icon-hash"></i></span>
                                     </div>
-                                    <input type="text" name="account_code" value="{{ $account->account_code }}" class="form-control border-left-0 bg-light" required>
+                                    <input type="text" name="account_code" value="{{ $account->account_code }}" class="form-control border-left-0 bg-light" {{ $hasEntries ? 'readonly' : '' }} required>
                                 </div>
                                 <small class="form-text text-info mt-2">
                                     این کد برای شناسایی و ترتیب‌بندی حساب‌ها استفاده می‌شود. تغییر این کد ممکن است روی گزارشات قبلی تاثیر بگذارد.
@@ -56,7 +63,7 @@
                             <!-- Account Type -->
                             <div class="col-md-6 mb-4">
                                 <label class="font-weight-bold text-dark">نوعیت حساب (Account Type) <span class="text-danger">*</span></label>
-                                <select name="account_type" class="form-control select2 bg-light" required>
+                                <select name="account_type" class="form-control select2 bg-light" {{ $hasEntries ? 'disabled' : '' }} required>
                                     @foreach(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] as $type)
                                         <option value="{{ $type }}" {{ $account->account_type == $type ? 'selected' : '' }}>{{ $type }}</option>
                                     @endforeach
@@ -69,7 +76,7 @@
                             <!-- Normal Balance -->
                             <div class="col-md-6 mb-4">
                                 <label class="font-weight-bold text-dark">بیلانس نارمل (Normal Balance) <span class="text-danger">*</span></label>
-                                <select name="normal_balance" class="form-control bg-light" required>
+                                <select name="normal_balance" class="form-control bg-light" {{ $hasEntries ? 'disabled' : '' }} required>
                                     <option value="debit" {{ $account->normal_balance == 'debit' ? 'selected' : '' }}>دیبت (Debit)</option>
                                     <option value="credit" {{ $account->normal_balance == 'credit' ? 'selected' : '' }}>کریدت (Credit)</option>
                                 </select>
@@ -119,16 +126,17 @@
                             <!-- Currency -->
                             <div class="col-md-6 mb-4">
                                 <label class="font-weight-bold text-dark">ارز (Currency)</label>
-                                <select name="currency" class="form-control bg-light">
-                                    <option value="USD" {{ $account->currency == 'USD' ? 'selected' : '' }}>USD - دالر</option>
-                                    <option value="AFN" {{ $account->currency == 'AFN' ? 'selected' : '' }}>AFN - افغانی</option>
+                                <select name="currency" class="form-control select2 bg-light" {{ $hasEntries ? 'disabled' : '' }} required>
+                                    @foreach($currencies as $c)
+                                        <option value="{{ $c->code }}" {{ $account->currency == $c->code ? 'selected' : '' }}>{{ $c->code }} - {{ $c->name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
 
                             <!-- Is Cash Account -->
                             <div class="col-md-6 mb-4 d-flex align-items-center pt-4">
                                 <div class="custom-control custom-switch custom-control-inline">
-                                    <input type="checkbox" name="is_cash_account" value="1" class="custom-control-input" id="isCash" {{ $account->is_cash_account ? 'checked' : '' }}>
+                                    <input type="checkbox" name="is_cash_account" value="1" class="custom-control-input" id="isCash" {{ $account->is_cash_account ? 'checked' : '' }} {{ $hasEntries ? 'disabled' : '' }}>
                                     <label class="custom-control-label font-weight-bold" for="isCash">آیا حساب نقدی است؟ (Is Cash Account)</label>
                                 </div>
                             </div>

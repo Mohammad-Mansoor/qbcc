@@ -24,10 +24,14 @@ class OfficeDebitController extends Controller
     private function postExpenseToAccounting($debit, $overrides = [])
     {
         try {
-            // Check if it's a generic expense mapped from expense_type or standard withdrawal
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            $amount = $debit->base_amount;
+
             $this->accountingService->postAutoTransaction('office_debit', 'withdrawal', array_merge([
                 'date' => $debit->date,
-                'amount' => $debit->amount,
+                'amount' => $amount,
+                'currency_code' => $debit->currency_code,
+                'exchange_rate' => $debit->exchange_rate,
                 'reference' => 'OFF-EXP-' . $debit->id,
                 'description' => 'مصرف دفتر (Office Expense): ' . ($debit->expense_type ?? 'مصرف') . ' - ' . $debit->description,
                 'source_id' => $debit->id,
@@ -67,10 +71,10 @@ class OfficeDebitController extends Controller
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
                 'name'=> '',
-                'amount' => 'required',
-                'amount_af' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required|min:3|max:256',
-                'date' => 'required',
+                'date' => 'required|date',
                 'employee_id'=>'',
                 'expense_type'=>'',
                 'expense_for_where'=>'',
@@ -88,10 +92,29 @@ class OfficeDebitController extends Controller
             $csh = OfficeCashBook::where('user_role',Auth::user()->role)->first();
 
             if($csh){
-                if($csh->balance < $request->amount){
-                    return redirect()->back()->with('error', ' پول در دخل'. $csh->balance .'میباشد');
+                $currency = \App\Currency::find($request->currency_id);
+                $rate = $request->exchange_rate ?: $currency->exchange_rate;
+                $baseAmount = bcmul((string)$request->amount, (string)$rate, 4);
+
+                if(bccomp((string)$csh->balance, (string)$baseAmount, 4) < 0){
+                    return redirect()->back()->with('error', ' پول در دخل ' . number_format($csh->balance, 2) . ' USD میباشد و با احتساب نرخ تبدیل مصرف شما معادل ' . number_format((float)$baseAmount, 2) . ' USD میگردد.');
                 } else {
                     $data['user_role'] = Auth::user()->role;
+                    $data['currency_id'] = $request->currency_id;
+                    $data['currency_code'] = $currency->code;
+                    $data['exchange_rate'] = $rate;
+                    $data['original_amount'] = $request->amount;
+                    $data['base_amount'] = $baseAmount;
+
+                    // Legacy dual-amount fallback
+                    if ($currency->code == 'AFN') {
+                        $data['amount_af'] = $request->amount;
+                        $data['amount'] = 0;
+                    } else {
+                        $data['amount'] = $request->amount;
+                        $data['amount_af'] = 0;
+                    }
+
                     $debit = OfficeDebit::create($data);
                     
                     // Accounting Posting with Overrides
@@ -103,11 +126,12 @@ class OfficeDebitController extends Controller
 
                     $activity = new Activity();
                     $activity->date = Carbon::today()->format('Y-m-d');
-                    $activity->description = " مبلغ " . $request->amount . "  مصرف شد ";
+                    $activity->description = " مبلغ " . $request->amount . " " . $currency->code . "  مصرف شد ";
                     $activity->user_id = Auth::user()->id;
                     $activity->save();
 
-                    $csh->balance =  $csh->balance - $request->amount;
+                    // Balance logic in دخل (Cash Book) - Subtract normalized base USD
+                    $csh->balance = bcsub((string)$csh->balance, (string)$baseAmount, 4);
                     $csh->update();
 
                     if($request->employee_id){
@@ -128,10 +152,10 @@ class OfficeDebitController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('CASH_OUT', 'credit');
         
         $mapping = \App\MappingRule::where('mapping_key', 'CASH_OUT')->first();
-        $currency = \DB::table('currencies')->where('status', 1)->value('rate');
+        $currencies = \App\Currency::where('is_active', true)->get();
 
         return view('office-cash-book.add-expense', compact(
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
         ));
     }
 
@@ -173,29 +197,53 @@ class OfficeDebitController extends Controller
 
             if($csh > 0){
                 $balance = OfficeCashBook::where('user_role',Auth::user()->role)->first();
-                $balance->balance = $balance->balance + $db->amount;
+                
+                // Add the old base USD amount back to cash book
+                $oldUSD = $db->base_amount ?: ($db->amount_af ? bcdiv((string)$db->amount_af, '60.0000', 4) : $db->amount);
+                $balance->balance = bcadd((string)$balance->balance, (string)$oldUSD, 4);
                 $balance->update();
 
-                if($balance->balance < $request->amount){
-                    $balance->balance = $balance->balance - $db->amount;
+                $currency = \App\Currency::find($request->currency_id);
+                $rate = $request->exchange_rate ?: $currency->exchange_rate;
+                $baseAmount = bcmul((string)$request->amount, (string)$rate, 4);
+
+                if(bccomp((string)$balance->balance, (string)$baseAmount, 4) < 0){
+                    // Revert old USD addition if check fails
+                    $balance->balance = bcsub((string)$balance->balance, (string)$oldUSD, 4);
                     $balance->update();
-                    return redirect()->back()->with('error', ' پول در دخل'. $balance->balance .'میباشد');
+                    return redirect()->back()->with('error', ' پول در دخل ' . number_format($balance->balance, 2) . ' USD میباشد و با احتساب نرخ تبدیل مصرف شما معادل ' . number_format((float)$baseAmount, 2) . ' USD میگردد.');
                 } else {
                     // Reverse Old Transaction
                     $this->accountingService->reverseTransactionBySource($id, 'Office Debit Edited');
 
-                    $balance->balance = $balance->balance - $request->amount;
+                    // Subtract new base USD amount from cash book
+                    $balance->balance = bcsub((string)$balance->balance, (string)$baseAmount, 4);
+                    
                     $db->name = $request->name;
-                    $db->amount = $request->amount;
-                    $db->expense_type = $request->expense_type;
-                    $db->expense_for_where = $request->expense_for_where;
-                    $db->amount_af = $request->amount_af;
                     $db->description = $request->description;
                     $db->date = $request->date;
+                    $db->expense_type = $request->expense_type;
+                    $db->expense_for_where = $request->expense_for_where;
+
+                    // FORENSIC SNAPSHOTS
+                    $db->currency_id = $request->currency_id;
+                    $db->currency_code = $currency->code;
+                    $db->exchange_rate = $rate;
+                    $db->original_amount = $request->amount;
+                    $db->base_amount = $baseAmount;
+
+                    // Legacy dual-amount fallback
+                    if ($currency->code == 'AFN') {
+                        $db->amount_af = $request->amount;
+                        $db->amount = 0;
+                    } else {
+                        $db->amount = $request->amount;
+                        $db->amount_af = 0;
+                    }
                     
                     $activity = new Activity();
                     $activity->date = Carbon::today()->format('Y-m-d');
-                    $activity->description = " مبلغ " . $request->amount . "  مصرف ویرایش شد ";
+                    $activity->description = " مبلغ " . $request->amount . " " . $currency->code . "  مصرف ویرایش شد ";
                     $activity->user_id = Auth::user()->id;
                     $activity->save();
 
@@ -228,7 +276,9 @@ class OfficeDebitController extends Controller
                 
                 $balance = OfficeCashBook::where('user_role', Auth::user()->role)->first();
                 if ($balance) {
-                    $balance->balance = $balance->balance + $db->amount;
+                    // Restore original USD base amount back to cash book
+                    $oldUSD = $db->base_amount ?: ($db->amount_af ? bcdiv((string)$db->amount_af, '60.0000', 4) : $db->amount);
+                    $balance->balance = bcadd((string)$balance->balance, (string)$oldUSD, 4);
                     $balance->update();
                 }
 

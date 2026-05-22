@@ -64,10 +64,11 @@ class AjnasAccountController extends Controller
         $allowedDebitAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'ASSET_PURCH')->first();
+        $currencies = DB::table('currencies')->where('is_active', 1)->get();
 
         return view('assets-accounts.assets-accounts-details', compact(
             'detailEdit', 'account','asset_account_details',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
         ));
     }
 

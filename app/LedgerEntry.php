@@ -11,6 +11,8 @@ class LedgerEntry extends Model
         'account_id', 
         'debit', 
         'credit', 
+        'base_debit',
+        'base_credit',
         'currency_code',
         'original_amount',
         'exchange_rate', 

@@ -38,7 +38,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="mb-0 opacity-7">تعداد فروشات</p>
-                        <h4 class="mb-0 font-weight-bold">{{ $sales->total() }}</h4>
+                        <h4 class="mb-0 font-weight-bold">{{ \App\Sale::where('is_returned', 0)->count() }}</h4>
                     </div>
                     <i class="fa fa-shopping-bag fa-2x opacity-5"></i>
                 </div>
@@ -49,7 +49,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع سایز (متر مربع)</p>
-                        <h4 class="mb-0 font-weight-bold text-dark">{{ round($sales->sum('carpet_area'), 2) }}</h4>
+                        <h4 class="mb-0 font-weight-bold text-dark">{{ round(\App\Sale::where('is_returned', 0)->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')->sum('carpets.area'), 2) }}</h4>
                     </div>
                     <i class="fa fa-expand fa-2x text-info opacity-2"></i>
                 </div>
@@ -60,7 +60,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع فروشات ($)</p>
-                        <h4 class="mb-0 font-weight-bold text-success">{{ number_format($sales->sum('sale_cost_total'), 2) }}</h4>
+                        <h4 class="mb-0 font-weight-bold text-success">{{ number_format(\App\Sale::where('is_returned', 0)->sum('sale_cost_total'), 2) }}</h4>
                     </div>
                     <i class="fa fa-money fa-2x text-success opacity-2"></i>
                 </div>
@@ -72,7 +72,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <p class="mb-0 text-muted small text-uppercase font-weight-bold">مجموع مفاد خالص ($)</p>
-                        <h4 class="mb-0 font-weight-bold text-dark">{{ number_format($sales->sum('profit'), 2) }}</h4>
+                        <h4 class="mb-0 font-weight-bold text-dark">{{ number_format(\App\Sale::where('is_returned', 0)->sum('profit'), 2) }}</h4>
                     </div>
                     <i class="fa fa-line-chart fa-2x text-success opacity-2"></i>
                 </div>
@@ -223,11 +223,17 @@
                     </thead>
                     <tbody>
                         @forelse($sales as $sale)
-                        <tr class="border-bottom">
+                        <tr class="border-bottom {{ $sale->is_returned ? 'text-muted bg-light' : '' }}">
                             <td class="px-4 py-3">
-                                <span class="badge badge-soft-primary px-3 py-2 rounded-pill font-weight-bold">
-                                    <i class="fa fa-file-text-o mr-1"></i> {{ $sale->invoice->invoice_no ?? '---' }}
-                                </span>
+                                @if($sale->is_returned)
+                                    <del class="badge badge-soft-primary px-3 py-2 rounded-pill font-weight-bold">
+                                        <i class="fa fa-file-text-o mr-1"></i> {{ $sale->invoice->invoice_no ?? '---' }}
+                                    </del>
+                                @else
+                                    <span class="badge badge-soft-primary px-3 py-2 rounded-pill font-weight-bold">
+                                        <i class="fa fa-file-text-o mr-1"></i> {{ $sale->invoice->invoice_no ?? '---' }}
+                                    </span>
+                                @endif
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
@@ -235,32 +241,67 @@
                                         {{ mb_substr($sale->customer->name ?? '?', 0, 1) }}
                                     </div>
                                     <div>
-                                        <h6 class="mb-0 font-weight-bold small">{{ $sale->customer->name ?? '---' }}</h6>
+                                        <h6 class="mb-0 font-weight-bold small">
+                                            @if($sale->is_returned)
+                                                <del>{{ $sale->customer->name ?? '---' }}</del>
+                                            @else
+                                                {{ $sale->customer->name ?? '---' }}
+                                            @endif
+                                        </h6>
                                         <span class="text-muted tiny">{{ $sale->customer_code }}</span>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <h6 class="mb-0 font-weight-bold text-dark small">{{ $sale->carpet->carpet_no ?? '---' }}</h6>
+                                <h6 class="mb-0 font-weight-bold text-dark small">
+                                    @if($sale->is_returned)
+                                        <del>{{ $sale->carpet->carpet_no ?? '---' }}</del>
+                                        <span class="badge badge-danger ml-1 font-weight-bold tiny px-2 py-1" style="display: inline-block;">
+                                            <i class="fa fa-reply mr-1"></i> مرجوع شده
+                                        </span>
+                                    @else
+                                        {{ $sale->carpet->carpet_no ?? '---' }}
+                                    @endif
+                                </h6>
                                 <span class="badge badge-light tiny px-2 py-1">{{ $sale->type }} | {{ $sale->quality }}</span>
                             </td>
                             <td class="text-center small font-weight-bold text-muted">
-                                {{ $sale->carpet_height }} × {{ $sale->carpet_width }}
+                                @if($sale->is_returned)
+                                    <del>{{ $sale->carpet_height ?? ($sale->carpet->height ?? '---') }} × {{ $sale->carpet_width ?? ($sale->carpet->width ?? '---') }}</del>
+                                @else
+                                    {{ $sale->carpet_height ?? ($sale->carpet->height ?? '---') }} × {{ $sale->carpet_width ?? ($sale->carpet->width ?? '---') }}
+                                @endif
                             </td>
                             <td class="text-center font-weight-bold text-dark">
-                                {{ round($sale->carpet_area, 2) }}
+                                @if($sale->is_returned)
+                                    <del>{{ round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2) }}</del>
+                                @else
+                                    {{ round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2) }}
+                                @endif
                             </td>
                             <td class="text-center font-weight-bold text-info">
-                                ${{ number_format($sale->sale_cost_per_meter, 2) }}
+                                @if($sale->is_returned)
+                                    <del>${{ number_format($sale->sale_cost_per_meter, 2) }}</del>
+                                @else
+                                    ${{ number_format($sale->sale_cost_per_meter, 2) }}
+                                @endif
                             </td>
                             <td class="text-center">
-                                <span class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</span>
+                                @if($sale->is_returned)
+                                    <del class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</del>
+                                @else
+                                    <span class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</span>
+                                @endif
                             </td>
                             @if(auth()->user()->role == 'SP')
                             <td class="text-center">
-                                <span class="badge {{ $sale->profit >= 0 ? 'badge-soft-success' : 'badge-soft-danger' }} px-3 py-1 font-weight-bold">
-                                    ${{ number_format($sale->profit, 2) }}
-                                </span>
+                                @if($sale->is_returned)
+                                    <del class="badge badge-soft-success px-3 py-1 font-weight-bold">${{ number_format($sale->profit, 2) }}</del>
+                                @else
+                                    <span class="badge {{ $sale->profit >= 0 ? 'badge-soft-success' : 'badge-soft-danger' }} px-3 py-1 font-weight-bold">
+                                        ${{ number_format($sale->profit, 2) }}
+                                    </span>
+                                @endif
                             </td>
                             @endif
                             <td class="px-4 py-3 text-right">
@@ -269,21 +310,16 @@
                                         <i class="fa fa-ellipsis-v text-muted"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow-sm border-0 py-2" style="border-radius: 10px;">
-                                        @php($isLocked = isset($sale->invoice) && Carbon\Carbon::parse($sale->invoice->invoice_date)->lte(Carbon\Carbon::parse($lockDate)))
-                                        
-                                        @if(!$isLocked)
-                                        <a class="dropdown-item py-2 px-3 small" href="/dashboard/sales/{{$sale->id}}/edit">
-                                            <i class="fa fa-pencil text-primary mr-2"></i> ویرایش اطلاعات
-                                        </a>
-                                        @else
-                                        <span class="dropdown-item py-2 px-3 small text-muted">
-                                            <i class="fa fa-lock mr-2"></i> قفل شده
-                                        </span>
-                                        @endif
-                                        
+
                                         @if($sale->ledger_transaction_id)
                                         <a class="dropdown-item py-2 px-3 small" href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank">
                                             <i class="fa fa-book text-success mr-2"></i> مشاهده در روزنامچه
+                                        </a>
+                                        @endif
+
+                                        @if($sale->is_returned && $sale->return_ledger_transaction_id)
+                                        <a class="dropdown-item py-2 px-3 small text-danger" href="{{ route('accounting.journals.show', $sale->return_ledger_transaction_id) }}" target="_blank">
+                                            <i class="fa fa-reply text-danger mr-2"></i> سند برگشتی روزنامچه
                                         </a>
                                         @endif
                                         
@@ -355,7 +391,7 @@
 
         $('#sale_cost_per_meter').on('input', function() {
             let rate = parseFloat($(this).val()) || 0;
-            let area = parseFloat('{{ $sale->carpet_area ?? 0 }}');
+            let area = parseFloat('{{ $sale->carpet_area ?? ($sale->carpet->area ?? 0) }}');
             let total = rate * area;
             $('#display_total_sale').text('$ ' + total.toLocaleString(undefined, {minimumFractionDigits: 2}));
             $('#sale_cost_total').val(total);

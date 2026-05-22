@@ -56,9 +56,29 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="login2 pull-right pull-right-pro">معاش</label>
-                      <input type="number" required name="salary" placeholder="مقدار معاش را وارد کنید"
-                        class="form-control">
+                      <input type="number" step="0.01" required name="salary" id="emp_salary_in"
+                             placeholder="مقدار معاش را وارد کنید" class="form-control">
                       @error('salary') <p class="text-danger">{{trans('message.' . $message)}}</p> @enderror
+                    </div>
+                  </div>
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="form-group fill">
+                      <label class="login2 pull-right pull-right-pro">ارز معاش</label>
+                      <select name="currency_id" id="emp_currency_in" class="form-control">
+                        @foreach($currencies ?? [] as $curr)
+                          <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}"
+                            {{ $curr->is_base_currency ? 'selected' : '' }}>
+                            {{ $curr->code }} ({{ $curr->symbol }})
+                          </option>
+                        @endforeach
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="form-group fill">
+                      <label class="login2 pull-right pull-right-pro">نرخ دالر</label>
+                      <input type="number" step="0.00000001" min="0.00000001" name="exchange_rate"
+                             id="emp_rate_in" value="1" class="form-control">
                     </div>
                   </div>
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -87,6 +107,15 @@
                       <label class="pull-right">تاریخ ختم کار</label>
                       <input type="date" required name="to_date" class="form-control">
                       @error('end_date') <p class="text-danger">{{trans('message.' . $message)}}</p> @enderror
+                    </div>
+                  </div>
+                </div>
+                {{-- FX Live preview row --}}
+                <div class="row">
+                  <div class="col-lg-4 col-md-6">
+                    <div style="background:#f0fdf4;border:1px dashed #86efac;border-radius:8px;padding:6px 14px;font-size:0.85rem;margin-bottom:8px;">
+                      <span style="color:#475569;">معاش معادل USD: </span>
+                      <strong id="emp_salary_usd_preview" style="color:#16a34a;">$0.00</strong>
                     </div>
                   </div>
                 </div>
@@ -208,7 +237,7 @@
           @endif
           @if(session("error"))
 
-            <div class="alert alert-success status" style="display:none;" role="alert">
+            <div class="alert alert-danger status" style="display:none;" role="alert">
               <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                   aria-hidden="true">&times;</span></button>
               {{session('error')}}
@@ -246,7 +275,7 @@
                 </tr>
               </thead>
               <tbody>
-                @if($employees->count() > 0)
+              @if(method_exists($employees, 'total') ? $employees->total() > 0 : $employees->count() > 0)
                   @foreach($employees as $employee)
                     @if(auth()->user()->role == $employee->user_role || auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                       <tr class="ur{{ $employee->id }}">
@@ -281,14 +310,14 @@
                       </tr>
                     @endif
                   @endforeach
-                @else
+              @else
                   <tr>
                     <td colspan="9" class="info">هیچ موردی دریافت نشد</td>
                   </tr>
-                @endif
+              @endif
               </tbody>
             </table>
-
+            <div class="mt-2 hideOnPrint">{{ $employees->links() }}</div>
           </div>
         </div>
       </div>
@@ -298,33 +327,36 @@
 
 @endsection
 
-
 @section('footer-plugins')
-
-
-
   <script>
     $(document).ready(function () {
       $("#employee_list").tableExport({
-        headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-        footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-        formats: ["xlsx"],                  // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-        filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-        bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-        exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-        position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-        ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-        ignoreCols: null,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-        trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-        RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-        sheetname: "id",
-
+        headers: true, footers: true, formats: ["xlsx"],
+        filename: "id", bootstrap: true, exportButtons: true,
+        position: "bottom", ignoreRows: null, ignoreCols: null,
+        trimWhitespace: true, RTL: true, sheetname: "id",
       });
       var $buttons = $('#employee_list').find('caption').children().detach();
-      // Append the buttons to an element of your choosing
       $buttons.appendTo('#exportButton');
-
     });
 
+    // ─── Live FX Preview: Employee Create Form ──────────────────────────────
+    function calcEmpSalaryUSD() {
+      var sal  = parseFloat($('#emp_salary_in').val()) || 0;
+      var rate = parseFloat($('#emp_rate_in').val()) || 1;
+      $('#emp_salary_usd_preview').text('$' + (sal * rate).toFixed(2));
+    }
+    $('#emp_salary_in, #emp_rate_in').on('input', calcEmpSalaryUSD);
+    $('#emp_currency_in').change(function() {
+      var rate = $(this).find(':selected').data('rate') || 1;
+      $('#emp_rate_in').val(rate);
+      calcEmpSalaryUSD();
+    });
+
+    // Auto-show flash alerts
+    $('.status').show();
+    window.setTimeout(function() {
+      $('.status').fadeTo(500, 0).slideUp(500, function() { $(this).remove(); });
+    }, 6000);
   </script>
 @endsection

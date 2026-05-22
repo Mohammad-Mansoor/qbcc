@@ -18,7 +18,7 @@ class InventoryService
     public function recordMovement(array $data)
     {
         $model = $data['item_model'];
-        $parentModel = $data['parent_item_model'] ?? $model; // For services, parent is the Carpet
+        $parentModel = $data['parent_item_model'] ?? $model; 
         $type = $data['type'];
         $direction = $data['direction'];
         $quantity = $data['quantity'];
@@ -27,8 +27,20 @@ class InventoryService
         $area = $data['area'] ?? 0;
         $isValueAdjustment = $data['is_value_adjustment'] ?? false;
 
-        // 1. Idempotency Check: Prevent duplicate processing for same source and type
-        // Use the actual record (e.g. App\CarpetWash) as the reference to allow multiple services on one carpet
+        // NEW: Currency Normalization
+        $currencyCode = $data['currency_code'] ?? \App\Currency::getBase()->code;
+        $exchangeRate = $data['exchange_rate'] ?? null;
+        
+        if ($exchangeRate === null) {
+            $curr = \App\Currency::where('code', $currencyCode)->first();
+            $exchangeRate = $curr ? $curr->exchange_rate : 1.0;
+        }
+
+        // Calculate Base Unit Cost (Normalized)
+        $baseUnitCost = bcmul((string)$unitCost, (string)$exchangeRate, 12);
+        $baseUnitCost = round((float)$baseUnitCost, 4);
+
+        // 1. Idempotency Check
         $exists = DB::table('inventory_transactions')
             ->where('reference_type', get_class($model))
             ->where('reference_id', $model->getKey())
@@ -36,19 +48,18 @@ class InventoryService
             ->exists();
         
         if ($exists) {
-            return null; // Already processed
+            return null;
         }
 
-        // 2. Get the Item mapping for the PARENT item (the one that holds the value)
+        // 2. Get/Register Item
         $item = $this->getOrRegisterItem($parentModel);
 
-        // 3. Calculate WAC / Specific Cost
-        // We update cost on IN movements OR on Value Adjustments
+        // 3. Calculate WAC
         if ($direction === 'IN' || $isValueAdjustment) {
-            $this->updateWAC($item, $quantity, $unitCost, $isValueAdjustment);
+            $this->updateWAC($item, $quantity, $baseUnitCost, $isValueAdjustment);
         }
 
-        // 4. Create Inventory Transaction record
+        // 4. Create Transaction
         $transaction = DB::table('inventory_transactions')->insertGetId([
             'item_id' => $item->id,
             'warehouse_id' => $warehouseId,
@@ -57,17 +68,20 @@ class InventoryService
             'quantity' => $quantity,
             'area' => $area,
             'unit_cost' => $unitCost,
-            'total_cost' => ($isValueAdjustment || $quantity == 0 ? $unitCost : ($quantity * $unitCost)),
+            'currency_code' => $currencyCode,
+            'exchange_rate' => $exchangeRate,
+            'base_unit_cost' => $baseUnitCost,
+            'total_cost' => ($isValueAdjustment || $quantity == 0 ? $unitCost : bcmul((string)$quantity, (string)$unitCost, 4)),
             'is_value_adjustment' => $isValueAdjustment,
             'reference_type' => get_class($model),
             'reference_id' => $model->getKey(),
-            'status' => 1, // Approved
+            'status' => 1,
             'created_by' => $data['created_by'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // 5. Update Legacy Tables for Backward Compatibility
+        // 5. Sync Legacy
         $this->updateLegacyStock($parentModel, $direction, $quantity);
 
         return $transaction;
@@ -81,16 +95,45 @@ class InventoryService
         $type = get_class($model);
         $refId = $model->getKey();
 
+        // Check if this is a raw material model to consolidate under App\MaterialType
+        $isRawMaterial = false;
+        $materialTypeId = null;
+
+        if ($model instanceof \App\PurchaseMaterial) {
+            $isRawMaterial = true;
+            $materialTypeId = $model->material_type;
+        } elseif ($model instanceof \App\MaterialSale) {
+            $isRawMaterial = true;
+            $materialTypeId = $model->type_id;
+        } elseif ($model instanceof \App\CarpetMaterial) {
+            $isRawMaterial = true;
+            $materialTypeId = $model->type_id;
+        } elseif ($model instanceof \App\MaterialAccountPayment) {
+            $isRawMaterial = true;
+            $materialTypeId = $model->type_id;
+        }
+
+        if ($isRawMaterial && $materialTypeId) {
+            $type = 'App\MaterialType';
+            $refId = $materialTypeId;
+        }
+
         $item = DB::table('items')
             ->where('type', $type)
             ->where('ref_id', $refId)
             ->first();
 
         if (!$item) {
+            // Initial Cost Normalization (Legacy models usually store prices in their own context)
+            $initialCost = $model->total_price ?? $model->price_per_kilo ?? 0;
+            if ($model instanceof \App\CarpetMaterial) {
+                $initialCost = $model->price ?? 0;
+            }
+            
             $id = DB::table('items')->insertGetId([
                 'type' => $type,
                 'ref_id' => $refId,
-                'current_cost' => $model->total_price ?? $model->price_per_kilo ?? 0,
+                'current_cost' => $initialCost,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -101,48 +144,48 @@ class InventoryService
     }
 
     /**
-     * Update Weighted Average Cost
-     * Logic: Cost can exist without stock, but WAC cannot be recalculated without quantity.
+     * Update Weighted Average Cost using BCMath for forensic precision
      */
-    protected function updateWAC($item, $newQty, $newCost, $isValueAdjustment = false)
+    protected function updateWAC($item, $newQty, $newNormalizedCost, $isValueAdjustment = false)
     {
-        DB::transaction(function() use ($item, $newQty, $newCost, $isValueAdjustment) {
-            // 0. Lock the item record for the duration of this calculation
+        DB::transaction(function() use ($item, $newQty, $newNormalizedCost, $isValueAdjustment) {
             $lockedItem = DB::table('items')->where('id', $item->id)->lockForUpdate()->first();
             
-            // 1. Get current total quantity across all warehouses
+            // 1. Get current balance
             $currentQty = DB::table('inventory_transactions')
                 ->where('item_id', $item->id)
                 ->where('status', 1)
                 ->selectRaw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) as balance")
                 ->value('balance') ?? 0;
 
-            $currentWAC = $lockedItem->current_cost;
-            $totalCurrentValue = $currentQty * $currentWAC;
+            $currentWAC = (string)($lockedItem->current_cost ?? 0);
+            
+            // Calculate Total Current Value (BCMath)
+            $totalCurrentValue = bcmul((string)$currentQty, $currentWAC, 12);
             
             if ($isValueAdjustment || $newQty == 0) {
-                // Value Adjustment (e.g. freight, washing)
-                $totalNewValue = $newCost; // Added cost
-                $totalQty = $currentQty;   // Quantity stays same
+                // Adjustment: Add total value directly
+                $totalNewValue = (string)$newNormalizedCost; 
+                $totalQty = (string)$currentQty;
             } else {
-                // Normal Purchase
-                $totalNewValue = $newQty * $newCost;
-                $totalQty = $currentQty + $newQty;
+                // Normal Purchase: Qty * Unit Cost
+                $totalNewValue = bcmul((string)$newQty, (string)$newNormalizedCost, 12);
+                $totalQty = bcadd((string)$currentQty, (string)$newQty, 12);
             }
             
-            // 2. Recalculate WAC ONLY if there is quantity
-            if ($totalQty > 0) {
-                $newWAC = ($totalCurrentValue + $totalNewValue) / $totalQty;
+            // 2. Recalculate WAC
+            if ((float)$totalQty > 0) {
+                $totalCombinedValue = bcadd($totalCurrentValue, $totalNewValue, 12);
+                $newWAC = bcdiv($totalCombinedValue, $totalQty, 8);
                 
                 DB::table('items')->where('id', $item->id)->update([
-                    'current_cost' => $newWAC,
+                    'current_cost' => round((float)$newWAC, 4),
                     'updated_at' => now()
                 ]);
             } else {
-                // If Qty is 0, we still update current_cost for items that have a base price
-                if ($currentQty == 0 && $newQty > 0) {
+                if ((float)$currentQty == 0 && (float)$newQty > 0) {
                     DB::table('items')->where('id', $item->id)->update([
-                        'current_cost' => $newCost,
+                        'current_cost' => round((float)$newNormalizedCost, 4),
                         'updated_at' => now()
                     ]);
                 }
@@ -164,6 +207,20 @@ class InventoryService
         } elseif ($model instanceof \App\MaterialSale) {
             $materialCategoryId = $model->category_id;
             $materialTypeId = $model->type_id;
+        } elseif ($model instanceof \App\CarpetMaterial) {
+            $materialCategoryId = $model->category_id;
+            $materialTypeId = $model->type_id;
+        } elseif ($model instanceof \App\MaterialAccountPayment) {
+            $materialTypeId = $model->type_id;
+            // Lookup category ID from purchase_materials or material_stocks
+            $materialCategoryId = DB::table('purchase_materials')
+                ->where('material_type', $materialTypeId)
+                ->value('material_category');
+            if (!$materialCategoryId) {
+                $materialCategoryId = DB::table('material_stocks')
+                    ->where('material_type', $materialTypeId)
+                    ->value('material_category');
+            }
         }
 
         if ($materialCategoryId && $materialTypeId) {
@@ -215,6 +272,10 @@ class InventoryService
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+                // Update legacy stock (reverse direction)
+                $revDirection = ($tx->direction === 'IN' ? 'OUT' : 'IN');
+                $this->updateLegacyStock($model, $revDirection, $tx->quantity);
 
                 // Mark original as reversed
                 DB::table('inventory_transactions')->where('id', $tx->id)->update(['status' => 0]);

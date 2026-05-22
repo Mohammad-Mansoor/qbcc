@@ -72,6 +72,8 @@ class AccountingService
                 'account_id' => $debitAccountId,
                 'debit' => $params['amount'],
                 'credit' => 0,
+                'currency_code' => $params['currency_code'] ?? 'USD',
+                'exchange_rate' => $params['exchange_rate'] ?? null,
                 'party_type' => ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability') ? ($params['party_type'] ?? null) : null,
                 'party_id' => ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability') ? ($params['party_id'] ?? null) : null,
             ],
@@ -79,6 +81,8 @@ class AccountingService
                 'account_id' => $creditAccountId,
                 'debit' => 0,
                 'credit' => $params['amount'],
+                'currency_code' => $params['currency_code'] ?? 'USD',
+                'exchange_rate' => $params['exchange_rate'] ?? null,
                 'party_type' => ($creditAcc->account_type == 'Asset' || $creditAcc->account_type == 'Liability') ? ($params['party_type'] ?? null) : null,
                 'party_id' => ($creditAcc->account_type == 'Asset' || $creditAcc->account_type == 'Liability') ? ($params['party_id'] ?? null) : null,
             ]
@@ -128,34 +132,21 @@ class AccountingService
             throw new Exception("The selected date falls within a closed fiscal period.");
         }
 
-        // 2. Validate Debit == Credit
-        $totalDebit = 0;
-        $totalCredit = 0;
-        foreach ($data['entries'] as $entry) {
-            $totalDebit += $entry['debit'] ?? 0;
-            $totalCredit += $entry['credit'] ?? 0;
-        }
-
-        if (abs($totalDebit - $totalCredit) > 0.001) {
-            throw new Exception("Transaction is unbalanced. Total Debit ($totalDebit) must equal Total Credit ($totalCredit).");
-        }
-
         return DB::transaction(function () use ($data) {
-            // 2.5 System-Level Idempotency Check (Distributed Consistency)
+            // 2. System-Level Idempotency Check
             if (isset($data['source_id']) && isset($data['source_type'])) {
                 $query = LedgerTransaction::where('source_id', $data['source_id'])
                     ->where('source_type', $data['source_type'])
                     ->where('status', 'posted');
 
-                // If a mapping_key is provided, we check for duplicate of THAT specific event
                 if (isset($data['mapping_key'])) {
                     $query->where('mapping_key', $data['mapping_key']);
                 }
 
                 $exists = $query->lockForUpdate()->exists();
-                
                 if ($exists) {
-                    \Log::warning("Duplicate event blocked: {$data['source_type']} #{$data['source_id']} [{$data['mapping_key']}]");
+                    $mKey = $data['mapping_key'] ?? 'N/A';
+                    \Log::warning("Duplicate event blocked: {$data['source_type']} #{$data['source_id']} [$mKey]");
                     return $query->first();
                 }
             }
@@ -167,23 +158,53 @@ class AccountingService
                 'description' => $data['description'] ?? null,
                 'source_type' => $data['source_type'] ?? null,
                 'source_id' => $data['source_id'] ?? null,
-                'mapping_key' => $data['mapping_key'] ?? null, // Save the intent
+                'mapping_key' => $data['mapping_key'] ?? null,
                 'journal_type' => $data['journal_type'] ?? 'journal',
                 'status' => 'posted',
                 'posted_at' => now(),
             ]);
 
-            // 4. Create Entries
+            $totalBaseDebit = '0';
+            $totalBaseCredit = '0';
+            $transactionCurrency = null;
+            $totalOriginalDebit = '0';
+            $totalOriginalCredit = '0';
+
+            // 4. Create Entries with Forensic Precision
             foreach ($data['entries'] as $entryData) {
-                $exchangeRate = $entryData['exchange_rate'] ?? 1;
+                // Mandate Currency Code
+                $currencyCode = $entryData['currency_code'] ?? null;
+                if (!$currencyCode) {
+                    throw new Exception("Currency code is mandatory for ledger entries. Transaction: " . ($data['reference'] ?? 'unnamed'));
+                }
+
+                // Track transaction currency (to verify single-currency balancing if applicable)
+                if (!$transactionCurrency) $transactionCurrency = $currencyCode;
+
+                // Lookup Exchange Rate if not provided
+                $exchangeRate = $entryData['exchange_rate'] ?? null;
+                if ($exchangeRate === null) {
+                    $currency = \App\Currency::where('code', $currencyCode)->first();
+                    if (!$currency) throw new Exception("Currency '$currencyCode' not found in system.");
+                    $exchangeRate = $currency->exchange_rate;
+                }
+
                 $debit = $entryData['debit'] ?? 0;
                 $credit = $entryData['credit'] ?? 0;
-                $currencyCode = $entryData['currency_code'] ?? 'USD';
                 
-                // Calculate base currency amount (Base is USD as per plan)
+                // Use BCMath for normalization to prevent floating point drift
                 $amount = ($debit > 0 ? $debit : $credit);
-                $originalAmount = $entryData['original_amount'] ?? $amount;
-                $baseAmount = $amount * $exchangeRate;
+                $baseAmount = bcmul((string)$amount, (string)$exchangeRate, 12);
+                $baseAmount = round((float)$baseAmount, 4);
+
+                // Track totals for final balance verification
+                if ($debit > 0) {
+                    $totalOriginalDebit = bcadd($totalOriginalDebit, (string)$debit, 4);
+                    $totalBaseDebit = bcadd($totalBaseDebit, (string)$baseAmount, 4);
+                } else {
+                    $totalOriginalCredit = bcadd($totalOriginalCredit, (string)$credit, 4);
+                    $totalBaseCredit = bcadd($totalBaseCredit, (string)$baseAmount, 4);
+                }
 
                 LedgerEntry::create([
                     'transaction_id' => $transaction->id,
@@ -191,13 +212,24 @@ class AccountingService
                     'debit' => $debit,
                     'credit' => $credit,
                     'currency_code' => $currencyCode,
-                    'original_amount' => $originalAmount,
+                    'original_amount' => $entryData['original_amount'] ?? $amount,
                     'exchange_rate' => $exchangeRate,
                     'base_currency_amount' => $baseAmount,
+                    'base_debit' => ($debit > 0 ? $baseAmount : 0),
+                    'base_credit' => ($credit > 0 ? $baseAmount : 0),
                     'party_type' => $entryData['party_type'] ?? null,
                     'party_id' => $entryData['party_id'] ?? null,
                     'cost_center_id' => $entryData['cost_center_id'] ?? null,
                 ]);
+            }
+
+            // 5. FINAL DUAL-LEVEL BALANCE VERIFICATION
+            // Level A: Transaction Currency Balance (Only if it's a single-currency tx)
+            // Note: We skip this for mixed-currency swaps as they balance in Base Currency.
+            
+            // Level B: Base Currency Balance (Mandatory for ALL transactions)
+            if (abs((float)bcsub($totalBaseDebit, $totalBaseCredit, 4)) > 0.0001) {
+                throw new Exception("Transaction is unbalanced in Base Currency (USD). Debit: $totalBaseDebit, Credit: $totalBaseCredit. Difference: " . bcsub($totalBaseDebit, $totalBaseCredit, 4));
             }
 
             return $transaction;
@@ -248,6 +280,8 @@ class AccountingService
                     'original_amount' => $entry->original_amount,
                     'exchange_rate' => $entry->exchange_rate,
                     'base_currency_amount' => $entry->base_currency_amount,
+                    'base_debit' => $entry->base_credit,
+                    'base_credit' => $entry->base_debit,
                     'party_type' => $entry->party_type,
                     'party_id' => $entry->party_id,
                     'cost_center_id' => $entry->cost_center_id,

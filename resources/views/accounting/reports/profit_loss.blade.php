@@ -9,23 +9,33 @@
             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                 <div class="card-body p-4">
                     <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h3 class="font-weight-bold mb-1">گزارش صورت سود و ضرر</h3>
-                            <p class="text-muted mb-0">Profit & Loss Statement (P&L)</p>
+                        <div class="col-md-4">
+                            <h3 class="font-weight-bold mb-1">صورت سود و ضرر (<span class="text-primary">{{ $currencyCode }}</span>)</h3>
+                            <p class="text-muted mb-0">Profit & Loss Statement ({{ $currencyCode }})</p>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-8">
                             <form action="{{ route('accounting.reports.profit_loss') }}" method="GET">
                                 <div class="row no-gutters align-items-end justify-content-end">
-                                    <div class="col-md-4 px-1">
+                                    <div class="col-md-3 px-1">
+                                        <label class="small font-weight-bold text-muted mb-1">ارز گزارش‌دهی:</label>
+                                        <select name="currency" class="form-control bg-light border-0 rounded-pill px-3" style="height: 38px;">
+                                            @foreach($currencies as $c)
+                                                <option value="{{ $c->code }}" {{ $currencyCode == $c->code ? 'selected' : '' }}>
+                                                    {{ $c->name }} ({{ $c->code }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">از تاریخ:</label>
                                         <input type="date" name="start_date" value="{{ $startDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-4 px-1">
+                                    <div class="col-md-3 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">الی تاریخ:</label>
                                         <input type="date" name="end_date" value="{{ $endDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-2 px-1">
-                                        <button type="submit" class="btn btn-primary btn-block rounded-pill shadow-sm">تایید</button>
+                                    <div class="col-md-3 px-1">
+                                        <button type="submit" class="btn btn-primary btn-block rounded-pill shadow-sm" style="height: 38px;">تایید</button>
                                     </div>
                                 </div>
                             </form>
@@ -44,7 +54,7 @@
                 <!-- Corporate Header (Print Only) -->
                 <div class="d-none d-print-block text-center p-5 border-bottom">
                     <h1 class="font-weight-bold text-dark mb-1" style="letter-spacing: 2px;">QASIMI BROTHERS CARPET CO.</h1>
-                    <h3 class="text-muted mb-2">صورت سود و ضرر (Profit & Loss Statement)</h3>
+                    <h3 class="text-muted mb-2">صورت سود و ضرر (Profit & Loss - {{ $currencyCode }})</h3>
                     <p class="mb-0 font-weight-bold text-dark">دوره مالی: {{ $startDate }} الی {{ $endDate }}</p>
                 </div>
 
@@ -62,7 +72,7 @@
                             <thead>
                                 <tr class="bg-dark text-white d-none"> <!-- Hidden on web, used by DataTables -->
                                     <th>شرح (Description)</th>
-                                    <th class="text-right">مبلغ (Amount)</th>
+                                    <th class="text-right">مبلغ (Amount {{ $currencyCode }})</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -75,13 +85,13 @@
                                 @foreach($revenue as $row)
                                 <tr>
                                     <td class="py-3 px-5 text-dark">{{ $row->account_name }}</td>
-                                    <td class="py-3 text-right font-weight-bold px-4">{{ number_format($row->balance, 2) }}</td>
+                                    <td class="py-3 text-right font-weight-bold px-4">{{ number_format($row->balance * $rate, 2) }}</td>
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #e3f2fd;">
                                     <td class="py-3 px-4">مجموع عواید (Total Revenue)</td>
                                     <td class="py-3 text-right px-4 text-primary" style="font-size: 1.2rem;">
-                                        {{ number_format($revenue->sum('balance'), 2) }}
+                                        {{ number_format($revenue->sum('balance') * $rate, 2) }} {{ $currencyCode }}
                                     </td>
                                 </tr>
 
@@ -96,13 +106,13 @@
                                 @foreach($expenses as $row)
                                 <tr>
                                     <td class="py-3 px-5 text-dark">{{ $row->account_name }}</td>
-                                    <td class="py-3 text-right font-weight-bold px-4 text-danger">({{ number_format(abs($row->balance), 2) }})</td>
+                                    <td class="py-3 text-right font-weight-bold px-4 text-danger">({{ number_format(abs($row->balance) * $rate, 2) }})</td>
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #ffebee;">
                                     <td class="py-3 px-4 text-danger">مجموع هزینه‌ها (Total Expenses)</td>
                                     <td class="py-3 text-right px-4 text-danger" style="font-size: 1.2rem;">
-                                        ({{ number_format(abs($expenses->sum('balance')), 2) }})
+                                        ({{ number_format(abs($expenses->sum('balance')) * $rate, 2) }}) {{ $currencyCode }}
                                     </td>
                                 </tr>
 
@@ -117,7 +127,7 @@
                                     </td>
                                     <td class="py-4 text-right px-4">
                                         <h3 class="font-weight-bold mb-0 {{ $netProfit >= 0 ? 'text-success' : 'text-danger' }}">
-                                            {{ number_format($netProfit, 2) }}
+                                            {{ number_format($netProfit * $rate, 2) }} {{ $currencyCode }}
                                         </h3>
                                     </td>
                                 </tr>

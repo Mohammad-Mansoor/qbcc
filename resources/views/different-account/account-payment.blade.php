@@ -1,431 +1,294 @@
 @extends('dsh.master')
-@section('title' , 'حسابات متفرقه')
+@section('title', 'Forensic Ledger - ' . $account->name)
+
 @section('content')
-  
-  
-  <!-- navbar -->
-  
-  <div id="PaidToDA">
-    
-    <div class="row">
-      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-        <div class="card">
-          <div class="card-header">
-            
-            @if(session("status"))
-              <div class="alert alert-success status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('status')}}
-              </div>
-            
-            @endif
-            @if(session("error"))
-              
-              <div class="alert alert-danger status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('error')}}
-              </div>
-            
-            @endif
-          </div>
-          
-          <div class="card-body">
-            <div class="row">
-              <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                <div class="table-responsive">
-                  <table class="table table-xs table-hover">
+<style>
+    /* QBCC PREMIUM DESIGN SYSTEM */
+    :root {
+        --qbcc-primary: #1e3a8a;
+        --qbcc-secondary: #3b82f6;
+        --qbcc-header-bg: #ffffff;
+        --qbcc-border: #e2e8f0;
+        --qbcc-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        --radius-xl: 20px;
+        --radius-lg: 12px;
+        --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+
+    .account-hero {
+        background: var(--qbcc-gradient); color: white; border-radius: var(--radius-xl);
+        padding: 30px; margin-bottom: 25px; box-shadow: var(--shadow-soft);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .hero-stats { display: flex; gap: 30px; }
+    .hero-stat-item { text-align: left; }
+    .hero-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; opacity: 0.8; letter-spacing: 1px; }
+    .hero-stat-value { font-size: 24px; font-weight: 800; }
+
+    /* TRANSACTION MODAL STYLE */
+    .qbcc-modal-content { border-radius: var(--radius-xl); border: none; }
+    .modal-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 30px; }
+    .form-control-modern { border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px 15px; font-size: 14px; }
+
+    /* FORENSIC TABLE */
+    .glass-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: var(--shadow-soft); overflow: hidden; }
+    .forensic-table { width: 100%; border-collapse: collapse; }
+    .forensic-table thead th { background: #f8fafc; padding: 15px; text-align: right; font-weight: 700; color: #64748b; font-size: 12px; border-bottom: 2px solid #e2e8f0; }
+    .forensic-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: all 0.2s; }
+    .forensic-table tbody tr:hover { background: #f8fafc; }
+    .forensic-table td { padding: 15px; vertical-align: middle; }
+
+    .type-badge { padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 11px; }
+    .badge-receipt { background: #d1fae5; color: #065f46; }
+    .badge-payment { background: #fee2e2; color: #991b1b; }
+
+    .forensic-tag { font-size: 10px; font-weight: 800; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; margin-right: 5px; }
+</style>
+
+<div class="container-fluid">
+    <!-- HERO SECTION -->
+    <div class="account-hero">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center mr-4" style="width: 70px; height: 70px; font-size: 30px; font-weight: 900;">
+                {{ mb_substr($account->name, 0, 1) }}
+            </div>
+            <div>
+                <h2 class="mb-1 font-weight-bold">{{ $account->name }}</h2>
+                <div class="small opacity-80"><i class="feather icon-phone mr-1"></i> {{ $account->phone }} | <i class="feather icon-map-pin mr-1"></i> {{ $account->address }}</div>
+            </div>
+        </div>
+        <div class="hero-stats hideOnPrint">
+            @foreach($totals as $t)
+            <div class="hero-stat-item">
+                <div class="hero-stat-label">بیلانس ({{ $t->currency_code }})</div>
+                <div class="hero-stat-value" dir="ltr">{{ number_format($t->remaining, 2) }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+
+    @if(session("status"))
+        <div class="alert alert-success border-0 shadow-sm mb-4">{{session('status')}}</div>
+    @endif
+
+    <div class="d-flex justify-content-between align-items-center mb-4 hideOnPrint">
+        <div>
+            <button class="btn btn-primary rounded-lg px-4 font-weight-bold shadow-sm" data-toggle="modal" data-target="#transactionModal">
+                <i class="feather icon-plus mr-1"></i> ثبت تراکنش جدید
+            </button>
+            <a href="/dashboard/different-account" class="btn btn-outline-secondary rounded-lg px-4 ml-2">
+                <i class="feather icon-arrow-right mr-1"></i> بازگشت
+            </a>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-white shadow-sm border" onclick="window.print()">
+                <i class="feather icon-printer mr-1"></i> چاپ صورت حساب
+            </button>
+            <a href="/dashboard/different-account-payments-all/{{$account->id}}" class="btn btn-white shadow-sm border ml-1">نمایش همه</a>
+        </div>
+    </div>
+
+    <!-- FORENSIC LEDGER -->
+    <div class="card glass-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="forensic-table" id="account_payment">
                     <thead>
-                    
+                        <tr>
+                            <th>تاریخ</th>
+                            <th>نوعیت</th>
+                            <th>مبلغ اصلی</th>
+                            <th>نرخ تبدیل</th>
+                            <th>معادل دالر (GL)</th>
+                            <th>شرح و توضیحات</th>
+                            <th class="text-center">حالت</th>
+                            <th class="text-center hideOnPrint">عملیات</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    
-                    <tr>
-                      <td><b>نام</b></td>
-                      <td>{{$account->name}}</td>
-                    </tr>
-                    <tr>
-                      <td><b>ادرس</b></td>
-                      <td> {{$account->address}}</td>
-                    </tr>
-                    <tr>
-                      <td><b>شماره تماس</b></td>
-                      <td><i class="fa fa-phone"></i> {{$account->phone}}</td>
-                    </tr>
-                    
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"></div>
-              
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                <h4>ACCOUNT #: {{$account->id}}</h4>
-              </div>
-            </div>
-            <hr>
-            <div class="row">
-              
-              <div class="col-sm-12 hideOnPrint">
-                <div class="all-form-element-inner">
-                  @if(!$paymentEdit)
-                    <form action="/dashboard/different-account-payments" method="post">
-                      @csrf
-                      <input type="hidden" name="account_id" value="{{$account->id}}">
-                      
-                      <div class="row" style=" display:flex;justify-content:center">
-                        <div class="col-sm-12">
-                          <div class="form-group-inner">
-                            <div class="row"
-                                 style=" display:flex;justify-content:space-around">
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-left">مقدار پول</label>
-                                <input type="text" name="amount" placeholder="مبلغ پول" class="form-control" required>
-                                @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-left">ارز</label>
-                                <select name="currency_code" id="currency_code" class="form-control" required>
-                                    <option value="USD">USD (دالر)</option>
-                                    <option value="AFN">AFN (افغانی)</option>
-                                    <option value="PKR">PKR (کلدار)</option>
-                                    <option value="EUR">EUR (یورو)</option>
-                                </select>
-                                @error('currency_code') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-left">نرخ تبدیل (به USD)</label>
-                                <input type="text" name="exchange_rate" id="exchange_rate" value="1.000000" class="form-control" required readonly>
-                                @error('exchange_rate') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-left">نوع معامله</label>
-                                <select name="type" id="" class="form-control">
-                                  <option disabled>انتخاب</option>
-                                  <option value="رسید">رسید</option>
-                                  <option value="گرفت">گرفت</option>
-                                </select>
-                                
-                                @error('type') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                              
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 center marginy">
-                                <label class="">توضیحات</label>
-                                <textarea name="description" id="description" rows="1"
-                                          class="form-control"
-                                          placeholder="توضیحات "></textarea>
-                                @error('description') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-right">تاریخ</label>
-                                <input type="date" name="date"
-                                       placeholder="تاریخ را وارد کنید"
-                                       class="form-control">
-                                @error('date') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                            </div>
-                          </div>
-                          <div class="form-group-inner">
-                            <div class="row"
-                                 style="display:flex;justify-content:flex-start;margin-top: 20px;">
-                              <button class="btn btn-warning btn-sm" type="reset">انصراف
-                              </button>
-                              <button class="btn btn-primary marginx btn-sm" type="submit"><span
-                                        class="fa fa-save"></span> ذخیره
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  @else
-                    <form action="/dashboard/different-account-payments/{{$paymentEdit->id}}" method="post">
-                      @csrf
-                      @method('PUT')
-                      <input type="hidden" name="account_id" value="{{$account->id}}">
-                      <input type="hidden" name="old_amount" value="{{$paymentEdit->amount}}">
-                      <input type="hidden" name="old_type" value="{{$paymentEdit->type}}">
-                      
-                      
-                      <div class="row" style=" display:flex;justify-content:center">
-                        <div class="col-sm-12">
-                          <div class="form-group-inner">
-                            <div class="row"
-                                 style=" display:flex;justify-content:space-around">
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-right">مقدار پول</label>
-                                <input type="text" name="amount" value="{{$paymentEdit->amount}}" class="form-control" required>
-                                @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-right">ارز</label>
-                                <select name="currency_code" id="currency_code_edit" class="form-control" required>
-                                    <option value="USD" {{ $paymentEdit->currency_code == 'USD' ? 'selected' : '' }}>USD (دالر)</option>
-                                    <option value="AFN" {{ $paymentEdit->currency_code == 'AFN' ? 'selected' : '' }}>AFN (افغانی)</option>
-                                    <option value="PKR" {{ $paymentEdit->currency_code == 'PKR' ? 'selected' : '' }}>PKR (کلدار)</option>
-                                    <option value="EUR" {{ $paymentEdit->currency_code == 'EUR' ? 'selected' : '' }}>EUR (یورو)</option>
-                                </select>
-                                @error('currency_code') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <label class="pull-right">نرخ تبدیل</label>
-                                <input type="text" name="exchange_rate" id="exchange_rate_edit" value="{{$paymentEdit->exchange_rate}}" class="form-control" required {{ $paymentEdit->currency_code == 'USD' ? 'readonly' : '' }}>
-                                @error('exchange_rate') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                              </div>
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-right">نوع معامله</label>
-                                <select name="type" id="" class="form-control">
-                                  <option disabled>انتخاب</option>
-                                  <option {{ $paymentEdit->type == 'رسید' ? 'selected' : '' }} value="رسید">رسید
-                                  </option>
-                                  <option {{ $paymentEdit->type == 'گرفت' ? 'selected' : '' }} value="گرفت">گرفت
-                                  </option>
-                                </select>
-                                
-                                @error('type') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                              
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 center marginy">
-                                <label class="">توضیحات</label>
-                                <textarea name="description" id="description" rows="1"
-                                          class="form-control"
-                                          placeholder="توضیحات ">{{$paymentEdit->description}}</textarea>
-                                @error('description') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                                <label class="pull-right">تاریخ</label>
-                                <input type="date" name="date" value="{{$paymentEdit->date}}"
-                                       placeholder="تاریخ را وارد کنید"
-                                       class="form-control">
-                                @error('date') <p class="text-danger">
-                                  {{trans('message.'.$message)}}</p>
-                                @enderror
-                              </div>
-                            </div>
-                          </div>
-                          <div class="form-group-inner">
-                            <div class="row"
-                                 style="display:flex;justify-content:flex-start;margin-top: 20px;">
-                              <button class="btn btn-warning btn-sm" type="reset">انصراف
-                              </button>
-                              <button class="btn btn-primary marginx btn-sm" type="submit"><span
-                                        class="fa fa-save"></span> ذخیره
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  @endif
-                </div>
-              </div>
-            
-            
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-        <div class="card">
-          <div class="card-header">
-            <div class="row">
-              
-              <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10"></div>
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint">
-                
-                
-                <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-                  <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('PaidToDA')"><i
-                            class="fa fa-print"></i> چاپ
-                  </div>
-                
-                </div>
-                <a href="/dashboard/different-account-payments-all/{{$account->id}}" style="float: left"
-                   class="btn btn-sm btn-info hideOnPrint">نمایش همه</a>
-              </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-sm-12">
-                <div class="sparkline8-graph text-muted">
-                  
-                  <div class="table-responsive">
-                    <table class="table table-xs table-hover " id="account_payment">
-                      <thead>
-                      <tr>
-                        
-                        <td><b>رسید</b></td>
-                        <td><b>گرفت</b></td>
-                        <td><b>ارز</b></td>
-                        <td><b>نرخ تبدیل</b></td>
-                        <td><b>معادل دالر</b></td>
-                        
-                        <td><b>تفصیلات</b></td>
-                        <td><b>تاریخ</b></td>
-                        <td><b>حالت</b></td>
-                        
-                        
-                        <td class="hideOnPrint"><b> ویرایش</b></td>
-                      
-                      </tr>
-                      </thead>
-                      <tbody>
-                      @foreach($payments as $pa)
+                        @foreach($payments as $pa)
                         <tr>
-                          
-                          @if($pa->type == 'رسید')
-                            <td>{{$pa->amount}}</td>
-                          @else
-                            <td>0</td>
-                          @endif
-                          @if($pa->type == 'گرفت')
-                            <td>{{$pa->amount}}</td>
-                          @else
-                            <td>0</td>
-                          @endif
-                          <td><span class="badge badge-info">{{$pa->currency_code}}</span></td>
-                          <td>{{$pa->exchange_rate}}</td>
-                          <td>{{$pa->base_amount}} USD</td>
-                          
-                          
-                          <td>{{$pa->description}}</td>
-                          <td>{{$pa->date}}</td>
-                          @if($pa->status == 0)
-                            
-                            <td class="hideOnPrint">
-                              <label class="badge badge-warning">درخواست تایید
-                                نشده</label></td>
-                          @else
-                            
-                            <td class="hideOnPrint"><label for="" class="badge-success">درخواست تایید
-                                شد</label></td>
-                          
-                          @endif
-                          
-                          @if( $pa->status == 0 || auth()->user()->role == 'SP')
-                            <td class="hideOnPrint">
-                              <a href="/dashboard/different-account-payments/{{$pa->id}}/edit"
-                                 class="btn btn-sm btn-info">ویرایش</a>
-                                 
-                              @php
-                                  $transaction = \App\LedgerTransaction::where('source_type', 'different_account')->where('source_id', $pa->id)->first();
-                              @endphp
-                              @if($transaction)
-                                  <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i>&nbsp; روزنامچه مالی</a>
-                              @endif
+                            <td class="font-weight-bold">{{ $pa->date }}</td>
+                            <td>
+                                <span class="type-badge {{ $pa->type == 'رسید' ? 'badge-receipt' : 'badge-payment' }}">
+                                    {{ $pa->type }}
+                                </span>
                             </td>
-                          @endif
+                            <td>
+                                <div class="font-weight-bold" dir="ltr">
+                                    {{ number_format($pa->amount, 2) }} 
+                                    <span class="small text-muted">{{ $pa->currency_code }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small text-muted" dir="ltr">1 {{ $pa->currency_code }} = {{ number_format($pa->exchange_rate, 4) }} USD</div>
+                            </td>
+                            <td>
+                                <div class="text-primary font-weight-bold" dir="ltr">
+                                    {{ number_format($pa->base_amount, 2) }} <small>USD</small>
+                                </div>
+                            </td>
+                            <td class="small">{{ $pa->description }}</td>
+                            <td class="text-center">
+                                @if($pa->status == 0)
+                                    <span class="badge badge-warning">در انتظار تایید</span>
+                                @else
+                                    <span class="badge badge-success">ثبت در دفاتر</span>
+                                @endif
+                            </td>
+                            <td class="text-center hideOnPrint">
+                                <div class="btn-group">
+                                    @if($pa->status == 0 || auth()->user()->role == 'SP')
+                                    <a href="/dashboard/different-account-payments/{{$pa->id}}/edit" class="btn btn-sm btn-light-info text-info mr-1">
+                                        <i class="feather icon-edit-2"></i>
+                                    </a>
+                                    @endif
+                                    
+                                    @php
+                                        $transaction = \App\LedgerTransaction::where('source_type', 'different_account')->where('source_id', $pa->id)->first();
+                                    @endphp
+                                    @if($transaction)
+                                        <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-light-success text-success" title="مشاهده سند حسابداری">
+                                            <i class="feather icon-book"></i>
+                                        </a>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
-                      @endforeach
-                      <tr><td colspan="5" style="background:#eee;text-align:center;"><b>خلاصه حساب بر اساس ارز</b></td></tr>
-                      @foreach($totals as $t)
-                      <tr>
-                        <td colspan="3"><b>رسیدات: {{$t->total}} | گرفت ها: {{$t->paid}}</b></td>
-                        <td colspan="2"><b>بیلانس ({{$t->currency_code}}): <span dir="ltr">{{$t->remaining}}</span></b></td>
-                      </tr>
-                      @endforeach
-                      
-                      </tbody>
-                    </table>
-                  </div>
-                  <div class="row">
-                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 hideOnPrint">
-                      @if(!isset($all))
-                        <p>{{$payments->links()}}</p>
-                      @endif
-                    </div>
-                  </div>
-                
-                </div>
-              </div>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-          </div>
+            @if(!isset($all))
+            <div class="p-3 border-top hideOnPrint">
+                {{ $payments->links() }}
+            </div>
+            @endif
         </div>
-      </div>
     </div>
-  </div>
+</div>
 
-<script>
-      $(document).ready(function () {
-          // Logic for Create Form
-          $("#currency_code").change(function() {
-              if($(this).val() === "USD") {
-                  $("#exchange_rate").val("1.000000").attr("readonly", true);
-              } else {
-                  $("#exchange_rate").attr("readonly", false);
-              }
-          });
-          
-          // Logic for Edit Form
-          $("#currency_code_edit").change(function() {
-              if($(this).val() === "USD") {
-                  $("#exchange_rate_edit").val("1.000000").attr("readonly", true);
-              } else {
-                  $("#exchange_rate_edit").attr("readonly", false);
-              }
-          });
-      });
-  </script>
+<!-- MODAL: TRANSACTION -->
+<div class="modal fade" id="transactionModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content qbcc-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">ثبت تراکنش جدید برای {{ $account->name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ $paymentEdit ? '/dashboard/different-account-payments/'.$paymentEdit->id : '/dashboard/different-account-payments' }}" method="post">
+                @csrf
+                @if($paymentEdit) @method('PUT') @endif
+                <input type="hidden" name="account_id" value="{{$account->id}}">
+                
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">مبلغ تراکنش</label>
+                                <input type="number" step="any" name="amount" value="{{ $paymentEdit ? $paymentEdit->amount : '' }}" class="form-control-modern w-100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">ارز (Currency)</label>
+                                <select name="currency_code" id="currency_code" class="form-control-modern w-100" required>
+                                    @foreach($currencies as $curr)
+                                        <option value="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}" {{ ($paymentEdit && $paymentEdit->currency_code == $curr->code) ? 'selected' : '' }}>{{ $curr->name }} ({{ $curr->code }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">نرخ تبدیل (به USD)</label>
+                                <input type="number" step="0.000001" name="exchange_rate" id="exchange_rate" value="{{ $paymentEdit ? $paymentEdit->exchange_rate : '1.000000' }}" class="form-control-modern w-100" required {{ ($paymentEdit && $paymentEdit->currency_code == 'USD') ? 'readonly' : '' }}>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">نوع معامله</label>
+                                <select name="type" class="form-control-modern w-100" required>
+                                    <option value="رسید" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید (ما گرفتیم)</option>
+                                    <option value="گرفت" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت (ما دادیم)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">تاریخ معامله</label>
+                                <input type="date" name="date" value="{{ $paymentEdit ? $paymentEdit->date : date('Y-m-d') }}" class="form-control-modern w-100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">معادل دالر (Calculated USD)</label>
+                                <input type="text" id="calculated_usd" class="form-control-modern w-100 bg-light font-weight-bold text-primary" readonly value="0.00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label class="small font-weight-bold text-muted">توضیحات و بابت</label>
+                        <textarea name="description" class="form-control-modern w-100" rows="2" placeholder="مثلا: بابت کرایه موتر یا خرید وسایل..." required>{{ $paymentEdit ? $paymentEdit->description : '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-link text-muted" data-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 font-weight-bold shadow">
+                        <i class="feather icon-save mr-1"></i> تایید و ثبت تراکنش
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
+
 @section('scripts')
-  
-  <script>
-      $(document).ready(function () {
-          $("#account_payment").tableExport({
-              headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-              footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-              formats: ["xlsx"],                  // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-              filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-              bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-              exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-              position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-              ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-              ignoreCols: 5,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-              trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-              RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-              sheetname: "id",
-
-          });
-          var $buttons = $('#account_payment').find('caption').children().detach();
-          // Append the buttons to an element of your choosing
-          $buttons.appendTo('#exportButton');
-
-      });
-  </script>
+<script src="https://unpkg.com/feather-icons"></script>
 <script>
-      $(document).ready(function () {
-          // Logic for Create Form
-          $("#currency_code").change(function() {
-              if($(this).val() === "USD") {
-                  $("#exchange_rate").val("1.000000").attr("readonly", true);
-              } else {
-                  $("#exchange_rate").attr("readonly", false);
-              }
-          });
-          
-          // Logic for Edit Form
-          $("#currency_code_edit").change(function() {
-              if($(this).val() === "USD") {
-                  $("#exchange_rate_edit").val("1.000000").attr("readonly", true);
-              } else {
-                  $("#exchange_rate_edit").attr("readonly", false);
-              }
-          });
-      });
-  </script>
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
+
+    $(document).ready(function () {
+        @if($paymentEdit) $('#transactionModal').modal('show'); @endif
+
+        function calculateUSD() {
+            let amount = parseFloat($('input[name="amount"]').val()) || 0;
+            let rate = parseFloat($('#exchange_rate').val()) || 0;
+            let usd = (amount * rate).toFixed(2);
+            $('#calculated_usd').val(usd + " USD");
+        }
+
+        $("#currency_code").change(function() {
+            let selected = $(this).find(':selected');
+            let rate = selected.data('rate');
+            
+            $("#exchange_rate").val(rate);
+            
+            if($(this).val() === "USD") {
+                $("#exchange_rate").attr("readonly", true);
+            } else {
+                $("#exchange_rate").attr("readonly", false);
+            }
+            calculateUSD();
+        });
+
+        $('input[name="amount"], #exchange_rate').on('input', function() {
+            calculateUSD();
+        });
+
+        // Initial calculation on load
+        calculateUSD();
+    });
+</script>
 @endsection

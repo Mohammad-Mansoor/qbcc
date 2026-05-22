@@ -74,8 +74,8 @@ class AccountingAnalyticsService
             ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->select(
                 'coa.account_type',
-                DB::raw('SUM(le.debit) as total_debit'),
-                DB::raw('SUM(le.credit) as total_credit')
+                DB::raw('SUM(le.base_debit) as total_debit'),
+                DB::raw('SUM(le.base_credit) as total_credit')
             )
             ->where('lt.status', 'posted')
             ->whereBetween('lt.date', [$start, $end])
@@ -89,8 +89,8 @@ class AccountingAnalyticsService
             ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->select(
                 'coa.account_code',
-                DB::raw('SUM(le.debit) as total_debit'),
-                DB::raw('SUM(le.credit) as total_credit')
+                DB::raw('SUM(le.base_debit) as total_debit'),
+                DB::raw('SUM(le.base_credit) as total_credit')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $end)
@@ -121,8 +121,8 @@ class AccountingAnalyticsService
                 'coa.account_code',
                 'coa.report_group',
                 'coa.is_cash_account',
-                DB::raw('SUM(le.debit) as total_debit'),
-                DB::raw('SUM(le.credit) as total_credit')
+                DB::raw('SUM(le.base_debit) as total_debit'),
+                DB::raw('SUM(le.base_credit) as total_credit')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $end)
@@ -153,8 +153,8 @@ class AccountingAnalyticsService
             ->join('chart_of_accounts as coa', 'le.account_id', '=', 'coa.id')
             ->select(
                 DB::raw("DATE_FORMAT(lt.date, '%Y-%m-%d') as date"),
-                DB::raw("SUM(CASE WHEN coa.account_type = 'Revenue' THEN (le.credit - le.debit) ELSE 0 END) as revenue"),
-                DB::raw("SUM(CASE WHEN coa.account_type = 'Expense' THEN (le.debit - le.credit) ELSE 0 END) as expense")
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Revenue' THEN (le.base_credit - le.base_debit) ELSE 0 END) as revenue"),
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Expense' THEN (le.base_debit - le.base_credit) ELSE 0 END) as expense")
             )
             ->where('lt.status', 'posted')
             ->whereBetween('lt.date', [$start, $end])
@@ -170,8 +170,8 @@ class AccountingAnalyticsService
             ->join('chart_of_accounts as coa', 'le.account_id', '=', 'coa.id')
             ->select(
                 DB::raw("DATE_FORMAT(lt.date, '%Y-%m-%d') as date"),
-                DB::raw("SUM(CASE WHEN coa.is_cash_account = 1 THEN le.debit ELSE 0 END) as inflow"),
-                DB::raw("SUM(CASE WHEN coa.is_cash_account = 1 THEN le.credit ELSE 0 END) as outflow")
+                DB::raw("SUM(CASE WHEN coa.is_cash_account = 1 THEN le.base_debit ELSE 0 END) as inflow"),
+                DB::raw("SUM(CASE WHEN coa.is_cash_account = 1 THEN le.base_credit ELSE 0 END) as outflow")
             )
             ->where('lt.status', 'posted')
             ->whereBetween('lt.date', [$start, $end])
@@ -190,7 +190,7 @@ class AccountingAnalyticsService
                 'le.party_type',
                 'le.party_id',
                 'lt.date',
-                DB::raw('SUM(le.debit - le.credit) as balance')
+                DB::raw('SUM(le.base_debit - le.base_credit) as balance')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $endDate)
@@ -321,8 +321,8 @@ class AccountingAnalyticsService
             ->join('chart_of_accounts as coa', 'le.account_id', '=', 'coa.id')
             ->select(
                 'cc.name',
-                DB::raw("SUM(CASE WHEN coa.account_type = 'Revenue' THEN (le.credit - le.debit) ELSE 0 END) as revenue"),
-                DB::raw("SUM(CASE WHEN coa.account_type = 'Expense' THEN (le.debit - le.credit) ELSE 0 END) as expenses")
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Revenue' THEN (le.base_credit - le.base_debit) ELSE 0 END) as revenue"),
+                DB::raw("SUM(CASE WHEN coa.account_type = 'Expense' THEN (le.base_debit - le.base_credit) ELSE 0 END) as expenses")
             )
             ->where('lt.status', 'posted')
             ->whereBetween('lt.date', [$start, $end])
@@ -344,8 +344,8 @@ class AccountingAnalyticsService
                 'coa.report_group',
                 'coa.cashflow_group',
                 'coa.account_type',
-                DB::raw('SUM(le.debit - le.credit) as balance_debit_base'),
-                DB::raw('SUM(le.credit - le.debit) as balance_credit_base')
+                DB::raw('SUM(le.base_debit - le.base_credit) as balance_debit_base'),
+                DB::raw('SUM(le.base_credit - le.base_debit) as balance_credit_base')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $date)

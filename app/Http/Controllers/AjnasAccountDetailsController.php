@@ -57,6 +57,7 @@ class AjnasAccountDetailsController extends Controller
                 'estimated_useful_life' => 'required',
                 'estimated_salvage_value' => 'required',
                 'assets_account_id' => 'required',
+                'currency_id' => 'required',
             ]);
 
             $imageName = null;
@@ -66,6 +67,15 @@ class AjnasAccountDetailsController extends Controller
                 $image->move('uploads/assets', $imageName);
             }
 
+            // Fetch Currency snapshot for USD normalization
+            $currency = DB::table('currencies')->find($request->currency_id);
+            $rate = $currency ? $currency->exchange_rate : 1.0;
+            $currencyCode = $currency ? $currency->code : 'USD';
+
+            $originalAmount = (float) $request->acquisition_cost;
+            $acquisitionCostUsd = round($originalAmount * $rate, 4);
+            $salvageValueUsd = round(((float)$request->estimated_salvage_value) * $rate, 4);
+
             $id = DB::table('ajnas_account_details')->insertGetId([
                 'asset_name' => $request->asset_name, 
                 'asset_class' => $request->asset_class,
@@ -74,20 +84,27 @@ class AjnasAccountDetailsController extends Controller
                 'asset_number'=>$request->asset_number,
                 'asset_serial_number'=>$request->asset_serial_number,
                 'acquisition_date'=>$request->acquisition_date,
-                'acquisition_cost'=>$request->acquisition_cost,
+                'acquisition_cost'=>$acquisitionCostUsd, // USD-normalized base amount
+                'currency_id' => $request->currency_id,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $rate,
+                'original_amount' => $originalAmount,
                 'estimated_useful_life'=>$request->estimated_useful_life,
-                'estimated_salvage_value'=>$request->estimated_salvage_value,
+                'estimated_salvage_value'=>$salvageValueUsd, // USD-normalized salvage value
                 'asset_image'=>$imageName,
                 'ajnas_account_id'=>$request->assets_account_id
             ]);
 
             if ($id) {
-                // Post to ledger with overrides
-                $overrides = [];
+                // Post to ledger with full FX overrides
+                $overrides = [
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $rate,
+                ];
                 if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
                 if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
 
-                $this->postAssetToAccounting($id, $request->acquisition_cost, $request->acquisition_date, $request->asset_name, $overrides);
+                $this->postAssetToAccounting($id, $originalAmount, $request->acquisition_date, $request->asset_name, $overrides);
                 return redirect('/dashboard/assets-accounts/'.$request->assets_account_id)->with('status', 'موفقانه ذخیره شد و در دفتر روزنامچه ثبت گردید');
             } else {
                 return redirect('/dashboard/assets-accounts/'.$request->assets_account_id)->with('error', 'ذخیره نشد');
@@ -108,7 +125,16 @@ class AjnasAccountDetailsController extends Controller
         $asset_account_details = DB::table('ajnas_account_details')->where('ajnas_account_id',$detailEdit->ajnas_account_id)->orderBy('aad_id','DESC')->get();
         $account = AjnasAccount::find($detailEdit->ajnas_account_id);
 
-        return view('assets-accounts.assets-accounts-details', compact('detailEdit', 'account','asset_account_details'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'ASSET_PURCH')->first();
+        $currencies = DB::table('currencies')->where('is_active', 1)->get();
+
+        return view('assets-accounts.assets-accounts-details', compact(
+            'detailEdit', 'account','asset_account_details',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+        ));
     }
 
     public function update(Request $request, $details_id)
@@ -125,10 +151,20 @@ class AjnasAccountDetailsController extends Controller
                 'acquisition_cost' => 'required',
                 'estimated_useful_life' => 'required',
                 'estimated_salvage_value' => 'required',
+                'currency_id' => 'required',
             ]);
             
-            // Reversal
-            $this->accountingService->reverseTransactionBySource($details_id, 'Asset details edited');
+            // Reversal with correct source_type 'Ajnas_account'
+            $this->accountingService->reverseTransactionBySource($details_id, 'Asset details edited', 'Ajnas_account');
+
+            // Fetch Currency snapshot for USD normalization
+            $currency = DB::table('currencies')->find($request->currency_id);
+            $rate = $currency ? $currency->exchange_rate : 1.0;
+            $currencyCode = $currency ? $currency->code : 'USD';
+
+            $originalAmount = (float) $request->acquisition_cost;
+            $acquisitionCostUsd = round($originalAmount * $rate, 4);
+            $salvageValueUsd = round(((float)$request->estimated_salvage_value) * $rate, 4);
 
             $updateData = [
                 'asset_name' => $request->asset_name, 
@@ -138,9 +174,13 @@ class AjnasAccountDetailsController extends Controller
                 'asset_number'=>$request->asset_number,
                 'asset_serial_number'=>$request->asset_serial_number,
                 'acquisition_date'=>$request->acquisition_date,
-                'acquisition_cost'=>$request->acquisition_cost,
+                'acquisition_cost'=>$acquisitionCostUsd, // USD-normalized base amount
+                'currency_id' => $request->currency_id,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $rate,
+                'original_amount' => $originalAmount,
                 'estimated_useful_life'=>$request->estimated_useful_life,
-                'estimated_salvage_value'=>$request->estimated_salvage_value
+                'estimated_salvage_value'=>$salvageValueUsd // USD-normalized salvage value
             ];
 
             if ($request->hasFile('asset_image')) {
@@ -152,8 +192,15 @@ class AjnasAccountDetailsController extends Controller
 
             $updated = DB::table('ajnas_account_details')->where('aad_id',$details_id)->update($updateData);
 
-            // Re-post
-            $this->postAssetToAccounting($details_id, $request->acquisition_cost, $request->acquisition_date, $request->asset_name);
+            // Re-post with full FX overrides
+            $overrides = [
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $rate,
+            ];
+            if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+            if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+
+            $this->postAssetToAccounting($details_id, $originalAmount, $request->acquisition_date, $request->asset_name, $overrides);
 
             return redirect('/dashboard/assets-accounts/'.$request->assets_account_id)->with('status', 'موفقانه ذخیره شد و در دفتر روزنامچه ثبت گردید');
         });

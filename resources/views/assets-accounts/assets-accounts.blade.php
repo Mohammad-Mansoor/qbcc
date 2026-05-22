@@ -1,5 +1,69 @@
 @extends('dsh.master')
 @section('content')
+    <!-- Google Fonts & Custom CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .assets-body {
+            font-family: 'Outfit', 'Inter', 'Segoe UI', sans-serif;
+        }
+        .btn-action-view {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border-radius: 10px;
+            border: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .btn-action-view:hover {
+            background-color: #f59e0b;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        .btn-action-edit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background-color: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+            border-radius: 10px;
+            border: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .btn-action-edit:hover {
+            background-color: #0ea5e9;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+        .btn-action-delete {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-radius: 10px;
+            border: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .btn-action-delete:hover {
+            background-color: #ef4444;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+    </style>
     <!-- navbar -->
 
     <!-- form -->
@@ -128,8 +192,7 @@
                                 <th>اسم جنس</th>
                                 <th>نوعیت جنس</th>
                                 <th>تاریخ ثبت جنس</th>
-                                <th>جزییات</th>
-                                <th>عملیات</th>
+                                <th class="text-center">عملیات</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -141,21 +204,20 @@
                                     <td>{{$as->aa_type}}</td>
                                     <td>{{$as->aa_date}}</td>
 
-                                    <td class="hideOnPrint">
-                                        <a
-                                            href="/dashboard/assets-accounts/{{$as->aa_id}}"
-                                            class="btn btn-sm btn-warning">&nbsp;
-                                            جزییات</a>
-                                    </td>
-                                    <td class="hideOnPrint">
-                                        @if(auth()->user()->role == 'SP')
-                                            <a href="/dashboard/assets-accounts/{{$as->aa_id}}/edit"
-                                               class="btn btn-sm btn-info">&nbsp;ویرایش</a>
-
-                                            <button onclick="deleteAssetAccount({{$as->aa_id}})"
-                                                    class="btn btn-danger btn-sm ">حذف
-                                            </button>
-                                        @endif
+                                    <td class="hideOnPrint text-center" style="white-space: nowrap; width: 1%;">
+                                        <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
+                                            <a href="/dashboard/assets-accounts/{{$as->aa_id}}" class="btn-action-view" title="جزییات">
+                                                <i class="fa fa-eye fa-lg"></i>
+                                            </a>
+                                            @if(auth()->user()->role == 'SP')
+                                                <a href="/dashboard/assets-accounts/{{$as->aa_id}}/edit" class="btn-action-edit" title="ویرایش">
+                                                    <i class="fa fa-edit fa-lg"></i>
+                                                </a>
+                                                <button onclick="deleteAssetAccount({{$as->aa_id}})" class="btn-action-delete" title="حذف">
+                                                    <i class="fa fa-trash fa-lg"></i>
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
 

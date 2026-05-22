@@ -9,8 +9,8 @@
                     <div class="row align-items-center">
                         <div class="col-8">
                             
-                            <h4 class="text-c-yellow"> {{$debits->amount_af - $details->sum('amount')}}
-                                AF</h4>
+                            <h4 class="text-c-yellow"> {{ number_format(($debits->original_amount ?: ($debits->amount_af ?: $debits->amount)) - $details->sum('amount'), 2) }}
+                                {{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }}</h4>
                         
                         </div>
                         <div class="col-4 text-right">
@@ -36,7 +36,7 @@
                     <div class="row align-items-center">
                         <div class="col-8">
                             
-                            <h4 class="text-c-yellow">{{$details->sum('amount')}} AF</h4>
+                            <h4 class="text-c-yellow">{{ number_format($details->sum('amount'), 2) }} {{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }}</h4>
                         
                         </div>
                         <div class="col-4 text-right">
@@ -62,7 +62,7 @@
                     <div class="row align-items-center">
                         <div class="col-8">
                             
-                            <h4 class="text-c-yellow">{{$debits->amount_af}}AF</h4>
+                            <h4 class="text-c-yellow">{{ number_format($debits->original_amount ?: ($debits->amount_af ?: $debits->amount), 2) }} {{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }}</h4>
                         
                         </div>
                         <div class="col-4 text-right">
@@ -143,7 +143,7 @@
                                                 </div>
                                                 <div class="col-lg-2 col-md-2 col-sm-10 col-xs-12">
                                                     <label for="">واحد</label>
-                                                    <input type="text" value="Af" class="form-control" disabled>
+                                                    <input type="text" value="{{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }}" class="form-control" disabled>
                                                 </div>
     
                                             </div>
@@ -197,7 +197,7 @@
                                                 </div>
                                                 <div class="col-lg-2 col-md-2 col-sm-10 col-xs-12">
                                                     <label for="">واحد</label>
-                                                    <input type="text" value="Af" class="form-control" disabled>
+                                                    <input type="text" value="{{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }}" class="form-control" disabled>
                                                 </div>
                 
                                             </div>
@@ -251,7 +251,7 @@
                         <tbody>
                         @foreach($details as $r)
                             <tr class=" text-center">
-                                <td style="direction: ltr">AF {{ $r->amount}}</td>
+                                <td style="direction: ltr">{{ $debits->currency_code ?: ($debits->amount_af ? 'AFN' : 'USD') }} {{ number_format($r->amount, 2) }}</td>
                                 <td>{{$r->description}}</td>
                                 <td class="hideOnPrint"><a href="/dashboard/expense-details/{{$r->id}}/edit"
                                        class="btn btn-sm btn-info hideOnPrint"><i

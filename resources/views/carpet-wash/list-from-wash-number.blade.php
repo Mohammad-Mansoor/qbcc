@@ -264,6 +264,26 @@
                         @else
                           <td>از بخش شست رفته</td>
                         @endif
+
+                        <!-- Return Action Column -->
+                        @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
+                          @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+                            <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
+                            @if($kachaee)
+                              <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
+                                     class="btn btn-sm btn-warning printBTN"><i
+                                          class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
+                            @else
+                              <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
+                                     class="btn btn-sm btn-info printBTN"><i
+                                          class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                            @endif
+                          @else
+                            <td>-</td>
+                          @endif
+                        @else
+                          <td>-</td>
+                        @endif
                       
                       
                       </tr>
@@ -316,6 +336,26 @@
                         @else
                           <td>از بخش شست رفته</td>
                         @endif
+
+                        <!-- Return Action Column -->
+                        @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
+                          @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+                            <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
+                            @if($kachaee)
+                              <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
+                                     class="btn btn-sm btn-warning printBTN"><i
+                                          class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
+                            @else
+                              <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
+                                     class="btn btn-sm btn-info printBTN"><i
+                                          class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                            @endif
+                          @else
+                            <td>-</td>
+                          @endif
+                        @else
+                          <td>-</td>
+                        @endif
     
     
                       </tr>
@@ -365,6 +405,26 @@
                         @endif
                       @else
                         <td>از بخش شست رفته</td>
+                      @endif
+
+                      <!-- Return Action Column -->
+                      @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
+                        @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+                          <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
+                          @if($kachaee)
+                            <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
+                                   class="btn btn-sm btn-warning printBTN"><i
+                                        class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
+                          @else
+                            <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
+                                   class="btn btn-sm btn-info printBTN"><i
+                                        class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                          @endif
+                        @else
+                          <td>-</td>
+                        @endif
+                      @else
+                        <td>-</td>
                       @endif
   
   

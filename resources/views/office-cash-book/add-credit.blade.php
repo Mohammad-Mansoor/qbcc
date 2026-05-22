@@ -128,25 +128,55 @@
             </h5>
         </div>
         <div class="card-body bg-soft-light border-top">
-            <form action="/dashboard/add-office-credit{{ $creditEdit ? '/'.$creditEdit->id : '' }}" method="post">
+            <form action="/dashboard/add-office-credit{{ is_object($creditEdit) ? '/'.$creditEdit->id : '' }}" method="post">
                 @csrf
-                @if($creditEdit) @method('PATCH') @endif
+                @if(is_object($creditEdit)) @method('PATCH') @endif
                 
                 <div class="row">
-                    <div class="col-md-3 form-group text-right">
-                        <label class="small font-weight-bold">مقدار مبلغ ($)</label>
-                        <input type="number" step="0.01" name="amount" value="{{ $creditEdit->amount ?? '' }}" 
-                               class="form-control form-control-sm border-0 shadow-sm text-right" required placeholder="0.00">
+                    <div class="col-md-4 form-group text-right">
+                        <label class="small font-weight-bold">واحد پولی (Currency)</label>
+                        <select name="currency_id" id="currency_id" class="form-control form-control-sm border-0 shadow-sm text-right">
+                            @foreach($currencies as $curr)
+                                <option value="{{ $curr->id }}" data-code="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}"
+                                    {{ (is_object($creditEdit) && $creditEdit->currency_id == $curr->id) ? 'selected' : '' }}>
+                                    {{ $curr->code }} - {{ $curr->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="col-md-3 form-group text-right">
+                    <div class="col-md-4 form-group text-right">
+                        <label class="small font-weight-bold">نرخ تبدیل (FX Rate to USD)</label>
+                        <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" value="{{ is_object($creditEdit) ? $creditEdit->exchange_rate : '' }}" 
+                               class="form-control form-control-sm border-0 shadow-sm text-right">
+                    </div>
+                    <div class="col-md-4 form-group text-right">
                         <label class="small font-weight-bold">تاریخ</label>
-                        <input type="date" name="date" value="{{ $creditEdit->date ?? date('Y-m-d') }}" 
+                        <input type="date" name="date" value="{{ is_object($creditEdit) ? $creditEdit->date : date('Y-m-d') }}" 
                                class="form-control form-control-sm border-0 shadow-sm text-right" required>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6 form-group text-right">
+                        <label class="small font-weight-bold">مقدار مبلغ (Amount)</label>
+                        <input type="number" step="0.01" name="amount" id="amount" value="{{ is_object($creditEdit) ? $creditEdit->amount : '' }}" 
+                               class="form-control form-control-sm border-0 shadow-sm text-right" required placeholder="0.00">
                     </div>
                     <div class="col-md-6 form-group text-right">
                         <label class="small font-weight-bold">توضیحات و بابت</label>
                         <textarea name="description" class="form-control form-control-sm border-0 shadow-sm text-right" 
-                                  rows="1" required placeholder="علت تزریق یا درخواست پول...">{{ $creditEdit->description ?? '' }}</textarea>
+                                  rows="1" required placeholder="علت تزریق یا درخواست پول...">{{ is_object($creditEdit) ? $creditEdit->description : '' }}</textarea>
+                    </div>
+                </div>
+
+                <!-- LIVE USD TRUTH PREVIEW -->
+                <div id="usd-preview-box" class="mt-3 p-3 bg-white shadow-sm d-flex justify-content-between align-items-center" style="border-radius: 10px; display:none !important;">
+                    <div>
+                        <span class="text-muted small">معادل دالر (USD Truth):</span>
+                        <h4 class="mb-0 font-weight-bold text-primary" id="usd-amount-display">0.00 $</h4>
+                    </div>
+                    <div class="text-right">
+                        <span class="badge badge-primary px-3 py-2 rounded-pill">Forensic Normalization Active</span>
                     </div>
                 </div>
                 <div class="text-right mt-2">
@@ -178,7 +208,7 @@
                 <table class="table table-hover align-middle mb-0 text-right" id="add_credit">
                     <thead class="bg-light text-muted small text-uppercase">
                         <tr>
-                            <th class="px-4 py-3 border-0">مقدار ($)</th>
+                            <th class="px-4 py-3 border-0">مبلغ و ارز</th>
                             <th class="py-3 border-0">توضیحات</th>
                             <th class="py-3 border-0 text-center">تاریخ</th>
                             @if(auth()->user()->role != 'SP')
@@ -191,7 +221,13 @@
                         @php($display_credits = (auth()->user()->role == 'SP' ? $sp_credits : (auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' ? $center_credits : $froshat_credits)))
                         @forelse ($display_credits as $credit)
                         <tr class="ur{{ $credit->id }} border-bottom">
-                            <td class="px-4 py-3 font-weight-bold text-dark">${{ number_format($credit->amount, 2) }}</td>
+                            <td class="px-4 py-3 font-weight-bold text-dark text-right">
+                                {{ number_format($credit->original_amount ?: $credit->amount, 2) }} 
+                                <span class="badge badge-soft-primary px-2 py-1 rounded-pill small">{{ $credit->currency_code ?: 'USD' }}</span>
+                                @if($credit->currency_code && $credit->currency_code != 'USD')
+                                    <span class="text-muted small d-block mt-1" style="font-size: 0.75rem;">(معادل ${{ number_format($credit->base_amount, 2) }})</span>
+                                @endif
+                            </td>
                             <td class="small">{{ $credit->description }}</td>
                             <td class="small text-muted text-center">{{ $credit->date }}</td>
                             @if(auth()->user()->role != 'SP')
@@ -247,6 +283,34 @@
 <script>
     $(document).ready(function () {
         $('.status').fadeIn().delay(3000).fadeOut();
+
+        function updateForensicPreview() {
+            var amount = parseFloat($('#amount').val()) || 0;
+            var rate = parseFloat($('#exchange_rate').val()) || 0;
+            var usdAmount = amount * rate;
+
+            if (amount > 0) {
+                $('#usd-preview-box').attr('style', 'border-radius: 10px; display:flex !important; animation: fadeIn 0.5s;');
+                $('#usd-amount-display').text(usdAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}) + ' $');
+            } else {
+                $('#usd-preview-box').attr('style', 'display:none !important;');
+            }
+        }
+
+        $('#currency_id').change(function() {
+            var selected = $(this).find(':selected');
+            var rate = selected.data('rate');
+            $('#exchange_rate').val(rate);
+            updateForensicPreview();
+        });
+
+        $('#amount, #exchange_rate').on('keyup change', function() {
+            updateForensicPreview();
+        });
+
+        if ($('#currency_id').length) {
+            $('#currency_id').trigger('change');
+        }
         
         $("#add_credit").tableExport({
             formats: ["xlsx"],

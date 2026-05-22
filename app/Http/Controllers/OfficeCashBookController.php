@@ -28,7 +28,8 @@ class OfficeCashBookController extends Controller
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
         $pagination = '';
         $expenseEdit = '';
-        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','debit_sum','pagination','expenseEdit'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','debit_sum','pagination','expenseEdit','currencies'));
 
     }
     public function all_expenses(){
@@ -40,7 +41,8 @@ class OfficeCashBookController extends Controller
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
         $expenseType = OfficeDebit::where('user_role',Auth::user()->role)->select('expense_type')->distinct()->get();
         $expenseEdit = '';
-        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','expenseType','debit_sum','expenseEdit'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','expenseType','debit_sum','expenseEdit','currencies'));
 
     }
     public function expense_search(Request $request)
@@ -56,7 +58,8 @@ class OfficeCashBookController extends Controller
 
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
         $expenseEdit = '';
-        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','search','debit_sum','expenseEdit','start','end'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','search','debit_sum','expenseEdit','start','end','currencies'));
 
 
     }
@@ -93,7 +96,8 @@ class OfficeCashBookController extends Controller
         $expenseType = OfficeDebit::where('user_role',Auth::user()->role)->select('expense_type')->distinct()->get();
         $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
         $expenseEdit = '';
-        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','start','end','expenseType','search','search','debit_sum','expenseEdit'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','start','end','expenseType','search','search','debit_sum','expenseEdit','currencies'));
 
     }
 
@@ -151,7 +155,8 @@ class OfficeCashBookController extends Controller
 
         $pagination = '';
         $expenseEdit = OfficeDebit::find($id);
-        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','debit_sum','pagination','expenseEdit'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.recieveds',compact('debits','credit','cashbook','debit_sum','pagination','expenseEdit','currencies'));
 
     }
 

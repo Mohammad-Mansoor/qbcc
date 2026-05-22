@@ -26,9 +26,12 @@ class OfficeCreditController extends Controller
     private function postCreditToAccounting($credit)
     {
         try {
+            $amount = $credit->base_amount ?: $credit->amount;
             $this->accountingService->postAutoTransaction('office_credit', 'deposit', [
                 'date' => $credit->date,
-                'amount' => $credit->amount,
+                'amount' => $amount,
+                'currency_code' => $credit->currency_code,
+                'exchange_rate' => $credit->exchange_rate,
                 'reference' => 'OFF-CRED-' . $credit->id,
                 'description' => 'تزریق سرمایه به دخل (Cash Injection): ' . $credit->description,
                 'source_id' => $credit->id,
@@ -64,7 +67,8 @@ class OfficeCreditController extends Controller
         if ($cashbook > 0) {
             $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
         }
-        return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook', 'currencies'));
     }
 
     public function money_request()
@@ -113,7 +117,48 @@ class OfficeCreditController extends Controller
             $debit->expense_for_where = 'مصرف دفاتر';
             $debit->user_role = 'SP';
             $debit->credit_id = $id;
+
+            // Copy multi-currency snapshot
+            $debit->currency_id = $credit->currency_id;
+            $debit->currency_code = $credit->currency_code;
+            $debit->exchange_rate = $credit->exchange_rate;
+            $debit->original_amount = $credit->original_amount;
+            $debit->base_amount = $credit->base_amount;
+            if ($credit->currency_code == 'AFN') {
+                $debit->amount_af = $credit->amount;
+                $debit->amount = 0;
+            } else {
+                $debit->amount = $credit->amount;
+                $debit->amount_af = 0;
+            }
             $debit->save();
+
+            // Post double-entry transaction inside GL for the cash relocation
+            $amount = $credit->base_amount ?: $credit->amount;
+            $this->accountingService->postTransaction([
+                'date' => $credit->date,
+                'reference' => 'OFF-TRSF-' . $credit->id,
+                'description' => "انتقال داخلی پول از صندوق عمومی به " . ($credit->user_role == 'CO' || $credit->user_role == 'CCO' ? 'دفتر مرکزی' : 'دفتر فروشات') . ": " . $credit->description,
+                'source_type' => 'OfficeCredit',
+                'source_id' => $credit->id,
+                'journal_type' => 'journal',
+                'entries' => [
+                    [
+                        'account_id' => 1, // Cash
+                        'debit' => $amount,
+                        'credit' => 0,
+                        'currency_code' => $credit->currency_code ?: 'USD',
+                        'exchange_rate' => $credit->exchange_rate,
+                    ],
+                    [
+                        'account_id' => 1, // Cash
+                        'debit' => 0,
+                        'credit' => $amount,
+                        'currency_code' => $credit->currency_code ?: 'USD',
+                        'exchange_rate' => $credit->exchange_rate,
+                    ]
+                ]
+            ]);
 
             $credit->status = 1 ;
             $credit->update();
@@ -144,12 +189,24 @@ class OfficeCreditController extends Controller
         $this->accountingService->failIfLocked($request->date);
         return DB::transaction(function () use ($request) {
             $data = $request->validate([
-                'amount' => 'required',
-                'description' => 'required',
-                'date' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
+                'description' => 'required|min:3|max:256',
+                'date' => 'required|date',
             ]);
             $data['user_role'] = Auth::user()->role;
             $data['status'] = 0;
+
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $request->exchange_rate ?: $currency->exchange_rate;
+            $baseAmount = bcmul((string)$request->amount, (string)$rate, 4);
+
+            $data['currency_id'] = $request->currency_id;
+            $data['currency_code'] = $currency->code;
+            $data['exchange_rate'] = $rate;
+            $data['original_amount'] = $request->amount;
+            $data['base_amount'] = $baseAmount;
+            $data['amount'] = $request->amount;
 
             if (Auth::user()->role != 'SP') {
                 $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
@@ -242,7 +299,8 @@ class OfficeCreditController extends Controller
         if ($cashbook > 0) {
             $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
         }
-        return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+        return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook', 'currencies'));
     }
 
     public function update(Request $request, $id)
@@ -261,18 +319,58 @@ class OfficeCreditController extends Controller
                 return back()->with('error', 'پول خواسته از پول دخل عمومی زیاد است ');
             } else {
                 // Reversal
-                if (Auth::user()->role == 'SP' && $credit->status == 1) {
+                if ($credit->status == 1) {
                     $this->accountingService->reverseTransactionBySource($id, 'Office Credit Edited');
                 }
+
+                $currency = \App\Currency::find($request->currency_id);
+                $rate = $request->exchange_rate ?: $currency->exchange_rate;
+                $baseAmount = bcmul((string)$request->amount, (string)$rate, 4);
 
                 $credit->amount = $request->amount;
                 $credit->description = $request->description;
                 $credit->date = $request->date;
+
+                $credit->currency_id = $request->currency_id;
+                $credit->currency_code = $currency->code;
+                $credit->exchange_rate = $rate;
+                $credit->original_amount = $request->amount;
+                $credit->base_amount = $baseAmount;
+
                 $credit->update();
                 
                 // Repost
-                if (Auth::user()->role == 'SP' && $credit->status == 1) {
-                    $this->postCreditToAccounting($credit);
+                if ($credit->status == 1) {
+                    if ($credit->user_role == 'SP') {
+                        $this->postCreditToAccounting($credit);
+                    } else {
+                        // Repost approved requested transfer to GL
+                        $amount = $credit->base_amount ?: $credit->amount;
+                        $this->accountingService->postTransaction([
+                            'date' => $credit->date,
+                            'reference' => 'OFF-TRSF-' . $credit->id,
+                            'description' => "انتقال داخلی پول از صندوق عمومی به " . ($credit->user_role == 'CO' || $credit->user_role == 'CCO' ? 'دفتر مرکزی' : 'دفتر فروشات') . ": " . $credit->description,
+                            'source_type' => 'OfficeCredit',
+                            'source_id' => $credit->id,
+                            'journal_type' => 'journal',
+                            'entries' => [
+                                [
+                                    'account_id' => 1, // Cash
+                                    'debit' => $amount,
+                                    'credit' => 0,
+                                    'currency_code' => $credit->currency_code ?: 'USD',
+                                    'exchange_rate' => $credit->exchange_rate,
+                                ],
+                                [
+                                    'account_id' => 1, // Cash
+                                    'debit' => 0,
+                                    'credit' => $amount,
+                                    'currency_code' => $credit->currency_code ?: 'USD',
+                                    'exchange_rate' => $credit->exchange_rate,
+                                ]
+                            ]
+                        ]);
+                    }
                 }
 
                 $activity = new Activity();
@@ -292,7 +390,7 @@ class OfficeCreditController extends Controller
             $credit = OfficeCredit::find($id);
             
             // Reversal
-            if ($credit->user_role == 'SP' && $credit->status == 1) {
+            if ($credit->status == 1) {
                 $this->accountingService->reverseTransactionBySource($id, 'Office Credit Deleted');
             }
 
@@ -307,6 +405,10 @@ class OfficeCreditController extends Controller
                 $ca->balance = $ca->balance - $credit->amount;
                 $ca->save();
             }
+            
+            // Delete linked OfficeDebit transfer record if exists
+            \App\OfficeDebit::where('credit_id', $credit->id)->delete();
+
             $credit->delete();
             return response()->json(['status' => 'success']);
         });

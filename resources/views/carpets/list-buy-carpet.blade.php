@@ -1,760 +1,522 @@
 @extends('dsh.master')
-@section('title' , 'لیست قالین های خریده شده')
+@section('title', 'Purchased Carpet Registry - QBCC Forensic ERP')
+
 @section('content')
-  <!-- navbar -->
-  
-  <div class="row" id="list-buy-carpet">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 hideOnPrint">
-      <div class="card hideOnPrint">
-        <div class="card-header">
-          <h5>فورم پارچه خرید شده</h5>
-        </div>
-        <div class="card-body">
-          @if(!$editCarpet)
-            <form action="/dashboard/post-buy-carpet" method="post" enctype="multipart/form-data" id='buyCarpetForm'>
-              @csrf
-              <input type="hidden" value="{{ $AccountNo }}" name="carpet_no" id="account_no" class="form-control">
-              <input type="hidden" value="1" name="status" class="form-control">
-              <input type="hidden" value="{{$currency}}" name="dollar_rate" id="currency_fo_af_convert">
-              <div class="row">
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="login2 pull-right pull-right-pro">نمبر پارچه</label>
-                    <input type="text" value="{{ $AccountNo }}" name="" id="" class="form-control" disabled>
-                    <small class="text-danger">@error('account_no') {{ __('message.'.$message) }} @enderror</small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
-                  <div class="form-group fill">
-                    <label class="">اسم فروشنده</label>
-                    <select name="agent_id" id="agent_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($agents as $ag)
-                        <option {{ (Request::old('agent_id') == $ag->agent_id ? 'selected' : '') }} value="{{$ag->agent_id}}">{{$ag->user->name}}
-                          &nbsp; {{$ag->account_no}}</option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('agent_id') {{ __('message.'.$message) }} @enderror</small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
-                  <div class="form-group fill">
-                    <label class="">شماره فرمایش</label>
-                    <select name="order_id" id="order_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($orders as $ord)
-                        <option {{ (Request::old('order_id') == $ord->id ? 'selected' : '') }} value="{{$ord->id}}">{{$ord->order_number}}</option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('order_id') {{ __('message.'.$message) }} @enderror</small>
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
-                  <div class="form-group fill">
-                    <label class="">نوعیت</label>
-                    <select name="type_id" id="type_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($types as $type)
-                        <option {{ (Request::old('type_id') == $type->carpet_type_id ? 'selected' : '') }} value="{{$type->carpet_type_id}}">{{$type->carpet_type}}</option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('type_id') {{ __('message.'.$message) }} @enderror</small>
-                  </div>
-                </div>
+<style>
+    :root {
+        --qbcc-primary: #0f172a;
+        --qbcc-secondary: #334155;
+        --qbcc-accent: #3b82f6;
+        --qbcc-glass: rgba(255, 255, 255, 0.8);
+        --qbcc-border: #e2e8f0;
+        --radius-lg: 16px;
+        --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
 
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
-                  <div class="form-group fill">
-                    <label class="">گودام (Warehouse)</label>
-                    <select name="warehouse_id" id="warehouse_id" class="form-control">
-                      @foreach($warehouses as $w)
-                        <option value="{{ $w->id }}" {{ old('warehouse_id') == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
-                      @endforeach
-                    </select>
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12"> <div class="form-group fill"> <label class="">حساب انبار (Inventory)</label> <select name="override_inventory_account_id" id="override_inventory_account_id" class="form-control"> @foreach($inventoryAccounts as $acc) <option {{ (old("override_inventory_account_id", 15) == $acc->id ? "selected" : "") }} value="{{$acc->id}}">{{$acc->account_name}} ({{$acc->account_code}})</option> @endforeach </select> </div> </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class=""> کوالتی</label>
-                    <select name="quality_id" id="quality_id" class="form-control">
-                      <option value=""></option>
-                    </select>
-                    <small class="text-danger">@error('quality_id') {{ __('message.'.$message) }}@enderror
-                    </small>
-                  </div>
-                
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">نمبر نقشه</label>
-                    <input type="text" name="map_number" placeholder="نمبر نقشه  را وارد کنید"
-                    
-                           class="form-control">
-                    @error('map_number') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">حاشیه</label>
-                    <input type="text" name="margin" placeholder="حاشیه را وارد کنید"
-                           class="form-control" id="margin">
-                    @error('margin') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">زمینه</label>
-                    <input type="text" name="field" placeholder="زمینه را وارد کنید"
-                    
-                           class="form-control">
-                    @error('field') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت فی متر</label>
-                    <input type="text" name="price" placeholder="قیمت فی متر به دالر  "
-                    
-                           class="form-control" id="ppm">
-                    @error('price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                
-                {{-- <input type="hidden" value="{{$currency}}" id="currency"> --}}
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">طول</label>
-                    <input type="text" name="height" placeholder="طول را وارد کنید"
-                    
-                           class="form-control" id="height">
-                    @error('height') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">عرض</label>
-                    <input type="text" name="width" placeholder="عرض را وارد کنید"
-                    
-                           class="form-control" id="width">
-                    @error('width') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">مساحت</label>
-                    <input type="text" name="area" placeholder="مساحت را وارد کنید"
-                    
-                           class="form-control" readonly id="area">
-                    @error('area') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت به افغانی</label>
-                    <input type="text" name="total_price_af" placeholder="قیمت مجموع به افغانی  " readonly
-                           class="form-control" id="total_price_af">
-                    <input type="hidden" name="carpet_price" id="carpet_price">
-                    @error('total_price_af') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت به دالر</label>
-                    <input type="text" name="total_price" placeholder="قیمت مجموع به دالر  " readonly
-                           class="form-control"
-                           id="total_price">
-                    <input type="hidden" name="carpet_price_us" id="carpet_price_us">
-                    @error('total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right"> تاریخ شروع کار</label>
-                    <input type="date" name="date" placeholder="تاریخ شروع کار را وارد کنید"
-                           class="form-control" value="{{old('date')}}">
-                    @error('date') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">تاریخ ختم کار</label>
-                    <input type="date" name="end_date" placeholder="تاریخ ختم کار را وارد کنید"
-                           class="form-control" value="{{old('end_date')}}">
-                    @error('end_date') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="login2 pull-right pull-right-pro">تصویر قالین</label>
-                    <input type="file" name="carpet_image"
-      
-                           class="form-control">
-                    @error('carpet_image') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                
-              
-              </div>
-  
-              <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                <div class="form-group fill">
-                  <button class="btn btn-info btn-sm" type="submit"><i class="fa fa-save"></i> &nbsp; ثبت</button>
-                  <button class="btn btn-default btn-sm" type="reset"><a href="/dashboard/list-buy-carpet">منصرف</a>
-                  </button>
-                
-                </div>
-              </div>
-            
-            </form>
-          @else
-            <form action="/dashboard/upd-buy-carpet/{{$editCarpet->carpet_id}}" method="post" enctype="multipart/form-data">
-              @csrf
-              <input type="hidden" value="1" name="status" id="status" class="form-control">
-              <input type="hidden" value="{{$currency}}" name="dollar_rate" id="currency_fo_af_convert">
-              <div class="row">
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-6">
-                  <div class="form-group fill">
-                    <label class="login2 pull-right pull-right-pro">نمبر
-                      پارچه</label>
-                    <input type="text" value="{{ $editCarpet->carpet_no }}" name="carpet_no" id=""
-                           class="form-control" disabled>
-                    <small class="text-danger">@error('account_no')
-                      {{ __('message.'.$message) }} @enderror
-                    </small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="">اسم فروشنده</label>
-                    <select name="agent_id" id="agent_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($agents as $ag)
-                        <option
-                                {{ ($editCarpet->agent_id == $ag->agent_id ? 'selected' : '') }}
-                                value="{{$ag->agent_id}}">{{$ag->user->name}}
-                          &nbsp; {{$ag->account_no}}</option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('agent_id')
-                      {{ __('message.'.$message) }} @enderror
-                    </small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="">شماره فرمایش</label>
-                    <select name="order_id" id="order_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($orders as $ord)
-                        <option
-                                {{ ($editCarpet->order_id == $ord->id ? 'selected' : '') }}
-                                value="{{$ord->id}}">{{$ord->order_number}}</option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('order_id')
-                      {{ __('message.'.$message) }} @enderror
-                    </small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="">نوعیت</label>
-                    <select name="type_id" id="type_id" class="form-control">
-                      <option value="">~~~</option>
-                      @foreach($types as $type)
-                        <option
-                                {{ ($editCarpet->type_id == $type->carpet_type_id ? 'selected' : '') }}
-                                value="{{$type->carpet_type_id}}">{{$type->carpet_type}}
-                        </option>
-                      @endforeach
-                    </select>
-                    <small class="text-danger">@error('type_id')
-                      {{ __('message.'.$message) }} @enderror
-                    </small>
-                  </div>
-                </div>
+    .glass-card {
+        background: white;
+        border: 1px solid var(--qbcc-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(10px);
+    }
 
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="">گودام (Warehouse)</label>
-                    <select name="warehouse_id" id="warehouse_id_edit" class="form-control">
-                      @foreach($warehouses as $w)
-                        <option value="{{ $w->id }}" {{ $editCarpet->warehouse_id == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
-                      @endforeach
-                    </select>
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12"> <div class="form-group fill"> <label class="">حساب انبار (Inventory)</label> <select name="override_inventory_account_id" id="override_inventory_account_id_edit" class="form-control"> @foreach($inventoryAccounts as $acc) <option {{ ($editCarpet->override_inventory_account_id == $acc->id ? "selected" : "") }} value="{{$acc->id}}">{{$acc->account_name}} ({{$acc->account_code}})</option> @endforeach </select> </div> </div>
-  
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class=""> کوالتی</label>
-                    <select name="quality_id" id="quality_id" class="form-control">
-                      
-                      @foreach($qualities as $q)
-                        <option
-                                {{ ($editCarpet->quality_id == $q->id ? 'selected' : '') }}
-                                value="{{$q->id}}">{{$q->quality}}
-                        </option>
-                      @endforeach
-                    
-                    </select>
-                    <small class="text-danger">@error('quality_id') {{ __('message.'.$message) }}@enderror
-                    </small>
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">نمبر نقشه</label>
-                    <input type="text" name="map_number"
-                           placeholder="نمبر نقشه  را وارد کنید" class="form-control"
-                           value="{{$editCarpet->map_number}}">
-                    @error('map_number') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">حاشیه</label>
-                    <input type="text" name="margin"
-                           placeholder="حاشیه را وارد کنید" class="form-control" value="{{$editCarpet->margin}}">
-                    @error('margin') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">زمینه</label>
-                    <input type="text" name="field" placeholder="زمینه را وارد کنید"
-                           class="form-control" value="{{$editCarpet->field}}">
-                    @error('field') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت فی متر</label>
-                    <input type="text" name="price" placeholder="قیمت فی متر به دالر  " value="{{$editCarpet->price}}"
-                    
-                           class="form-control" id="ppm">
-                    @error('price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                
-                {{-- <input type="hidden" value="{{$currency}}" id="currency"> --}}
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">طول</label>
-                    <input type="text" name="height" placeholder="طول را وارد کنید"
-                    
-                           class="form-control" id="height" value="{{$editCarpet->height}}">
-                    @error('height') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">عرض</label>
-                    <input type="text" name="width" placeholder="عرض را وارد کنید"
-                    
-                           class="form-control" id="width" value="{{$editCarpet->width}}">
-                    @error('width') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">مساحت</label>
-                    <input type="text" name="area" placeholder="مساحت را وارد کنید"
-                    
-                           class="form-control" readonly id="area" value="{{$editCarpet->area}}">
-                    @error('area') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت به افغانی</label>
-                    <input type="text" name="total_price_af" placeholder="قیمت مجموع به افغانی  " readonly
-                           class="form-control" id="total_price_af" value="{{$editCarpet->total_price_af}}">
-                    <input type="hidden" name="carpet_price" id="carpet_price">
-                    @error('total_price_af') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">قیمت به دالر</label>
-                    <input type="text" name="total_price" placeholder="قیمت مجموع به دالر  " readonly
-                           value="{{$editCarpet->total_price}}"
-                           class="form-control"
-                           id="total_price">
-                    <input type="hidden" name="carpet_price_us" id="carpet_price_us">
-                    @error('total_price') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">تاریخ شروع کار</label>
-                    <input type="date" name="date" placeholder="تاریخ شروع کار را وارد کنید"
-                           class="form-control" value="{{$editCarpet->date}}">
-                    @error('date') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="pull-right">تاریخ ختم کار</label>
-                    <input type="date" name="end_date" placeholder="تاریخ ختم کار را وارد کنید"
-                           class="form-control" value="{{$editCarpet->end_date}}">
-                    @error('end_date') <p class="text-danger">
-                      {{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-  
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <label class="login2 pull-right pull-right-pro">تصویر قالین</label>
-                    <input type="file" name="carpet_image"
-      
-                           class="form-control">
-                    @error('carpet_image') <p class="text-danger">{{trans('message.'.$message)}}</p> @enderror
-                  </div>
-                </div>
-                
-                
-              </div>
-              
-              <div class="row">
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
-                  <div class="form-group fill">
-                    <button class="btn btn-info btn-sm" type="submit"><i
-                              class="fa fa-save"></i> &nbsp; ثبت
-                    </button>
-                    <button class="btn btn-default btn-sm" type="reset"><a href="/dashboard/list-buy-carpe">منصرف</a>
-                    </button>
-                  </div>
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-12">
-                  </div>
-                </div>
-              </div>
-            </form>
-          @endif
+    /* Prevent dropdown clipping in responsive tables */
+    .table-responsive, .glass-card {
+        overflow: visible !important;
+        padding-bottom: 80px; /* Even more space */
+    }
+    
+    .table-modern tbody tr {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .table-modern tbody tr:hover {
+        z-index: 100; /* Bring hovered row to front */
+    }
+
+    .table-modern td {
+        overflow: visible !important;
+    }
+    
+    .dropdown-menu {
+        position: absolute !important;
+        will-change: transform;
+        z-index: 999999 !important; /* Extreme z-index */
+    }
+
+    .table-xs td, .table-xs th { padding: 12px 15px; font-size: 13px; vertical-align: middle; }
+    .table-modern thead th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; border: none; letter-spacing: 0.5px; }
+    
+    .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-purchased { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .badge-repair { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+    .forensic-snapshot {
+        background: #f1f5f9;
+        border: 2px dashed #cbd5e1;
+        padding: 15px;
+        border-radius: 12px;
+        margin-top: 15px;
+    }
+
+    .form-label-premium { font-weight: 700; color: #334155; font-size: 12px; margin-bottom: 8px; display: block; }
+    .premium-input { border-radius: 10px; border: 1px solid #cbd5e1; padding: 12px; transition: all 0.2s; background: #fff; width: 100%; }
+    .premium-input:focus { border-color: var(--qbcc-accent); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); outline: none; }
+    
+    .modal-xl { max-width: 1200px; }
+    .select2-container--default .select2-selection--single { border-radius: 10px; border: 1px solid #cbd5e1; height: 45px; padding-top: 8px; }
+</style>
+
+<div class="row">
+    <div class="col-sm-12">
+        <!-- HEADER -->
+        <div class="glass-card p-4 mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="font-weight-bold mb-1">لیست قالین‌های خریداری شده (Purchased Carpet Registry)</h3>
+                <p class="text-muted mb-0 small"><i class="feather icon-shopping-cart mr-1"></i> مدیریت و ارزش‌گذاری قالین‌های خریداری شده با متدولوژی Forensic FX</p>
+            </div>
+            <div class="d-flex">
+                <button class="btn btn-primary rounded-lg shadow px-4 py-2" data-toggle="modal" data-target="#buyCarpetModal">
+                    <i class="feather icon-plus mr-1"></i> ثبت خرید قالین جدید
+                </button>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-header">
-          <h4> قالین های خرید شده</h4>
-          
-          <div class="alert alert-success" style="display:none;" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                      aria-hidden="true">&times;</span></button>
-            پارچه موفقانه ارسال شد
-          </div>
-          
-          @if(session("error"))
-            
-            <div class="alert alert-danger status text-center" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('error')}}
-            </div>
-          
-          @endif
-          
-          <div class="row ">
-            <div class="col-xs-3 col-lg-3 col-md-3 col-sm-3 hideOnPrint">
-              <form action="/dashboard/list-buy-carpet/search" method="post">
-                @csrf
-                <input type="text" name="search" required
-                       placeholder="جستجو" class="form-control">
-              </form>
-            </div>
-            <div class="col-xs-5 col-lg-5 col-md-5 col-sm-5"></div>
-            <div class="col-xs-2 col-lg-2 col-md-2 col-sm-2 hideOnPrint">
-              <a href="/dashboard/list-buy-carpet/show-all" style="float: left" class="btn btn-sm btn-info hideOnPrint">نمایش
-                همه</a>
-            </div>
-            <div class="col-xs-2 col-lg-2 col-md-2 col-sm-2 hideOnPrint">
-          
-  
-              <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-                <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('list-buy-carpet')"><i
-                          class="fa fa-print"></i> چاپ
+
+        @if(session('status'))
+            <div class="alert alert-success border-0 shadow-sm mb-4">{{ session('status') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger border-0 shadow-sm mb-4">{{ session('error') }}</div>
+        @endif
+
+        <!-- SEARCH & FILTERS -->
+        <div class="glass-card p-4 mb-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <form action="/dashboard/list-buy-carpet/search" method="post">
+                        @csrf
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control rounded-left" placeholder="جستجوی نمبر پارچه، نقشه، فروشنده..." required value="{{ $search ?? '' }}">
+                            <div class="input-group-append">
+                                <button class="btn btn-dark" type="submit"><i class="feather icon-search"></i></button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-  
-              </div>
+                <div class="col-md-4">
+                    <form action="/dashboard/search-buy-carpet-by-agent" method="POST">
+                        @csrf
+                        <select name="agent_id" class="form-control select2" onchange="this.form.submit()">
+                            <option value="">جستجو بر اساس فروشنده...</option>
+                            @foreach($agents as $ag)
+                                <option value="{{$ag->agent_id}}" {{ (isset($agent_id) && $agent_id == $ag->agent_id) ? 'selected' : '' }}>{{$ag->user->name}} ({{$ag->account_no}})</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+                <div class="col-md-4 text-left">
+                    <a href="/dashboard/list-buy-carpet/show-all" class="btn btn-outline-secondary rounded-lg">نمایش همه</a>
+                    <button class="btn btn-outline-secondary rounded-lg ml-2" onclick="window.print()"><i class="feather icon-printer"></i></button>
+                </div>
             </div>
-          
-          </div>
         </div>
-        <div class="card-body">
-  
-          <div class="modal fade carpet_image" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel"
-               aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title h4" id="myLargeModalLabel">
-                    <input type="text" name="carpet_no" id="parcha_number" class="form-control" readonly>
-                  </h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                            aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-          
-                  <img src="" id="carpet_image" height="800px" width="700px" alt="">
-        
-        
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn  btn-secondary" data-dismiss="modal">بستن</button>
-                </div>
-              </div>
+
+        <!-- MAIN TABLE -->
+        <div class="glass-card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover table-modern mb-0" id="list_buy_carpet">
+                    <thead>
+                        <tr>
+                            <th>تصویر</th>
+                            <th>نمبر قالین</th>
+                            <th>فروشنده (Vendor)</th>
+                            <th>نوعیت / کوالتی</th>
+                            <th>ابعاد (m²)</th>
+                            <th class="text-right">قیمت فی متر</th>
+                            <th class="text-right">مجموع (Forensic USD)</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ خرید</th>
+                            <th class="text-center hideOnPrint">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($carpets as $carpet)
+                            <tr>
+                                <td>
+                                    @if($carpet->carpet_image)
+                                        <img src="/{{$carpet->carpet_image}}" class="rounded shadow-sm" style="height: 40px; width: 40px; object-fit: cover; cursor: pointer;" onclick="showImageModal('/{{$carpet->carpet_image}}', '{{$carpet->carpet_no}}')">
+                                    @else
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 40px; width: 40px;">
+                                            <i class="feather icon-image text-muted" style="font-size: 12px;"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="font-weight-bold">{{ $carpet->carpet_no }}</td>
+                                <td>
+                                    <div class="font-weight-bold text-dark">{{ $carpet->agent->user->name ?? 'N/A' }}</div>
+                                    <small class="text-muted">{{ $carpet->agent->account_no ?? '' }}</small>
+                                </td>
+                                <td>
+                                    <span class="d-block text-dark">{{ $carpet->type->carpet_type ?? 'N/A' }}</span>
+                                    <small class="text-muted">{{ $carpet->quality->quality ?? 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <span class="d-block">{{ $carpet->area }} m²</span>
+                                    <small class="text-muted">{{ $carpet->height }}x{{ $carpet->width }}</small>
+                                </td>
+                                <td class="text-right">
+                                    <div class="font-weight-bold text-dark">{{ number_format($carpet->original_price ?? $carpet->price, 2) }} {{ $carpet->currency_code ?? '$' }}</div>
+                                    <small class="text-muted">Native Price</small>
+                                </td>
+                                <td class="text-right">
+                                    <div class="text-primary font-weight-bold" data-toggle="tooltip" title="Exchange Rate: {{ number_format($carpet->exchange_rate, 4) }}">
+                                        ${{ number_format($carpet->total_price, 2) }}
+                                    </div>
+                                    <small class="text-success font-weight-bold">{{ number_format($carpet->total_price_af, 0) }} AFN</small>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ $carpet->status == 12 ? 'badge-repair' : 'badge-purchased' }}">
+                                        {{ $carpet->status == 12 ? 'کچایی شده' : 'خریداری شده' }}
+                                    </span>
+                                </td>
+                                <td class="small">{{ $carpet->date }}</td>
+                                <td class="text-center hideOnPrint" style="min-width: 150px; position: relative;">
+                                    <div class="btn-group align-items-center">
+                                        <a href="/dashboard/edit-buy-carpet/{{$carpet->carpet_id}}" class="btn btn-sm btn-light-primary border-0 shadow-none p-2" title="Edit"><i class="feather icon-edit-2"></i></a>
+                                        <a href="/dashboard/show-buy-carpet/{{$carpet->carpet_id}}" class="btn btn-sm btn-light-info border-0 shadow-none p-2 mx-1" title="Details"><i class="feather icon-eye"></i></a>
+                                        
+                                        <div class="dropdown" style="position: static;">
+                                            <button class="btn btn-sm btn-light-secondary border-0 shadow-none p-2 no-caret" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
+                                                <i class="feather icon-more-vertical"></i>
+                                            </button>
+                                            <div class="dropdown-menu shadow-lg border-0" style="min-width: 200px; border-radius: 12px; z-index: 1000001; margin-top: 5px;">
+                                                <h6 class="dropdown-header small text-muted font-weight-bold">عملیات انتقال (Transfer)</h6>
+                                                @if($carpet->status != 12)
+                                                    <a class="dropdown-item py-2 px-3 small" href="/dashboard/carpet-repaire/sending-to-kachaee/{{$carpet->carpet_id}}">
+                                                        <i class="feather icon-tool mr-2 text-warning"></i> ارسال به کچایی (Repair)
+                                                    </a>
+                                                @endif
+                                                <a class="dropdown-item py-2 px-3 small" href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
+                                                    <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
+                                                </a>
+                                                <a class="dropdown-item py-2 px-3 small" href="/dashboard/carpet-wash/sent-to-finish/{{$carpet->carpet_id}}">
+                                                    <i class="feather icon-check-circle mr-2 text-success"></i> ارسال به تیاری (Finish)
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <button class="dropdown-item py-2 px-3 small text-primary font-weight-bold" onclick="sendToStock({{$carpet->carpet_id}})">
+                                                    <i class="feather icon-package mr-2"></i> تایید نهایی و گدام (Stock)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-          </div>
-          
-          <div class="table-responsive " style="margin-top: 60px">
-            <table class="table table-hover table-xs" id="list_buy_carpet">
-              <thead>
-              <tr>
-                <th>شماره قالین</th>
-                <th>اسم فروشنده</th>
-                <th>شماره فرمایش</th>
-                <th>شماره پارچه</th>
-                <th>نوعیت</th>
-                <th>کوالتی</th>
-                <th>قیمت فی متر</th>
-                <th>حاشیه</th>
-                <th>زمینه</th>
-                <th>طول</th>
-                <th>عرض</th>
-                <th>مساحت</th>
-                <th>تاریخ شروع کار</th>
-                <th>تاریخ ختم کار</th>
-                <th>تصویر</th>
-                <th class="hideOnPrint">ویرایش</th>
-                <th class="text-center hideOnPrint">عملیات</th>
-                <th class="hideOnPrint">نمایش</th>
-              </tr>
-              </thead>
-              <tbody>
-              @foreach($carpets as $carpet)
-                <tr class="ur{{ $carpet->carpet_id }}">
-                  <td>{{$carpet->carpet_no}}</td>
-                  @foreach($agents as $agent)
-                    @if($agent->agent_id == $carpet->agent_id)
-                      <td>{{$agent->user->name}}</td>
-                    @endif
-                  @endforeach
-                  @if($carpet->carpet_order)
-                    <td>{{$carpet->carpet_order->order_number}}</td>
-                  @else
-                    <td></td>
-                  @endif
-                  <td>{{$carpet->parcha_number}}</td>
-                  @if($carpet->type)
-                    <td>{{$carpet->type->carpet_type}}</td>
-                  @else
-                    <td></td>
-                  @endif
-                  @if($carpet->quality)
-                    <td>{{$carpet->quality->quality}}</td>
-                  @else
-                    <td></td>
-                  @endif
-                  <td style="direction: ltr">{{$carpet->price}} $</td>
-                  
-                  <td>{{$carpet->margin}}</td>
-                  <td>{{$carpet->field}}</td>
-                  
-                  <td style="direction: ltr">{{$carpet->height}} m</td>
-                  <td style="direction: ltr">{{$carpet->width}} m</td>
-                  <td style="direction: ltr">{{$carpet->area}} m <sup>2</sup></td>
-                  <td>{{$carpet->date}}</td>
-                  <td>{{$carpet->end_date}}</td>
-                  <td><a href="#"
-                         onclick="   $('#parcha_number').val('  تصویر قالین  {{$carpet->carpet_no}} ');
-                                 $('#carpet_image').attr('src', '/{{str_replace('\\','/',$carpet->carpet_image)}}');
-                                 "
-                         data-toggle="modal"
-                         data-target=".carpet_image"><img src="/{{$carpet->carpet_image}}" style="height: 32px;" alt=""></a></td>
-                  @if(auth()->user()->role == 'SP' )
-                  <td class="hideOnPrint"><a href="/dashboard/edit-buy-carpet/{{$carpet->carpet_id}}"
-                                             class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
-                  </td>
-                  @endif
-                  <td class="hideOnPrint">
-                    
-                    @if($carpet->status == 12)
-                      کچایی شده
-                    @else
-                      <a href="/dashboard/carpet-repaire/sending-to-kachaee/{{$carpet->carpet_id}}"
-                         class="btn btn-sm btn-info hideOnPrint">&nbsp;ارسال کچایی</a>
-                    @endif
-                    &nbsp;&nbsp;
-                    <a href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}"
-                       class="btn btn-sm btn-info hideOnPrint">&nbsp;ارسال شست</a>
-                      &nbsp;&nbsp;
-                    <a href="/dashboard/carpet-wash/sent-to-finish/{{$carpet->carpet_id}}"
-                       class="btn btn-sm btn-info hideOnPrint">&nbsp;ارسال به تیاری</a>
-                      &nbsp;&nbsp;
-                    
-                    <button onclick="sendToStock({{$carpet->carpet_id}})"
-                            class="btn btn-sm btn-info printBTN"><i class="fa fa-send"></i>&nbsp; ارسال به گدام
-                    </button>
-                  
-                  
-                  </td>
-                  <td class="hideOnPrint"><a href="/dashboard/print-buy-carpet/{{$carpet->carpet_id}}"
-                                             class="btn btn-sm btn-info">&nbsp; نمایش</a></td>
-                </tr>
-              @endforeach
-              @if(isset($all))
-                <tr>
-                  <td>تعداد</td>
-                  <td>{{$carpets->count()}} pcs</td>
-                </tr>
-                <tr>
-                  <td>مساحت</td>
-                  <td>{{$carpets->sum('area')}} m <sup>2</sup></td>
-                </tr>
-              @endif
-              </tbody>
-            </table>
             @if(!isset($all))
-              <p class="hideOnPrint">{{$carpets->links()}}</p>
+                <div class="p-3 border-top bg-light">
+                    {{ $carpets->links() }}
+                </div>
             @endif
-          
-          </div>
         </div>
-      </div>
     </div>
-  
-  </div>
+</div>
+
+<!-- MODAL: CREATE / EDIT -->
+<div class="modal fade" id="buyCarpetModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content glass-card border-0 overflow-hidden">
+            <div class="modal-header border-bottom p-4 bg-light">
+                <h5 class="font-weight-bold mb-0 text-primary">{{ $editCarpet ? 'ویرایش اطلاعات خرید' : 'ثبت خرید قالین جدید' }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ $editCarpet ? '/dashboard/upd-buy-carpet/'.$editCarpet->carpet_id : '/dashboard/post-buy-carpet' }}" method="post" enctype="multipart/form-data" id="buyCarpetForm">
+                @csrf
+                <input type="hidden" name="status" value="1">
+                
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <!-- SECTION: BASIC INFO -->
+                        <div class="col-md-8 border-right">
+                            <h6 class="font-weight-bold text-primary mb-4 border-bottom pb-2"><i class="feather icon-info mr-1"></i> مشخصات عمومی خرید</h6>
+                            <div class="row">
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label-premium">نمبر پارچه (System ID)</label>
+                                    <input type="text" value="{{ $editCarpet ? $editCarpet->carpet_no : $AccountNo }}" class="form-control premium-input bg-light" readonly>
+                                    <input type="hidden" name="carpet_no" value="{{ $editCarpet ? $editCarpet->carpet_no : $AccountNo }}">
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label-premium">اسم فروشنده (Vendor)</label>
+                                    <select name="agent_id" class="form-control select2" required>
+                                        <option value="">انتخاب فروشنده...</option>
+                                        @foreach($agents as $ag)
+                                            <option value="{{$ag->agent_id}}" {{ ($editCarpet && $editCarpet->agent_id == $ag->agent_id) || (old('agent_id') == $ag->agent_id) ? 'selected' : '' }}>{{$ag->user->name}} ({{$ag->account_no}})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="form-label-premium">شماره فرمایش</label>
+                                    <select name="order_id" class="form-control select2">
+                                        <option value="">انتخاب فرمایش...</option>
+                                        @foreach($orders as $ord)
+                                            <option value="{{$ord->id}}" {{ ($editCarpet && $editCarpet->order_id == $ord->id) || (old('order_id') == $ord->id) ? 'selected' : '' }}>{{$ord->order_number}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">نوعیت</label>
+                                    <select name="type_id" id="modal_type_id" class="form-control premium-input" required>
+                                        <option value="">انتخاب...</option>
+                                        @foreach($types as $type)
+                                            <option value="{{$type->carpet_type_id}}" {{ ($editCarpet && $editCarpet->type_id == $type->carpet_type_id) ? 'selected' : '' }}>{{$type->carpet_type}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">کوالتی</label>
+                                    <select name="quality_id" id="modal_quality_id" class="form-control premium-input" required>
+                                        <option value="">انتخاب...</option>
+                                        @if($editCarpet)
+                                            @foreach($qualities as $q)
+                                                <option value="{{$q->id}}" {{ ($editCarpet->quality_id == $q->id) ? 'selected' : '' }}>{{$q->quality}}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">نمبر نقشه</label>
+                                    <input type="text" name="map_number" value="{{ $editCarpet->map_number ?? '' }}" class="form-control premium-input" placeholder="Map No.">
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">تاریخ خرید</label>
+                                    <input type="date" name="date" value="{{ $editCarpet->date ?? date('Y-m-d') }}" class="form-control premium-input" required>
+                                </div>
+                            </div>
+
+                            <h6 class="font-weight-bold text-primary mb-4 border-bottom pb-2 mt-4"><i class="feather icon-maximize mr-1"></i> ابعاد و اندازه‌گیری</h6>
+                            <div class="row">
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">طول (Length - m)</label>
+                                    <input type="number" step="0.01" name="height" id="modal_height" value="{{ $editCarpet->height ?? '' }}" class="form-control premium-input" required>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">عرض (Width - m)</label>
+                                    <input type="number" step="0.01" name="width" id="modal_width" value="{{ $editCarpet->width ?? '' }}" class="form-control premium-input" required>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">مساحت (m²)</label>
+                                    <input type="number" step="0.01" name="area" id="modal_area" value="{{ $editCarpet->area ?? '' }}" class="form-control premium-input bg-light" readonly>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">حاشیه / زمینه</label>
+                                    <div class="input-group">
+                                        <input type="text" name="margin" value="{{ $editCarpet->margin ?? '' }}" class="form-control premium-input" placeholder="H">
+                                        <input type="text" name="field" value="{{ $editCarpet->field ?? '' }}" class="form-control premium-input ml-1" placeholder="Z">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION: FORENSIC FINANCE -->
+                        <div class="col-md-4">
+                            <h6 class="font-weight-bold text-primary mb-4 border-bottom pb-2"><i class="feather icon-shield mr-1"></i> Forensic FX Snapshot</h6>
+                            
+                            <div class="form-group">
+                                <label class="form-label-premium">ارز معامله (Purchase Currency)</label>
+                                <select name="currency_id" id="modal_currency_id" class="form-control border-primary font-weight-bold">
+                                    @foreach($currencies as $curr)
+                                        <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" data-code="{{ $curr->code }}" {{ ($editCarpet && $editCarpet->currency_id == $curr->id) || (!$editCarpet && $curr->code == 'USD') ? 'selected' : '' }}>{{ $curr->code }} ({{ $curr->symbol }})</option>
+                                    @endforeach
+                                </select>
+                                <input type="hidden" name="exchange_rate" id="modal_exchange_rate" value="{{ $editCarpet->exchange_rate ?? 1 }}">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label-premium">قیمت فی متر (Native Rate)</label>
+                                <input type="number" step="0.01" name="price_input" id="modal_price_input" value="{{ $editCarpet->original_price ?? $editCarpet->price ?? '' }}" class="form-control premium-input border-primary font-weight-bold" required>
+                            </div>
+
+                            <!-- FX SNAPSHOT CARD -->
+                            <div class="forensic-snapshot">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="small text-muted">Native Total:</span>
+                                    <span id="modal_native_total" class="font-weight-bold">0.00 USD</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="small text-dark font-weight-bold">USD Normalized:</span>
+                                    <span id="modal_usd_total_label" class="text-primary font-weight-bold">$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                    <span class="small text-success">AFN Value:</span>
+                                    <span id="modal_afn_total_label" class="text-success font-weight-bold">0 AFN</span>
+                                </div>
+                                <div class="small text-center text-muted">
+                                    <i class="feather icon-activity mr-1"></i> Conversion: 1 USD = <span id="modal_rate_display">1.00</span> <span id="modal_code_display">USD</span>
+                                </div>
+                                
+                                <input type="hidden" name="total_price" id="modal_total_price_usd">
+                                <input type="hidden" name="total_price_af" id="modal_total_price_afn">
+                                <input type="hidden" name="price" id="modal_legacy_price">
+                            </div>
+
+                            <h6 class="font-weight-bold text-dark mb-3 mt-4 border-bottom pb-2 small uppercase"><i class="feather icon-briefcase mr-1"></i> تنظیمات انبار و دفتر کل</h6>
+                            
+                            <div class="form-group">
+                                <label class="form-label-premium">گدام (Warehouse Location)</label>
+                                <select name="warehouse_id" class="form-control premium-input">
+                                    @foreach($warehouses as $w)
+                                        <option value="{{ $w->id }}" {{ ($editCarpet && $editCarpet->warehouse_id == $w->id) || ($defaultWarehouseId == $w->id) ? 'selected' : '' }}>{{ $w->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label-premium">حساب دارایی (Inventory GL)</label>
+                                <select name="override_inventory_account_id" class="form-control premium-input">
+                                    @foreach($inventoryAccounts as $acc)
+                                        <option value="{{$acc->id}}" {{ ($editCarpet && $editCarpet->override_inventory_account_id == $acc->id) || (old('override_inventory_account_id', 15) == $acc->id) ? 'selected' : '' }}>{{$acc->account_name}} ({{$acc->account_code}})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <label class="form-label-premium">تصویر محصول (Optional)</label>
+                                <div class="custom-file">
+                                    <input type="file" name="carpet_image" class="custom-file-input" id="imageInput">
+                                    <label class="custom-file-label" for="imageInput" style="border-radius: 10px;">انتخاب عکس...</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top p-4 bg-light">
+                    <button type="button" class="btn btn-secondary px-4 rounded-lg" data-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary px-5 rounded-lg shadow">
+                        <i class="feather icon-save mr-1"></i> {{ $editCarpet ? 'ذخیره تغییرات' : 'ثبت و تایید نهایی' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- IMAGE PREVIEW -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="text-right mb-2">
+                <button type="button" class="btn btn-white btn-sm rounded-circle shadow" data-dismiss="modal">&times;</button>
+            </div>
+            <img src="" id="fullPreviewImage" class="img-fluid rounded shadow-lg mx-auto d-block" style="max-height: 85vh;">
+            <div class="text-center mt-3 text-white h5 font-weight-bold" id="previewTitle"></div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
-  
+<script>
+    $(document).ready(function() {
+        @if($editCarpet)
+            $('#buyCarpetModal').modal('show');
+        @endif
 
- <script type="text/javascript">
+        // Select2 Fix for Modals
+        $('.select2').select2({
+            dropdownParent: $('#buyCarpetModal')
+        });
 
-  $(document).ready(function () {
-      $("#buyCarpetForm").submit(function() {
-  $(":submit", this).attr("disabled", "disabled");
-});
+        // LIVE CALCULATION ENGINE
+        function runForensicCalc() {
+            let height = parseFloat($('#modal_height').val()) || 0;
+            let width = parseFloat($('#modal_width').val()) || 0;
+            let area = height * width;
+            $('#modal_area').val(area.toFixed(2));
+
+            let unitPrice = parseFloat($('#modal_price_input').val()) || 0;
+            let rate = parseFloat($('#modal_currency_id option:selected').data('rate')) || 1;
+            let code = $('#modal_currency_id option:selected').data('code');
+            
+            $('#modal_rate_display').text(rate.toFixed(4));
+            $('#modal_code_display').text(code);
+            $('#modal_exchange_rate').val(rate);
+
+            let nativeTotal = area * unitPrice;
+            let usdTotal = nativeTotal * rate;
+            
+            $('#modal_native_total').text(nativeTotal.toLocaleString(undefined, {minimumFractionDigits: 2}) + ' ' + code);
+            $('#modal_usd_total_label').text('$' + usdTotal.toLocaleString(undefined, {minimumFractionDigits: 2}));
+            
+            // AFN Legacy Conversion (Fixed Rate 63 as per business notes)
+            let afnTotal = usdTotal * 63; 
+            $('#modal_afn_total_label').text(afnTotal.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' AFN');
+
+            // Set values for DB persistence
+            $('#modal_total_price_usd').val(usdTotal.toFixed(2));
+            $('#modal_total_price_afn').val(afnTotal.toFixed(2));
+            $('#modal_legacy_price').val((unitPrice * rate).toFixed(2)); 
+        }
+
+        $('#modal_height, #modal_width, #modal_price_input, #modal_currency_id').on('input change', runForensicCalc);
+        runForensicCalc();
+
+        // Quality Dependent Dropdown
+        $("#modal_type_id").change(function () {
+            $.ajax({
+                url: "{{ route('dashboard.qualities.get_by_type') }}?type_id=" + $(this).val(),
+                method: 'GET',
+                success: function (data) {
+                    $('#modal_quality_id').html(data.html);
+                }
+            });
+        });
+
+        // Double Click Prevention
+        $("#buyCarpetForm").submit(function() {
+            $(this).find(":submit").attr("disabled", "disabled").html('<i class="feather icon-loader mr-1"></i> در حال پردازش...');
+        });
     });
 
+    function showImageModal(src, title) {
+        $('#fullPreviewImage').attr('src', src);
+        $('#previewTitle').text('تصویر قالین نمبر: ' + title);
+        $('#imagePreviewModal').modal('show');
+    }
 
-
- </script>
-
-  
-  <script>
-
-      $('#agent_id').select2();
-   
-      $('#order_id').select2();
-      $('#type_id').select2();
-    
-      $(document).ready(function () {
-          $("#list_buy_carpet").tableExport({
-              headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-              footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-              formats: ["xlsx","txt"],              // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-              filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-              bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-              exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-              position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-              ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-              ignoreCols: null,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-              trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-              RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-              sheetname: "id",
-
-          });
-          var $buttons = $('#list_buy_carpet').find('caption').children().detach();
-          // Append the buttons to an element of your choosing
-          $buttons.appendTo('#exportButton');
-
-      });
-  
-  
-  
-  </script>
-  
-  <script type="text/javascript">
-      $("#type_id").change(function () {
-          $.ajax({
-              url: "{{ route('dashboard.qualities.get_by_type') }}?type_id=" + $(this).val(),
-              method: 'GET',
-              success: function (data) {
-                  $('#quality_id').html(data.html);
-              }
-          });
-      });
-  </script>
-  
-  <script>
-   
-
-      function sendToStock(carpet_id) {
-
-          swal({
-              text: "مطمعین هستید ؟",
-              buttons: true,
-              dangerMode: true,
-              buttons: {
-                  confirm: {text: 'بلی', className: 'btn-success'},
-                  cancel: 'نخیر'
-              },
-          })
-              .then((willDelete) => {
-                  if (willDelete) {
-                      $.ajax({
-                          type: 'GET',
-                          data: {
-                            {{--'_token': '{{csrf_token()}}',--}}
-                          },
-                          url: '/dashboard/carpet-stock/sent-to-stock/' + carpet_id,
-                          success: function (res) {
-
-                              if (res.status == 'success') {
-                                  $('.alert-success').show();
-                                  location.reload();
-                              } else {
-                                  $('.alert-danger').show();
-                              }
-
-
-                              window.setTimeout(function () {
-                                  $(".alert-success").fadeTo(500, 0).slideUp(500, function () {
-
-                                      $(this).remove();
-                                  });
-                              }, 2000);
-                          },
-
-                      })
-                  }
-              });
-      }
-  
-  
-  </script>
-
+    function sendToStock(carpet_id) {
+        swal({
+            title: "ارسال به گدام؟",
+            text: "با تایید این عمل، محصول از وضعیت جاری خارج شده و به موجودی گدام محصولات نهایی اضافه می‌شود.",
+            icon: "warning",
+            buttons: {
+                cancel: "لغو عملیات",
+                confirm: { text: "تایید و انتقال به انبار", className: "btn-primary" }
+            },
+            dangerMode: false
+        }).then((willConfirm) => {
+            if (willConfirm) {
+                $.ajax({
+                    type: 'GET',
+                    url: '/dashboard/carpet-stock/sent-to-stock/' + carpet_id,
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("عملیات موفق!", "محصول با موفقیت به انبار منتقل شد.", "success").then(() => location.reload());
+                        } else {
+                            swal("خطا در سیستم!", "متاسفانه امکان انتقال در حال حاضر وجود ندارد.", "error");
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
 @endsection
-

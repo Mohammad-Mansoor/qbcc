@@ -1,55 +1,228 @@
 @extends('dsh.master')
 
 @section('content')
+<style>
+  /* Premium Glassmorphism & Custom Elements */
+  .modern-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    margin-bottom: 30px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .modern-card:hover {
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1) !important;
+  }
+  .modern-header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+    padding: 20px 24px !important;
+    border-bottom: none !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modern-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: 0.5px;
+  }
+  .nav-pills {
+    background: rgba(240, 242, 245, 0.8);
+    padding: 6px;
+    border-radius: 12px;
+    display: inline-flex;
+    margin-bottom: 24px !important;
+    border: none !important;
+  }
+  .nav-pills .nav-item {
+    margin-right: 4px;
+  }
+  .nav-pills .nav-link {
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    color: #4a5568 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none !important;
+  }
+  .nav-pills .nav-link.active {
+    background: #2a5298 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(42, 82, 152, 0.2);
+  }
+  .modern-table {
+    width: 100%;
+    margin-top: 15px;
+    border-collapse: separate !important;
+    border-spacing: 0 8px !important;
+  }
+  .modern-table th {
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem;
+    padding: 16px 12px !important;
+    border: none !important;
+    text-align: right;
+  }
+  .modern-table tbody tr {
+    background: #ffffff;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+  }
+  .modern-table tbody tr:hover {
+    background: #f8fafc !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+  }
+  .modern-table tbody td {
+    padding: 14px 12px !important;
+    vertical-align: middle !important;
+    border-top: 1px solid #f1f5f9 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    font-size: 0.9rem;
+    color: #334155;
+  }
+  .modern-table tbody td:first-child {
+    border-left: 1px solid #f1f5f9 !important;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
+  .modern-table tbody td:last-child {
+    border-right: 1px solid #f1f5f9 !important;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+  
+  /* Modern Luxury Actions Buttons */
+  .btn-modern-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer;
+  }
+  .btn-modern-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12) !important;
+    color: #ffffff !important;
+    text-decoration: none;
+  }
+  
+  .btn-tiari {
+    background: linear-gradient(135deg, #11998e, #38ef7d) !important;
+  }
+  .btn-wash {
+    background: linear-gradient(135deg, #ff9966, #ff5e62) !important;
+  }
+  .btn-central {
+    background: linear-gradient(135deg, #2193b0, #6dd5ed) !important;
+  }
+  .btn-re-tiari {
+    background: linear-gradient(135deg, #4e54c8, #8f94fb) !important;
+  }
+  .btn-edit {
+    background: linear-gradient(135deg, #f39c12, #f1c40f) !important;
+  }
+  .btn-view {
+    background: linear-gradient(135deg, #00c6ff, #0072ff) !important;
+  }
+  .btn-print {
+    background: linear-gradient(135deg, #34495e, #2c3e50) !important;
+    color: #fff !important;
+  }
+  
+  /* Inputs Customization */
+  .modern-search {
+    border-radius: 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 12px 18px !important;
+    font-size: 0.9rem !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.01) !important;
+    transition: all 0.3s ease !important;
+  }
+  .modern-search:focus {
+    border-color: #2a5298 !important;
+    box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1) !important;
+    outline: none;
+  }
+  
+  /* Status Badges */
+  .modern-badge {
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    display: inline-block;
+  }
+  .badge-success-modern {
+    background-color: #e2fbe8 !important;
+    color: #0f762e !important;
+  }
+  .badge-warning-modern {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+  }
+</style>
+
   <!-- navbar -->
   <div class="row" style="display: flex; justify-content: center;">
     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-header">
+      <div class="card modern-card">
+        <div class="card-header modern-header">
+          <h3 class="modern-title"><i class="fa fa-scissors"></i> مدیریت و بررسی کارگاه تیاری (Finishing Center)</h3>
           
-          <div class="alert alert-success" style="display:none;" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                      aria-hidden="true">&times;</span></button>
-            مرحله ترمیم حذف شد
-          </div>
-          
-          @if(session("status"))
-            <div class="alert alert-success status text-center" style="display:none;" role="alert">
+          <div>
+            <div class="alert alert-success" style="display:none;" role="alert">
               <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                         aria-hidden="true">&times;</span></button>
-              {{session('status')}}
+              مرحله ترمیم حذف شد
             </div>
-          
-          @endif
-          @if(session("error"))
             
-            <div class="alert alert-success status text-center" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('error')}}
-            </div>
-          
-          @endif
+            @if(session("status"))
+              <div class="alert alert-success status text-center" style="display:none;" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                          aria-hidden="true">&times;</span></button>
+                {{session('status')}}
+              </div>
+            @endif
+            @if(session("error"))
+              <div class="alert alert-success status text-center" style="display:none;" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                          aria-hidden="true">&times;</span></button>
+                {{session('error')}}
+              </div>
+            @endif
+          </div>
         
         </div>
         <div class="card-body">
           <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
             <li class="nav-item">
-              <a class="nav-link has-ripple  {{$check == null ? 'active' : ''}}"
+              <a class="nav-link {{$check == null ? 'active' : ''}}"
                  id="pills-non-finished-tab"
                  data-toggle="pill"
                  href="#non-finished"
-                 role="tab" aria-controls="pills-non-finished" aria-selected="true">تیاری نشده ها<span
-                        class="ripple ripple-animate"
-                        style="height: 71.6719px; width: 71.6719px; animation-duration: 0.7s; animation-timing-function: linear; background: rgb(70, 128, 255); opacity: 0.4; top: -30.8359px; left: 9.16405px;"></span></a>
+                 role="tab" aria-controls="pills-non-finished" aria-selected="true"><i class="fa fa-clock-o"></i> تیاری نشده ها</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link has-ripple {{$check != null ? 'active' : ''}}"
+              <a class="nav-link {{$check != null ? 'active' : ''}}"
                  id="pills-finished-tab"
                  data-toggle="pill" href="#finished"
-                 role="tab" aria-controls="pills-finished" aria-selected="false">تیاری شده ها<span
-                        class="ripple ripple-animate"
-                        style="height: 82.2188px; width: 82.2188px; animation-duration: 0.7s; animation-timing-function: linear; background: rgb(70, 128, 255); opacity: 0.4; top: -15.1094px; left: 18.9375px;"></span></a>
+                 role="tab" aria-controls="pills-finished" aria-selected="false"><i class="fa fa-check-circle"></i> تیاری شده ها</a>
             </li>
           </ul>
           
@@ -58,23 +231,24 @@
             <div class="tab-pane fade {{$check == null ? 'active show' : ''}}" id="non-finished"
                  role="tabpanel"
                  aria-labelledby="pills-non-finished-tab">
-              <div class="row">
-                <div class="col-xs-3 col-lg-3 col-md-3 col-sm-3 hideOnPrint">
-                  <form action="/dashboard/finishing-center/search-non" method="post">
-                    @csrf
-                    <input type="text" name="search_non" required
-                           placeholder="جستجو" class="form-control">
-                  </form>
-                </div>
-                <div class="col-xs-9 col-lg-9 col-md-9 col-sm-9"></div>
-              
-              </div>
-              <div class="btn btn-sm btn-primary" style="float: left;margin-bottom: 30px;"
-                   onclick="printPage('noneRepairPrint')"><i
-                        class="fa fa-print"></i> Print
-              </div>
+               <div class="row align-items-center" style="margin-bottom: 20px;">
+                 <div class="col-xs-4 col-lg-4 col-md-4 col-sm-4 hideOnPrint">
+                   <form action="/dashboard/finishing-center/search-non" method="post">
+                     @csrf
+                     <input type="text" name="search_non" required
+                            placeholder="🔍 جستجو بر اساس شماره قالین، نوعیت قالین..." class="form-control modern-search">
+                   </form>
+                 </div>
+                 <div class="col-xs-8 col-lg-8 col-md-8 col-sm-8 text-left">
+                   <div class="btn-modern-action btn-print hideOnPrint"
+                        onclick="printPage('noneRepairPrint')"><i
+                             class="fa fa-print"></i> چاپ گزارش
+                   </div>
+                 </div>
+               </div>
+
               <div class="static-table-list table-responsive" id="noneRepairPrint">
-                <table class="table table-hover table-xs" id="secondDataTable">
+                <table class="table modern-table" id="secondDataTable">
                   <thead>
                   <tr>
                     
@@ -89,7 +263,7 @@
                     <th>مصاحت</th>
                     <th>تاریخ شست</th>
                     <th class="printTitle">تیاری</th>
-           
+            
                     
                     <th class="printTitle">بازگشت</th>
                   </tr>
@@ -140,9 +314,8 @@
                       
                       <td class="hideOnPrint"><a
                                 href="/dashboard/finishing-center/finish-work/{{$nonfinish->carpet_id ?? ''}}"
-                                class="btn btn-sm btn-info printBTN"><i
-                                  
-                                  class="fa fa-pencil"></i>&nbsp; تیاری</a></td>
+                                class="btn-modern-action btn-tiari printBTN"><i
+                                  class="fa fa-scissors"></i>&nbsp; تیاری</a></td>
   
                      
                         <?php $wash = \App\CarpetWash::where('carpetId', $nonfinish->carpet_id)->first(); ?>
@@ -150,13 +323,13 @@
                       
                       @if($wash)
                         <td><a href="/dashboard/return-to-wash/{{$nonfinish->carpet_id}}"
-                               class="btn btn-sm btn-warning printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; بازگشت به شست</a></td>
+                               class="btn-modern-action btn-wash printBTN"><i
+                                    class="fa fa-undo"></i>&nbsp; بازگشت به شست</a></td>
                       @else
                         
                         <td><a href="/dashboard/return-to-center-from-finish/{{$nonfinish->carpet_id}}"
-                               class="btn btn-sm btn-info printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                               class="btn-modern-action btn-central printBTN"><i
+                                    class="fa fa-reply"></i>&nbsp; بازگشت به مرکزی</a></td>
                       @endif
                     
                     
@@ -165,30 +338,23 @@
                   
                   </tbody>
                 </table>
-                <p>{{$nonfinished->links() ?? ''}}</p>
+                <div class="hideOnPrint">{{$nonfinished->links() ?? ''}}</div>
               </div>
               
-              <div class="row">
-                
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  
-                  <table class="table table-xs table-hover">
+              <div class="row" style="margin-top: 20px;">
+                <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
+                  <table class="table table-bordered table-sm" style="background: #f8fafc; border-radius: 8px; overflow: hidden;">
                     <tbody>
                     <tr>
-                      <td>&nbsp;{{$nonfinished->count()}} pcs</td>
-                      <td style="font-size: 12px;color: #0b97c4">QUANTITY</td>
-                    
+                      <td style="font-weight: 600; color: #475569;">تعداد کل قالین ها</td>
+                      <td style="direction: ltr; font-weight: bold; text-align: left; color: #2a5298;">{{$nonfinished->count()}} pcs</td>
                     </tr>
                     <tr>
-                      <td>m <sup>2</sup> &nbsp;{{$nonfinished->sum('area')}}</td>
-                      <td style="font-size: 12px;color: #0b97c4">TOTAL</td>
-                    
+                      <td style="font-weight: 600; color: #475569;">مجموع متراژ (m²)</td>
+                      <td style="direction: ltr; font-weight: bold; text-align: left; color: #2a5298;">{{$nonfinished->sum('area')}} m²</td>
                     </tr>
                     </tbody>
                   </table>
-                </div>
-                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                
                 </div>
               </div>
             
@@ -199,32 +365,29 @@
                  role="tabpanel"
                  aria-labelledby="pills-finished-tab">
               
-              
-              <div class="row">
-                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="row align-items-center" style="margin-bottom: 20px;">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 hideOnPrint">
                   <form action="/dashboard/finishing-center/search" method="POST" id="dateSearch">
-                    
                     @csrf
                     <input type="text" name="search_finish" required
-                           placeholder="جستجو" class="form-control">
-                  
+                           placeholder="🔍 جستجو بر اساس شماره قالین، تیم، شماره تیاری..." class="form-control modern-search">
                   </form>
+                </div>
+                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8 text-left">
+                  <div class="btn-modern-action btn-print hideOnPrint"
+                       onclick="printPage('repairPrint')"><i
+                            class="fa fa-print"></i> چاپ گزارش
+                  </div>
                 </div>
               </div>
               
-              
-              <div class="btn btn-sm btn-primary" style="float: left;margin-bottom: 30px;"
-                   onclick="printPage('repairPrint')"><i
-                        class="fa fa-print"></i> Print
-              </div>
               <div class="static-table-list table-responsive" style="margin-top: 20px" id="repairPrint">
-                <table class="table table-hover table-xs">
+                <table class="table modern-table">
                   <thead>
                   <tr>
-                    
                     <th>شماره قالین</th>
                     <th>نمبر تیاری</th>
-                    <th> قیمت تیاری</th>
+                    <th> قیمت تیاری (USD / اسعار)</th>
                     <th>تاریخ تیاری</th>
                     <th>تیم تیاری</th>
                     <th>نوع تیاری</th>
@@ -243,33 +406,44 @@
                       <td>{{$finish->carpet->carpet_no ?? ''}}</td>
                       <td>
                         <a href="/dashboard/finishing-center/search-finish-number/{{$finish->finish_number}},{{$finish->team_id}}"
+                           style="font-weight: 600; color: #2a5298;"
                         >&nbsp; {{$finish->finish_number}}</a></td>
-                      <td style="direction: ltr">{{round($finish->price_af,2) ?? ''}} $</td>
+                      <td style="direction: ltr; font-weight: bold;">
+                        <span class="text-primary">{{ number_format($finish->price, 2) }} USD</span>
+                        @if(($finish->currency_code ?? 'USD') !== 'USD')
+                          <br>
+                          <span style="font-size: 11px; color: #6c757d;">
+                            {{ number_format($finish->price_af, 2) }} {{ $finish->currency_code }}
+                          </span>
+                        @elseif($finish->price_af != $finish->price)
+                          <br>
+                          <span style="font-size: 11px; color: #6c757d;">
+                            {{ number_format($finish->price_af, 2) }} AFN
+                          </span>
+                        @endif
+                      </td>
                       <td>{{$finish->date ?? ''}}</td>
                       <td>{{$finish->team->name ?? ''}}</td>
                       <td>{{$finish->category->category ?? ''}}</td>
                       <td>{{$finish->description ?? ''}}</td>
                       @if($finish->status == 0)
-    
                         <td class="hideOnPrint">
-                          <label class="badge badge-warning">درخواست تایید
-                            نشده</label></td>
+                          <span class="modern-badge badge-warning-modern"><i class="fa fa-spinner"></i> در انتظار تایید</span>
+                        </td>
                       @else
-    
-                        <td class="hideOnPrint"><label for="" class="badge-success">درخواست تایید
-                            شد</label></td>
-  
+                        <td class="hideOnPrint">
+                          <span class="modern-badge badge-success-modern"><i class="fa fa-check"></i> تایید شده</span>
+                        </td>
                       @endif
   
                       <td class="hideOnPrint"><a
                                 href="/dashboard/finishing-center/re-finish-work/{{$finish->carpet->carpet_id ?? ''}}"
-                                class="btn btn-sm btn-info printBTN"><i
-              
-                                  class="fa fa-pencil"></i>&nbsp; دوباره تیاری</a></td>
-                      <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn btn-sm btn-info printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                                class="btn-modern-action btn-re-tiari printBTN"><i
+                                  class="fa fa-refresh"></i>&nbsp; دوباره تیاری</a></td>
+                      <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn-modern-action btn-edit printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
                       
                       <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}"
-                                                 class="btn btn-sm btn-info printBTN"><i
+                                                 class="btn-modern-action btn-view printBTN"><i
                                   class="fa fa-eye"></i>&nbsp; نمایش</a></td>
                     </tr>
                     
@@ -277,8 +451,6 @@
                       @if($finish->carpet->carpet_wash)
                         {{$total_area += $finish->carpet->carpet_wash->area}}
                       @endif
-                      
-                    
                     </span>
                   
                   @endforeach
@@ -299,6 +471,18 @@
                     <td style="direction: ltr"><b>{{$total_area}} m <sup>2</sup> </b></td>
                   
                   
+                  </tr>
+                  <tr>
+                    <th colspan="2"><b>مجموع مصارف (USD)</b></th>
+                    <td style="direction: ltr; font-weight: bold; color: #28a745;">
+                      <b>{{ number_format($finisheds->sum('price'), 2) }} USD</b>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th colspan="2"><b>مجموع مصارف (AFN)</b></th>
+                    <td style="direction: ltr; font-weight: bold; color: #17a2b8;">
+                      <b>{{ number_format($finisheds->sum('price_af'), 2) }} AFN</b>
+                    </td>
                   </tr>
                   </tbody>
                 </table>

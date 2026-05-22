@@ -14,148 +14,127 @@
               @csrf
               <br>
               <div class="row">
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <!-- Row 1: Core Transaction Details -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">فاکتور خرید</label>
                     <input type="text" class="form-control " value="{{$PurchaseNo}}" name="purchase_number">
                   </div>
                 </div>
-                  <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-3 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <label class="">فروشنده</label>
-                    <select name="seller_id" id="seller_id" class="form-control">
+                    <label class="">فروشنده (Seller)</label>
+                    <select name="seller_id" id="seller_id" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($sellers as $s)
                         <option value="{{ $s->id }}" {{ old('seller_id') == $s->id ? 'selected' : '' }} >{{ $s->name }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('seller_id') {{ __('message.'.$message) }} @enderror</small>
                   </div>
                 </div>
-               <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                   <div class="form-group fill">
+                     <label class="">ارز (Currency)</label>
+                     <select name="currency_id" id="currency_id" class="form-control select2">
+                       @foreach($currencies as $curr)
+                         <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" {{ old('currency_id') == $curr->id ? 'selected' : ($curr->code == 'AFN' ? 'selected' : '') }}>
+                           {{ $curr->code }} ({{ $curr->symbol }})
+                         </option>
+                       @endforeach
+                     </select>
+                   </div>
+                 </div>
+                 <div class="col-lg-2 col-md-4 col-sm-6">
+                   <div class="form-group fill">
+                     <label class="">نرخ تبادله (Rate)</label>
+                     <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control bg-light" 
+                            value="{{ old('exchange_rate', $currencies->where('code', 'AFN')->first()->exchange_rate ?? 0) }}" readonly>
+                   </div>
+                 </div>
+                 <div class="col-lg-3 col-md-4 col-sm-6">
+                  <div class="form-group fill">
+                    <label class="">تاریخ (Date)</label>
+                    <input id="purchase_date" name="purchase_date" type="date" class="form-control" value="{{ date('Y-m-d') }}">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <!-- Row 2: Material & Logistics Details -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">کتگوری مواد</label>
-                    <select name="material_category" id="material_category" class="form-control">
+                    <select name="material_category" id="material_category" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($material_category as $mc)
                         <option {{ (Request::old('material_category') == $mc->material_category_id ? 'selected' : '') }} value="{{ $mc->material_category_id }}">{{ $mc->material_category }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('material_category') {{ __('message.'.$message) }}
-                      @enderror
-                    </small>
                   </div>
                 </div>
-                    <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">نوعیت مواد</label>
-                    <select name="material_type" id="material_type" class="form-control">
+                    <select name="material_type" id="material_type" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($material_type as $mt)
                         <option {{ (Request::old('material_type') == $mt->material_type_id ? 'selected' : '') }} value="{{ $mt->material_type_id }}">{{ $mt->material_type }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('material_type') {{ __('message.'.$message) }}@enderror
-                    </small>
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">گودام (Warehouse)</label>
-                    <select name="warehouse_id" id="warehouse_id" class="form-control">
+                    <select name="warehouse_id" id="warehouse_id" class="form-control select2">
                       @foreach($warehouses as $w)
                         <option value="{{ $w->id }}" {{ old('warehouse_id') == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
                       @endforeach
                     </select>
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">مقدار</label>
-                        <input name="quantity" id="material-amount" onkeyup="Calculate()" type="text" dir="ltr"
-                               value="{{ old('quantity') }}" class="form-control quantity">
-                        <small class="text-danger">@error('quantity') {{ __('message.'.$message) }} @enderror</small>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                        <label class="">واحد</label>
-                        <input value="KG" type="text" class="form-control" readonly>
-                      </div>
-                    
-                    </div>
+                    <label class="">مقدار (Qty KG)</label>
+                    <input name="quantity" id="material-amount" type="number" step="0.01" value="{{ old('quantity') }}" class="form-control">
                   </div>
                 </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت فی کیلو به افغانی</label>
-                        <input name="price_per_kilo" id="material-price" value="{{ old('price_per_kilo') }}"
-                               onkeyup="Calculate()" type="text" dir="ltr" class="form-control quantity">
-                        <input type="hidden" value="{{$currency}}" id="currency">
-                        <small class="text-danger">@error('price_per_kilo') {{ __('message.'.$message) }}@enderror
-                        </small>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
-                        <label class="">واحد</label>
-                        <input type="text" value="AF" disabled class="form-control">
-                      </div>
-                    </div>
+                    <label class="">قیمت فی واحد (Price)</label>
+                    <input name="price_per_kilo" id="material-price" value="{{ old('price_per_kilo') }}" type="number" step="0.0001" class="form-control">
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت مجموع افغانی</label>
-                        <input id="material-af-total-price" name="total_af" type="text" dir="ltr"
-                               class="form-control quantity" readonly>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
-                        <label class="">واحد</label>
-                        <input value="AF" type="text" class="form-control" readonly>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت مجموع دالر</label>
-                        <input id="material-total-price" name="total" type="text" dir="ltr"
-                               class="form-control quantity" readonly>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                        <label class="">واحد</label>
-                        <input value="$" type="text" class="form-control" readonly>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">قیمت به حروف</label>
-                    <input type="text" class="form-control " name="in_words" placeholder="قیمت به حروف وارد کنید">
+                    <input type="text" class="form-control " name="in_words" placeholder="قیمت به حروف">
                   </div>
                 </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <label class="">تاریخ</label>
-                    <input id="purchase_date" name="purchase_date" type="date" class="form-control quantity">
-                    <small class="text-danger">@error('purchase_date') {{ __('message.'.$message) }}@enderror
-                    </small>
-                  </div>
+              </div>
+
+              <div class="row mt-3">
+                <!-- Row 3: Truth Preview -->
+                <div class="col-lg-12">
+                    <div class="truth-preview-box" style="background: #eef2f7; padding: 15px; border-radius: 8px; border-left: 5px solid #3498db;">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <span class="text-muted small"><i class="fa fa-shield"></i> معادل دالر (USD Equivalent):</span><br>
+                                <span class="font-weight-bold text-primary" id="usd_truth_preview" style="font-size: 1.4rem;">$ 0.0000</span>
+                            </div>
+                            <div class="col-md-4 border-left">
+                                <span class="text-muted small">مجموع ارز اصلی (Original Total):</span><br>
+                                <span class="text-dark font-weight-bold" id="original_total_preview" style="font-size: 1.2rem;">0.00</span>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                <div class="badge badge-info p-2">نارمل سازی شده (Normalized)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Legacy Hidden Fields -->
+                    <input type="hidden" id="material-af-total-price" name="total_af">
+                    <input type="hidden" id="material-total-price" name="total">
                 </div>
-              
               </div>
 
               <!-- ACCOUNT OVERRIDES -->
@@ -218,153 +197,129 @@
               <input type="hidden" name="old_quantity" value="{{$purchaseMaterial->quantity}}">
               <input type="hidden" name="old_price_per_kilo" value="{{$purchaseMaterial->price_per_kilo}}">
               <div class="row">
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+              <div class="row">
+                <!-- Row 1: Core Transaction Details -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">فاکتور خرید</label>
-                    <input type="text" class="form-control " value="{{$purchaseMaterial->purchase_number}}"
-                           name="purchase_number">
+                    <input type="text" class="form-control " value="{{$purchaseMaterial->purchase_number}}" name="purchase_number">
                   </div>
                 </div>
-                  <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-3 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <label class="">فروشنده</label>
-                    <select name="seller_id" id="seller_id" class="form-control">
+                    <label class="">فروشنده (Seller)</label>
+                    <select name="seller_id" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($sellers as $s)
                         <option value="{{ $s->id }}" {{ $purchaseMaterial->seller_id == $s->id ? 'selected' : '' }} >{{ $s->name }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('seller_id') {{ __('message.'.$message) }} @enderror</small>
                   </div>
                 </div>
-                     <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                   <div class="form-group fill">
+                     <label class="">ارز (Currency)</label>
+                     <select name="currency_id" id="currency_id" class="form-control select2">
+                       @foreach($currencies as $curr)
+                         <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" 
+                                 {{ $purchaseMaterial->currency_id == $curr->id ? 'selected' : ($curr->code == 'AFN' ? 'selected' : '') }}>
+                           {{ $curr->code }} ({{ $curr->symbol }})
+                         </option>
+                       @endforeach
+                     </select>
+                   </div>
+                 </div>
+                 <div class="col-lg-2 col-md-4 col-sm-6">
+                   <div class="form-group fill">
+                     <label class="">نرخ تبادله (Rate)</label>
+                     <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control bg-light" 
+                            value="{{ $purchaseMaterial->exchange_rate ?? 0 }}" readonly>
+                   </div>
+                 </div>
+                 <div class="col-lg-3 col-md-4 col-sm-6">
+                  <div class="form-group fill">
+                    <label class="">تاریخ (Date)</label>
+                    <input name="purchase_date" type="date" class="form-control" value="{{ $purchaseMaterial->purchase_date }}">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <!-- Row 2: Material & Logistics Details -->
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">کتگوری مواد</label>
-                    <select name="material_category" id="material_category" class="form-control">
+                    <select name="material_category" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($material_category as $mc)
                         <option {{ ($purchaseMaterial->material_category == $mc->material_category_id ? 'selected' : '') }} value="{{ $mc->material_category_id }}">{{ $mc->material_category }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('material_category') {{ __('message.'.$message) }}
-                      @enderror
-                    </small>
                   </div>
                 </div>
-                  <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">نوعیت مواد</label>
-                    <select name="material_type" id="material_type" class="form-control">
+                    <select name="material_type" class="form-control select2">
                       <option value="">~~~</option>
                       @foreach($material_type as $mt)
                         <option {{ ($purchaseMaterial->material_type == $mt->material_type_id ? 'selected' : '') }} value="{{ $mt->material_type_id }}">{{ $mt->material_type }}</option>
                       @endforeach
                     </select>
-                    <small class="text-danger">@error('material_type') {{ __('message.'.$message) }}@enderror
-                    </small>
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12" style="margin-top: 10px">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">گودام (Warehouse)</label>
-                    <select name="warehouse_id" id="warehouse_id_edit" class="form-control">
+                    <select name="warehouse_id" class="form-control select2">
                       @foreach($warehouses as $w)
                         <option value="{{ $w->id }}" {{ $purchaseMaterial->warehouse_id == $w->id ? 'selected' : '' }} >{{ $w->name }}</option>
                       @endforeach
                     </select>
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">مقدار</label>
-                        <input name="quantity" id="material-amount" onkeyup="Calculate()" type="text" dir="ltr"
-                               value="{{ $purchaseMaterial->quantity}}" class="form-control quantity">
-                        <small class="text-danger">@error('quantity') {{ __('message.'.$message) }} @enderror</small>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                        <label class="">واحد</label>
-                        <input value="KG" type="text" class="form-control" readonly>
-                      </div>
-                    
-                    </div>
+                    <label class="">مقدار (Qty KG)</label>
+                    <input name="quantity" id="material-amount" type="number" step="0.01" value="{{ $purchaseMaterial->quantity }}" class="form-control">
                   </div>
                 </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت فی کیلو به افغانی</label>
-                        <input name="price_per_kilo" id="material-price" value="{{ $purchaseMaterial->price_per_kilo }}"
-                               onkeyup="Calculate()" type="text" dir="ltr" class="form-control quantity">
-                        <input type="hidden" value="{{$currency}}" id="currency">
-                        <small class="text-danger">@error('price_per_kilo') {{ __('message.'.$message) }}@enderror
-                        </small>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
-                        <label class="">واحد</label>
-                        <input type="text" value="AF" disabled class="form-control">
-                      </div>
-                    </div>
+                    <label class="">قیمت فی واحد (Price)</label>
+                    <input name="price_per_kilo" id="material-price" value="{{ $purchaseMaterial->price_per_kilo }}" type="number" step="0.0001" class="form-control">
                   </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت مجموع افغانی</label>
-                        <input id="material-af-total-price" name="total_af" value="{{$purchaseMaterial->total_af}}"
-                               type="text" dir="ltr"
-                               class="form-control quantity" readonly>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
-                        <label class="">واحد</label>
-                        <input value="AF" type="text" class="form-control" readonly>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <div class="row">
-                      
-                      <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-                        <label class="">قیمت مجموع دالر</label>
-                        <input id="material-total-price" value="{{$purchaseMaterial->total}}" name="total" type="text"
-                               dir="ltr"
-                               class="form-control quantity" readonly>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                        <label class="">واحد</label>
-                        <input value="$" type="text" class="form-control" readonly>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <div class="col-lg-2 col-md-4 col-sm-6">
                   <div class="form-group fill">
                     <label class="">قیمت به حروف</label>
-                    <input type="text" class="form-control " value="{{$purchaseMaterial->in_words}}" name="in_words"
-                           placeholder="قیمت به حروف وارد کنید">
+                    <input type="text" class="form-control " name="in_words" value="{{ $purchaseMaterial->in_words }}" placeholder="قیمت به حروف">
                   </div>
                 </div>
-                
-                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                  <div class="form-group fill">
-                    <label class="">تاریخ</label>
-                    <input id="purchase_date" name="purchase_date" value="{{$purchaseMaterial->purchase_date}}"
-                           type="date" class="form-control quantity">
-                    <small class="text-danger">@error('purchase_date') {{ __('message.'.$message) }}@enderror
-                    </small>
-                  </div>
+              </div>
+
+              <div class="row mt-3">
+                <!-- Row 3: Truth Preview -->
+                <div class="col-lg-12">
+                    <div class="truth-preview-box" style="background: #eef2f7; padding: 15px; border-radius: 8px; border-left: 5px solid #3498db;">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <span class="text-muted small"><i class="fa fa-shield"></i> معادل دالر (USD Equivalent):</span><br>
+                                <span class="font-weight-bold text-primary" id="usd_truth_preview" style="font-size: 1.4rem;">$ {{ number_format($purchaseMaterial->total, 4) }}</span>
+                            </div>
+                            <div class="col-md-4 border-left">
+                                <span class="text-muted small">مجموع ارز اصلی (Original Total):</span><br>
+                                <span class="text-dark font-weight-bold" id="original_total_preview" style="font-size: 1.2rem;">{{ number_format($purchaseMaterial->original_amount ?? ($purchaseMaterial->quantity * $purchaseMaterial->price_per_kilo), 2) }}</span>
+                            </div>
+                            <div class="col-md-4 text-right">
+                                <div class="badge badge-info p-2">نارمل سازی شده (Normalized)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Legacy Hidden Fields -->
+                    <input type="hidden" id="material-af-total-price" name="total_af" value="{{ $purchaseMaterial->total_af }}">
+                    <input type="hidden" id="material-total-price" name="total" value="{{ $purchaseMaterial->total }}">
                 </div>
-              
               </div>
 
               <!-- ACCOUNT OVERRIDES EDIT -->
@@ -399,11 +354,10 @@
                   </div>
                 </div>
               </div>
-              <br>
               <div class="row">
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                   <div class="form-group fill">
-                    <button class="btn btn-warning btn-sm" type="button">انصراف</button>
+                    <a href="/dashboard/material-purchase" class="btn btn-warning btn-sm">انصراف</a>
                     <button class="btn btn-primary btn-sm" type="submit"><span class="fa fa-save"></span> ذخیره</button>
                   </div>
                 </div>
@@ -412,74 +366,219 @@
           @endif
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h5>لیست خرید ها</h5>
+
+      <div class="card mt-3" style="border: none; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+        <div class="card-header" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 8px 8px 0 0; padding: 16px 24px;">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h5 style="color: #fff; margin: 0; font-weight: 600; letter-spacing: 0.5px;">
+                <i class="fa fa-list-alt" style="color: #60a5fa; margin-left: 8px;"></i>
+                لیست خریدهای ثبت شده
+              </h5>
+              <small style="color: #94a3b8;">Material Purchase Ledger — Forensic View</small>
+            </div>
+            <div>
+              <span class="badge" style="background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;">
+                {{ $purchase->total() }} رکورد
+              </span>
+            </div>
+          </div>
           @if(session("status"))
-            <div class="alert alert-primary status" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              <p class="text-center">{{session('status')}}</p>
+            <div class="alert alert-success status mt-2 mb-0" role="alert" style="border-radius: 6px;">
+              <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+              {{ session('status') }}
             </div>
           @endif
         </div>
-        <div class="card-body">
-          <table class="table table-hover table-xs">
-            <thead>
-            <tr>
-              <th>فاکتور خرید</th>
-              <th>فروشنده</th>
-              <th>تاریخ خرید</th>
-              <th>کتگوری مواد</th>
-              <th>نوعیت مواد</th>
-              <th>مقدار</th>
-              <th>قیمت فی کیلو</th>
-              <th>قیمت مجموع افغانی</th>
-              <th>قیمت مجموع دالر</th>
-              <th>قیمت به حروف</th>
-              <th>حالت</th>
-              <th>ویرایش</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach($purchase as $p)
-              <tr>
-                <td>
-                  <a href="/dashboard/material-purchase/search-purchase-number/{{$p->purchase_number}},{{$p->seller_id}}"
-                  >&nbsp; {{$p->purchase_number}}</a></td>
-                <td>{{ $p->seller->name }}</td>
-                <td dir="ltr"
-                    style="text-align: right;">{{ \Carbon\Carbon::parse($p->purchase_date)->format('d-M-Y') }}</td>
-                <td>{{ $p->materialCategory->material_category }}</td>
-                <td>{{ $p->materialType->material_type }}</td>
-                
-                <td dir="ltr">{{ $p->quantity }} KG</td>
-                <td dir="ltr">{{ $p->price_per_kilo .'AF' }}</td>
-                <td dir="ltr">AF {{ $p->total_af}}</td>
-                <td dir="ltr">$ {{ $p->total}}</td>
-                
-                <td>{{ $p->in_words .' ' }}</td>
-                
-                @if($p->status == 0)
-                  
-                  <td class="hideOnPrint">
-                    <label class="badge badge-warning">درخواست تایید نشده</label></td>
-                @else
-                  
-                  <td class="hideOnPrint"><label for="" class="badge badge-success">درخواست تایید
-                      شد</label></td>
-                
-                @endif
-                @if($p->status == 1 || auth()->user()->role == 'SP')
-                <td><a href="/dashboard/material-purchase/{{$p->id}}/edit"
-                       class="btn btn-sm btn-info"> ویرایش</a>
-                </td>
-                @endif
-              </tr>
-            @endforeach
-            </tbody>
-          </table>
-          <p class="text-center">{{$purchase->links()}}</p>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table mb-0" id="purchase_table" style="font-size: 0.88rem;">
+              <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                <tr style="color: #475569;">
+                  <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">فاکتور #</th>
+                  <th style="padding: 12px 16px; font-weight: 600;">فروشنده</th>
+                  <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">تاریخ</th>
+                  <th style="padding: 12px 16px; font-weight: 600;">کتگوری</th>
+                  <th style="padding: 12px 16px; font-weight: 600;">نوعیت</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center;">مقدار</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: right;">قیمت/KG</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: right; border-left: 2px solid #e2e8f0;">
+                    <span style="color: #7c3aed;">مبلغ (ارز تراکنش)</span>
+                  </th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: right;">
+                    <span style="color: #059669;">معادل USD</span>
+                    <small class="d-block" style="font-weight:400; color:#94a3b8; font-size:0.72rem;">نرخ × مبلغ</small>
+                  </th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center;">گدام</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center;">حالت</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center;">اقدام</th>
+                </tr>
+              </thead>
+              <tbody>
+              @forelse($purchase as $p)
+                @php
+                  $currCode    = $p->currency_code ?? 'AFN';
+                  $exchRate    = $p->exchange_rate ?? 1;
+                  $origAmt     = $p->original_amount ?? ($p->quantity * $p->price_per_kilo);
+                  $baseUSD     = $p->base_currency_amount ?? ($origAmt / ($exchRate ?: 1));
+                  $isUSD       = ($currCode === 'USD');
+                  $rowBg       = $loop->even ? '#fafafa' : '#ffffff';
+                @endphp
+                <tr style="background: {{ $rowBg }}; border-bottom: 1px solid #f1f5f9; transition: background 0.15s;"
+                    onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='{{ $rowBg }}'">
+
+                  {{-- PO Number --}}
+                  <td style="padding: 10px 16px; white-space: nowrap;">
+                    <a href="/dashboard/material-purchase/search-purchase-number/{{ $p->purchase_number }},{{ $p->seller_id }}"
+                       style="font-weight: 700; color: #3b82f6; font-family: monospace; font-size: 0.85rem;">
+                      {{ $p->purchase_number }}
+                    </a>
+                  </td>
+
+                  {{-- Seller --}}
+                  <td style="padding: 10px 16px; color: #1e293b; font-weight: 500;">
+                    {{ $p->seller->name ?? '—' }}
+                  </td>
+
+                  {{-- Date --}}
+                  <td style="padding: 10px 16px; white-space: nowrap; color: #64748b;" dir="ltr">
+                    {{ \Carbon\Carbon::parse($p->purchase_date)->format('d M Y') }}
+                  </td>
+
+                  {{-- Category --}}
+                  <td style="padding: 10px 16px; color: #475569;">
+                    {{ $p->materialCategory->material_category ?? '—' }}
+                  </td>
+
+                  {{-- Type --}}
+                  <td style="padding: 10px 16px;">
+                    <span style="background: #ede9fe; color: #7c3aed; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                      {{ $p->materialType->material_type ?? '—' }}
+                    </span>
+                  </td>
+
+                  {{-- Quantity --}}
+                  <td style="padding: 10px 16px; text-align: center;" dir="ltr">
+                    <span style="font-weight: 700; color: #1e293b;">{{ number_format($p->quantity, 2) }}</span>
+                    <span style="color: #94a3b8; font-size: 0.78rem;"> KG</span>
+                  </td>
+
+                  {{-- Unit Price with currency --}}
+                  <td style="padding: 10px 16px; text-align: right;" dir="ltr">
+                    <span style="font-weight: 600; color: #374151;">{{ number_format($p->price_per_kilo, 2) }}</span>
+                    <span style="color: #94a3b8; font-size: 0.75rem; margin-right: 3px;">{{ $currCode }}</span>
+                  </td>
+
+                  {{-- Original Amount in transaction currency --}}
+                  <td style="padding: 10px 16px; text-align: right; border-left: 2px solid #ede9fe;" dir="ltr">
+                    <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                      <span style="font-weight: 700; color: #7c3aed; font-size: 1rem;">
+                        {{ number_format($origAmt, 2) }}
+                        <span style="font-size:0.78rem; font-weight:600; opacity:0.75;">{{ $currCode }}</span>
+                      </span>
+                      @if(!$isUSD)
+                        <small style="color: #94a3b8; font-size: 0.72rem;">
+                          نرخ: <span style="color:#7c3aed; font-weight:600;">{{ number_format($exchRate, 4) }}</span>
+                        </small>
+                      @endif
+                    </div>
+                  </td>
+
+                  {{-- USD Equivalent (normalized base) --}}
+                  <td style="padding: 10px 16px; text-align: right;" dir="ltr">
+                    <div style="display: inline-flex; align-items: center; gap: 4px; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; border: 1px solid #a7f3d0;">
+                      <span style="color: #059669; font-size: 0.8rem; font-weight: 600;">$</span>
+                      <span style="font-weight: 700; color: #065f46; font-size: 0.95rem;">
+                        {{ number_format($baseUSD, 2) }}
+                      </span>
+                    </div>
+                  </td>
+
+                  {{-- Warehouse --}}
+                  <td style="padding: 10px 16px; text-align: center;">
+                    @if($p->warehouse_id)
+                      <span style="background: #f0fdf4; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; border: 1px solid #bbf7d0;">
+                        {{ optional($p->warehouse)->name ?? 'گدام #'.$p->warehouse_id }}
+                      </span>
+                    @else
+                      <span style="color: #cbd5e1;">—</span>
+                    @endif
+                  </td>
+
+                  {{-- Status --}}
+                  <td style="padding: 10px 16px; text-align: center;">
+                    @if($p->status == 0)
+                      <span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid #fcd34d;">
+                        <i class="fa fa-clock-o"></i> در انتظار
+                      </span>
+                    @else
+                      <span style="background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; border: 1px solid #6ee7b7;">
+                        <i class="fa fa-check"></i> تایید شده
+                      </span>
+                    @endif
+                  </td>
+
+                  {{-- Actions --}}
+                  <td style="padding: 10px 16px; text-align: center; white-space: nowrap;">
+                    @if($p->status == 0 || auth()->user()->role == 'SP')
+                      <a href="/dashboard/material-purchase/{{ $p->id }}/edit"
+                         class="btn btn-xs"
+                         style="background: #3b82f6; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; text-decoration: none;">
+                        <i class="fa fa-edit"></i> ویرایش
+                      </a>
+                      <button onclick="deletePurchase({{ $p->id }})"
+                              class="btn btn-xs"
+                              style="background: #ef4444; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; margin-right: 4px; border: none; cursor: pointer;">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    @else
+                      <span style="color:#cbd5e1; font-size:0.78rem;">—</span>
+                    @endif
+                  </td>
+                </tr>
+              @empty
+                <tr>
+                  <td colspan="12" style="text-align:center; padding: 40px; color: #94a3b8;">
+                    <i class="fa fa-inbox" style="font-size: 2rem; display:block; margin-bottom: 8px;"></i>
+                    هیچ رکوردی یافت نشد
+                  </td>
+                </tr>
+              @endforelse
+              </tbody>
+
+              {{-- Summary Footer Row --}}
+              @if($purchase->count() > 0)
+              <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
+                <tr>
+                  <td colspan="5" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
+                    مجموع صفحه جاری:
+                  </td>
+                  <td style="padding: 10px 16px; font-weight: 700; color: #1e293b; text-align: center;" dir="ltr">
+                    {{ number_format($purchase->sum('quantity'), 2) }} KG
+                  </td>
+                  <td></td>
+                  <td style="padding: 10px 16px; font-weight: 700; color: #7c3aed; text-align: right;" dir="ltr">
+                    — mixed currencies —
+                  </td>
+                  <td style="padding: 10px 16px; text-align: right;" dir="ltr">
+                    <div style="display: inline-flex; align-items: center; gap: 4px; background: #ecfdf5; padding: 5px 12px; border-radius: 8px; border: 1px solid #6ee7b7;">
+                      <span style="color:#059669; font-weight:600;">$</span>
+                      <span style="font-weight: 800; color: #065f46;">
+                        {{ number_format($purchase->sum('base_currency_amount'), 2) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td colspan="3"></td>
+                </tr>
+              </tfoot>
+              @endif
+            </table>
+          </div>
+
+          {{-- Pagination --}}
+          <div style="padding: 16px 20px; border-top: 1px solid #f1f5f9; background: #fafafa; border-radius: 0 0 8px 8px;">
+            {{ $purchase->links() }}
+          </div>
         </div>
       </div>
     </div>
@@ -488,67 +587,69 @@
 
 @section('scripts')
   <script>
-        $('#seller_id').select2();
-      $('#material_category').select2();
-      $('#material_type').select2();
-      $('#override_debit_account_id').select2();
-      $('#override_credit_account_id').select2();
-      $('.select2').select2();
-  
-      $('.status').show();
-      window.setTimeout(function () {
-          $(".status").fadeTo(500, 0).slideUp(500, function () {
- 
-              $(this).remove();
-          });
-      }, 2000);
+    // Select2 init
+    $('#seller_id, #material_category, #material_type, #override_debit_account_id, #override_credit_account_id, .select2').select2();
 
-      // Material Amount
-      $("#material-amount").blur(function () {
-          var ma = $('#material-amount').val();
-          var mainma = parseFloat(ma).toFixed(2);
-          if (isNaN(mainma)) {
-              $("#material-amount").val();
-          } else {
-              $("#material-amount").val(mainma);
-          }
-      });
-      // Material Price
-      $("#material-price").blur(function () {
-          var mp = $('#material-price').val();
-          var mainmp = parseFloat(mp).toFixed(2);
-          if (isNaN(mainmp)) {
-              $("#material-price").val();
-          } else {
-              $("#material-price").val(mainmp);
-          }
-      });
-      //total price
-      $("#material-amount,#material-price").blur(function () {
-          var mp = $('#material-price').val();
-          var midmp = parseFloat(mp).toFixed(2);
-          var c = $('#currency').val();
-          var mainmp = midmp / c;
-          var ma = $('#material-amount').val();
-          var mainma = parseFloat(ma).toFixed(2);
-          if (mainma != '' && mainmp != '') {
-              var t = mainmp * mainma;
-              var at = midmp * mainma;
-              var total = parseFloat(t).toFixed(2);
-              var atotal = parseFloat(at).toFixed(2);
-              if (isNaN(total)) {
-                  $("#material-total-price").val();
+    // Flash status message
+    $('.status').show();
+    window.setTimeout(function() {
+      $(".status").fadeTo(500, 0).slideUp(500, function() { $(this).remove(); });
+    }, 2500);
 
-              } else {
-                  $("#material-total-price").val(total);
+    // LIVE FORENSIC CALCULATION
+    $('#currency_id').on('change', function() {
+      const rate = $(this).find(':selected').data('rate');
+      const code = $(this).find(':selected').text().split('(')[0].trim();
+      $('#exchange_rate').val(rate).removeAttr('readonly');
+      // Allow manual override for non-standard rates
+      Calculate();
+    });
+
+    function Calculate() {
+      const qty       = parseFloat($('#material-amount').val()) || 0;
+      const unitPrice = parseFloat($('#material-price').val()) || 0;
+      const rate      = parseFloat($('#exchange_rate').val()) || 1;
+      const code      = $('#currency_id option:selected').text().split('(')[0].trim();
+
+      const originalTotal = qty * unitPrice;
+      const baseUSD       = originalTotal * rate;
+
+      // Update live preview
+      $('#original_total_preview').html(
+        '<strong>' + originalTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) +
+        '</strong> <span style="color:#7c3aed; font-weight:700;">' + code + '</span>'
+      );
+      $('#usd_truth_preview').text('$ ' + baseUSD.toLocaleString('en-US', {minimumFractionDigits: 4, maximumFractionDigits: 4}));
+
+      // Update legacy hidden fields
+      $('#material-total-price').val(baseUSD.toFixed(4));
+      $('#material-af-total-price').val(originalTotal.toFixed(4));
+    }
+
+    $('#material-amount, #material-price, #exchange_rate').on('input', Calculate);
+    Calculate();
+
+    // Delete purchase confirmation
+    function deletePurchase(id) {
+      if (typeof swal === 'function') {
+        swal({
+          text: "آیا از حذف این رکورد مطمئن هستید؟",
+          icon: "warning",
+          buttons: { confirm: { text: 'بلی، حذف کن', className: 'btn-danger' }, cancel: 'انصراف' },
+          dangerMode: true
+        }).then(function(willDelete) {
+          if (willDelete) {
+            $.ajax({
+              type: 'DELETE',
+              url: '/dashboard/material-purchase/' + id,
+              data: { '_token': '{{ csrf_token() }}' },
+              success: function(res) {
+                if (res.status === 'success') location.reload();
               }
-              if (isNaN(atotal)) {
-                  $("#material-af-total-price").val();
-              } else {
-                  $("#material-af-total-price").val(atotal);
-              }
+            });
           }
-      });
-  
+        });
+      }
+    }
   </script>
 @endsection

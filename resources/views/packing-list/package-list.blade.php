@@ -109,7 +109,7 @@
                                 @php($package_count = 0)
                                 
                                 @foreach($package->carpet as $carpet)
-                                    @php($sale = \Illuminate\Support\Facades\DB::table('sales')->where('carpet_id',$carpet->carpet_id)->first())
+                                    @php($sale = \Illuminate\Support\Facades\DB::table('sales')->where('carpet_id',$carpet->carpet_id)->where('is_returned', 0)->first())
                                     @php($c_area = $sale->carpet_area ?? $carpet->area)
                                     @php($c_width = $sale->carpet_width ?? $carpet->width)
                                     @php($c_height = $sale->carpet_height ?? $carpet->height)
@@ -145,7 +145,7 @@
                                     <td colspan="2">{{$package_list->sum(function($p){ return $p->carpet->count(); })}} تخته</td>
                                     <td class="font-weight-bold">{{number_format($package_list->sum(function($p){ 
                                         return $p->carpet->sum(function($c){
-                                            $s = \Illuminate\Support\Facades\DB::table('sales')->where('carpet_id',$c->carpet_id)->first();
+                                            $s = \Illuminate\Support\Facades\DB::table('sales')->where('carpet_id',$c->carpet_id)->where('is_returned', 0)->first();
                                             return $s->carpet_area ?? $c->area;
                                         });
                                     }), 2)}} m²</td>

@@ -93,11 +93,19 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="py-3 border-bottom">تغییر در حساب‌های پرداختنی (Account Payables)</td>
-                                    <td class="py-3 text-right border-bottom {{ $adjustments['payables'] < 0 ? 'text-danger' : 'text-success' }}">
+                                    <td class="py-3 {{ !(isset($adjustments['other']) && abs($adjustments['other']) > 0.001) ? 'border-bottom' : '' }}">تغییر در حساب‌های پرداختنی (Account Payables)</td>
+                                    <td class="py-3 text-right {{ !(isset($adjustments['other']) && abs($adjustments['other']) > 0.001) ? 'border-bottom' : '' }} {{ $adjustments['payables'] < 0 ? 'text-danger' : 'text-success' }}">
                                         {{ $adjustments['payables'] > 0 ? '+' : '' }}{{ number_format($adjustments['payables'], 2) }}
                                     </td>
                                 </tr>
+                                @if(isset($adjustments['other']) && abs($adjustments['other']) > 0.001)
+                                <tr>
+                                    <td class="py-3 border-bottom">سایر دارایی‌ها و بدهی‌های عملیاتی (Other Operating Items)</td>
+                                    <td class="py-3 text-right border-bottom {{ $adjustments['other'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $adjustments['other'] > 0 ? '+' : '' }}{{ number_format($adjustments['other'], 2) }}
+                                    </td>
+                                </tr>
+                                @endif
                             </tbody>
                             <tfoot>
                                 <tr class="font-weight-bold" style="background: #f0fbfc;">
@@ -125,11 +133,19 @@
                         <table class="table table-hover">
                             <tbody>
                                 <tr>
-                                    <td class="py-3">تغییر در دارایی‌های ثابت (Fixed Assets)</td>
-                                    <td class="py-3 text-right {{ $investing['fixed_assets'] < 0 ? 'text-danger' : 'text-success' }}">
+                                    <td class="py-3 {{ !(isset($investing['other']) && abs($investing['other']) > 0.001) ? 'border-bottom' : '' }}">تغییر در دارایی‌های ثابت (Fixed Assets)</td>
+                                    <td class="py-3 text-right {{ !(isset($investing['other']) && abs($investing['other']) > 0.001) ? 'border-bottom' : '' }} {{ $investing['fixed_assets'] < 0 ? 'text-danger' : 'text-success' }}">
                                         {{ $investing['fixed_assets'] > 0 ? '+' : '' }}{{ number_format($investing['fixed_assets'], 2) }}
                                     </td>
                                 </tr>
+                                @if(isset($investing['other']) && abs($investing['other']) > 0.001)
+                                <tr>
+                                    <td class="py-3 border-bottom">سایر فعالیت‌های سرمایه‌گذاری (Other Investing Items)</td>
+                                    <td class="py-3 text-right border-bottom {{ $investing['other'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $investing['other'] > 0 ? '+' : '' }}{{ number_format($investing['other'], 2) }}
+                                    </td>
+                                </tr>
+                                @endif
                             </tbody>
                             <tfoot>
                                 <tr class="font-weight-bold" style="background: #fffde7;">
@@ -151,11 +167,27 @@
                         <table class="table table-hover">
                             <tbody>
                                 <tr>
-                                    <td class="py-3">تغییر در حقوق مالکانه (Equity / Investment)</td>
-                                    <td class="py-3 text-right {{ $financing['equity'] < 0 ? 'text-danger' : 'text-success' }}">
+                                    <td class="py-3 {{ (!(isset($financing['retained_earnings']) && abs($financing['retained_earnings']) > 0.001) && !(isset($financing['other']) && abs($financing['other']) > 0.001)) ? 'border-bottom' : '' }}">تغییر در حقوق مالکانه (Equity / Investment)</td>
+                                    <td class="py-3 text-right {{ (!(isset($financing['retained_earnings']) && abs($financing['retained_earnings']) > 0.001) && !(isset($financing['other']) && abs($financing['other']) > 0.001)) ? 'border-bottom' : '' }} {{ $financing['equity'] < 0 ? 'text-danger' : 'text-success' }}">
                                         {{ $financing['equity'] > 0 ? '+' : '' }}{{ number_format($financing['equity'], 2) }}
                                     </td>
                                 </tr>
+                                @if(isset($financing['retained_earnings']) && abs($financing['retained_earnings']) > 0.001)
+                                <tr>
+                                    <td class="py-3 {{ !(isset($financing['other']) && abs($financing['other']) > 0.001) ? 'border-bottom' : '' }}">تعدیلات مستقیم حقوق مالکان / سود انباشته (Retained Earnings Direct Adjustments)</td>
+                                    <td class="py-3 text-right {{ !(isset($financing['other']) && abs($financing['other']) > 0.001) ? 'border-bottom' : '' }} {{ $financing['retained_earnings'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $financing['retained_earnings'] > 0 ? '+' : '' }}{{ number_format($financing['retained_earnings'], 2) }}
+                                    </td>
+                                </tr>
+                                @endif
+                                @if(isset($financing['other']) && abs($financing['other']) > 0.001)
+                                <tr>
+                                    <td class="py-3 border-bottom">سایر فعالیت‌های تأمین مالی (Other Financing Items)</td>
+                                    <td class="py-3 text-right border-bottom {{ $financing['other'] < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $financing['other'] > 0 ? '+' : '' }}{{ number_format($financing['other'], 2) }}
+                                    </td>
+                                </tr>
+                                @endif
                             </tbody>
                             <tfoot>
                                 <tr class="font-weight-bold" style="background: #e8f5e9;">
@@ -168,7 +200,7 @@
                 </div>
 
                 <!-- TOTAL SUMMARY -->
-                <div class="card border-0 shadow-lg mb-5 overflow-hidden" style="border-radius: 15px;">
+                <div class="card border-0 shadow-lg mb-4 overflow-hidden" style="border-radius: 15px;">
                     <div class="row no-gutters">
                         <div class="col-md-8 bg-dark text-white p-4">
                             <h4 class="text-white font-weight-bold mb-1">خالص تغییر در نقدینگی (کل)</h4>
@@ -177,6 +209,53 @@
                         <div class="col-md-4 bg-info text-white p-4 text-center d-flex align-items-center justify-content-center">
                             <h2 class="text-white font-weight-bold mb-0">{{ number_format($net_change_in_cash, 2) }}</h2>
                         </div>
+                    </div>
+                </div>
+
+                <!-- CASH RECONCILIATION DETAIL -->
+                <div class="card border-0 shadow-sm mb-5" style="border-radius: 15px; border-right: 6px solid #101010 !important; background: #fafafa;">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="font-weight-bold text-dark mb-0">تطبیق نقدینگی با دفتر کل (Cash Reconciliation)</h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <table class="table table-hover">
+                            <tbody>
+                                <tr>
+                                    <td class="py-3">موجودی نقد اول دوره (Beginning Cash - {{ $startDate }})</td>
+                                    <td class="py-3 text-right font-weight-bold text-dark">{{ number_format($beginning_cash, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3">خالص تغییر در نقدینگی محاسباتی (Calculated Net Cash Flow)</td>
+                                    <td class="py-3 text-right font-weight-bold {{ $net_change_in_cash < 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ $net_change_in_cash > 0 ? '+' : '' }}{{ number_format($net_change_in_cash, 2) }}
+                                    </td>
+                                </tr>
+                                <tr class="font-weight-bold" style="background: #e1f5fe;">
+                                    <td class="py-3">مانده نقد پایانی محاسباتی (Calculated Ending Cash)</td>
+                                    <td class="py-3 text-right text-primary" style="font-size: 1.1rem;">{{ number_format($beginning_cash + $net_change_in_cash, 2) }}</td>
+                                </tr>
+                                <tr class="font-weight-bold" style="background: #f1f8e9;">
+                                    <td class="py-3">مانده نقد پایانی واقعی در دفتر کل (Actual Ledger Ending Cash - {{ $endDate }})</td>
+                                    <td class="py-3 text-right text-success" style="font-size: 1.1rem;">{{ number_format($ending_cash, 2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        @if($reconciled)
+                            <div class="alert alert-success border-0 shadow-sm d-flex align-items-center mb-0" style="border-radius: 10px; background: rgba(76, 175, 80, 0.1); color: #2e7d32;">
+                                <i class="feather icon-check-circle mr-2" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <strong>مطابقت کامل:</strong> صورت جریان وجوه نقد به طور دقیق با مانده حساب‌های نقد و بانک در دفتر کل تطبیق داده شده است.
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-0" style="border-radius: 10px; background: rgba(255, 152, 0, 0.1); color: #ef6c00;">
+                                <i class="feather icon-alert-triangle mr-2" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <strong>مغایرت محاسباتی:</strong> اختلاف {{ number_format(abs(($beginning_cash + $net_change_in_cash) - $ending_cash), 2) }} در تطبیق نقدینگی مشاهده شده است. تراکنش‌های تعلیق شده یا اصلاحات مستقیم دفاتر را بررسی کنید.
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 

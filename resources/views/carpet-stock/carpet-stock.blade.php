@@ -70,6 +70,47 @@
               </form>
             </div>
           </div>
+
+          <!-- METRICS OVERVIEW CARDS -->
+          <div class="row mt-3 mb-2 hideOnPrint">
+            <div class="col-lg-6 col-md-6 col-sm-12 col-12">
+              <div class="card border-0 shadow-sm" style="border-radius: 12px; background: rgba(0, 123, 255, 0.07); border-left: 5px solid #007bff !important; margin-bottom: 10px;">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="text-muted mb-1 font-weight-bold" style="font-size: 0.9rem;">تعداد قالین های موجود (Total Quantity)</h6>
+                    <h3 class="mb-0 text-primary font-weight-bold">{{ $carpets->total() }} <span style="font-size: 1rem; font-weight: normal;">تخته</span></h3>
+                  </div>
+                  <div class="bg-primary text-white p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                    <i class="fa fa-th-large" style="font-size: 1.2rem;"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-lg-6 col-md-6 col-sm-12 col-12">
+              <div class="card border-0 shadow-sm" style="border-radius: 12px; background: rgba(40, 167, 69, 0.07); border-left: 5px solid #28a745 !important; margin-bottom: 10px;">
+                <div class="card-body py-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="text-muted mb-1 font-weight-bold" style="font-size: 0.9rem;">مجموع مساحت قالین ها (Total Area - H × W)</h6>
+                    <h3 class="mb-0 text-success font-weight-bold">{{ number_format($carpets->sum('area'), 2) }} <span style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span></h3>
+                  </div>
+                  <div class="bg-success text-white p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                    <i class="fa fa-arrows-alt" style="font-size: 1.2rem;"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          @if(request()->fullUrl() != url('/dashboard/carpet-stock'))
+            <div class="row mt-2 mb-1 hideOnPrint">
+              <div class="col-lg-12 text-right">
+                <a href="/dashboard/carpet-stock" class="btn btn-sm btn-danger shadow-sm font-weight-bold" style="border-radius: 6px; padding: 6px 12px;">
+                  <i class="feather icon-x-circle"></i> پاک کردن فیلترها (Clear Filters)
+                </a>
+              </div>
+            </div>
+          @endif
          
           @if(session("status"))
             <div class="alert alert-success status" style="display:none;" role="alert">
@@ -202,44 +243,64 @@
               
                       <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
                         <div class="form-group fill">
-    
-                          <label>قیمت تمام شد فی متر</label>
+                          <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (USD)</label>
                           <input type="text" name="price_per_meter" id="price_per_meter" class="form-control bg-light" readonly>
-  
                         </div>
                       </div>
               
                       <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
                         <div class="form-group fill">
-    
-                          <label>قیمت مجموع تمام شد</label>
-                          <input type="text" name="total_price_cost" id="total_price_cost" class="form-control bg-light" readonly>
+                          <label class="font-weight-bold text-muted">قیمت مجموع تمام شد (USD)</label>
+                          <input type="text" name="total_price_cost" id="total_price_cost" class="form-control bg-light font-weight-bold text-danger" readonly>
                         </div>
                       </div>
+
                       <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
                         <div class="form-group fill">
-                          <label>قیمت فروش فی متر</label>
-                          <input type="text" required name="sale_cost_per_meter" id="sale_cost_per_meter"
-                                 class="form-control border-primary">
-                          <small class="text-danger">@error('sale_cost_per_meter') {{ __('message.'.$message) }}
-                            @enderror
-                          </small>
+                          <label class="font-weight-bold text-success">اسعار فروش (Currency)</label>
+                          <select name="currency_id" id="sale_currency_id" class="form-control font-weight-bold border-success" style="border: 2px solid #28a745;" required>
+                            @foreach($currencies as $curr)
+                              <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" data-code="{{ $curr->code }}" {{ $curr->code == 'USD' ? 'selected' : '' }}>
+                                {{ $curr->code }} ({{ $curr->symbol }}) - Rate: {{ $curr->exchange_rate }}
+                              </option>
+                            @endforeach
+                          </select>
                         </div>
                       </div>
+
                       <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
                         <div class="form-group fill">
-    
-                          <label>قیمت مجموع فروش</label>
+                          <label class="font-weight-bold text-success">نرخ تبادله (Exchange Rate)</label>
+                          <input type="number" step="any" name="exchange_rate" id="sale_exchange_rate" class="form-control border-success font-weight-bold" style="border: 2px solid #28a745;" value="1.0" required>
+                        </div>
+                      </div>
+
+                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                        <div class="form-group fill">
+                          <label class="font-weight-bold text-success">قیمت فروش فی متر (به اسعار انتخابی)</label>
+                          <input type="text" required name="sale_cost_per_meter" id="sale_cost_per_meter" class="form-control border-primary font-weight-bold">
+                          <small class="text-danger">@error('sale_cost_per_meter') {{ __('message.'.$message) }} @enderror</small>
+                        </div>
+                      </div>
+
+                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                        <div class="form-group fill">
+                          <label class="font-weight-bold text-primary">قیمت مجموع فروش (به اسعار انتخابی)</label>
                           <input type="text" name="sale_cost_total" id="sale_cost_total" class="form-control bg-light font-weight-bold text-primary" readonly>
-  
                         </div>
                       </div>
+
                       <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
                         <div class="form-group fill">
-    
-                          <label>کود مشتری</label>
+                          <label class="font-weight-bold text-danger">مجموع فروش به دالر (Total Sale USD)</label>
+                          <input type="text" name="sale_cost_total_usd" id="sale_cost_total_usd" class="form-control bg-light font-weight-bold text-danger" readonly>
+                        </div>
+                      </div>
+
+                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                        <div class="form-group fill">
+                          <label class="font-weight-bold text-dark">کود مشتری</label>
                           <input type="text" name="customer_code" required="" id="customer_code" class="form-control border-primary">
-  
                         </div>
                       </div>
             
@@ -467,6 +528,35 @@
   <script type="text/javascript">
       $(document).ready(function () {
 
+          function calculateSalePrices() {
+              var carpet_area = parseFloat($('#carpet_area').val()) || 0;
+              var sale_cost_per_meter = parseFloat($('#sale_cost_per_meter').val()) || 0;
+              var exchange_rate = parseFloat($('#sale_exchange_rate').val()) || 1.0;
+              
+              if (carpet_area > 0 && sale_cost_per_meter > 0) {
+                  var total_cost = (sale_cost_per_meter * carpet_area).toFixed(2);
+                  $('#sale_cost_total').val(total_cost);
+                  
+                  // Total in USD
+                  var total_usd = (total_cost * exchange_rate).toFixed(2);
+                  $('#sale_cost_total_usd').val(total_usd);
+              } else {
+                  $('#sale_cost_total').val('0.00');
+                  $('#sale_cost_total_usd').val('0.00');
+              }
+          }
+
+          $('#sale_currency_id').change(function () {
+              var selected = $(this).find(':selected');
+              var rate = parseFloat(selected.data('rate')) || 1.0;
+              $('#sale_exchange_rate').val(rate);
+              calculateSalePrices();
+          });
+
+          $('#sale_exchange_rate, #sale_cost_per_meter').on('input change keyup', function() {
+              calculateSalePrices();
+          });
+
           $('#carpet_height, #carpet_width').keyup(function () {
               var carpet_height = parseFloat($('#carpet_height').val()) || 0;
               var carpet_width = parseFloat($('#carpet_width').val()) || 0;
@@ -477,11 +567,7 @@
               if(carpet_area > 0) {
                   $('#price_per_meter').val((total_price / carpet_area).toFixed(2));
               }
-              
-              var sale_cost_per_meter = parseFloat($("#sale_cost_per_meter").val()) || 0;
-              if (sale_cost_per_meter > 0) {
-                  $('#sale_cost_total').val((sale_cost_per_meter * carpet_area).toFixed(2));
-              }
+              calculateSalePrices();
           });
 
           $('#invoice_id').change(function () {
@@ -493,12 +579,6 @@
 
               var company_address = $('#invoice_id option:selected').attr('customer_address');
               $('#company_address').val(company_address);
-          });
-
-          $("#sale_cost_per_meter").keyup(function () {
-              var sale_cost_per_meter = parseFloat($(this).val()) || 0;
-              var carpet_area = parseFloat($('#carpet_area').val()) || 0;
-              $('#sale_cost_total').val((sale_cost_per_meter * carpet_area).toFixed(2));
           });
       });
   </script>

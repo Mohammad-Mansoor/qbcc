@@ -20,57 +20,100 @@ class CustomerController extends Controller
      */
     public function index()
     {
-
         $customerEdit = "";
         $customers = Customer::paginate(30);
-        $customers->getCollection()->transform(function($cust) {
-            return $this->enrichCustomerRecord($cust);
-        });
+        $this->enrichCustomerRecordsBatch($customers->getCollection());
+
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
         
-        // Global Receivable Total from Ledger
+        // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
             ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('credit - debit'));
+            ->sum(DB::raw('base_credit - base_debit'));
 
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af', 'total_receivable'));
+        return view('customers.customers', compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af', 'total_receivable'));
     }
 
-    private function enrichCustomerRecord($cust)
+    private function enrichCustomerRecordsBatch($customers)
     {
-        // 1. Live Ledger Balance (Net Position)
-        $cust->ledger_balance = DB::table('ledger_entries')
-            ->where('party_type', 'App\Customer')
-            ->where('party_id', $cust->id)
-            ->sum(DB::raw('credit - debit'));
-
-        // 2. Lifetime Sales Value
-        $cust->lifetime_sales = DB::table('sales')
-            ->where('customer_id', $cust->id)
-            ->sum('sale_cost_total');
-
-        // 3. Last Activity Date
-        $last_payment = DB::table('customer_payments')->where('customer_id', $cust->id)->max('date');
-        $last_sale = DB::table('sales')->where('customer_id', $cust->id)->max('sale_date');
-        $cust->last_activity = max($last_payment, $last_sale);
-        
-        // 4. Activity Ageing (Days)
-        if ($cust->last_activity) {
-            $cust->days_since_active = Carbon::now()->diffInDays(Carbon::parse($cust->last_activity));
+        if ($customers->isEmpty()) {
+            return $customers;
         }
 
-        return $cust;
+        $customerIds = $customers->pluck('id')->toArray();
+
+        // 1. Lifetime Sales Value
+        $sales = DB::table('sales')
+            ->select('customer_id', DB::raw('SUM(sale_cost_total) as total'))
+            ->whereIn('customer_id', $customerIds)
+            ->where('is_returned', 0)
+            ->groupBy('customer_id')
+            ->pluck('total', 'customer_id');
+
+        // 2. Live Ledger Balance (Net Position in Base Currency USD)
+        $ledgerBalances = DB::table('ledger_entries')
+            ->select('party_id', DB::raw('SUM(base_credit - base_debit) as balance'))
+            ->where('party_type', 'App\Customer')
+            ->whereIn('party_id', $customerIds)
+            ->groupBy('party_id')
+            ->pluck('balance', 'party_id');
+
+        // 3. Payments totals for USD & AFN
+        $paymentBalances = DB::table('customer_payments')
+            ->select('customer_id',
+                DB::raw("SUM(CASE WHEN type = 'رسید' THEN amount ELSE -amount END) as usd_balance"),
+                DB::raw("SUM(CASE WHEN type = 'رسید' THEN amount_af ELSE -amount_af END) as af_balance")
+            )
+            ->whereIn('customer_id', $customerIds)
+            ->groupBy('customer_id')
+            ->get()
+            ->keyBy('customer_id');
+
+        // 4. Last Activity Date
+        $lastPayments = DB::table('customer_payments')
+            ->select('customer_id', DB::raw('MAX(date) as last_date'))
+            ->whereIn('customer_id', $customerIds)
+            ->groupBy('customer_id')
+            ->pluck('last_date', 'customer_id');
+
+        $lastSales = DB::table('sales')
+            ->select('customer_id', DB::raw('MAX(sale_date) as last_date'))
+            ->whereIn('customer_id', $customerIds)
+            ->groupBy('customer_id')
+            ->pluck('last_date', 'customer_id');
+
+        $now = Carbon::now();
+
+        foreach ($customers as $cust) {
+            $cust->lifetime_sales = $sales->get($cust->id, 0);
+            $cust->ledger_balance = $ledgerBalances->get($cust->id, 0);
+            
+            $payBal = $paymentBalances->get($cust->id);
+            $cust->total_usd = $payBal ? $payBal->usd_balance : 0;
+            $cust->total_af = $payBal ? $payBal->af_balance : 0;
+
+            $lastPay = $lastPayments->get($cust->id);
+            $lastSale = $lastSales->get($cust->id);
+            $cust->last_activity = max($lastPay, $lastSale);
+
+            if ($cust->last_activity) {
+                $cust->days_since_active = $now->diffInDays(Carbon::parse($cust->last_activity));
+            } else {
+                $cust->days_since_active = null;
+            }
+        }
+
+        return $customers;
     }
 
     public function search(Request $request)
     {
         $search = $request->search;
-
         $customerEdit = "";
+        
         $customers = Customer::where('customer_code', 'like','%'.$search.'%')
             ->orWhere('name', 'like', '%' .$search.'%')
             ->orWhere('type', 'like', '%'.$search.'%')
@@ -81,42 +124,39 @@ class CustomerController extends Controller
             ->orWhere('website', 'like', '%'.$search.'%')
             ->paginate(30);
         
-        $customers->getCollection()->transform(function($cust) {
-            return $this->enrichCustomerRecord($cust);
-        });
+        $this->enrichCustomerRecordsBatch($customers->getCollection());
 
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
 
+        // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
             ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('credit - debit'));
+            ->sum(DB::raw('base_credit - base_debit'));
 
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','search', 'total_receivable'));
+        return view('customers.customers', compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','search', 'total_receivable'));
     }
 
-    public function accounts(){
+    public function accounts()
+    {
         $customerEdit = "";
         $customers = Customer::paginate(30);
-        $customers->getCollection()->transform(function($cust) {
-            return $this->enrichCustomerRecord($cust);
-        });
+        $this->enrichCustomerRecordsBatch($customers->getCollection());
         
         $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-
         $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
         
+        // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
             ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('credit - debit'));
+            ->sum(DB::raw('base_credit - base_debit'));
 
         $accounts = '';
-        return view('customers.customers',compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','accounts', 'total_receivable'));
+        return view('customers.customers', compact('customers','customerEdit','credit_us','credit_af','debit_us','debit_af','accounts', 'total_receivable'));
     }
     /**
      * Show the form for creating a new resource.

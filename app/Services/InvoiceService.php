@@ -16,7 +16,7 @@ class InvoiceService
             ->with(['sale', 'payments'])
             ->get()
             ->map(function ($invoice) {
-                $totalAmount = $invoice->sale->sum('sale_cost_total');
+                $totalAmount = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
                 $paidAmount = $invoice->payments->sum('amount_applied');
                 $invoice->total_amount = $totalAmount;
                 $invoice->paid_amount = $paidAmount;

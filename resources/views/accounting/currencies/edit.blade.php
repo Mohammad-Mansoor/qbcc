@@ -45,69 +45,58 @@
                         </div>
                     </div>
 
-                    <div class="form-group bg-light p-4 rounded border shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="font-weight-bold text-primary mb-0">نرخ تبادله (Exchange Rate)</label>
-                            <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" id="rate_direction" onchange="calculateInverse()">
-                                <label class="custom-control-label small text-muted" for="rate_direction">ورود نرخ بر اساس 1 {{ \App\Currency::getBase()->code }}</label>
+                    <div class="form-group mb-4" id="rate_field_container" style="{{ $currency->is_base_currency ? 'display:none' : '' }}">
+                        <div class="bg-light p-4 rounded border shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="font-weight-bold text-primary mb-0">نرخ تبادله (Exchange Rate)</label>
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="rate_direction" onchange="calculateInverse()">
+                                    <label class="custom-control-label small text-muted" for="rate_direction">ورود نرخ بر اساس 1 {{ \App\Currency::getBase()->code }}</label>
+                                </div>
+                            </div>
+
+                            <div class="input-group input-group-lg" id="direct_input_group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-white" id="left_unit">1 {{ $currency->code }} =</span>
+                                </div>
+                                <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control @error('exchange_rate') is-invalid @enderror" value="{{ old('exchange_rate', $currency->exchange_rate) }}" required oninput="calculateInverse()">
+                                <div class="input-group-append">
+                                    <span class="input-group-text bg-white font-weight-bold" id="base_label">{{ \App\Currency::getBase()->code }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 text-muted small">
+                                <i class="feather icon-help-circle mr-1"></i>
+                                <strong>راهنما:</strong> در این فیلد وارد کنید که هر 1 واحد از این اسعار چقدر ارزش در برابر اسعار پایه دارد.
+                                <br>
+                                <span class="text-primary">(Example: If 1 AFN = 0.015 USD, enter 0.015 here)</span>
+                            </div>
+
+                            <div class="mt-3 p-3 bg-white rounded border border-info" id="inverse_container">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="feather icon-repeat mr-2 text-info"></i>
+                                    <strong class="text-info">محاسبه نهایی و نرخ معکوس:</strong>
+                                </div>
+                                <div id="inverse_text" class="h6 mb-0 font-weight-bold">...</div>
+                                <div class="mt-2 small text-muted border-top pt-2">
+                                    این بخش به شما کمک می‌کند تا مطمئن شوید نرخ را درست وارد کرده‌اید. مثلاً نشان می‌دهد هر 1 دلار معادل چند افغانی است.
+                                </div>
                             </div>
                         </div>
-
-                        <div class="input-group input-group-lg" id="direct_input_group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text bg-white" id="left_unit">1 {{ $currency->code }} =</span>
-                            </div>
-                            <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control @error('exchange_rate') is-invalid @enderror" value="{{ old('exchange_rate', $currency->exchange_rate) }}" required {{ $currency->is_base_currency ? 'readonly' : '' }} oninput="calculateInverse()">
-                            <div class="input-group-append">
-                                <span class="input-group-text bg-white font-weight-bold" id="base_label">{{ \App\Currency::getBase()->code }}</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 p-3 bg-white rounded border border-info" id="inverse_container" style="{{ $currency->is_base_currency ? 'display:none;' : '' }}">
-                            <p class="mb-0 text-info">
-                                <i class="feather icon-repeat mr-2"></i>
-                                <strong>محاسبه نهایی:</strong> 
-                                <span id="inverse_text">...</span>
-                            </p>
-                        </div>
-
-                        @if($currency->is_base_currency)
-                            <small class="form-text text-success mt-2 font-weight-bold">
-                                <i class="feather icon-lock mr-1"></i>
-                                این اسعار پایه سیستم است. نرخ آن همیشه 1.00 است.
-                            </small>
-                        @endif
                     </div>
 
+                    @if($currency->is_base_currency)
+                        <small class="form-text text-success mt-2 mb-3 font-weight-bold">
+                            <i class="feather icon-lock mr-1"></i>
+                            این اسعار پایه سیستم است. نرخ آن همیشه 1.00 است.
+                        </small>
+                    @endif
+
                     <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="custom-control custom-switch mb-3">
-                                <input type="checkbox" name="is_base_currency" class="custom-control-input" id="is_base_currency" {{ $currency->is_base_currency ? 'checked' : '' }} onchange="toggleBaseCurrency(this)">
-                                <label class="custom-control-label font-weight-bold" for="is_base_currency">به عنوان اسعار پایه (Base) تنظیم شود</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="custom-control custom-switch mb-3">
                                 <input type="checkbox" name="is_active" class="custom-control-input" id="is_active" {{ $currency->is_active ? 'checked' : '' }} {{ $currency->is_base_currency ? 'disabled' : '' }}>
                                 <label class="custom-control-label font-weight-bold" for="is_active">فعال باشد</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="base_change_warning" class="alert alert-warning shadow-sm border-warning" style="display: none;">
-                        <div class="d-flex">
-                            <i class="feather icon-alert-triangle mr-3 h3 mb-0"></i>
-                            <div>
-                                <h6 class="alert-heading font-weight-bold">هشدار: تغییر اسعار پایه سیستم</h6>
-                                <p class="mb-0 small text-dark">
-                                    با انتخاب این گزینه به عنوان اسعار پایه، تمام نرخ‌های تبادله اسعار دیگر به صورت خودکار بر اساس نرخ فعلی این اسعار محاسبه مجدد خواهند شد. 
-                                    <br>
-                                    <strong>مثلاً:</strong> اگر قبلاً نرخ‌ها بر اساس دلار بود و اکنون افغانی را پایه قرار دهید، نرخ دلار به ۶۳ افغانی (معکوس) تبدیل خواهد شد.
-                                </p>
-                                <p class="mt-2 mb-0 font-weight-bold text-danger small">
-                                    * لطفاً پس از ذخیره، تمامی نرخ‌ها را در جدول اصلی چک و تایید کنید.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -136,15 +125,9 @@
         const baseCode = "{{ \App\Currency::getBase()->code }}";
         const inverseText = document.getElementById('inverse_text');
         const inverseContainer = document.getElementById('inverse_container');
-        const isBase = document.getElementById('is_base_currency').checked;
         const isInverseMode = document.getElementById('rate_direction').checked;
         const leftUnit = document.getElementById('left_unit');
         const baseLabel = document.getElementById('base_label');
-
-        if (isBase) {
-            inverseContainer.style.display = 'none';
-            return;
-        }
 
         inverseContainer.style.display = 'block';
         
@@ -155,8 +138,6 @@
             if (rate > 0) {
                 const actualRate = (1 / rate).toFixed(12);
                 inverseText.innerHTML = `نرخ ذخیره شده در سیستم: 1 ${code} = <strong>${actualRate}</strong> ${baseCode}`;
-                // Note: We don't change the hidden input value here, the controller must handle the inversion
-                // or we use a hidden field. To keep it simple, let's just use the display.
             }
         } else {
             // Mode: 1 AFN = X USD
@@ -178,8 +159,8 @@
         const isOriginallyBase = {{ $currency->is_base_currency ? 'true' : 'false' }};
         
         if (checkbox.checked) {
-            rateInput.value = "1.00000000";
-            rateInput.readOnly = true;
+            // When setting as base, we don't lock it yet because we need the current rate for math shift
+            rateInput.readOnly = false; 
             activeSwitch.checked = true;
             activeSwitch.disabled = true;
             baseLabel.innerText = currentCode + " (Base)";

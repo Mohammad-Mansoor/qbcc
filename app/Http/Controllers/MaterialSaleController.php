@@ -9,6 +9,7 @@ use App\MaterialCategory;
 use App\MaterialSale;
 use App\MaterialStock;
 use App\MaterialType;
+use App\Currency;
 use App\Services\AccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -55,12 +56,8 @@ class MaterialSaleController extends Controller
                     
                     // Also check if we have a WAC item registered
                     $item = DB::table('items')
-                        ->where('type', 'App\PurchaseMaterial')
-                        ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
-                        ->where('purchase_materials.material_category', $catId)
-                        ->where('purchase_materials.material_type', $typeId)
-                        ->orderBy('purchase_materials.id', 'DESC')
-                        ->select('items.current_cost')
+                        ->where('type', 'App\MaterialType')
+                        ->where('ref_id', $typeId)
                         ->first();
                     
                     if ($item) {
@@ -128,11 +125,13 @@ class MaterialSaleController extends Controller
 
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
         $warehouses = \App\Warehouse::all();
+        $currencies = Currency::where('is_active', 1)->get();
+        $baseCurrency = Currency::where('is_base_currency', 1)->first();
 
         return view('mstock.material-sale', compact(
             'material_sales', 'categories', 'material_types', 'saleEdit', 'agents','SaleNo', 
             'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
-            'mapping', 'warehouses'
+            'mapping', 'warehouses', 'currencies', 'baseCurrency'
         ));
     }
 
@@ -148,36 +147,30 @@ class MaterialSaleController extends Controller
         $requests = MaterialSale::with(['agent.user', 'category', 'type', 'warehouse', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
             ->where('status', 0)
             ->orderBy('id', 'DESC')
-            ->get();
+            ->paginate(30);
 
         foreach ($requests as $req) {
-            // Get WAC
+            // Get WAC from App\MaterialType item
             $wac = 0;
-            $stockRec = MaterialStock::where('material_category', $req->category_id)
-                ->where('material_type', $req->type_id)
+            $item = DB::table('items')
+                ->where('type', 'App\MaterialType')
+                ->where('ref_id', $req->type_id)
                 ->first();
-            
-            if ($stockRec) {
-                $wac = $stockRec->price_per_kilo;
-                $item = DB::table('items')
-                    ->where('type', 'App\PurchaseMaterial')
-                    ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
-                    ->where('purchase_materials.material_category', $req->category_id)
-                    ->where('purchase_materials.material_type', $req->type_id)
-                    ->orderBy('purchase_materials.id', 'DESC')
-                    ->select('items.current_cost')
+            if ($item) {
+                $wac = $item->current_cost;
+            } else {
+                $stockRec = MaterialStock::where('material_category', $req->category_id)
+                    ->where('material_type', $req->type_id)
                     ->first();
-                if ($item) $wac = $item->current_cost;
+                if ($stockRec) $wac = $stockRec->price_per_kilo;
             }
             $req->estimated_wac = $wac;
 
             // Get Stock (Warehouse-specific from inventory_transactions)
             $req->available_stock = DB::table('inventory_transactions')
                 ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
-                ->where('items.type', 'App\PurchaseMaterial')
-                ->where('purchase_materials.material_category', $req->category_id)
-                ->where('purchase_materials.material_type', $req->type_id)
+                ->where('items.type', 'App\MaterialType')
+                ->where('items.ref_id', $req->type_id)
                 ->where('inventory_transactions.warehouse_id', $req->warehouse_id ?? 1)
                 ->where('inventory_transactions.status', 1)
                 ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as balance")
@@ -195,10 +188,13 @@ class MaterialSaleController extends Controller
             $this->inventoryManager->processSale($sale, [
                 'quantity' => $sale->amount,
                 'unit_cost' => 0, // WAC handled
+                'currency_code' => $sale->currency_code,
+                'exchange_rate' => $sale->exchange_rate,
                 'warehouse_id' => $sale->warehouse_id ?? 1,
                 'date' => $sale->date,
-                'sale_amount' => $sale->total_price_af,
-                'customer_id' => $sale->agent_id,
+                'sale_amount' => $sale->original_amount,
+                'party_type' => 'App\Agents',
+                'party_id' => $sale->agent_id,
                 'reference' => $sale->sale_number,
                 'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
                 'override_debit_account_id' => $sale->override_debit_account_id,
@@ -245,21 +241,29 @@ class MaterialSaleController extends Controller
 
             $data = $request->validate([
                 'agent_id' => 'required',
+                'sale_number' => 'required',
                 'amount' => 'required',
                 'price' => 'required',
                 'total_price' => 'required',
                 'total_price_af' => 'required',
-                'type_id' => 'required',
-                'category_id' => 'required',
                 'date' => 'required',
-                'sale_number' => 'required',
-                'warehouse_id' => '',
-                'override_debit_account_id' => '',
-                'override_credit_account_id' => '',
-                'override_cogs_debit_id' => '',
-                'override_cogs_credit_id' => '',
-                'status' => ''
+                'category_id' => 'required',
+                'type_id' => 'required',
+                'warehouse_id' => 'nullable',
+                'override_debit_account_id' => 'nullable',
+                'override_credit_account_id' => 'nullable',
+                'override_cogs_debit_id' => 'nullable',
+                'override_cogs_credit_id' => 'nullable',
+                'currency_id' => 'required',
+                'exchange_rate' => 'required',
+                'original_amount' => 'required'
             ]);
+
+            $currency = Currency::findOrFail($request->currency_id);
+            $data['currency_code'] = $currency->code;
+            
+            // Normalized USD Base Calculation
+            $data['base_currency_amount'] = bcmul($request->original_amount, $request->exchange_rate, 4);
 
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
 
@@ -269,10 +273,13 @@ class MaterialSaleController extends Controller
                 $this->inventoryManager->processSale($sale, [
                     'quantity' => $sale->amount,
                     'unit_cost' => 0, // WAC handled
+                    'currency_code' => $sale->currency_code,
+                    'exchange_rate' => $sale->exchange_rate,
                     'warehouse_id' => $sale->warehouse_id ?? 1,
                     'date' => $sale->date,
-                    'sale_amount' => $sale->total_price_af,
-                    'customer_id' => $sale->agent_id,
+                    'sale_amount' => $sale->original_amount,
+                    'party_type' => 'App\Agents',
+                    'party_id' => $sale->agent_id,
                     'reference' => $sale->sale_number,
                     'description' => "فروش مواد به نماینده " . Agents::find($sale->agent_id)->name,
                     'override_debit_account_id' => $sale->override_debit_account_id,
@@ -318,11 +325,13 @@ class MaterialSaleController extends Controller
         
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
         $warehouses = \App\Warehouse::all();
+        $currencies = Currency::where('is_active', 1)->get();
+        $baseCurrency = Currency::where('is_base_currency', 1)->first();
 
         return view('mstock.material-sale', compact(
             'material_sales', 'agents', 'categories', 'material_types', 'saleEdit',
             'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
-            'mapping', 'warehouses'
+            'mapping', 'warehouses', 'currencies', 'baseCurrency'
         ));
     }
 
@@ -359,6 +368,16 @@ class MaterialSaleController extends Controller
             $materialSale->date = $request->date;
             $materialSale->category_id = $request->category_id;
             $materialSale->type_id = $request->type_id;
+
+            // Forensic Updates
+            $materialSale->currency_id = $request->currency_id;
+            $materialSale->exchange_rate = $request->exchange_rate;
+            $materialSale->original_amount = $request->original_amount;
+            
+            $currency = Currency::findOrFail($request->currency_id);
+            $materialSale->currency_code = $currency->code;
+            $materialSale->base_currency_amount = bcmul($request->original_amount, $request->exchange_rate, 4);
+
             $materialSale->update();
 
             // Re-process if approved
@@ -366,10 +385,13 @@ class MaterialSaleController extends Controller
                 $this->inventoryManager->processSale($materialSale, [
                     'quantity' => $materialSale->amount,
                     'unit_cost' => 0, // WAC handled
+                    'currency_code' => $materialSale->currency_code,
+                    'exchange_rate' => $materialSale->exchange_rate,
                     'warehouse_id' => $request->warehouse_id ?? 1,
                     'date' => $materialSale->date,
-                    'sale_amount' => $materialSale->total_price_af,
-                    'customer_id' => $materialSale->agent_id,
+                    'sale_amount' => $materialSale->original_amount,
+                    'party_type' => 'App\Agents',
+                    'party_id' => $materialSale->agent_id,
                     'reference' => $materialSale->sale_number,
                     'description' => "فروش مواد به نماینده " . Agents::find($materialSale->agent_id)->name,
                     'override_debit_account_id' => $request->override_debit_account_id,

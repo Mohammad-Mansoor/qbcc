@@ -36,20 +36,13 @@ class CurrencyController extends Controller
 
         try {
             DB::transaction(function () use ($request) {
-                $isBase = $request->has('is_base_currency');
-
-                if ($isBase) {
-                    // Reset existing base currency
-                    Currency::where('is_base_currency', true)->update(['is_base_currency' => false]);
-                    $request->merge(['exchange_rate' => 1]); // Force rate to 1 for base
-                }
-
+                // BASE CURRENCY IS FIXED TO USD. No new base currencies allowed.
                 Currency::create([
                     'code' => strtoupper($request->code),
                     'name' => $request->name,
                     'symbol' => $request->symbol,
-                    'exchange_rate' => $isBase ? 1.00000000 : $request->exchange_rate,
-                    'is_base_currency' => $isBase,
+                    'exchange_rate' => $request->exchange_rate,
+                    'is_base_currency' => false,
                     'is_active' => $request->has('is_active'),
                     'decimal_precision' => $request->decimal_precision,
                 ]);
@@ -82,49 +75,25 @@ class CurrencyController extends Controller
 
         try {
             DB::transaction(function () use ($request, $currency) {
-                $isBase = $request->has('is_base_currency');
-                $oldBaseRate = $currency->exchange_rate;
-
-                if ($isBase && !$currency->is_base_currency) {
-                    // CHANGING BASE CURRENCY DETECTED
-                    if ($oldBaseRate <= 0) {
-                        throw new Exception("Cannot set a currency with zero rate as base.");
-                    }
-
-                    // 1. Reset all other currencies to NOT be base
-                    Currency::where('is_base_currency', true)->update(['is_base_currency' => false]);
-
-                    // 2. Recalculate ALL currency rates relative to the NEW base
-                    // Formula: NewRate = OldRate / OldRateOfNewBase
-                    $allCurrencies = Currency::all();
-                    foreach ($allCurrencies as $cur) {
-                        if ($cur->id == $currency->id) {
-                            $newRate = 1.00000000; // The new base is always 1.0
-                        } else {
-                            // Use high precision division for the new rate
-                            $newRate = bcdiv($cur->exchange_rate, $oldBaseRate, 12);
-                        }
-                        
-                        $cur->update([
-                            'exchange_rate' => $newRate,
-                            'is_base_currency' => ($cur->id == $currency->id)
-                        ]);
-                    }
-                }
-
-                // Normal update for non-base change or other fields
-                $currency->update([
+                // BASE CURRENCY IS FIXED TO USD. 
+                // Any attempts to change is_base_currency via request are ignored.
+                
+                $data = [
                     'code' => strtoupper($request->code),
                     'name' => $request->name,
                     'symbol' => $request->symbol,
-                    'is_active' => $isBase ? true : $request->has('is_active'),
+                    'is_active' => $currency->is_base_currency ? true : $request->has('is_active'),
                     'decimal_precision' => $request->decimal_precision,
-                ]);
-                
-                // If not changing base, just update its rate normally
-                if (!$isBase) {
-                    $currency->update(['exchange_rate' => $request->exchange_rate]);
+                ];
+
+                // If this IS the base currency (USD), force rate to 1.0
+                if ($currency->is_base_currency) {
+                    $data['exchange_rate'] = 1.00000000;
+                } else {
+                    $data['exchange_rate'] = $request->exchange_rate;
                 }
+
+                $currency->update($data);
             });
 
             return redirect()->route('accounting.currencies.index')

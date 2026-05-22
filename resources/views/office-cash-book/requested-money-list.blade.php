@@ -57,7 +57,7 @@
                     <thead class="bg-light text-muted small text-uppercase">
                         <tr>
                             <th class="px-4 py-3 border-0">درخواست کننده</th>
-                            <th class="py-3 border-0 text-center">مقدار ($)</th>
+                            <th class="py-3 border-0 text-center">مبلغ و ارز</th>
                             <th class="py-3 border-0">توضیحات</th>
                             <th class="py-3 border-0 text-center">تاریخ</th>
                             <th class="px-4 py-3 border-0 text-left hideOnPrint">عملیات تایید</th>
@@ -76,7 +76,13 @@
                                     </h6>
                                 </div>
                             </td>
-                            <td class="text-center font-weight-bold text-primary">${{ number_format($c->amount, 2) }}</td>
+                            <td class="text-center font-weight-bold text-primary">
+                                {{ number_format($c->original_amount ?: $c->amount, 2) }} 
+                                <span class="badge badge-primary px-2 py-1 rounded-pill small">{{ $c->currency_code ?: 'USD' }}</span>
+                                @if($c->currency_code && $c->currency_code != 'USD')
+                                    <span class="text-muted small d-block mt-1">(معادل ${{ number_format($c->base_amount, 2) }})</span>
+                                @endif
+                            </td>
                             <td class="small">{{ $c->description }}</td>
                             <td class="text-center small text-muted">{{ $c->date }}</td>
                             <td class="px-4 py-3 text-left hideOnPrint">

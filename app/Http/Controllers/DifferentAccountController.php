@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Activity;
 use App\DifferentAccount;
 use App\DifferentAccountPayment;
-
 use App\DifferentAccountTotal;
+use App\Currency;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,42 +30,28 @@ class DifferentAccountController extends Controller
         $sp_accounts = DifferentAccount::all();
         return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts'));
     }
+
     public function search(Request $request)
     {
         $search = $request->search;
-
-
         $accountEdit = "";
         $center_accounts = DifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
-
             ->get();
         $froshat_accounts = DifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
-
             ->get();
         $mo_accounts = DifferentAccount::where('user_role','MO')->where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
-
             ->get();
         $sp_accounts = DifferentAccount::where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
-
             ->get();
         return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','search'));
-    }
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -97,7 +83,7 @@ class DifferentAccountController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\DifferentAccount  $differentAccount
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
@@ -106,21 +92,24 @@ class DifferentAccountController extends Controller
         $payments = DifferentAccountPayment::where('account_id',$id)->orderBy('created_at','DESC')->paginate(30);
         $totals = \App\DifferentAccountTotal::where('account_id', $id)->get();
         $paymentEdit = '';
-        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit'));
+        $currencies = Currency::all();
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit', 'currencies'));
     }
+
     public function show_all_payment($account_id){
         $account = DifferentAccount::find($account_id);
         $payments = DifferentAccountPayment::where('account_id',$account_id)->orderBy('created_at','DESC')->get();
         $totals = \App\DifferentAccountTotal::where('account_id', $account_id)->get();
         $paymentEdit = '';
         $all = '';
-        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all'));
+        $currencies = Currency::all();
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all', 'currencies'));
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\DifferentAccount  $differentAccount
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -139,7 +128,7 @@ class DifferentAccountController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\DifferentAccount  $differentAccount
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -153,7 +142,6 @@ class DifferentAccountController extends Controller
         $activity->save();
 
         $account->update($this->valData());
-
 
         if ($account) {
             return redirect('/dashboard/different-account')->with('status', ' موفقانه بروز شد !');
@@ -175,18 +163,13 @@ class DifferentAccountController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\DifferentAccount  $differentAccount
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
         $account = DifferentAccount::find($id);
-
-
         $account->delete();
-
-
-        return response()->json(['status','error']);
+        return response()->json(['status' => 'success']);
     }
-
 }

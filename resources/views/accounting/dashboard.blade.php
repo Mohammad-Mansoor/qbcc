@@ -18,8 +18,9 @@
             <div class="d-inline-block mr-3 text-right" style="vertical-align: middle;">
                 <label class="small text-muted d-block mb-0">واحد پولی نمایش</label>
                 <div class="btn-group btn-group-sm shadow-sm rounded-pill overflow-hidden bg-white border">
-                    <button type="button" onclick="setCurrency('USD')" id="btnUSD" class="btn btn-white px-3 active">USD</button>
-                    <button type="button" onclick="setCurrency('AFN')" id="btnAFN" class="btn btn-white px-3">AFN</button>
+                    @foreach($currencies as $c)
+                        <button type="button" onclick="setCurrency('{{ $c->code }}')" id="btn{{ $c->code }}" class="btn btn-white px-3 {{ $c->code == 'USD' ? 'active btn-primary text-white' : '' }}">{{ $c->code }}</button>
+                    @endforeach
                 </div>
             </div>
 
@@ -165,11 +166,36 @@
                 </div>
             </div>
         </div>
-        <!-- Period Closing -->
+        <!-- Period Closing & Cash Balances -->
         <div class="col-md-4 mb-4">
+            <!-- Cash Balances Breakdown Card -->
+            <div class="card border-0 shadow-sm mb-3" style="border-radius: 20px; background: #fff;">
+                <div class="card-header bg-white border-0 py-3 px-4">
+                    <h5 class="font-weight-bold mb-0">موجودی صندوق‌ها (Cash Balances)</h5>
+                </div>
+                <div class="card-body p-0 px-4 pb-3">
+                    @foreach($cashAccounts as $acc)
+                    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                        <span class="text-muted small">{{ $acc['name'] }}</span>
+                        <div class="text-right">
+                            <span class="font-weight-bold text-primary" style="font-size: 0.9rem;">
+                                {{ number_format($acc['balance'], 2) }} <small class="text-muted">{{ $acc['currency'] }}</small>
+                            </span>
+                            @if($acc['currency'] !== 'USD')
+                            <div class="text-muted" style="font-size: 0.7rem;">
+                                Equivalent: ${{ number_format($acc['base_balance'], 2) }}
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Quick Reports Card -->
             <div class="card border-0 shadow-sm" style="border-radius: 20px; background: #fff;">
                 <div class="card-body p-4 text-center">
-                    <h5 class="font-weight-bold mb-4">دسترسی سریع به گزارشات</h5>
+                    <h5 class="font-weight-bold mb-3">دسترسی سریع به گزارشات</h5>
                     <div class="row">
                         <div class="col-6 mb-2"><a href="{{ route('accounting.reports.balance_sheet') }}" class="btn btn-outline-primary btn-block rounded py-3 small font-weight-bold">ترازنامه</a></div>
                         <div class="col-6 mb-2"><a href="{{ route('accounting.reports.profit_loss') }}" class="btn btn-outline-success btn-block rounded py-3 small font-weight-bold">مفاد و ضرر</a></div>
@@ -206,7 +232,17 @@
                                 <td class="small">{{ $tx->date }}</td>
                                 <td class="font-weight-bold">#{{ $tx->id }}</td>
                                 <td class="small">{{ $tx->description }}</td>
-                                <td class="text-right font-weight-bold currency-val" data-usd="{{ $tx->entries->sum('debit') }}">{{ number_format($tx->entries->sum('debit'), 2) }}</td>
+                                <td class="text-right">
+                                    <span class="font-weight-bold currency-val" data-usd="{{ $tx->entries->sum('base_debit') }}">{{ number_format($tx->entries->sum('base_debit'), 2) }}</span>
+                                    <div class="small text-muted" style="font-size: 0.75rem;">
+                                        @php
+                                            $originalDetails = $tx->entries->filter(function($e) { return $e->debit > 0; })->map(function($e) {
+                                                return number_format($e->debit, 2) . ' ' . ($e->currency_code ?? 'USD');
+                                            })->unique()->implode(', ');
+                                        @endphp
+                                        {{ $originalDetails }}
+                                    </div>
+                                </td>
                                 <td class="text-center">
                                     <span class="badge badge-pill badge-light-success px-3">ثبت شده</span>
                                 </td>
@@ -253,23 +289,39 @@
 </div>
 
 <script>
-    const EXCHANGE_RATE = {{ $exchangeRate }};
+    const CURRENCY_RATES = {
+        @foreach($currencies as $c)
+            '{{ $c->code }}': {{ $c->exchange_rate }},
+        @endforeach
+    };
     let currentCurrency = 'USD';
 
     function setCurrency(cur) {
         currentCurrency = cur;
+        const rate = CURRENCY_RATES[cur] || 1.0;
+
         $('.currency-val').each(function() {
             let usdVal = parseFloat($(this).data('usd'));
-            let displayVal = (cur === 'USD') ? usdVal : (usdVal * EXCHANGE_RATE);
-            $(this).text(displayVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-            
-            // Update labels
-            $('.currency-label').text(cur);
+            if (isNaN(usdVal)) return;
+
+            let displayVal = usdVal;
+            if (cur !== 'USD') {
+                displayVal = (rate > 0) ? (usdVal / rate) : 0;
+            }
+
+            if ($(this).find('.currency-label').length > 0 || $(this).html().toLowerCase().includes('small')) {
+                $(this).html(number_format(displayVal, 2) + ' <small class="f-12 currency-label">' + cur + '</small>');
+            } else {
+                $(this).text(number_format(displayVal, 2));
+            }
         });
 
-        // Toggle button states
-        $('#btnUSD').toggleClass('active', cur === 'USD').toggleClass('btn-primary text-white', cur === 'USD').toggleClass('btn-white', cur !== 'USD');
-        $('#btnAFN').toggleClass('active', cur === 'AFN').toggleClass('btn-primary text-white', cur === 'AFN').toggleClass('btn-white', cur !== 'AFN');
+        // Toggle active button class for all currency buttons
+        $('.btn-group button').removeClass('active btn-primary text-white').addClass('btn-white');
+        $('#btn' + cur).addClass('active btn-primary text-white').removeClass('btn-white');
+
+        // Update any other currency labels
+        $('.currency-label').text(cur);
     }
     
     // Auto-update USD labels on page load
@@ -277,7 +329,7 @@
         // Find all H3 and other financial values and wrap them in currency-val if not already
         $('h3.text-white, h3.text-dark').each(function() {
             if (!$(this).hasClass('currency-val')) {
-                let text = $(this).text().replace(/,/g, '');
+                let text = $(this).text().replace(/,/g, '').trim();
                 let val = parseFloat(text);
                 if (!isNaN(val)) {
                     $(this).addClass('currency-val').data('usd', val);

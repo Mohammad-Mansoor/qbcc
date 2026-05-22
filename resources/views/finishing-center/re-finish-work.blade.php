@@ -27,17 +27,20 @@
                   </div>
                   <div class="col-lg-3">
                       <div class="form-group">
-                          <label class="pull-right">واحد پولی (Currency)</label>
+                          <label class="pull-right" style="font-weight: 600;">واحد پولی (Currency)</label>
                           <select name="currency_code" id="currency_code" class="form-control" required>
-                              <option value="USD">USD ($)</option>
-                              <option value="AFN">AFN (؋)</option>
+                              @foreach($currencies as $curr)
+                                  <option value="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}" {{ $curr->code == 'USD' ? 'selected' : '' }}>
+                                      {{ $curr->code }} ({{ $curr->symbol }}) - {{ $curr->name }}
+                                  </option>
+                              @endforeach
                           </select>
                       </div>
                   </div>
                   <div class="col-lg-3">
                       <div class="form-group">
-                          <label class="pull-right">نرخ تبادله (به دالر)</label>
-                          <input type="text" name="exchange_rate" id="exchange_rate" value="{{ $currency }}" class="form-control" required>
+                          <label class="pull-right" style="font-weight: 600;">نرخ تبادله (به دالر)</label>
+                          <input type="number" step="any" name="exchange_rate" id="exchange_rate" value="1.0" class="form-control bg-light" required>
                       </div>
                   </div>
                   <div class="col-lg-3">
@@ -736,11 +739,39 @@
 
   <script>
       $(document).ready(function () {
-          $('.select2').select2();
-          $('#override_debit_account_id').select2();
-          $('#override_credit_account_id').select2();
-          $('#currency_code').select2();
-          $('select').select2();
+          $('.select2').select2({ width: '100%' });
+          $('#override_debit_account_id').select2({ width: '100%' });
+          $('#override_credit_account_id').select2({ width: '100%' });
+          $('#currency_code').select2({ width: '100%' });
+          $('select').select2({ width: '100%' });
+
+          function updateCurrencyUI() {
+              let selectedOption = $('#currency_code').find('option:selected');
+              let code = $('#currency_code').val();
+              let rate = parseFloat(selectedOption.data('rate')) || 1.0;
+              
+              // Standard division: 1 USD = X Local. Since DB rate is 1 Local = X USD,
+              // we display 1 / database_rate in the form to remain intuitive.
+              if (code === 'USD') {
+                  $('#exchange_rate').val(1.0);
+              } else {
+                  if (rate > 0) {
+                      $('#exchange_rate').val((1 / rate).toFixed(6));
+                  } else {
+                      $('#exchange_rate').val(1.0);
+                  }
+              }
+              
+              // Update placeholders next to expense inputs dynamically based on selected currency
+              $('.price_af_qaitan, .price_af_rofo, .price_af_cheet, .price_af_labaki, .price_af_popak, .price_af_kash, .price_af_rang, .price_af_shiraza').each(function() {
+                  $(this).attr('placeholder', 'مصرف به ' + code);
+              });
+          }
+          
+          $('#currency_code').on('change', updateCurrencyUI);
+          
+          // Trigger change on load to sync with active rate
+          updateCurrencyUI();
       });
       function valid() {
           var qaitan_checkbox = $('.qaitan_checkbox').prop('checked');

@@ -69,17 +69,105 @@
         <!-- Rules Grouped by Type -->
         @php
             $types = [
-                'sale' => ['title' => 'طی مراحل فروشات (Sales Cycle)', 'color' => '#4099ff', 'icon' => 'shopping-cart', 'sub' => 'مدیریت حساب‌های درآمد و نقدینگی فروش'],
-                'purchase' => ['title' => 'طی مراحل خریداری مواد (Material Purchase)', 'color' => '#2ed8b6', 'icon' => 'package', 'sub' => 'مدیریت حساب‌های موجودی کالا و بدهی به فروشندگان'],
-                'washing' => ['title' => 'طی مراحل شست (Washing Cycle)', 'color' => '#673ab7', 'icon' => 'droplet', 'sub' => 'مدیریت حساب‌های هزینه شست و سرمایه‌گذاری در موجودی (WIP)'],
-                'finishing' => ['title' => 'طی مراحل تیاری (Finishing Cycle)', 'color' => '#e91e63', 'icon' => 'check-circle', 'sub' => 'مدیریت حساب‌های هزینه تیاری و سرمایه‌گذاری در موجودی (WIP)'],
-                'kachaee' => ['title' => 'طی مراحل کچایی و ترمیم (Kachaee/Repair)', 'color' => '#ff5722', 'icon' => 'tool', 'sub' => 'مدیریت حساب‌های هزینه ترمیم و سرمایه‌گذاری در موجودی (WIP)'],
-                'customer_payment' => ['title' => 'رسیدات از مشتریان (Customer Receipts)', 'color' => '#ffb64d', 'icon' => 'user-check', 'sub' => 'مدیریت دریافت پول و تسویه حساب مشتریان'],
-                'payment' => ['title' => 'پرداخت‌های تیم‌ها و فروشندگان (Team/Seller Payments)', 'color' => '#009688', 'icon' => 'credit-card', 'sub' => 'مدیریت پرداخت‌های نقدی از صندوق به حساب‌های پرداختنی'],
+                'sale' => [
+                    'title' => 'طی مراحل فروشات (Sales Cycle)', 
+                    'color' => '#4099ff', 
+                    'icon' => 'shopping-cart', 
+                    'sub' => 'مدیریت حساب‌های درآمد و نقدینگی فروش',
+                    'db_types' => ['sale']
+                ],
+                'customer_payment' => [
+                    'title' => 'رسیدات از مشتریان (Customer Receipts)', 
+                    'color' => '#ffb64d', 
+                    'icon' => 'user-check', 
+                    'sub' => 'مدیریت دریافت پول و تسویه حساب مشتریان',
+                    'db_types' => ['customer_payment']
+                ],
+                'agent_payment' => [
+                    'title' => 'حسابات نماینده ها (Agent Transactions)', 
+                    'color' => '#9575cd', 
+                    'icon' => 'users', 
+                    'sub' => 'مدیریت دریافت و پرداخت‌های مالی نماینده‌ها',
+                    'db_types' => ['agent_payment']
+                ],
+                'material_purchase' => [
+                    'title' => 'خریداری مواد اولیه (Material Purchases)', 
+                    'color' => '#2ed8b6', 
+                    'icon' => 'package', 
+                    'sub' => 'مدیریت حساب‌های موجودی کالا و بدهی به فروشندگان مواد',
+                    'db_types' => ['material_purchase', 'material_payment_in', 'material_payment_out']
+                ],
+                'washing' => [
+                    'title' => 'طی مراحل شست (Washing Cycle)', 
+                    'color' => '#00bcd4', 
+                    'icon' => 'droplet', 
+                    'sub' => 'مدیریت حساب‌های هزینه شست و سرمایه‌گذاری در موجودی (WIP)',
+                    'db_types' => ['washing', 'washing_payment']
+                ],
+                'finishing' => [
+                    'title' => 'طی مراحل تیاری (Finishing Cycle)', 
+                    'color' => '#e91e63', 
+                    'icon' => 'check-circle', 
+                    'sub' => 'مدیریت حساب‌های هزینه تیاری و سرمایه‌گذاری در موجودی (WIP)',
+                    'db_types' => ['finishing', 'finishing_payment']
+                ],
+                'kachaee' => [
+                    'title' => 'طی مراحل کچایی و ترمیم (Kachaee/Repair)', 
+                    'color' => '#ff5722', 
+                    'icon' => 'tool', 
+                    'sub' => 'مدیریت حساب‌های هزینه ترمیم و انتقال کار',
+                    'db_types' => ['kachaee_repair_cost', 'kachaee_transfer', 'kachaee_payment']
+                ],
+                'payments' => [
+                    'title' => 'پرداخت‌های فروشندگان (Supplier Payments)', 
+                    'color' => '#009688', 
+                    'icon' => 'credit-card', 
+                    'sub' => 'مدیریت پرداخت‌های نقدی به تامین‌کنندگان',
+                    'db_types' => ['seller_payment']
+                ],
+                'employee_payment' => [
+                    'title' => 'معاشات و کارمندان (Employee Salaries)', 
+                    'color' => '#795548', 
+                    'icon' => 'briefcase', 
+                    'sub' => 'مدیریت هزینه‌ها و پرداخت‌های معاشات کارمندان',
+                    'db_types' => ['employee_payment']
+                ],
+                'office_cash' => [
+                    'title' => 'دخل و نقدینگی دفتر (Office Cash Transactions)', 
+                    'color' => '#607d8b', 
+                    'icon' => 'dollar-sign', 
+                    'sub' => 'مدیریت تزریق یا برداشت نقدینگی دفتر',
+                    'db_types' => ['office_credit', 'office_debit']
+                ],
+                'expenses' => [
+                    'title' => 'مصارف عملیاتی (Operational Expenses)', 
+                    'color' => '#ff5252', 
+                    'icon' => 'activity', 
+                    'sub' => 'مدیریت دسته‌بندی مصارف روزمره و خوراکه دفتر',
+                    'db_types' => ['expense']
+                ],
+                'fixed_assets' => [
+                    'title' => 'اجناس و دارایی‌های ثابت (Fixed Assets)', 
+                    'color' => '#3f51b5', 
+                    'icon' => 'home', 
+                    'sub' => 'مدیریت دارایی‌های ثابت و جایدادهای اداری',
+                    'db_types' => ['ajnas_account', 'asset']
+                ],
+                'different_account' => [
+                    'title' => 'حساب‌های متفرقه (Miscellaneous Accounts)', 
+                    'color' => '#ab47bc', 
+                    'icon' => 'layers', 
+                    'sub' => 'مدیریت ثبت‌های موقت و متفرقه متفرقه حساب‌ها',
+                    'db_types' => ['different_account']
+                ],
             ];
         @endphp
 
         @foreach($types as $typeKey => $typeInfo)
+        @php
+            $subRules = $rules->whereIn('transaction_type', $typeInfo['db_types']);
+        @endphp
+        @if($subRules->count() > 0)
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
             <div class="card-header border-0 py-3" style="background: {{ $typeInfo['color'] }}; color: #fff;">
                 <h5 class="mb-0 font-weight-bold"><i class="feather icon-{{ $typeInfo['icon'] }} mr-2"></i> {{ $typeInfo['title'] }}</h5>
@@ -97,7 +185,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($rules->where('transaction_type', $typeKey) as $rule)
+                            @foreach($subRules as $rule)
                             <tr>
                                 <td class="px-4 py-4 align-middle">
                                     <div class="d-flex align-items-center">
@@ -110,6 +198,11 @@
                                                 @elseif($rule->condition == 'transfer') انتقال (Transfer)
                                                 @else {{ strtoupper($rule->condition) }} @endif
                                             </span>
+                                            @if($rule->mapping_key)
+                                                <div class="small text-muted mt-1 border-top pt-1" dir="ltr" style="font-size: 0.65rem;">
+                                                    <code>{{ $rule->mapping_key }}</code>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -142,7 +235,75 @@
                 </div>
             </div>
         </div>
+        @endif
         @endforeach
+
+        @php
+            $allConfiguredDbTypes = [];
+            foreach($types as $typeInfo) {
+                $allConfiguredDbTypes = array_merge($allConfiguredDbTypes, $typeInfo['db_types']);
+            }
+            $unmatchedRules = $rules->whereNotIn('transaction_type', $allConfiguredDbTypes);
+        @endphp
+
+        @if($unmatchedRules->count() > 0)
+        <!-- Unmatched / Miscellaneous Rules -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden; border: 1px dashed #ff5252;">
+            <div class="card-header border-0 py-3 bg-dark text-white">
+                <h5 class="mb-0 font-weight-bold"><i class="feather icon-alert-circle mr-2"></i> نگاشت‌های متفرقه سیستم (Other System Rules)</h5>
+                <small class="opacity-80">سایر قوانین نگاشت خودکار تراکنش‌ها</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-light small text-muted uppercase">
+                            <tr>
+                                <th style="width: 20%" class="px-4 py-3">رویداد (Event)</th>
+                                <th style="width: 25%" class="py-3">حساب دیبت (Debit)</th>
+                                <th style="width: 25%" class="py-3">حساب کریدت (Credit)</th>
+                                <th style="width: 30%" class="py-3 px-4">متن توضیحات خودکار (Auto Narration)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($unmatchedRules as $rule)
+                            <tr>
+                                <td class="px-4 py-4 align-middle">
+                                    <div class="bg-light rounded p-2 mr-2 text-center shadow-sm" style="min-width: 100px; border: 1px solid #ddd;">
+                                        <span class="badge badge-secondary px-2 py-1">{{ strtoupper($rule->transaction_type) }}</span>
+                                        <div class="small text-muted mt-1" dir="ltr" style="font-size: 0.65rem;">
+                                            <code>{{ $rule->mapping_key }}</code>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 align-middle">
+                                    <select name="rules[{{ $rule->id }}][debit_account_id]" class="form-control select2">
+                                        @foreach($accounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ $rule->debit_account_id == $acc->id ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="py-4 align-middle">
+                                    <select name="rules[{{ $rule->id }}][credit_account_id]" class="form-control select2">
+                                        @foreach($accounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ $rule->credit_account_id == $acc->id ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="py-4 px-4 align-middle">
+                                    <input type="text" name="rules[{{ $rule->id }}][description_template]" value="{{ $rule->description_template }}" class="form-control bg-light">
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
 
         <!-- Action Bar -->
         <div class="card border-0 shadow-lg sticky-bottom mb-5" style="border-radius: 15px; background: #fff; z-index: 1000;">

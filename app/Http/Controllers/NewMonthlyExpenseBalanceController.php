@@ -34,9 +34,14 @@ class NewMonthlyExpenseBalanceController extends Controller
             
             $key = $slugMap[$expense->category] ?? 'EXP_MISC';
 
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            $amount = $expense->base_amount;
+
             $this->accountingService->postAutoTransaction('expense', $key, [
                 'date' => $expense->date,
-                'amount' => $expense->amount,
+                'amount' => $amount,
+                'currency_code' => $expense->currency_code,
+                'exchange_rate' => $expense->exchange_rate,
                 'reference' => 'NEXP-' . $expense->id,
                 'description' => $expense->description . " (" . $expense->category . ")",
                 'source_type' => 'NewMonthlyExpenseBalance',
@@ -68,25 +73,38 @@ class NewMonthlyExpenseBalanceController extends Controller
         $this->accountingService->failIfLocked($request->date);
         
         return DB::transaction(function () use ($request) {
-            $data = $request->validate([
-                'amount' => 'required',
-                'currency' => 'required',
+            $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'category' => 'required',
-                'dollar_rate' => 'required',
-                'user_role' => ''
+                'month_id' => 'required',
             ]);
 
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+
+            // FORENSIC RULE: BCMath Calculation
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             $expense = new NewMonthlyExpenseBalance();
-            $expense->amount = $request->amount;
-            $expense->currency = $request->currency;
+            $expense->amount = (double)$baseAmount; // Keep for legacy compatibility
+            $expense->currency = $request->currency_id; // Legacy ID
             $expense->description = $request->description;
             $expense->date = $request->date;
             $expense->category = $request->category;
-            $expense->dollar_rate = $request->dollar_rate;
+            $expense->dollar_rate = (string)$rate;
             $expense->user_role = Auth::user()->role;
             $expense->month_id = $request->month_id;
+
+            // FORENSIC SNAPSHOTS
+            $expense->currency_code = $currency->code;
+            $expense->currency_symbol = $currency->symbol;
+            $expense->exchange_rate = $rate;
+            $expense->original_amount = $request->amount;
+            $expense->base_amount = $baseAmount;
+
             $expense->save();
 
             // Post to Accounting
@@ -199,12 +217,11 @@ class NewMonthlyExpenseBalanceController extends Controller
         
         return DB::transaction(function () use ($request, $expense_id) {
             $request->validate([
-                'amount' => 'required',
-                'currency' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'category' => 'required',
-                'dollar_rate' => 'required',
             ]);
 
             $expense = NewMonthlyExpenseBalance::find($expense_id);
@@ -212,13 +229,25 @@ class NewMonthlyExpenseBalanceController extends Controller
             // Reversal
             $this->accountingService->reverseTransactionBySource($expense->id, 'New Expense Record Edited');
 
-            $expense->amount = $request->amount;
-            $expense->currency = $request->currency;
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
+            $expense->amount = (double)$baseAmount; // Legacy
+            $expense->currency = $request->currency_id;
             $expense->description = $request->description;
             $expense->date = $request->date;
             $expense->category = $request->category;
-            $expense->dollar_rate = $request->dollar_rate;
+            $expense->dollar_rate = (string)$rate;
             $expense->user_role = Auth::user()->role;
+
+            // FORENSIC SNAPSHOTS
+            $expense->currency_code = $currency->code;
+            $expense->currency_symbol = $currency->symbol;
+            $expense->exchange_rate = $rate;
+            $expense->original_amount = $request->amount;
+            $expense->base_amount = $baseAmount;
+
             $expense->update();
 
             // Re-post

@@ -192,6 +192,9 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('finishing-center/finish-work/{carpet}', 'FinishingWorkController@saving_the_work');
      Route::get('finishing-center/re-finish-work/{carpet}', 'FinishingWorkController@re_saving_the_work');
     Route::post('/finishing-center/refinish', 'FinishingWorkController@store_refinish');
+    Route::get('refinish-request-list', 'FinishingWorkController@request_list');
+    Route::delete('refinish-approve-request/{id}', 'FinishingWorkController@approve_request');
+    Route::delete('refinish-delete-request/{id}', 'FinishingWorkController@delete_request');
     //  FINISHING RECEIVEDS
     Route::resource('finishing-payments', 'FinishingTeamPaymentController')->parameters(['finishing-receive' => 'recived']);
     Route::get('/finishing-payments-all/{team_id}', 'FinishingTeamPaymentController@show_all_payment');
@@ -203,7 +206,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('carpets-in-sales-office', 'CarpetsController@carpets_in_sales_office');
 
 
-    Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
+    // Route::get('finishing-team-carpets/{id}', 'FinishingReceivedController@team_carpets');
 
 
     Route::get('/return-to-wash/{id}','FinishingWorkController@return_to_wash');
@@ -400,8 +403,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::get('/agent-carpets/{id}', 'AgentsCarpetController@carpet_details');
 
 
-    // RECEIVED OF WASHING TEAM
-    Route::resource('received-of-washing', 'ReceivedOfWashingController')->parameters(['received-of-washing' => 'r_washing']);
+    // RECEIVED OF WASHING TEAM (Controller missing - disabled)
+    // Route::resource('received-of-washing', 'ReceivedOfWashingController')->parameters(['received-of-washing' => 'r_washing']);
 
 
     // WASHING TEAM ROUTES
@@ -516,7 +519,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
     Route::post('different-account/search', 'DifferentAccountController@search');
 
     /** Route for different account received */
-    Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']);
+    // Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']); // Controller missing
 
     /** Route for different account payments */
     Route::resource('/different-account-payments', 'DifferentAccountPaymentController')->parameters(['different-account-payments' => 'differentAccountPayment']);

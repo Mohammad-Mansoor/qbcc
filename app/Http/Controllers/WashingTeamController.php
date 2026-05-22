@@ -109,17 +109,23 @@ class WashingTeamController extends Controller
             $WashNo = '';
             if ($lastId) {
                 if ($lastId->wash_number_sh) {
-                    $lastId = $lastId->wash_number_sh;
-                    $WashNo = $lastId;
+                    // Safely extract and increment the numeric part of the legacy SH-X format
+                    $num = 0;
+                    if (preg_match('/(\d+)/', $lastId->wash_number_sh, $matches)) {
+                        $num = (int)$matches[1];
+                    }
+                    $WashNo = 'SH-' . ($num + 1);
                 }
                 else {
                     $WashNo = 'SH-0';
                 }
+            } else {
+                $WashNo = 'SH-0';
             }
 
             $wash = new CarpetWash();
             $wash->wash_number = $request->wash_number;
-            $wash->wash_number_sh_c = $WashNo;
+            $wash->wash_number_sh = $WashNo;
             $wash->carpetId = $carpetId->carpet_id;
             $wash->team_id = $request->team_id;
             $wash->save();

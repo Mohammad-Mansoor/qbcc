@@ -162,7 +162,7 @@
           @endif
           @if(session("error"))
             
-            <div class="alert alert-success status" style="display:none;" role="alert">
+            <div class="alert alert-danger status" style="display:none;" role="alert">
               <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                         aria-hidden="true">&times;</span></button>
               {{session('error')}}
@@ -199,7 +199,7 @@
                 <th>نام</th>
                 <th>تاریخ</th>
                 <th>باقیات(کیلو گرام)</th>
-                <th>بیلانس حسابی (AFN)</th>
+                <th>بیلانس حسابی (USD)</th>
                 <th>ارزش تخمینی (USD)</th>
                 <th class="hideOnPrint">ویرایش</th>
                 @if(auth()->user()->role == 'SP')
@@ -239,7 +239,7 @@
                   @if(auth()->user()->role == 'SP')
                     <td class="hideOnPrint">
                       <button onclick="deleteAccount({{$acc->id}})" class="btn btn-danger btn-sm"><i
-                                class="fa fa-tick"></i>حذف
+                                class="fa fa-trash"></i> حذف
                       </button>
                     </td>
                   @endif

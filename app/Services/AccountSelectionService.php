@@ -26,12 +26,12 @@ class AccountSelectionService
             'credit' => ['report_group' => 'Inventory']
         ],
         'PYMT_IN' => [
-            'debit'  => ['is_cash_account' => 1, 'account_type' => 'Asset'],
-            'credit' => ['account_type' => 'Asset', 'report_group' => 'Receivables']
+            'debit'  => ['account_type' => 'Asset'], // Must be cash/bank asset
+            'credit' => ['account_type' => 'Asset']  // Must be receivable asset
         ],
         'PYMT_OUT' => [
-            'debit'  => ['account_type' => 'Liability', 'report_group' => 'Accounts Payable'],
-            'credit' => ['is_cash_account' => 1, 'account_type' => 'Asset']
+            'debit'  => ['account_type' => 'Liability'], // Must be payable liability
+            'credit' => ['account_type' => 'Asset']     // Must be cash/bank asset
         ],
         'CASH_OUT' => [
             'debit'  => ['account_type' => 'Expense'], 
@@ -79,6 +79,14 @@ class AccountSelectionService
         ],
         'CARPET_INVENTORY' => [
             'debit'  => ['report_group' => 'Inventory'],
+            'credit' => ['report_group' => 'Inventory']
+        ],
+        'MATERIAL_RECEIPT' => [
+            'debit'  => ['report_group' => 'Inventory'],
+            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+        ],
+        'MATERIAL_PAYMENT' => [
+            'debit'  => ['account_type' => 'Liability', 'is_cash_account' => 1],
             'credit' => ['report_group' => 'Inventory']
         ]
     ];
@@ -143,7 +151,8 @@ class AccountSelectionService
             }
             
             if ($account->$key != $value) {
-                throw new Exception("نوعیت حساب انتخاب شده ($account->account_type) برای این معامله مجاز نیست.");
+                $attrName = ($key === 'account_type') ? 'نوعیت حساب' : (($key === 'report_group') ? 'گروه حساب' : $key);
+                throw new Exception("مقدار ($attrName) برای حساب انتخاب شده ($account->$key) است، اما برای این معامله ($value) لازم است.");
             }
         }
 

@@ -25,18 +25,25 @@ class AgentPaymentController extends Controller
 
     public function index()
     {
-        //
+        return redirect('/dashboard/agents')->with('error', 'لطفاً یک نماینده را انتخاب کنید (Please select an agent).');
     }
 
     private function postPaymentToAccounting($payment)
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
-            $amount = ($payment->amount > 0) ? $payment->amount : $payment->amount_af;
+            
+            // FORENSIC RULE: Always use base_amount (USD) for the GL
+            // Fallback for legacy records: calculate approximate USD if base_amount is missing
+            $amount = $payment->base_amount ?: ($payment->amount ?: ($payment->amount_af * 0.0125));
+            $currencyCode = $payment->currency_code ?: ($payment->amount > 0 ? 'USD' : 'AFN');
+            $exchangeRate = $payment->exchange_rate ?: ($payment->dollar_rate ?: 1);
 
             $this->accountingService->postAutoTransaction('agent_payment', $condition, [
                 'date' => $payment->date,
                 'amount' => $amount,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'party_type' => 'App\Agents',
                 'party_id' => $payment->agent_id,
                 'reference' => 'AGT-PAY-' . $payment->id,
@@ -65,9 +72,7 @@ class AgentPaymentController extends Controller
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = ($payment->amount > 0) 
-                ? " مبلغ " . $payment->amount . " دالر برای نماینده تایید شد "
-                : " مبلغ " . $payment->amount_af . " افغانی برای نماینده تایید شد ";
+            $activity->description = " تایید درخواست " . $payment->type . " مبلغ " . ($payment->original_amount ?: ($payment->amount ?: $payment->amount_af)) . " " . ($payment->currency_code ?: ($payment->amount > 0 ? 'USD' : 'AFN')) . " برای نماینده ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -78,33 +83,53 @@ class AgentPaymentController extends Controller
     public function delete_request($id){
         $credit = AgentPayment::find($id);
         $credit->delete();
-        return response()->json(['status','error']);
+        return response()->json(['status' => 'success']);
     }
 
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
                 'agent_id' => 'required',
             ]);
+
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+
+            // FORENSIC RULE: BCMath Calculation (base_amount = original * rate)
+            $baseAmount = bcmul($request->amount, $rate, 4);
 
             $payed = new AgentPayment();
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->agent_id = $request->agent_id;
-            $payed->dollar_rate = $request->dollar_rate;
+            
+            // Legacy Support (Store in dollar_rate for audit continuity)
+            $payed->dollar_rate = (string)$rate;
             $payed->check_number = $request->check_number;
             
-            if($request->money_type == 'دالر'){
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy dual-amount logic (for old reports compatibility)
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount; // Approximate USD for legacy columns
+                $payed->amount_af = 0;
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
@@ -118,11 +143,9 @@ class AgentPaymentController extends Controller
                 ->join('users', 'agents.user_id', 'users.id')
                 ->where('agents.agent_id', $request->agent_id)->first();
             
-            $currency = ($request->money_type == 'دالر') ? " دالر " : " افغانی ";
-
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " پرداخت به نماینده " . $agent_name->name . " اکونت نمبر " . $agent_name->account_no . " به مبلغ " . $request->amount . $currency;
+            $activity->description = " پرداخت به نماینده " . $agent_name->name . " اکونت نمبر " . $agent_name->account_no . " به مبلغ " . $request->amount . " " . $currency->code;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -132,57 +155,101 @@ class AgentPaymentController extends Controller
 
     public function show($agent_id)
     {
-        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('created_at', 'DESC')->paginate(30);
         $agent = Agents::find($agent_id);
+        
+        if (!$agent) {
+            return redirect('/dashboard/agents')->with('error', 'نماینده مورد نظر یافت نشد (Agent not found).');
+        }
 
-        $debits_us = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $agent_id)->where('status',1)->sum('amount');
-        $debits_af = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $agent_id)->where('status',1)->sum('amount_af');
-        $credit_us = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $agent_id)->where('status',1)->sum('amount');
-        $credit_af = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $agent_id)->where('status',1)->sum('amount_af');
+        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('date', 'DESC')->paginate(30);
+
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
         $sale_numbers = MaterialSale::where('agent_id', $agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'debits_us', 'debits_af', 'credit_af', 'credit_us', 'check_numbers', 'sale_numbers'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+
+        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies'));
     }
 
     public function show_all($agent_id)
     {
-        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('created_at', 'DESC')->get();
+        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('date', 'DESC')->get();
         $agent = Agents::find($agent_id);
 
-        $debits_us = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $agent_id)->where('status',1)->sum('amount');
-        $debits_af = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $agent_id)->where('status',1)->sum('amount_af');
-        $credit_us = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $agent_id)->where('status',1)->sum('amount');
-        $credit_af = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $agent_id)->where('status',1)->sum('amount_af');
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
         $sale_numbers = MaterialSale::where('agent_id', $agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
+        $currencies = \App\Currency::where('is_active', true)->get();
         $all = '';
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'debits_us', 'debits_af', 'credit_af', 'credit_us', 'check_numbers', 'all', 'sale_numbers'));
+        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'all', 'sale_numbers', 'currencies'));
     }
 
     public function edit($payment_id)
     {
         $paymentEdit = AgentPayment::find($payment_id);
-        $payments = AgentPayment::where('agent_id', $paymentEdit->agent_id)->orderBy('created_at', 'DESC')->paginate(30);
+        $payments = AgentPayment::where('agent_id', $paymentEdit->agent_id)->orderBy('date', 'DESC')->paginate(30);
         $agent = Agents::find($paymentEdit->agent_id);
-        $debits_us = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $paymentEdit->agent_id)->where('status',1)->sum('amount');
-        $debits_af = AgentPayment::where('type', '=', 'گرفت')->where('agent_id', $paymentEdit->agent_id)->where('status',1)->sum('amount_af');
-        $credit_us = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $paymentEdit->agent_id)->where('status',1)->sum('amount');
-        $credit_af = AgentPayment::where('type', '=', 'رسید')->where('agent_id', $paymentEdit->agent_id)->where('status',1)->sum('amount_af');
+
+        // FORENSIC DYNAMIC TOTALS
+        $currencyTotals = AgentPayment::where('agent_id', $paymentEdit->agent_id)
+            ->where('status', 1)
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD)
+        $totalBaseReceived = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $paymentEdit->agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
         $sale_numbers = MaterialSale::where('agent_id', $paymentEdit->agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'debits_us', 'debits_af', 'credit_af', 'credit_us', 'check_numbers', 'sale_numbers'));
+        $currencies = \App\Currency::where('is_active', true)->get();
+
+        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies'));
     }
 
     public function update(Request $request, $payment_id)
     {
         return DB::transaction(function () use ($request, $payment_id) {
             $request->validate([
-                'amount' => 'required',
+                'amount' => 'required|numeric|min:0.01',
+                'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
-                'date' => 'required',
+                'date' => 'required|date',
             ]);
 
             $payed = AgentPayment::find($payment_id);
@@ -194,20 +261,36 @@ class AgentPaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payed->id, 'Agent Payment Edited');
             }
 
+            $currency = \App\Currency::find($request->currency_id);
+            $rate = $currency->exchange_rate;
+            $baseAmount = bcmul($request->amount, $rate, 4);
+
             $payed->description = $request->description;
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->agent_id = $request->agent_id;
-            $payed->dollar_rate = $request->dollar_rate;
+            $payed->dollar_rate = (string)$rate;
             $payed->check_number = $request->check_number;
 
-            if($request->money_type == 'دالر'){
+            // FORENSIC SNAPSHOTS
+            $payed->currency_code = $currency->code;
+            $payed->currency_symbol = $currency->symbol;
+            $payed->exchange_rate = $rate;
+            $payed->original_amount = $request->amount;
+            $payed->base_amount = $baseAmount;
+
+            // Legacy Support
+            if($currency->code == 'USD'){
                 $payed->amount = $request->amount;
                 $payed->amount_af = 0;
-            } else {
+            } else if($currency->code == 'AFN') {
                 $payed->amount = 0;
                 $payed->amount_af = $request->amount;
+            } else {
+                $payed->amount = $baseAmount;
+                $payed->amount_af = 0;
             }
+
             $payed->update();
 
             if ($payed->status == 1) {

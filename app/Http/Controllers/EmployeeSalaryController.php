@@ -19,10 +19,11 @@ class EmployeeSalaryController extends Controller
      */
     public function index()
     {
-        $employees = OfficeEmployee::all();
+        $employees  = OfficeEmployee::all();
         $salaryEdit = "";
-        $salaries = EmployeeSalary::orderBy('salary', 'DESC')->paginate(8);
-        return view('office-employee-salary.create-salary', compact('employees', 'salaries', 'salaryEdit'));
+        $currencies = \App\Currency::where('is_active', 1)->get();
+        $salaries   = EmployeeSalary::orderBy('salary', 'DESC')->paginate(8);
+        return view('office-employee-salary.create-salary', compact('employees', 'salaries', 'salaryEdit', 'currencies'));
     }
 
 
@@ -53,23 +54,37 @@ class EmployeeSalaryController extends Controller
             'contract_number' => 'required'
         ]);
 
-        $employee = EmployeeSalary::where('employee_id', $request->employee_id)->first();
+        $existingSalary = EmployeeSalary::where('employee_id', $request->employee_id)->first();
         if ($request->to_date <= $request->from_date) {
             return redirect()->back()->with('error', 'تاریخ ختم قرارداد کوچک از شروع قرارداد است!');
         } else {
-            if ($request->from_date < $employee->to_date) {
+            if ($existingSalary && $request->from_date < $existingSalary->to_date) {
                 return redirect()->back()->with('error', 'قرار داد هنوز تکمیل نشده است!');
             } else {
-                $salary = EmployeeSalary::create($data);
+                // Resolve currency
+                $currency = \App\Currency::find($request->currency_id);
+                if (!$currency) {
+                    $currency = \App\Currency::where('is_base_currency', 1)->first();
+                }
+                $exchangeRate = $request->exchange_rate ?? ($currency ? $currency->exchange_rate : 1);
+
+                $salary = EmployeeSalary::create(array_merge($data, [
+                    'currency_id'     => $currency ? $currency->id : null,
+                    'currency_code'   => $currency ? $currency->code : null,
+                    'exchange_rate'   => $exchangeRate,
+                    'salary_currency' => bcmul($request->salary, 1, 4),
+                    'salary_usd'      => bcmul($request->salary, $exchangeRate, 4),
+                    'contract_number' => $request->contract_number,
+                ]));
                 if ($salary) {
                     $employee_name = DB::table('office_employees')->where('id', $request->employee_id)->first();
 
                     $activity = new Activity();
                     $activity->date = Carbon::today()->format('Y-m-d');
-                    $activity->description = " کارمند به نام " . $employee_name->name . " قرار داد جدید نمود ";
+                    $activity->description = " کارمند به نام " . $employee_name->name . " قرار داد جدید با معاش " . number_format($request->salary, 2) . " " . ($currency ? $currency->code : '') . " نمود ";
                     $activity->user_id = Auth::user()->id;
                     $activity->save();
-                    
+
                     return redirect()->back()->with('status', 'قرار داد موفقانه ثبت شد !');
                 } else {
                     return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
@@ -93,18 +108,16 @@ class EmployeeSalaryController extends Controller
         $salaries = EmployeeSalary::where('employee_id', $id)->orderBy('to_date', 'DESC')->get();
         $salaryEdit = '';
         $salary = $employee->employee_salary->last();
-        $lastId = EmployeeSalary::where('employee_id', $id)->latest()->first();
-        $ContractNo = '';
-        if ($lastId) {
-            $lastId = $lastId->contract_number;
-            $lastId = substr($lastId, -1);
-            $lastId++;
-            $ContractNo = 'CO-' . sprintf('%01d', $lastId);
-        } else {
-            $ContractNo = 'CO-' . sprintf('%01d', '1');
+        $lastSalary = EmployeeSalary::where('employee_id', $id)->latest('id')->first();
+        $ContractNo = 'CO-1';
+        if ($lastSalary) {
+            // Safely extract numeric suffix regardless of length (CO-1, CO-10, CO-100)
+            $lastNum = (int) preg_replace('/^CO-/', '', $lastSalary->contract_number);
+            $ContractNo = 'CO-' . ($lastNum + 1);
         }
 
-        return view('office-employee-salary.create-salary', compact('salaryEdit', 'employee', 'salaries', 'salary', 'ContractNo'));
+        $currencies = \App\Currency::where('is_active', 1)->get();
+        return view('office-employee-salary.create-salary', compact('salaryEdit', 'employee', 'salaries', 'salary', 'ContractNo', 'currencies'));
     }
 
     /**
@@ -121,7 +134,8 @@ class EmployeeSalaryController extends Controller
         $employee = OfficeEmployee::find($employee_id);
         $salary = $employee->employee_salary->last();
         $salaries = EmployeeSalary::where('employee_id', $employee_id)->orderBy('to_date', 'DESC')->get();
-        return view('office-employee-salary.create-salary', compact('salaryEdit', 'employee', 'salaries', 'salary'));
+        $currencies = \App\Currency::where('is_active', 1)->get();
+        return view('office-employee-salary.create-salary', compact('salaryEdit', 'employee', 'salaries', 'salary', 'currencies'));
     }
 
     /**

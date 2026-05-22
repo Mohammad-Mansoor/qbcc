@@ -26,15 +26,15 @@ class MaterialStockController extends Controller
         // Fetch stock data from inventory_transactions to get warehouse breakdown and asset value
         $stock = DB::table('inventory_transactions')
             ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-            ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->join('material_stocks', 'material_types.material_type_id', '=', 'material_stocks.material_type')
             ->leftJoin('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
-            ->join('material_categories', 'purchase_materials.material_category', '=', 'material_categories.material_category_id')
-            ->join('material_types', 'purchase_materials.material_type', '=', 'material_types.material_type_id')
-            ->where('items.type', 'App\PurchaseMaterial')
+            ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
+            ->where('items.type', 'App\MaterialType')
             ->where('inventory_transactions.status', 1)
             ->select(
-                'purchase_materials.material_category as cat_id',
-                'purchase_materials.material_type as type_id',
+                'material_stocks.material_category as cat_id',
+                'material_stocks.material_type as type_id',
                 'material_categories.material_category',
                 'material_types.material_type',
                 'warehouses.name as warehouse_name',
@@ -44,8 +44,8 @@ class MaterialStockController extends Controller
                 DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_value")
             )
             ->groupBy(
-                'purchase_materials.material_category', 
-                'purchase_materials.material_type', 
+                'material_stocks.material_category', 
+                'material_stocks.material_type', 
                 'inventory_transactions.warehouse_id',
                 'material_categories.material_category',
                 'material_types.material_type',
@@ -61,9 +61,10 @@ class MaterialStockController extends Controller
         foreach ($categories as $category) {
             $total = DB::table('inventory_transactions')
                 ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
-                ->where('items.type', 'App\PurchaseMaterial')
-                ->where('purchase_materials.material_category', $category->material_category_id)
+                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+                ->join('material_stocks', 'material_types.material_type_id', '=', 'material_stocks.material_type')
+                ->where('items.type', 'App\MaterialType')
+                ->where('material_stocks.material_category', $category->material_category_id)
                 ->where('inventory_transactions.status', 1)
                 ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as balance")
                 ->value('balance') ?? 0;
@@ -84,11 +85,12 @@ class MaterialStockController extends Controller
 
         $movements = DB::table('inventory_transactions')
             ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-            ->join('purchase_materials', 'items.ref_id', '=', 'purchase_materials.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->join('material_stocks', 'material_types.material_type_id', '=', 'material_stocks.material_type')
             ->leftJoin('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
-            ->where('items.type', 'App\PurchaseMaterial')
-            ->where('purchase_materials.material_category', $cat)
-            ->where('purchase_materials.material_type', $type)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_stocks.material_category', $cat)
+            ->where('material_stocks.material_type', $type)
             ->select('inventory_transactions.*', 'warehouses.name as warehouse_name')
             ->orderBy('inventory_transactions.created_at', 'DESC')
             ->get();

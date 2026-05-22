@@ -82,7 +82,7 @@ class CustomerOrderDetailsController extends Controller
             'customer_order_id' => 'required',
             'unit_price' => 'nullable|numeric',
             'total_amount' => 'nullable|numeric',
-            'currency_code' => 'required',
+            'currency_id' => 'required|exists:currencies,id',
             'exchange_rate' => 'required|numeric',
         ]);
 
@@ -98,6 +98,8 @@ class CustomerOrderDetailsController extends Controller
             $image = $file->move('uploads/customer-order-image/', $fileName);
         }
 
+        $currency = \App\Currency::findOrFail($request->currency_id);
+
         $ord = DB::table('customer_order_details')->insertGetId([ 
             'quality' => $request->quality, 
             'height' => $request->height, 
@@ -112,7 +114,8 @@ class CustomerOrderDetailsController extends Controller
             'end_date' => $request->end_date,
             'unit_price' => $request->unit_price ?? 0,
             'total_amount' => $request->total_amount ?? 0,
-            'currency_code' => $request->currency_code ?? 'USD',
+            'currency_id' => $currency->id,
+            'currency_code' => $currency->code,
             'exchange_rate' => $request->exchange_rate ?? 1,
             'photo' => $image, 
             'current_status' => $request->current_status, 
@@ -136,30 +139,22 @@ class CustomerOrderDetailsController extends Controller
      */
     public function show($order_id)
     {
-
-
         $customer_order = CustomerOrder::find($order_id);
         $customer_order_details = DB::table('customer_order_details')->where('customer_order_id',$order_id)->orderBy('cod_id','DESC')->get();
         $orderEdit = null;
+        $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details'));
-
+        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'currencies'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\CustomerOrderDetails  $customerOrderDetails
-     * @return \Illuminate\Http\Response
-     */
     public function edit($customer_order_details_id)
     {
         $orderEdit = CustomerOrderDetails::find($customer_order_details_id);
         $customer_order_details = DB::table('customer_order_details')->orderBy('cod_id','DESC')->get();
         $customer_order = CustomerOrder::find($orderEdit->customer_order_id);
+        $currencies = \App\Currency::where('is_active', true)->get();
 
-
-        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details'));
+        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'currencies'));
     }
 
     /**
@@ -186,7 +181,7 @@ class CustomerOrderDetailsController extends Controller
             'current_status' => 'required',
             'unit_price' => 'nullable|numeric',
             'total_amount' => 'nullable|numeric',
-            'currency_code' => 'required',
+            'currency_id' => 'required|exists:currencies,id',
             'exchange_rate' => 'required|numeric',
         ]);
 
@@ -197,6 +192,8 @@ class CustomerOrderDetailsController extends Controller
             $fileName = time() . '' . rand(1000, 9999) . '-order-image.' . $fileExt;
             $image = $file->move('uploads/customer-order-image/', $fileName);
         }
+
+        $currency = \App\Currency::findOrFail($request->currency_id);
 
         $updateData = [
             'quality' => $request->quality,
@@ -212,7 +209,8 @@ class CustomerOrderDetailsController extends Controller
             'end_date' => $request->end_date,
             'unit_price' => $request->unit_price ?? 0,
             'total_amount' => $request->total_amount ?? 0,
-            'currency_code' => $request->currency_code ?? 'USD',
+            'currency_id' => $currency->id,
+            'currency_code' => $currency->code,
             'exchange_rate' => $request->exchange_rate ?? 1,
             'current_status' => $request->current_status,
         ];
@@ -294,10 +292,19 @@ class CustomerOrderDetailsController extends Controller
                 $carpet->save();
 
                 // 2. Orchestrate through Inventory Manager (Accounting + Inventory Tx)
+                // Calculate USD-normalized cost for accurate COGS and WAC tracking.
+                // exchange_rate > 1 means it's a direct rate (e.g. 77 AFN/USD) → divide
+                // exchange_rate <= 1 means it's a multiplier (e.g. 0.01298 AFN/USD) → multiply
+                $orderRate = $detail->exchange_rate ?: 1;
+                $unit_cost_usd = ($orderRate > 1)
+                    ? round($detail->total_amount / $orderRate, 4)
+                    : round($detail->total_amount * $orderRate, 4);
+
                 $this->inventoryManager->processProductionCompletion($carpet, [
-                    'amount' => $detail->total_amount, // Initial value
-                    'quantity' => 1,
-                    'reference' => 'ORD-REC-' . $detail->cod_id,
+                    'amount'      => $unit_cost_usd,  // USD-normalized for GL entry (DR Finished Goods / CR WIP)
+                    'unit_cost'   => $unit_cost_usd,  // WAC cost registered on the items table
+                    'quantity'    => 1,
+                    'reference'   => 'ORD-REC-' . $detail->cod_id,
                     'description' => "Order #" . $detail->order->order_name . " received into stock",
                     'warehouse_id' => $carpet->warehouse_id,
                 ]);

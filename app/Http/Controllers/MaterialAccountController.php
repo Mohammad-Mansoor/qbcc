@@ -123,10 +123,15 @@ class MaterialAccountController extends Controller
         $allowedCreditAccountsIn = $selectionService->getValidAccounts('MATERIAL_RECEIPT', 'credit');
         $mappingIn = \App\MappingRule::where('mapping_key', 'MATERIAL_RECEIPT')->first();
 
+        $warehouses = \App\Warehouse::all();
+        $currencies = \App\Currency::where('is_active', 1)->get();
+        $baseCurrency = \App\Currency::where('is_base_currency', 1)->first();
+
         return view('material-accounts.account-payment', compact(
             'account', 'payments', 'paymentEdit', 'material_type', 'debits', 'credits',
             'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut',
-            'allowedDebitAccountsIn', 'allowedCreditAccountsIn', 'mappingIn'
+            'allowedDebitAccountsIn', 'allowedCreditAccountsIn', 'mappingIn',
+            'warehouses', 'currencies', 'baseCurrency'
         ));
     }
 

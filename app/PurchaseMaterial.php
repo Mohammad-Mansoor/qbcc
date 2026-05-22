@@ -19,4 +19,8 @@ class PurchaseMaterial extends Model
     public function seller() {
         return $this->belongsTo(StringSeller::class , 'seller_id' , 'id');
     }
+
+    public function warehouse() {
+        return $this->belongsTo(\App\Warehouse::class, 'warehouse_id', 'id');
+    }
 }

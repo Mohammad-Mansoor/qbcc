@@ -72,9 +72,17 @@ class DashboardController extends Controller
                 ->where('ledger_transactions.status', 'posted')
                 ->sum(DB::raw('debit - credit'));
                 
+            $base_balance = DB::table('ledger_entries')
+                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                ->where('ledger_entries.account_id', $acc->id)
+                ->where('ledger_transactions.status', 'posted')
+                ->sum(DB::raw('base_debit - base_credit'));
+
             $cashAccounts[] = [
                 'name' => $acc->account_name,
-                'balance' => $balance
+                'balance' => $balance,
+                'currency' => $acc->currency ?? 'USD',
+                'base_balance' => $base_balance
             ];
         }
 
@@ -114,7 +122,8 @@ class DashboardController extends Controller
             'lockDate' => $lockDate,
             'topExpenses' => $topExpenses,
             'profitability' => $profitability,
-            'exchangeRate' => $exchangeRate
+            'exchangeRate' => $exchangeRate,
+            'currencies' => \App\Currency::where('is_active', 1)->get()
         ]));
     }
 }
