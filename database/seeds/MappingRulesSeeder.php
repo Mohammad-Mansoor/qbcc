@@ -200,14 +200,56 @@ class MappingRulesSeeder extends Seeder
             ],
         ];
 
+        $resolveAccount = function($code) {
+            $exact = ChartOfAccount::where('account_code', $code)->first();
+            if ($exact) return $exact;
+
+            // Mappings from old COA schema to new COA schema
+            $fallbacks = [
+                '1000' => '1100', // Cash
+                '4000' => '4100', // Sales Revenue
+                '5000' => '5100', // COGS
+                '6000' => '6500', // Other/Operational Expenses
+                '3000' => '3100', // Capital
+            ];
+
+            if (isset($fallbacks[$code])) {
+                $fallbackAcc = ChartOfAccount::where('account_code', $fallbacks[$code])->first();
+                if ($fallbackAcc) return $fallbackAcc;
+            }
+
+            // Fallback for expense categories starting with 6
+            if (strpos($code, '6') === 0) {
+                $expense = ChartOfAccount::where('account_type', 'Expense')->orderBy('account_code')->first();
+                if ($expense) return $expense;
+            }
+
+            return null;
+        };
+
         foreach ($rules as $rule) {
-            $debit = ChartOfAccount::where('account_code', $rule['debit_code'])->first();
-            $credit = ChartOfAccount::where('account_code', $rule['credit_code'])->first();
+            $debit = $resolveAccount($rule['debit_code']);
+            $credit = $resolveAccount($rule['credit_code']);
 
             if ($debit && $credit) {
+                // Compute the mapping_key slug using the standard format
+                $slug = '';
+                switch ($rule['condition']) {
+                    case 'خوراکه': $slug = 'EXP_FOOD'; break;
+                    case 'ترانسپورت': $slug = 'EXP_TRANS'; break;
+                    case 'متفرقه': $slug = 'EXP_MISC'; break;
+                    case 'گرفت': $slug = 'PYMT_OUT'; break;
+                    case 'رسید': $slug = 'PYMT_IN'; break;
+                    case 'deposit': $slug = 'CASH_IN'; break;
+                    case 'withdrawal': $slug = 'CASH_OUT'; break;
+                    case 'purchase': $slug = 'ASSET_PURCH'; break;
+                    default: $slug = strtoupper(str_replace(' ', '_', $rule['transaction_type'] . '_' . $rule['condition']));
+                }
+
                 MappingRule::updateOrCreate(
                     ['transaction_type' => $rule['transaction_type'], 'condition' => $rule['condition']],
                     [
+                        'mapping_key' => $slug,
                         'debit_account_id' => $debit->id,
                         'credit_account_id' => $credit->id,
                         'description_template' => $rule['template']
