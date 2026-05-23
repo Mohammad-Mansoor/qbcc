@@ -495,6 +495,7 @@ class ReportController extends Controller
             ->leftJoin('ledger_entries as le', 'coa.id', '=', 'le.account_id')
             ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->select(
+                'coa.id as account_id',
                 'coa.account_code',
                 'coa.account_name',
                 'coa.normal_balance',

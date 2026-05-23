@@ -1,6 +1,19 @@
 @extends('dsh.master')
 
 @section('content')
+@php
+if (!function_exists('formatAccounting')) {
+    function formatAccounting($val, $rate, $currencyCode = '') {
+        $amount = floatval($val) * floatval($rate);
+        if ($amount < 0) {
+            $formatted = '(' . number_format(abs($amount), 2) . ')';
+        } else {
+            $formatted = number_format($amount, 2);
+        }
+        return $formatted . ($currencyCode ? ' ' . $currencyCode : '');
+    }
+}
+@endphp
 <div class="container-fluid no-print-padding">
     <br class="no-print">
     
@@ -83,15 +96,37 @@
                                     </td>
                                 </tr>
                                 @foreach($revenue as $row)
-                                <tr>
-                                    <td class="py-3 px-5 text-dark">{{ $row->account_name }}</td>
-                                    <td class="py-3 text-right font-weight-bold px-4">{{ number_format($row->balance * $rate, 2) }}</td>
+                                <tr style="background: #fafafa;">
+                                    <td class="py-3 px-5 font-weight-bold">
+                                        <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $row->account_id, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="text-dark drill-down-link" title="مشاهده جزئیات دفتر کل">
+                                            {{ $row->account_code }} - {{ $row->account_name }}
+                                            <i class="feather icon-external-link ml-1 small text-muted"></i>
+                                        </a>
+                                    </td>
+                                    <td class="py-3 text-right font-weight-bold px-4 {{ $row->balance >= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ formatAccounting($row->balance, $rate) }}
+                                    </td>
+                                </tr>
+                                <!-- Sub-breakdown details -->
+                                <tr class="sub-row border-0 no-print">
+                                    <td class="py-1 px-5 text-muted small" style="padding-right: 3rem !important;">
+                                        <span class="text-muted">└─ فروش ناخالص (Gross Sales Revenue)</span>
+                                    </td>
+                                    <td class="py-1 text-right px-4 text-muted small">{{ formatAccounting($row->total_credit, $rate) }}</td>
+                                </tr>
+                                <tr class="sub-row border-0 no-print">
+                                    <td class="py-1 px-5 text-muted small" style="padding-right: 3rem !important;">
+                                        <span class="text-muted">└─ منهای اصلاحات و برگشتی‌ها (Less Reversals)</span>
+                                    </td>
+                                    <td class="py-1 text-right px-4 text-muted small">
+                                        {{ $row->total_debit > 0 ? '(' . formatAccounting($row->total_debit, $rate) . ')' : '0.00' }}
+                                    </td>
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #e3f2fd;">
-                                    <td class="py-3 px-4">مجموع عواید (Total Revenue)</td>
+                                    <td class="py-3 px-4">مجموع عواید خالص (Total Net Revenue)</td>
                                     <td class="py-3 text-right px-4 text-primary" style="font-size: 1.2rem;">
-                                        {{ number_format($revenue->sum('balance') * $rate, 2) }} {{ $currencyCode }}
+                                        {{ formatAccounting($revenue->sum('balance'), $rate, $currencyCode) }}
                                     </td>
                                 </tr>
 
@@ -104,15 +139,37 @@
                                     </td>
                                 </tr>
                                 @foreach($expenses as $row)
-                                <tr>
-                                    <td class="py-3 px-5 text-dark">{{ $row->account_name }}</td>
-                                    <td class="py-3 text-right font-weight-bold px-4 text-danger">({{ number_format(abs($row->balance) * $rate, 2) }})</td>
+                                <tr style="background: #fafafa;">
+                                    <td class="py-3 px-5 font-weight-bold">
+                                        <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $row->account_id, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="text-dark drill-down-link" title="مشاهده جزئیات دفتر کل">
+                                            {{ $row->account_code }} - {{ $row->account_name }}
+                                            <i class="feather icon-external-link ml-1 small text-muted"></i>
+                                        </a>
+                                    </td>
+                                    <td class="py-3 text-right font-weight-bold px-4 {{ $row->balance >= 0 ? 'text-danger' : 'text-success' }}">
+                                        {{ formatAccounting($row->balance, $rate) }}
+                                    </td>
+                                </tr>
+                                <!-- Sub-breakdown details -->
+                                <tr class="sub-row border-0 no-print">
+                                    <td class="py-1 px-5 text-muted small" style="padding-right: 3rem !important;">
+                                        <span class="text-muted">└─ مصارف ناخالص (Gross COGS/Expenses)</span>
+                                    </td>
+                                    <td class="py-1 text-right px-4 text-muted small">{{ formatAccounting($row->total_debit, $rate) }}</td>
+                                </tr>
+                                <tr class="sub-row border-0 no-print">
+                                    <td class="py-1 px-5 text-muted small" style="padding-right: 3rem !important;">
+                                        <span class="text-muted">└─ منهای اصلاحات و تعدیلات (Less Reversals)</span>
+                                    </td>
+                                    <td class="py-1 text-right px-4 text-muted small">
+                                        {{ $row->total_credit > 0 ? '(' . formatAccounting($row->total_credit, $rate) . ')' : '0.00' }}
+                                    </td>
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #ffebee;">
-                                    <td class="py-3 px-4 text-danger">مجموع هزینه‌ها (Total Expenses)</td>
+                                    <td class="py-3 px-4 text-danger">مجموع هزینه‌های خالص (Total Net Expenses)</td>
                                     <td class="py-3 text-right px-4 text-danger" style="font-size: 1.2rem;">
-                                        ({{ number_format(abs($expenses->sum('balance')) * $rate, 2) }}) {{ $currencyCode }}
+                                        {{ formatAccounting($expenses->sum('balance'), $rate, $currencyCode) }}
                                     </td>
                                 </tr>
 
@@ -127,7 +184,7 @@
                                     </td>
                                     <td class="py-4 text-right px-4">
                                         <h3 class="font-weight-bold mb-0 {{ $netProfit >= 0 ? 'text-success' : 'text-danger' }}">
-                                            {{ number_format($netProfit * $rate, 2) }} {{ $currencyCode }}
+                                            {{ formatAccounting($netProfit, $rate, $currencyCode) }}
                                         </h3>
                                     </td>
                                 </tr>
@@ -160,6 +217,20 @@
     }
     .table td { border-color: #f1f1f1; vertical-align: middle; }
     .border-top-double { border-top: 4px double #333 !important; }
+    
+    /* Drill-down styling */
+    .drill-down-link {
+        color: #1a1a1a;
+        text-decoration: none;
+        transition: color 0.15s ease-in-out;
+    }
+    .drill-down-link:hover {
+        color: #4099ff !important;
+        text-decoration: underline !important;
+    }
+    .sub-row td {
+        border-top: none !important;
+    }
 </style>
 @endsection
 
