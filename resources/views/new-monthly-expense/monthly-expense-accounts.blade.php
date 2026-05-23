@@ -47,9 +47,22 @@
                         <div class="form-group">
                             <label class="small font-weight-bold">نام ماه</label>
                             <select name="month_name" class="form-control border-0 shadow-sm">
-                                @php($mn = ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت'])
-                                @foreach($mn as $m)
-                                    <option {{ ($accountEdit && $accountEdit->month_name == $m) ? 'selected' : '' }}>{{ $m }}</option>
+                                @php($mn = [
+                                    'جنوری' => 'جنوری (January)',
+                                    'فبروری' => 'فبروری (February)',
+                                    'مارچ' => 'مارچ (March)',
+                                    'اپریل' => 'اپریل (April)',
+                                    'می' => 'می (May)',
+                                    'جون' => 'جون (June)',
+                                    'جولای' => 'جولای (July)',
+                                    'اگست' => 'اگست (August)',
+                                    'سپتمبر' => 'سپتمبر (September)',
+                                    'اکتوبر' => 'اکتوبر (October)',
+                                    'نومبر' => 'نومبر (November)',
+                                    'دسمبر' => 'دسمبر (December)'
+                                ])
+                                @foreach($mn as $val => $label)
+                                    <option value="{{ $val }}" {{ ($accountEdit && $accountEdit->month_name == $val) ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
