@@ -2,6 +2,22 @@
 
 @section('content')
 <div class="container-fluid">
+    @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 10px;">
+            <i class="feather icon-alert-triangle mr-2"></i> {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 10px;">
+            <i class="feather icon-alert-triangle mr-2"></i>
+            <ul class="mb-0 pl-3">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <br>
     <form action="{{ route('accounting.journals.store') }}" method="POST">
         @csrf

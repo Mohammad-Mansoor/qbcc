@@ -13,12 +13,20 @@ class GranularAccountingIdempotency extends Migration
      */
     public function up()
     {
+        // 1. Try to drop the too-strict index if it exists (it might exist on some databases but not on fresh ones)
+        try {
+            Schema::table('ledger_transactions', function (Blueprint $table) {
+                $table->dropUnique('ledger_tx_source_unique');
+            });
+        } catch (\Exception $e) {
+            // Silent fallback if index doesn't exist
+        }
+
         Schema::table('ledger_transactions', function (Blueprint $table) {
-            // 1. Drop the too-strict index
-            $table->dropUnique('ledger_tx_source_unique');
-            
             // 2. Add mapping_key to track the "Intent" of the transaction
-            $table->string('mapping_key')->nullable()->after('source_id')->index();
+            if (!Schema::hasColumn('ledger_transactions', 'mapping_key')) {
+                $table->string('mapping_key')->nullable()->after('source_id')->index();
+            }
             
             // 3. Create a more granular unique index
             // This allows Invoice #101 to have multiple financial events 

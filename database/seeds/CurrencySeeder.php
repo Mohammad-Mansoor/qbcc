@@ -13,7 +13,9 @@ class CurrencySeeder extends Seeder
     public function run()
     {
         // 1. Clear existing currencies to start fresh for hardening phase
+        Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
         Currency::truncate();
+        Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
         // 2. Insert Core Currencies
         Currency::create([

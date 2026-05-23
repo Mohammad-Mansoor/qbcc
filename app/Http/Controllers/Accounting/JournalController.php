@@ -62,12 +62,22 @@ class JournalController extends Controller
         ]);
 
         try {
+            $entries = [];
+            foreach ($request->entries as $entry) {
+                $entries[] = [
+                    'account_id' => $entry['account_id'],
+                    'debit' => $entry['debit'],
+                    'credit' => $entry['credit'],
+                    'currency_code' => $entry['currency_code'] ?? 'USD',
+                ];
+            }
+
             $this->accountingService->postTransaction([
                 'date' => $request->date,
                 'reference' => $request->reference,
                 'description' => $request->description,
                 'journal_type' => $request->journal_type ?? 'journal',
-                'entries' => $request->entries,
+                'entries' => $entries,
             ]);
 
             return redirect()->route('accounting.journals.index')->with('success', 'Journal entry posted successfully.');

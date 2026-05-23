@@ -18,13 +18,44 @@ class AddDepreciationFieldsToAssets extends Migration
             $table->date('last_depreciation_date')->nullable()->after('accumulated_depreciation');
         });
         
+        // Dynamically resolve account IDs by code to support fresh migrations
+        $expenseId = DB::table('chart_of_accounts')->where('account_code', '6000')->value('id');
+        if (!$expenseId) {
+            $expenseId = DB::table('chart_of_accounts')->insertGetId([
+                'account_code' => '6000',
+                'account_name' => 'Operational Expenses',
+                'account_type' => 'Expense',
+                'report_group' => 'Operating Expense',
+                'currency' => 'USD',
+                'is_cash_account' => 0,
+                'normal_balance' => 'debit',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $fixedAssetId = DB::table('chart_of_accounts')->where('account_code', '1500')->value('id');
+        if (!$fixedAssetId) {
+            $fixedAssetId = DB::table('chart_of_accounts')->insertGetId([
+                'account_code' => '1500',
+                'account_name' => 'Fixed Assets',
+                'account_type' => 'Asset',
+                'report_group' => 'Fixed Asset',
+                'currency' => 'USD',
+                'is_cash_account' => 0,
+                'normal_balance' => 'debit',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         // Ensure mapping exists
         DB::table('mapping_rules')->updateOrInsert(
             ['transaction_type' => 'asset', 'condition' => 'depreciation'],
             [
                 'mapping_key' => 'ASSET_DEPRECIATION',
-                'debit_account_id' => 7, // Operational Expenses
-                'credit_account_id' => 13, // Fixed Assets (Contrally reduce the asset value)
+                'debit_account_id' => $expenseId, // Operational Expenses
+                'credit_account_id' => $fixedAssetId, // Fixed Assets (Contrally reduce the asset value)
                 'description_template' => 'استهلاک ماهوار جایداد (Monthly Depreciation): {reference}'
             ]
         );

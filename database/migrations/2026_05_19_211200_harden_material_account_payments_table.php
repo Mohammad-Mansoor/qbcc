@@ -37,15 +37,46 @@ class HardenMaterialAccountPaymentsTable extends Migration
             $table->foreign('warehouse_id')->references('id')->on('warehouses')->onDelete('set null');
         });
 
+        // Dynamically resolve account IDs by code to support fresh migrations
+        $inventoryId = DB::table('chart_of_accounts')->where('account_code', '1400')->value('id');
+        if (!$inventoryId) {
+            $inventoryId = DB::table('chart_of_accounts')->insertGetId([
+                'account_code' => '1400',
+                'account_name' => 'Inventory',
+                'account_type' => 'Asset',
+                'report_group' => 'Current Asset',
+                'currency' => 'USD',
+                'is_cash_account' => 0,
+                'normal_balance' => 'debit',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $apId = DB::table('chart_of_accounts')->where('account_code', '2100')->value('id');
+        if (!$apId) {
+            $apId = DB::table('chart_of_accounts')->insertGetId([
+                'account_code' => '2100',
+                'account_name' => 'Accounts Payable',
+                'account_type' => 'Liability',
+                'report_group' => 'Current Liability',
+                'currency' => 'USD',
+                'is_cash_account' => 0,
+                'normal_balance' => 'credit',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         // Seed mapping rules for material accounts payment & receipt
-        // Debit/Credit default accounts: 8 for Inventory (Asset), 3 for Accounts Payable (Liability)
+        // Debit/Credit default accounts: Inventory (Asset), Accounts Payable (Liability)
         DB::table('mapping_rules')->insert([
             [
                 'transaction_type' => 'material_payment_in',
                 'condition' => 'رسید',
                 'mapping_key' => 'MATERIAL_RECEIPT',
-                'debit_account_id' => 8, 
-                'credit_account_id' => 3, 
+                'debit_account_id' => $inventoryId, 
+                'credit_account_id' => $apId, 
                 'description_template' => 'رسید مواد از حساب: {reference}',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -54,8 +85,8 @@ class HardenMaterialAccountPaymentsTable extends Migration
                 'transaction_type' => 'material_payment_out',
                 'condition' => 'گرفت',
                 'mapping_key' => 'MATERIAL_PAYMENT',
-                'debit_account_id' => 3, 
-                'credit_account_id' => 8, 
+                'debit_account_id' => $apId, 
+                'credit_account_id' => $inventoryId, 
                 'description_template' => 'خروج مواد از حساب: {reference}',
                 'created_at' => now(),
                 'updated_at' => now(),

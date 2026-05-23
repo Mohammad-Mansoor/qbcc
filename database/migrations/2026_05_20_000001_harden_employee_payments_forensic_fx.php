@@ -66,13 +66,44 @@ class HardenEmployeePaymentsForensicFx extends Migration
         // Seed the PAYROLL_PAYMENT mapping rule if not already present
         $exists = DB::table('mapping_rules')->where('mapping_key', 'PAYROLL_PAYMENT')->exists();
         if (!$exists) {
+            // Dynamically resolve account IDs by code to support fresh migrations
+            $apId = DB::table('chart_of_accounts')->where('account_code', '2100')->value('id');
+            if (!$apId) {
+                $apId = DB::table('chart_of_accounts')->insertGetId([
+                    'account_code' => '2100',
+                    'account_name' => 'Accounts Payable',
+                    'account_type' => 'Liability',
+                    'report_group' => 'Current Liability',
+                    'currency' => 'USD',
+                    'is_cash_account' => 0,
+                    'normal_balance' => 'credit',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $cashId = DB::table('chart_of_accounts')->where('account_code', '1000')->value('id');
+            if (!$cashId) {
+                $cashId = DB::table('chart_of_accounts')->insertGetId([
+                    'account_code' => '1000',
+                    'account_name' => 'Cash',
+                    'account_type' => 'Asset',
+                    'report_group' => 'Current Asset',
+                    'currency' => 'USD',
+                    'is_cash_account' => 1,
+                    'normal_balance' => 'debit',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             DB::table('mapping_rules')->insert([
                 [
                     'transaction_type'    => 'employee_payment',
                     'condition'           => 'گرفت',
                     'mapping_key'         => 'PAYROLL_PAYMENT',
-                    'debit_account_id'    => 3,  // Accounts Payable / Payroll Liability
-                    'credit_account_id'   => 1,  // Cash / Bank
+                    'debit_account_id'    => $apId,  // Accounts Payable / Payroll Liability
+                    'credit_account_id'   => $cashId,  // Cash / Bank
                     'description_template'=> 'معاش کارمند: {reference}',
                     'created_at'          => now(),
                     'updated_at'          => now(),
