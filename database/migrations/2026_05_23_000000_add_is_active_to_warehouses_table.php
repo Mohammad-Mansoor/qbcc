@@ -13,9 +13,11 @@ class AddIsActiveToWarehousesTable extends Migration
      */
     public function up()
     {
-        Schema::table('warehouses', function (Blueprint $table) {
-            $table->tinyInteger('is_active')->default(1)->after('type');
-        });
+        if (!Schema::hasColumn('warehouses', 'is_active')) {
+            Schema::table('warehouses', function (Blueprint $table) {
+                $table->tinyInteger('is_active')->default(1)->after('type');
+            });
+        }
     }
 
     /**

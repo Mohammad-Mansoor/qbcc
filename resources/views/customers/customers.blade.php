@@ -92,16 +92,22 @@
                             <input type="text" value="{{ $customerEdit ? $customerEdit->customer_code : old('customer_code') }}" class="form-control form-control-sm border-light-gray shadow-none" required name="customer_code" style="border-radius: 8px;">
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="col-md-2 col-sm-6 mb-3">
                         <div class="form-group mb-0">
                             <label class="font-weight-bold text-muted mb-2" style="font-size: 0.85rem;">نام مشتری</label>
                             <input type="text" class="form-control form-control-sm border-light-gray shadow-none" value="{{ $customerEdit ? $customerEdit->name : old('name') }}" required name="name" style="border-radius: 8px;">
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="col-md-2 col-sm-6 mb-3">
                         <div class="form-group mb-0">
                             <label class="font-weight-bold text-muted mb-2" style="font-size: 0.85rem;">نام کمپنی</label>
                             <input type="text" value="{{ $customerEdit ? $customerEdit->company_name : old('company_name') }}" class="form-control form-control-sm border-light-gray shadow-none" required name="company_name" style="border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-sm-6 mb-3">
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold text-muted mb-2" style="font-size: 0.85rem;">آدرس کمپنی (موقعیت)</label>
+                            <input type="text" value="{{ $customerEdit ? $customerEdit->company_address : old('company_address') }}" class="form-control form-control-sm border-light-gray shadow-none" required name="company_address" style="border-radius: 8px;">
                         </div>
                     </div>
                     <div class="col-md-2 col-sm-6 mb-3">

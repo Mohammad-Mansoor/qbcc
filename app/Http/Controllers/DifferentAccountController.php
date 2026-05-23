@@ -18,17 +18,40 @@ class DifferentAccountController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    private function calculateBalances()
+    {
+        $rates = Currency::pluck('exchange_rate', 'code')->toArray();
+        $totals = DifferentAccountTotal::all();
+        $remaining = 0;
+        $talab = 0;
+        foreach ($totals as $t) {
+            $rate = $rates[$t->currency_code] ?? 1.0;
+            $val = $t->remaining * $rate;
+            if ($val < 0) {
+                $remaining += abs($val);
+            } else {
+                $talab += $val;
+            }
+        }
+        return [
+            'remaining' => $remaining,
+            'talab' => $talab
+        ];
+    }
+
     public function index()
     {
         $accountEdit = "";
         $center_accounts = DifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->get();
-        $remaining = DifferentAccountTotal::where('remaining','<',0)->sum('remaining');
-        $talab = DifferentAccountTotal::where('remaining','>',0)->sum('remaining');
+        
+        $balances = $this->calculateBalances();
+        $remaining = $balances['remaining'];
+        $talab = $balances['talab'];
 
         $froshat_accounts = DifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->get();
         $mo_accounts = DifferentAccount::where('user_role','MO')->get();
         $sp_accounts = DifferentAccount::all();
-        return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts'));
+        return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','remaining','talab'));
     }
 
     public function search(Request $request)
@@ -51,7 +74,12 @@ class DifferentAccountController extends Controller
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
             ->get();
-        return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','search'));
+
+        $balances = $this->calculateBalances();
+        $remaining = $balances['remaining'];
+        $talab = $balances['talab'];
+
+        return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','search','remaining','talab'));
     }
 
     /**
@@ -93,7 +121,10 @@ class DifferentAccountController extends Controller
         $totals = \App\DifferentAccountTotal::where('account_id', $id)->get();
         $paymentEdit = '';
         $currencies = Currency::all();
-        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit', 'currencies'));
+        $chartOfAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'DIFF_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'DIFF_OUT')->first();
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit', 'currencies', 'chartOfAccounts', 'mappingIn', 'mappingOut'));
     }
 
     public function show_all_payment($account_id){
@@ -103,7 +134,10 @@ class DifferentAccountController extends Controller
         $paymentEdit = '';
         $all = '';
         $currencies = Currency::all();
-        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all', 'currencies'));
+        $chartOfAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'DIFF_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'DIFF_OUT')->first();
+        return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all', 'currencies', 'chartOfAccounts', 'mappingIn', 'mappingOut'));
     }
 
     /**
@@ -115,8 +149,9 @@ class DifferentAccountController extends Controller
     public function edit($id)
     {
         $accountEdit = DifferentAccount::find($id);
-        $remaining = DifferentAccountTotal::where('remaining','<',0)->sum('remaining');
-        $talab = DifferentAccountTotal::where('remaining','>',0)->sum('remaining');
+        $balances = $this->calculateBalances();
+        $remaining = $balances['remaining'];
+        $talab = $balances['talab'];
         $center_accounts = DifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->get();
         $froshat_accounts = DifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->get();
         $mo_accounts = DifferentAccount::where('user_role','MO')->get();

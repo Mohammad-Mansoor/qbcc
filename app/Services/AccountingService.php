@@ -137,11 +137,17 @@ class AccountingService
             if (isset($data['source_id']) && isset($data['source_type'])) {
                 $query = LedgerTransaction::where('source_id', $data['source_id'])
                     ->where('source_type', $data['source_type'])
-                    ->where('status', 'posted');
+                    ->where('status', 'posted')
+                    ->whereNotExists(function($q) {
+                        $q->select(DB::raw(1))
+                          ->from('ledger_transactions as reversals')
+                          ->whereRaw('reversals.reversed_transaction_id = ledger_transactions.id');
+                    });
 
                 if (isset($data['mapping_key'])) {
                     $query->where('mapping_key', $data['mapping_key']);
                 }
+
 
                 $exists = $query->lockForUpdate()->exists();
                 if ($exists) {
@@ -289,8 +295,13 @@ class AccountingService
             }
 
             // 3. Link reversal to original (Implicitly linked via reversed_transaction_id on the reversal record)
-            // Note: We skip updating the original description to satisfy immutability rules in LedgerTransaction model.
-            // $original->update(['description' => $original->description . " (REVERSED BY #$reversal->id)"]);
+            // We update the original status to 'reversed' and append '-REV' to mapping_key to release unique key constraints.
+            DB::table('ledger_transactions')
+                ->where('id', $original->id)
+                ->update([
+                    'status' => 'reversed',
+                    'mapping_key' => $original->mapping_key ? $original->mapping_key . '-REV' : null
+                ]);
 
             return $reversal;
         });
@@ -327,8 +338,41 @@ class AccountingService
      */
     public function reverseTransactionBySource($sourceId, $reason = null, $sourceType = null)
     {
+        if ($sourceType === null) {
+            $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+            $callerClass = $backtrace[1]['class'] ?? '';
+            
+            $mappings = [
+                'App\Http\Controllers\DifferentAccountPaymentController' => 'DifferentAccountPayment',
+                'App\Http\Controllers\NewDifferentAccountPaymentController' => 'DifferentAccountPayment',
+                'App\Http\Controllers\CustomerPaymentController' => 'Customer_payment',
+                'App\Http\Controllers\OfficeDebitController' => 'Office_debit',
+                'App\Http\Controllers\OfficeCreditController' => 'Office_credit',
+                'App\Http\Controllers\AgentPaymentController' => 'Agent_payment',
+                'App\Http\Controllers\MonthlyExpenseController' => 'Expense',
+                'App\Http\Controllers\NewMonthlyExpenseBalanceController' => 'NewMonthlyExpenseBalance',
+                'App\Http\Controllers\SellerPaymentController' => 'Payment',
+                'App\Http\Controllers\EmployeePaymentController' => 'App\EmployeePayment',
+                'App\Http\Controllers\AjnasAccountDetailsController' => 'Ajnas_account',
+                'App\Http\Controllers\WashingPaymentController' => 'Washing_payment',
+                'App\Http\Controllers\FinishingTeamPaymentController' => 'Finishing_payment',
+            ];
+            
+            if (isset($mappings[$callerClass])) {
+                $sourceType = $mappings[$callerClass];
+            } else {
+                \Log::warning("reverseTransactionBySource called without sourceType from caller: {$callerClass}");
+            }
+        }
+
         $query = LedgerTransaction::where('source_id', $sourceId)
-            ->where('status', 'posted');
+            ->where('status', 'posted')
+            ->whereNull('reversed_transaction_id')
+            ->whereNotExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from('ledger_transactions as reversals')
+                  ->whereRaw('reversals.reversed_transaction_id = ledger_transactions.id');
+            });
 
         if ($sourceType) {
             $query->where('source_type', $sourceType);

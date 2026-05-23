@@ -80,14 +80,14 @@
                 <div class="stat-icon bg-light-danger text-danger"><i class="feather icon-arrow-up-right"></i></div>
                 <div class="stat-info">
                     <span class="label">مجموع باقیات (بدهی ما)</span>
-                    <div class="value" dir="ltr">{{ number_format(abs(\App\DifferentAccountTotal::where('remaining', '<', 0)->sum('remaining')), 2) }} <small>USD</small></div>
+                    <div class="value" dir="ltr">{{ number_format($remaining, 2) }} <small>USD</small></div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon bg-light-success text-success"><i class="feather icon-arrow-down-left"></i></div>
                 <div class="stat-info">
                     <span class="label">مجموع طلبات (طلب ما)</span>
-                    <div class="value" dir="ltr">{{ number_format(\App\DifferentAccountTotal::where('remaining', '>', 0)->sum('remaining'), 2) }} <small>USD</small></div>
+                    <div class="value" dir="ltr">{{ number_format($talab, 2) }} <small>USD</small></div>
                 </div>
             </div>
             <div class="stat-card">

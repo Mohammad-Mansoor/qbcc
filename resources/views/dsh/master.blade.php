@@ -511,6 +511,41 @@
         </div>
       </div>
     </div>
+    @if ($errors->any())
+        <div class="container-fluid pt-3 hideOnPrint">
+            <div class="alert alert-danger alert-dismissible fade show border-0 rounded-lg p-3 mb-0" role="alert" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                <h6 class="font-weight-bold mb-2"><i class="fa fa-times-circle mr-2"></i> لطفا خطاهای زیر را برطرف کنید:</h6>
+                <ul class="mb-0 pl-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="color: #ef4444; opacity: 0.8; line-height: 1.5; padding: 0.75rem 1.25rem;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+    @if(session("status"))
+        <div class="container-fluid pt-3 hideOnPrint">
+            <div class="alert alert-success alert-dismissible fade show border-0 rounded-lg p-3 mb-0" role="alert" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                <p class="mb-0 font-weight-bold"><i class="fa fa-check-circle mr-2"></i> {{session('status')}}</p>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="color: #10b981; opacity: 0.8; line-height: 1.5; padding: 0.75rem 1.25rem;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+    @if(session("error"))
+        <div class="container-fluid pt-3 hideOnPrint">
+            <div class="alert alert-danger alert-dismissible fade show border-0 rounded-lg p-3 mb-0" role="alert" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                <p class="mb-0 font-weight-bold"><i class="fa fa-times-circle mr-2"></i> {{session('error')}}</p>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="color: #ef4444; opacity: 0.8; line-height: 1.5; padding: 0.75rem 1.25rem;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
   @yield('content')
 
   {{--</div>--}}

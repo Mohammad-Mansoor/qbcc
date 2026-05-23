@@ -88,6 +88,14 @@ class AccountSelectionService
         'MATERIAL_PAYMENT' => [
             'debit'  => ['account_type' => 'Liability', 'is_cash_account' => 1],
             'credit' => ['report_group' => 'Inventory']
+        ],
+        'DIFF_IN' => [
+            'debit'  => ['is_cash_account' => 1],
+            'credit' => []
+        ],
+        'DIFF_OUT' => [
+            'debit'  => [],
+            'credit' => ['is_cash_account' => 1]
         ]
     ];
 

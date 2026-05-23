@@ -25,9 +25,9 @@ class DifferentAccountPaymentController extends Controller
     {
         try {
             $account = DifferentAccount::find($payment->account_id);
-            $key = ($payment->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
+            $key = ($payment->type == 'رسید') ? 'DIFF_IN' : 'DIFF_OUT';
 
-            $this->accountingService->postAutoTransaction('different_account', $key, [
+            $transaction = $this->accountingService->postAutoTransaction('different_account', $key, [
                 'date' => $payment->date,
                 'amount' => $payment->base_amount,
                 'original_amount' => $payment->amount,
@@ -37,7 +37,15 @@ class DifferentAccountPaymentController extends Controller
                 'description' => "تراکنش حساب متفرقه: " . ($account->name ?? 'N/A') . " - " . $payment->description,
                 'source_type' => 'DifferentAccountPayment',
                 'source_id' => $payment->id,
+                'override_debit_account_id' => $payment->override_debit_account_id ?? null,
+                'override_credit_account_id' => $payment->override_credit_account_id ?? null,
             ]);
+
+            if ($transaction) {
+                DB::table('different_account_payments')
+                    ->where('id', $payment->id)
+                    ->update(['ledger_transaction_id' => $transaction->id]);
+            }
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Different Account Payment #" . $payment->id . ": " . $e->getMessage());
         }
@@ -110,11 +118,14 @@ class DifferentAccountPaymentController extends Controller
                 'date' => 'required',
                 'type' => 'required',
                 'account_id' => 'required',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
-            if ($data['currency_code'] == 'USD') {
-                $data['exchange_rate'] = 1.000000;
-            }
+            $currency = \App\Currency::where('code', $data['currency_code'])->firstOrFail();
+            $exchangeRate = $request->exchange_rate ?? $currency->exchange_rate;
+            $data['exchange_rate'] = ($data['currency_code'] == 'USD') ? 1.000000 : $exchangeRate;
+
             // FORENSIC PILLAR 5: Multiplication for USD Normalization
             $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
@@ -145,7 +156,10 @@ class DifferentAccountPaymentController extends Controller
         $account = DifferentAccount::find($paymentEdit->account_id);
         $totals = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->get();
         $currencies = \App\Currency::all();
-        return view('different-account.account-payment', compact('account', 'payments', 'totals', 'paymentEdit', 'currencies'));
+        $chartOfAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'DIFF_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'DIFF_OUT')->first();
+        return view('different-account.account-payment', compact('account', 'payments', 'totals', 'paymentEdit', 'currencies', 'chartOfAccounts', 'mappingIn', 'mappingOut'));
     }
 
     public function update(Request $request, DifferentAccountPayment $differentAccountPayment)
@@ -158,12 +172,15 @@ class DifferentAccountPaymentController extends Controller
                 'description' => 'required',
                 'date' => 'required',
                 'type' => 'required',
-                'account_id' => 'required'
+                'account_id' => 'required',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
-            if ($data['currency_code'] == 'USD') {
-                $data['exchange_rate'] = 1.000000;
-            }
+            $currency = \App\Currency::where('code', $data['currency_code'])->firstOrFail();
+            $exchangeRate = $request->exchange_rate ?? $currency->exchange_rate;
+            $data['exchange_rate'] = ($data['currency_code'] == 'USD') ? 1.000000 : $exchangeRate;
+
             // FORENSIC PILLAR 5: Multiplication for USD Normalization
             $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
 

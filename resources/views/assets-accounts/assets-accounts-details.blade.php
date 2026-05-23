@@ -533,6 +533,16 @@
                         </div>
                     </div>
                     <div class="card-body p-4">
+                        @if($errors->any())
+                            <div class="alert alert-danger error p-3 mb-3 border-0 rounded-lg" role="alert">
+                                <h6 class="font-weight-bold mb-2 text-danger"><i class="fa fa-times-circle mr-2"></i> لطفا خطاهای زیر را برطرف کنید:</h6>
+                                <ul class="mb-0 pl-3 text-danger">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         @if(session("status"))
                             <div class="alert alert-success status p-3 mb-3 border-0 rounded-lg" role="alert">
                                 <p class="text-center mb-0 font-weight-bold"><i class="fa fa-check-circle mr-2"></i> {{session('status')}}</p>

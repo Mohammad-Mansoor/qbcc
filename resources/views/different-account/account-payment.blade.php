@@ -145,11 +145,8 @@
                                     </a>
                                     @endif
                                     
-                                    @php
-                                        $transaction = \App\LedgerTransaction::where('source_type', 'different_account')->where('source_id', $pa->id)->first();
-                                    @endphp
-                                    @if($transaction)
-                                        <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-light-success text-success" title="مشاهده سند حسابداری">
+                                    @if($pa->ledger_transaction_id)
+                                        <a href="{{ route('accounting.journals.show', $pa->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-light-success text-success" title="مشاهده سند حسابداری">
                                             <i class="feather icon-book"></i>
                                         </a>
                                     @endif
@@ -234,6 +231,33 @@
                         </div>
                     </div>
 
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">حساب بدهکار (Debit Account)</label>
+                                <select name="override_debit_account_id" id="override_debit_account_id" class="form-control-modern w-100" required style="font-family: inherit;">
+                                    @foreach($chartOfAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (($paymentEdit && $paymentEdit->override_debit_account_id == $acc->id) || (!$paymentEdit && $mappingIn && $mappingIn->debit_account_id == $acc->id)) ? 'selected' : '' }} data-cash="{{ $acc->is_cash_account }}">
+                                            {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-muted">حساب بستانکار (Credit Account)</label>
+                                <select name="override_credit_account_id" id="override_credit_account_id" class="form-control-modern w-100" required style="font-family: inherit;">
+                                    @foreach($chartOfAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (($paymentEdit && $paymentEdit->override_credit_account_id == $acc->id) || (!$paymentEdit && $mappingOut && $mappingOut->credit_account_id == $acc->id)) ? 'selected' : '' }} data-cash="{{ $acc->is_cash_account }}">
+                                            {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group mt-3">
                         <label class="small font-weight-bold text-muted">توضیحات و بابت</label>
                         <textarea name="description" class="form-control-modern w-100" rows="2" placeholder="مثلا: بابت کرایه موتر یا خرید وسایل..." required>{{ $paymentEdit ? $paymentEdit->description : '' }}</textarea>
@@ -289,6 +313,59 @@
 
         // Initial calculation on load
         calculateUSD();
+
+        // Dynamic select accounts filtering and defaults
+        const mappingInDebit = "{{ $mappingIn->debit_account_id ?? '' }}";
+        const mappingInCredit = "{{ $mappingIn->credit_account_id ?? '' }}";
+        const mappingOutDebit = "{{ $mappingOut->debit_account_id ?? '' }}";
+        const mappingOutCredit = "{{ $mappingOut->credit_account_id ?? '' }}";
+
+        function filterAccounts() {
+            let type = $('select[name="type"]').val();
+            let debitSelect = $('#override_debit_account_id');
+            let creditSelect = $('#override_credit_account_id');
+
+            // Enable all options first
+            debitSelect.find('option').prop('disabled', false);
+            creditSelect.find('option').prop('disabled', false);
+
+            if (type === 'رسید') {
+                // Receipt (رسید): Debit side must be Cash. Credit side is arbitrary.
+                debitSelect.find('option').each(function() {
+                    let isCash = $(this).data('cash') == 1;
+                    if (!isCash) {
+                        $(this).prop('disabled', true);
+                    }
+                });
+
+                // Set defaults if currently selected is disabled or if opening a new form
+                if (debitSelect.find('option:selected').is(':disabled') || !debitSelect.val()) {
+                    debitSelect.val(mappingInDebit);
+                }
+                if (!creditSelect.val() || creditSelect.val() == mappingOutCredit) {
+                    creditSelect.val(mappingInCredit);
+                }
+            } else {
+                // Payment (گرفت): Credit side must be Cash. Debit side is arbitrary.
+                creditSelect.find('option').each(function() {
+                    let isCash = $(this).data('cash') == 1;
+                    if (!isCash) {
+                        $(this).prop('disabled', true);
+                    }
+                });
+
+                // Set defaults if currently selected is disabled or if opening a new form
+                if (creditSelect.find('option:selected').is(':disabled') || !creditSelect.val()) {
+                    creditSelect.val(mappingOutCredit);
+                }
+                if (!debitSelect.val() || debitSelect.val() == mappingInDebit) {
+                    debitSelect.val(mappingOutDebit);
+                }
+            }
+        }
+
+        $('select[name="type"]').change(filterAccounts);
+        filterAccounts(); // run initially
     });
 </script>
 @endsection
