@@ -1,5 +1,5 @@
 @extends('dsh.master')
-@section('title' , 'حسابات تار')
+@section('title' , 'حسابات مواد خام')
 @section('content')
   
   
@@ -66,9 +66,9 @@
                     
                     <div class="row">
                       <div class="col-lg-2 col-md-2 col-sm-6">
-                        <label class="pull-right">مقدار تار (KG)</label>
+                        <label class="pull-right">مقدار مواد خام (KG)</label>
                         <input type="text" name="amount" id="amount_in"
-                               placeholder="مقدار تار" class="form-control" required>
+                               placeholder="مقدار مواد خام" class="form-control" required>
                         @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p>@enderror
                       </div>
 
@@ -111,7 +111,7 @@
 
                     <div class="row mt-2">
                       <div class="col-lg-2 col-md-2 col-sm-6">
-                        <label class="pull-right">نوعیت تار</label>
+                        <label class="pull-right">نوعیت مواد خام</label>
                         <select name="type_id" id="" class="form-control" required>
                           @foreach($material_type as $t)
                             <option value="{{$t->material_type_id}}">{{$t->material_type}}</option>
@@ -216,7 +216,7 @@
                     
                     <div class="row">
                       <div class="col-lg-2 col-md-2 col-sm-6">
-                        <label class="pull-right">مقدار تار (KG)</label>
+                        <label class="pull-right">مقدار مواد خام (KG)</label>
                         <input type="text" name="amount" id="amount_edit"
                                value="{{$paymentEdit->amount}}" class="form-control" required>
                         @error('amount') <p class="text-danger">{{trans('message.'.$message)}}</p>@enderror
@@ -261,7 +261,7 @@
 
                     <div class="row mt-2">
                       <div class="col-lg-2 col-md-2 col-sm-6">
-                        <label class="pull-right">نوعیت تار</label>
+                        <label class="pull-right">نوعیت مواد خام</label>
                         <select name="type_id" id="" class="form-control" required>
                           @foreach($material_type as $t)
                             <option {{ $paymentEdit->type_id == $t->material_type_id  ? 'selected' : '' }} value="{{$t->material_type_id}}">{{$t->material_type}}</option>
@@ -374,7 +374,7 @@
           <div class="card-header text-right">
             <div class="row">
               <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
-                <h4 style="margin: 0; padding-top: 5px;">لیست پرداخت‌ها و رسیدهای تار</h4>
+                <h4 style="margin: 0; padding-top: 5px;">لیست پرداخت‌ها و رسیدهای مواد خام</h4>
               </div>
               <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint text-left">
                 <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
@@ -402,7 +402,7 @@
                         <td><b>ارز / FX نرخ</b></td>
                         <td><b>معادل دالر (USD)</b></td>
                         <td><b>گدام</b></td>
-                        <td><b>نوعیت تار</b></td>
+                        <td><b>نوعیت مواد خام</b></td>
                         <td><b>تفصیلات</b></td>
                         <td><b>تاریخ</b></td>
                         <td><b>حالت</b></td>

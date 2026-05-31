@@ -88,6 +88,7 @@ class InventoryTransactionManager
                 'quantity' => 0,
                 'warehouse_id' => $params['warehouse_id'] ?? 1,
                 'unit_cost' => $params['amount'],
+                'area' => $params['area'] ?? 0,
                 'created_by' => auth()->id(),
                 'is_value_adjustment' => true,
             ]);
@@ -178,6 +179,7 @@ class InventoryTransactionManager
                 'quantity' => $params['quantity'] ?? 1,
                 'warehouse_id' => $params['warehouse_id'] ?? 1,
                 'unit_cost' => $params['unit_cost'] ?? 0,
+                'area' => $params['area'] ?? 0,
                 'created_by' => auth()->id(),
                 'is_value_adjustment' => false,
             ]);

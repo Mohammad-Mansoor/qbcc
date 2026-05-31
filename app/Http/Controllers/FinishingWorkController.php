@@ -85,10 +85,11 @@ class FinishingWorkController extends Controller
 
             // ERP Integration: Atomic Inventory Audit + Accounting
             $category = FinishingTeamCategory::find($work->category_id);
-            $this->inventoryManager->processValueAddition($carpet, [
+            $this->inventoryManager->recordProductionService($work, $carpet, [
                 'type' => 'FINISHING',
-                'transaction_type' => 'finishing',
-                'total_amount' => $work->price_af,
+                'amount' => $work->price,
+                'currency_code' => $work->currency_code ?? 'USD',
+                'exchange_rate' => $work->exchange_rate ?? 1.0,
                 'date' => $work->date,
                 'party_type' => 'App\FinishingTeam',
                 'party_id' => $work->team_id,
@@ -430,10 +431,11 @@ class FinishingWorkController extends Controller
 
             // ERP Integration: Re-post value addition
             $category = FinishingTeamCategory::find($finish->category_id);
-            $this->inventoryManager->processValueAddition($carpet, [
+            $this->inventoryManager->recordProductionService($finish, $carpet, [
                 'type' => 'FINISHING_EDIT',
-                'transaction_type' => 'finishing',
-                'total_amount' => $finish->price_af,
+                'amount' => $finish->price,
+                'currency_code' => $finish->currency_code ?? 'USD',
+                'exchange_rate' => $finish->exchange_rate ?? 1.0,
                 'date' => $finish->date,
                 'party_type' => 'App\FinishingTeam',
                 'party_id' => $finish->team_id,

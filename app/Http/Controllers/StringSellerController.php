@@ -20,72 +20,42 @@ class StringSellerController extends Controller
     public function index()
     {
         $sellerEdit = "";
-        $sellers = StringSeller::all()->map(function($seller) {
-            // 1. Accounting Balance (Real-time from ledger)
-            $seller->accounting_balance = DB::table('ledger_entries')
-                ->where('party_type', 'App\StringSeller')
-                ->where('party_id', $seller->id)
-                ->sum(DB::raw("credit - debit"));
-
-            // 2. Legacy Balance (AFN & USD)
-            $seller->legacy_af = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount_af') 
-                               - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount_af');
-            
-            $seller->legacy_usd = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount') 
-                                - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount');
-            
-            // 3. Total Supplied (kg)
-            $seller->total_supplied = DB::table('purchase_materials')
-                ->where('seller_id', $seller->id)
-                ->where('status', 1)
-                ->sum('quantity');
-
-            // 4. Last Activity
-            $lastPurchase = DB::table('purchase_materials')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
-            $lastPayment = DB::table('seller_payments')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
-            $seller->last_activity = max($lastPurchase, $lastPayment);
-
-            return $seller;
-        });
+        $sellers = $this->getSellersQuery();
 
         // Global Aggregates (Legacy)
         $credit_us = SellerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = SellerPayment::where('type', '=', 'رسید')->sum('amount_af');
         $debit_us = SellerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = SellerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $currencies = \App\Currency::all();
 
-        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af'));
+        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af','currencies'));
     }
     public function search(Request $request)
     {
         $search = $request->search;
-
-
-        $sellers = StringSeller::where('name', 'like','%'.$search.'%')
-            ->orWhere('phone', 'like', '%' .$search.'%')
-            ->orWhere('address', 'like', '%'.$search.'%')
-            ->get();
+        $sellers = $this->getSellersQuery($search);
         $sellerEdit = "";
         $credit_us = SellerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = SellerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = SellerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = SellerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $currencies = \App\Currency::all();
 
-        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af'));
-
-
+        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af','currencies'));
     }
     public function accounts(){
         $sellerEdit = "";
-        $sellers = StringSeller::all();
+        $sellers = $this->getSellersQuery();
         $credit_us = SellerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = SellerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = SellerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = SellerPayment::where('type', '=', 'گرفت')->sum('amount_af');
         $accounts = '';
-        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af','accounts'));
+        $currencies = \App\Currency::all();
+        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af','accounts','currencies'));
     }
 
     /**
@@ -144,14 +114,15 @@ class StringSellerController extends Controller
     public function edit($id)
     {
         $sellerEdit = StringSeller::find($id);
-        $sellers = StringSeller::all();
+        $sellers = $this->getSellersQuery();
         $credit_us = SellerPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = SellerPayment::where('type', '=', 'رسید')->sum('amount_af');
 
         $debit_us = SellerPayment::where('type', '=', 'گرفت')->sum('amount');
         $debit_af = SellerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $currencies = \App\Currency::all();
 
-        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af'));
+        return view('string-seller.string-seller' , compact('sellers','sellerEdit','credit_us','credit_af','debit_us','debit_af','currencies'));
     }
 
     /**
@@ -199,6 +170,45 @@ class StringSellerController extends Controller
         if($seller) {
             return response()->json(['status' => 'success']);
         }
+    }
+    private function getSellersQuery($search = null)
+    {
+        $query = StringSeller::query();
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%')
+                  ->orWhere('address', 'like', '%' . $search . '%');
+            });
+        }
+        
+        return $query->orderBy('id', 'desc')->get()->map(function($seller) {
+            // 1. Accounting Balance (Real-time from ledger)
+            $seller->accounting_balance = DB::table('ledger_entries')
+                ->where('party_type', 'App\StringSeller')
+                ->where('party_id', $seller->id)
+                ->sum(DB::raw("credit - debit"));
+
+            // 2. Legacy Balance (AFN & USD)
+            $seller->legacy_af = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount_af') 
+                               - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount_af');
+            
+            $seller->legacy_usd = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount') 
+                                - DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'گرفت')->sum('amount');
+            
+            // 3. Total Supplied (kg)
+            $seller->total_supplied = DB::table('purchase_materials')
+                ->where('seller_id', $seller->id)
+                ->where('status', 1)
+                ->sum('quantity');
+
+            // 4. Last Activity
+            $lastPurchase = DB::table('purchase_materials')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
+            $lastPayment = DB::table('seller_payments')->where('seller_id', $seller->id)->latest('created_at')->value('created_at');
+            $seller->last_activity = max($lastPurchase, $lastPayment);
+
+            return $seller;
+        });
     }
     protected function valData()
     {

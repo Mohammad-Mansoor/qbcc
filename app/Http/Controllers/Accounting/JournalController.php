@@ -19,7 +19,7 @@ class JournalController extends Controller
 
     public function index(Request $request)
     {
-        $query = LedgerTransaction::with('entries.account')->orderBy('date', 'desc');
+        $query = LedgerTransaction::with('entries.account')->orderBy('date', 'desc')->orderBy('id', 'desc');
 
         if ($request->search) {
             $query->where(function($q) use ($request) {
@@ -40,8 +40,33 @@ class JournalController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->account_id) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('account_id', $request->account_id);
+            });
+        }
+
+        if ($request->min_amount) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('base_debit', '>=', $request->min_amount);
+            });
+        }
+
+        if ($request->max_amount) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('base_debit', '<=', $request->max_amount);
+            });
+        }
+
+        if ($request->mixed_currency) {
+            $query->whereHas('entries', function($q) {
+                $q->where('currency_code', '!=', 'USD');
+            });
+        }
+
         $transactions = $query->paginate(30);
-        return view('accounting.journals.index', compact('transactions'));
+        $accounts = ChartOfAccount::orderBy('account_code')->get();
+        return view('accounting.journals.index', compact('transactions', 'accounts'));
     }
 
     public function create()

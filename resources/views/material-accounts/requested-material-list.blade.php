@@ -1,5 +1,5 @@
 @extends('dsh.master')
-@section('title', 'درخواست‌های مواد حساب تار')
+@section('title', 'درخواست‌های حساب مواد خام')
 @section('content')
 
 <div class="row">
@@ -13,7 +13,7 @@
           <div>
             <h5 style="color: #fff; margin: 0; font-weight: 600; letter-spacing: 0.5px;">
               <i class="fa fa-cubes" style="color: #f59e0b; margin-left: 8px;"></i>
-              درخواست‌های مواد حساب تار — در انتظار تایید
+              درخواست‌های حساب مواد خام — در انتظار تایید
             </h5>
             <small style="color: #94a3b8;">Material Account Requests — Pending Approval Queue</small>
           </div>
@@ -57,7 +57,7 @@
                   <small class="d-block" style="font-weight: 400; color: #94a3b8; font-size: 0.72rem;">نرخ × مبلغ</small>
                 </th>
                 <th style="padding: 12px 16px; font-weight: 600;">گدام</th>
-                <th style="padding: 12px 16px; font-weight: 600;">نوعیت تار</th>
+                <th style="padding: 12px 16px; font-weight: 600;">نوعیت مواد خام</th>
                 <th style="padding: 12px 16px; font-weight: 600;">تفصیلات</th>
                 <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">تاریخ</th>
                 <th class="hideOnPrint" style="padding: 12px 16px; font-weight: 600; text-align: center;">اقدام</th>

@@ -27,430 +27,271 @@
             </div>
           @endif
           <div class="all-form-element-inner">
-            @if(!$saleEdit)
-              <form action="/dashboard/material-sales" method="post">
-                @csrf
-                <div class="row align-items-end">
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3">
-                      <label class="font-weight-bold text-dark text-right d-block">فاکتور فروش</label>
-                      <div class="input-group">
-                        <div class="input-group-prepend"><span class="input-group-text bg-light border-left-0"><i class="fa fa-hashtag"></i></span></div>
-                        <input type="text" name="sale_number" value="{{$SaleNo}}" class="form-control font-weight-bold" style="background: #f8fafc;">
+            <!-- Modal Trigger / Action Panel -->
+            <div class="d-flex justify-content-between align-items-center p-3 mb-3 hideOnPrint" style="background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 6px rgba(0,0,0,0.02); direction: rtl;">
+              <div>
+                <h5 class="mb-0 text-dark font-weight-bold">ثبت معامله فروش جدید</h5>
+                <small class="text-muted">جهت ثبت فاکتور فروش مواد خام (تار یا رنگ) کلیک کنید</small>
+              </div>
+              <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#saleModal" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none; box-shadow: 0 4px 12px rgba(5,150,105,0.3); border-radius: 8px; padding: 10px 20px; font-weight: 600;">
+                <i class="fa fa-plus-circle mr-2"></i> ثبت فروش جدید
+              </button>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal fade" id="saleModal" tabindex="-1" role="dialog" aria-labelledby="saleModalLabel" aria-hidden="true" style="direction: rtl;">
+              <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content" style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+                  <div class="modal-header" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%); border-radius: 16px 16px 0 0; padding: 16px 24px;">
+                    <h5 class="modal-title text-white font-weight-bold" id="saleModalLabel">
+                      <i class="fa fa-shopping-cart mr-2"></i>
+                      @if(!$saleEdit) ثبت فروش مواد خام جدید @else ویرایش فروش مواد خام @endif
+                    </h5>
+                    <button type="button" class="close text-white ml-0 mr-auto" data-dismiss="modal" aria-label="Close" style="opacity: 0.8; margin-left: 0 !important; margin-right: auto !important;">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <form action="{{ !$saleEdit ? '/dashboard/material-sales' : '/dashboard/material-sales/'.$saleEdit->id }}" method="post">
+                    @csrf
+                    @if($saleEdit)
+                      @method('PUT')
+                      <input type="hidden" name="old_agent_id" value="{{$saleEdit->agent_id}}">
+                    @endif
+                    
+                    <div class="modal-body p-4 text-right">
+                      
+                      {{-- Subtype selection --}}
+                      <div class="row mb-3">
+                        <div class="col-lg-4">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">نوعیت مواد جهت فروش (Dye or Yarn)</label>
+                            <select id="sale_subtype" name="subtype" class="form-control font-weight-bold" style="border: 2px solid #059669; height: 38px;">
+                              <option value="yarn" {{ ($saleEdit && optional($saleEdit->type)->subtype != 'dye') ? 'selected' : '' }}>تار / مواد خام (Yarn)</option>
+                              <option value="dye" {{ ($saleEdit && optional($saleEdit->type)->subtype == 'dye') ? 'selected' : '' }}>رنگ (Dye)</option>
+                            </select>
+                            <small class="text-muted d-block mt-1">با تغییر این گزینه، کتگوری‌ها، انواع مواد و گدام‌ها فیلتر خواهند شد.</small>
+                          </div>
+                        </div>
+                        <div class="col-lg-4">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">فاکتور فروش (Sale Invoice #)</label>
+                            <input type="text" name="sale_number" value="{{ $saleEdit ? $saleEdit->sale_number : $SaleNo }}" class="form-control font-weight-bold" required style="background: #f8fafc; height: 38px;">
+                            <small class="text-muted d-block mt-1">شماره سند یا فاکتور ثبت فروش در سیستم.</small>
+                          </div>
+                        </div>
+                        <div class="col-lg-4">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">تاریخ (Date)</label>
+                            <input type="date" name="date" required value="{{ $saleEdit ? $saleEdit->date : date('Y-m-d') }}" class="form-control text-right" style="height: 38px;">
+                            <small class="text-muted d-block mt-1">تاریخ انجام معامله فروش.</small>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div class="col-lg-3">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">نام نماینده (Agent)</label>
-                      <select name="agent_id" id="agent_id" required class="form-control select2">
-                        <option value="">انتخاب نماینده</option>
-                        @foreach ($agents as $ag)
-                          <option value="{{$ag->agent_id}}">{{$ag->user->name}}</option>
-                        @endforeach
-                      </select>
-                      <div id="agent-balance" class="mt-1 small font-weight-bold text-primary"></div>
-                    </div>
-                  </div>
+                      <div class="row align-items-end">
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">نام نماینده (Agent)</label>
+                            <select name="agent_id" id="agent_id" required class="form-control select2">
+                              <option value="">انتخاب نماینده</option>
+                              @foreach ($agents as $ag)
+                                <option value="{{$ag->agent_id}}" {{ ($saleEdit && $saleEdit->agent_id == $ag->agent_id) ? 'selected' : '' }}>{{$ag->user->name}}</option>
+                              @endforeach
+                            </select>
+                            <div id="agent-balance" class="mt-1 small font-weight-bold text-primary"></div>
+                          </div>
+                        </div>
 
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">نوعیت مواد</label>
-                      <select name="type_id" id="type_id" required class="form-control select2">
-                         <option value="">انتخاب نوعیت</option>
-                        @foreach ($material_types as $type)
-                          <option value="{{$type->material_type_id}}">{{$type->material_type}}</option>
-                        @endforeach
-                      </select>
-                    </div>
-                  </div>
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">دسته بندی مواد (Category)</label>
+                            <select name="category_id" id="category_id" required class="form-control select2">
+                              <option value="">انتخاب دسته بندی</option>
+                              @foreach ($categories as $category)
+                                <option value="{{$category->material_category_id}}" data-subtype="{{$category->subtype}}" {{ ($saleEdit && $saleEdit->category_id == $category->material_category_id) ? 'selected' : '' }}>
+                                  {{$category->material_category}}
+                                </option>
+                              @endforeach
+                            </select>
+                          </div>
+                        </div>
 
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">دسته بندی مواد</label>
-                      <select name="category_id" id="category_id" required class="form-control select2">
-                         <option value="">انتخاب دسته بندی</option>
-                        @foreach ($categories as $category)
-                          <option value="{{$category->material_category_id}}">{{$category->material_category}}</option>
-                        @endforeach
-                      </select>
-                    </div>
-                  </div>
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">نوعیت مواد (Type)</label>
+                            <select name="type_id" id="type_id" required class="form-control select2">
+                              <option value="">انتخاب نوعیت</option>
+                              @foreach ($material_types as $type)
+                                <option value="{{$type->material_type_id}}" data-subtype="{{$type->subtype}}" {{ ($saleEdit && $saleEdit->type_id == $type->material_type_id) ? 'selected' : '' }}>
+                                  {{$type->material_type}}
+                                </option>
+                              @endforeach
+                            </select>
+                          </div>
+                        </div>
 
-                  <div class="col-lg-3">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">گدام (Warehouse)</label>
-                      <select name="warehouse_id" required class="form-control select2">
-                        @foreach ($warehouses as $w)
-                          <option value="{{$w->id}}">{{$w->name}}</option>
-                        @endforeach
-                      </select>
-                      <div id="material-stock-info" class="mt-1 small font-weight-bold text-info"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row mt-2 align-items-end">
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">تاریخ (Date)</label>
-                      <input type="date" name="date" required value="{{ date('Y-m-d') }}" class="form-control text-right">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark text-success">مقدار مواد (Kg)</label>
-                      <div class="input-group">
-                        <input type="number" step="0.01" name="amount" required placeholder="0.00" class="form-control font-weight-bold border-success" id="material-amount" style="font-size: 1.1rem; text-align: center;">
-                        <div class="input-group-append"><span class="input-group-text bg-success text-white">KG</span></div>
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">گدام (Warehouse)</label>
+                            <select name="warehouse_id" id="warehouse_id" required class="form-control select2">
+                              <option value="">انتخاب گدام</option>
+                              @foreach ($warehouses as $w)
+                                <option value="{{$w->id}}" data-subtype="{{$w->subtype}}" {{ ($saleEdit && $saleEdit->warehouse_id == $w->id) ? 'selected' : '' }}>
+                                  {{$w->name}}
+                                </option>
+                              @endforeach
+                            </select>
+                            <div id="material-stock-info" class="mt-1 small font-weight-bold text-info"></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                        <label class="font-weight-bold text-dark">واحد پولی (Currency)</label>
-                        <select name="currency_id" id="currency_id" class="form-control font-weight-bold" style="border: 2px solid #059669;">
-                            @foreach($currencies as $curr)
+                      <div class="row mt-2 align-items-end">
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark text-success">مقدار فروش (Quantity - Kg)</label>
+                            <div class="input-group">
+                              <input type="number" step="0.01" name="amount" required placeholder="0.00" class="form-control font-weight-bold border-success text-center" id="material-amount" style="font-size: 1.1rem; height: 38px;" value="{{ $saleEdit ? $saleEdit->amount : '' }}">
+                              <div class="input-group-append"><span class="input-group-text bg-success text-white">KG</span></div>
+                            </div>
+                            <small id="stock-error-text" class="text-danger d-block mt-1 font-weight-bold"></small>
+                          </div>
+                        </div>
+
+                        <div class="col-lg-3">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">واحد پولی (Currency)</label>
+                            <select name="currency_id" id="currency_id" class="form-control font-weight-bold" style="border: 2px solid #059669; height: 38px;">
+                              @foreach($currencies as $curr)
                                 <option value="{{ $curr->id }}" 
                                         data-rate="{{ $curr->exchange_rate }}" 
                                         data-code="{{ $curr->code }}"
-                                        {{ $curr->code == 'AFN' ? 'selected' : '' }}>
-                                    {{ $curr->name }} ({{ $curr->code }})
+                                        {{ (($saleEdit && $saleEdit->currency_id == $curr->id) || (!$saleEdit && $curr->code == 'AFN')) ? 'selected' : '' }}>
+                                  {{ $curr->name }} ({{ $curr->code }})
                                 </option>
-                            @endforeach
-                        </select>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                        <label class="font-weight-bold text-dark">نرخ تسطیح (Rate to USD)</label>
-                        <input type="text" name="exchange_rate" id="exchange_rate" readonly class="form-control bg-light font-weight-bold text-center">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">قیمت فی کیلو (Unit Price)</label>
-                      <input type="number" step="0.01" name="price" required placeholder="0.00" class="form-control font-weight-bold text-center" id="material-price">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-primary">مجموع (Grand Total)</label>
-                      <input type="text" name="original_amount" id="original_amount" readonly class="form-control font-weight-bold text-primary bg-light text-center" style="font-size: 1.1rem;">
-                      <input type="hidden" name="total_price_af" id="material-af-total-price">
-                      <input type="hidden" name="total_price" id="material-total-price">
-                    </div>
-                  </div>
-                </div>
-
-                <!-- LIVE TRUTH PREVIEW -->
-                <div class="row mt-3 mb-4">
-                    <div class="col-lg-12">
-                        <div class="p-3 shadow-sm" style="background: linear-gradient(to right, #ecfdf5, #f0fdf4); border: 1px solid #10b981; border-radius: 12px;">
-                            <div class="row align-items-center">
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Base Value (USD)</span>
-                                    <h3 id="usd-truth-preview" class="mb-0 font-weight-bold text-success">$ 0.00</h3>
-                                </div>
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Est. COGS (USD)</span>
-                                    <h4 id="cogs-truth-preview" class="mb-0 font-weight-bold text-muted">$ 0.00</h4>
-                                </div>
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Est. Profit (USD)</span>
-                                    <h4 id="profit-truth-preview" class="mb-0 font-weight-bold text-primary">$ 0.00</h4>
-                                </div>
-                                <div class="col-md-3 text-center">
-                                    <div id="margin-badge" class="badge badge-success p-2" style="font-size: 1rem; border-radius: 8px;">Margin: 0%</div>
-                                </div>
-                            </div>
+                              @endforeach
+                            </select>
+                          </div>
                         </div>
-                    </div>
-                </div>
 
-                <hr>
-                <!-- ACCOUNT OVERRIDES -->
-                <div class="row mt-3 p-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px;">
-                    <div class="col-lg-12">
-                        <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Material Sale Accounting)</h6>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted">حساب دریافتنی (Debit) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
+                        <div class="col-lg-2">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">نرخ تسطیح (Rate to USD)</label>
+                            <input type="text" name="exchange_rate" id="exchange_rate" readonly class="form-control bg-light font-weight-bold text-center" style="height: 38px;" value="{{ $saleEdit ? $saleEdit->exchange_rate : '' }}">
+                          </div>
+                        </div>
+
+                        <div class="col-lg-2">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">قیمت فی کیلو (Unit Price)</label>
+                            <input type="number" step="0.01" name="price" required placeholder="0.00" class="form-control font-weight-bold text-center" id="material-price" style="height: 38px;" value="{{ $saleEdit ? $saleEdit->price : '' }}">
+                            <span id="purchase-price-hint" class="d-block text-warning small font-weight-bold text-center mt-1">قیمت خرید (WAC): $0.00</span>
+                          </div>
+                        </div>
+
+                        <div class="col-lg-2">
+                          <div class="form-group mb-3">
+                            <label class="font-weight-bold text-primary">مجموع (Grand Total)</label>
+                            <input type="text" name="original_amount" id="original_amount" readonly class="form-control font-weight-bold text-primary bg-light text-center" style="font-size: 1.1rem; height: 38px;" value="{{ $saleEdit ? $saleEdit->original_amount : '' }}">
+                            <input type="hidden" name="total_price_af" id="material-af-total-price" value="{{ $saleEdit ? $saleEdit->total_price_af : '' }}">
+                            <input type="hidden" name="total_price" id="material-total-price" value="{{ $saleEdit ? $saleEdit->total_price : '' }}">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- LIVE TRUTH PREVIEW -->
+                      <div class="row mt-3 mb-4">
+                        <div class="col-lg-12">
+                          <div class="p-3 shadow-sm" style="background: linear-gradient(to right, #ecfdf5, #f0fdf4); border: 1px solid #10b981; border-radius: 12px;">
+                            <div class="row align-items-center">
+                              <div class="col-md-3 border-left text-center">
+                                <span class="text-muted small d-block uppercase font-weight-bold">Base Value (USD)</span>
+                                <h3 id="usd-truth-preview" class="mb-0 font-weight-bold text-success">$ 0.00</h3>
+                              </div>
+                              <div class="col-md-3 border-left text-center">
+                                <span class="text-muted small d-block uppercase font-weight-bold">Est. COGS (USD)</span>
+                                <h4 id="cogs-truth-preview" class="mb-0 font-weight-bold text-muted">$ 0.00</h4>
+                              </div>
+                              <div class="col-md-3 border-left text-center">
+                                <span class="text-muted small d-block uppercase font-weight-bold">Est. Profit (USD)</span>
+                                <h4 id="profit-truth-preview" class="mb-0 font-weight-bold text-primary">$ 0.00</h4>
+                              </div>
+                              <div class="col-md-3 text-center">
+                                <div id="margin-badge" class="badge badge-success p-2" style="font-size: 1rem; border-radius: 8px;">Margin: 0%</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <hr>
+                      <!-- ACCOUNT OVERRIDES -->
+                      <div class="row mt-3 p-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px;">
+                        <div class="col-lg-12">
+                          <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Material Sale Accounting)</h6>
+                        </div>
+                        <div class="col-lg-3">
+                          <div class="form-group text-right">
+                            <label class="text-muted small">حساب دریافتنی (Debit) <span class="badge badge-info">{{ count($allowedDebitAccounts) }}</span></label>
                             <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2">
-                                @foreach($allowedDebitAccounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted">حساب فروش مواد (Credit) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
-                            <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2">
-                                @foreach($allowedCreditAccounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted">حساب مصرف (COGS Debit) <span class="badge badge-info">{{ count($allowedCogsDebit) }}</span></label>
-                            <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2">
-                                @foreach($allowedCogsDebit as $acc)
-                                    <option value="{{ $acc->id }}">
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted">حساب گدام (COGS Credit) <span class="badge badge-info">{{ count($allowedCogsCredit) }}</span></label>
-                            <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2">
-                                @foreach($allowedCogsCredit as $acc)
-                                    <option value="{{ $acc->id }}">
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mt-3">
-                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                    <div class="form-group fill">
-                      <button class="btn btn-white" type="reset">انصراف</button>
-                      <button class="btn btn-primary marginx" type="submit"><span
-                                class="fa fa-save"></span> ذخیره
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            @else
-              <form action="/dashboard/material-sales/{{$saleEdit->id}}" method="post">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="old_agent_id" value="{{$saleEdit->agent_id}}">
-                
-                <div class="row align-items-end">
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3">
-                      <label class="font-weight-bold text-dark text-right d-block">فاکتور فروش</label>
-                      <input type="text" class="form-control font-weight-bold bg-light" value="{{$saleEdit->sale_number}}" name="sale_number">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-3">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">نام نماینده (Agent)</label>
-                      <select name="agent_id" id="agent_id" required class="form-control select2">
-                        @foreach ($agents as $ag)
-                          <option {{($ag->agent_id == $saleEdit->agent_id ? 'selected' : '')}} value="{{$ag->agent_id}}">{{$ag->user->name}}</option>
-                        @endforeach
-                      </select>
-                      <div id="agent-balance" class="mt-1 small font-weight-bold text-primary"></div>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">نوعیت مواد</label>
-                      <select name="type_id" id="type_id" required class="form-control select2">
-                        @foreach ($material_types as $type)
-                          <option {{($saleEdit->type_id == $type->material_type_id ? 'selected' : '')}} value="{{$type->material_type_id}}">{{$type->material_type}}</option>
-                        @endforeach
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">دسته بندی مواد</label>
-                      <select name="category_id" id="category_id" required class="form-control select2">
-                        @foreach ($categories as $category)
-                          <option {{($saleEdit->category_id == $category->material_category_id ? 'selected' : '')}} value="{{$category->material_category_id}}">{{$category->material_category}}</option>
-                        @endforeach
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-3">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">گدام (Warehouse)</label>
-                      <select name="warehouse_id" required class="form-control select2">
-                        @foreach ($warehouses as $w)
-                          <option value="{{$w->id}}" {{ $saleEdit->warehouse_id == $w->id ? 'selected' : '' }}>{{$w->name}}</option>
-                        @endforeach
-                      </select>
-                      <div id="material-stock-info" class="mt-1 small font-weight-bold text-info"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row mt-2 align-items-end">
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">تاریخ (Date)</label>
-                      <input type="date" name="date" value="{{$saleEdit->date}}" required class="form-control text-right">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark text-success">مقدار مواد (Kg)</label>
-                      <div class="input-group">
-                        <input type="number" step="0.01" name="amount" required value="{{$saleEdit->amount}}" class="form-control font-weight-bold border-success text-center" id="material-amount" style="font-size: 1.1rem;">
-                        <div class="input-group-append"><span class="input-group-text bg-success text-white">KG</span></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                        <label class="font-weight-bold text-dark">واحد پولی (Currency)</label>
-                        <select name="currency_id" id="currency_id" class="form-control font-weight-bold" style="border: 2px solid #059669;">
-                            @foreach($currencies as $curr)
-                                <option value="{{ $curr->id }}" 
-                                        data-rate="{{ $curr->exchange_rate }}" 
-                                        data-code="{{ $curr->code }}"
-                                        {{ $saleEdit->currency_id == $curr->id ? 'selected' : '' }}>
-                                    {{ $curr->name }} ({{ $curr->code }})
+                              @foreach($allowedDebitAccounts as $acc)
+                                <option value="{{ $acc->id }}" {{ (($saleEdit && $saleEdit->override_debit_account_id == $acc->id) || (!$saleEdit && $mapping && $mapping->debit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
                                 </option>
-                            @endforeach
-                        </select>
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                        <label class="font-weight-bold text-dark">نرخ تسطیح (Rate to USD)</label>
-                        <input type="text" name="exchange_rate" id="exchange_rate" value="{{$saleEdit->exchange_rate}}" readonly class="form-control bg-light font-weight-bold text-center">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-dark">قیمت فی کیلو (Unit Price)</label>
-                      <input type="number" step="0.01" name="price" value="{{$saleEdit->price}}" required class="form-control font-weight-bold text-center" id="material-price">
-                    </div>
-                  </div>
-
-                  <div class="col-lg-2">
-                    <div class="form-group mb-3 text-right">
-                      <label class="font-weight-bold text-primary">مجموع (Grand Total)</label>
-                      <input type="text" name="original_amount" id="original_amount" value="{{$saleEdit->original_amount}}" readonly class="form-control font-weight-bold text-primary bg-light text-center" style="font-size: 1.1rem;">
-                      <input type="hidden" name="total_price_af" id="material-af-total-price" value="{{$saleEdit->total_price_af}}">
-                      <input type="hidden" name="total_price" id="material-total-price" value="{{$saleEdit->total_price}}">
-                    </div>
-                  </div>
-                </div>
-
-                <!-- LIVE TRUTH PREVIEW (EDIT) -->
-                <div class="row mt-3 mb-4">
-                    <div class="col-lg-12">
-                        <div class="p-3 shadow-sm" style="background: linear-gradient(to right, #f8fafc, #f1f5f9); border: 1px solid #94a3b8; border-radius: 12px;">
-                            <div class="row align-items-center">
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Base Value (USD)</span>
-                                    <h3 id="usd-truth-preview" class="mb-0 font-weight-bold text-success">$ 0.00</h3>
-                                </div>
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Est. COGS (USD)</span>
-                                    <h4 id="cogs-truth-preview" class="mb-0 font-weight-bold text-muted">$ 0.00</h4>
-                                </div>
-                                <div class="col-md-3 border-left text-center">
-                                    <span class="text-muted small d-block uppercase font-weight-bold">Est. Profit (USD)</span>
-                                    <h4 id="profit-truth-preview" class="mb-0 font-weight-bold text-primary">$ 0.00</h4>
-                                </div>
-                                <div class="col-md-3 text-center">
-                                    <div id="margin-badge" class="badge badge-secondary p-2" style="font-size: 1rem; border-radius: 8px;">Margin: 0%</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-                <!-- ACCOUNT OVERRIDES EDIT -->
-                <div class="row mt-3 p-3" style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 8px;">
-                    <div class="col-lg-12">
-                        <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting Override Edit)</h6>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted small">حساب دریافتنی (Debit)</label>
-                            <select name="override_debit_account_id" class="form-control select2">
-                                @foreach($allowedDebitAccounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_debit_account_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
+                              @endforeach
                             </select>
+                          </div>
                         </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted small">حساب فروش (Credit)</label>
-                            <select name="override_credit_account_id" class="form-control select2">
-                                @foreach($allowedCreditAccounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_credit_account_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
+                        <div class="col-lg-3">
+                          <div class="form-group text-right">
+                            <label class="text-muted small">حساب فروش مواد (Credit) <span class="badge badge-info">{{ count($allowedCreditAccounts) }}</span></label>
+                            <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2">
+                              @foreach($allowedCreditAccounts as $acc)
+                                <option value="{{ $acc->id }}" {{ (($saleEdit && $saleEdit->override_credit_account_id == $acc->id) || (!$saleEdit && $mapping && $mapping->credit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                              @endforeach
                             </select>
+                          </div>
                         </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted small">حساب مصرف (COGS Debit)</label>
-                            <select name="override_cogs_debit_id" class="form-control select2">
-                                @foreach($allowedCogsDebit as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_cogs_debit_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
+                        <div class="col-lg-3">
+                          <div class="form-group text-right">
+                            <label class="text-muted small">حساب مصرف (COGS Debit) <span class="badge badge-info">{{ count($allowedCogsDebit) }}</span></label>
+                            <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2">
+                              @foreach($allowedCogsDebit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($saleEdit && $saleEdit->override_cogs_debit_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                              @endforeach
                             </select>
+                          </div>
                         </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="form-group">
-                            <label class="pull-right text-muted small">حساب گدام (COGS Credit)</label>
-                            <select name="override_cogs_credit_id" class="form-control select2">
-                                @foreach($allowedCogsCredit as $acc)
-                                    <option value="{{ $acc->id }}" {{ ($saleEdit->override_cogs_credit_id == $acc->id) ? 'selected' : '' }}>
-                                        {{ $acc->account_code }} - {{ $acc->account_name }}
-                                    </option>
-                                @endforeach
+                        <div class="col-lg-3">
+                          <div class="form-group text-right">
+                            <label class="text-muted small">حساب گدام (COGS Credit) <span class="badge badge-info">{{ count($allowedCogsCredit) }}</span></label>
+                            <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2">
+                              @foreach($allowedCogsCredit as $acc)
+                                <option value="{{ $acc->id }}" {{ ($saleEdit && $saleEdit->override_cogs_credit_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                                </option>
+                              @endforeach
                             </select>
+                          </div>
                         </div>
-                    </div>
-                </div>
+                      </div>
 
-                <div class="row mt-4">
-                  <div class="col-lg-12 text-right">
-                      <a href="/dashboard/material-sales" class="btn btn-light px-4 mr-2">انصراف (Cancel)</a>
-                      <button class="btn btn-primary px-5 shadow-sm" type="submit">
-                          <i class="fa fa-save mr-1"></i> بروزرسانی (Update Sale)
+                    </div>
+                    <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; border-radius: 0 0 16px 16px;">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal" style="border-radius: 8px;">بستن (Close)</button>
+                      <button type="submit" class="btn btn-primary" id="btn-submit-sale" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none; border-radius: 8px; font-weight: 600; padding: 8px 24px;">
+                        <i class="fa fa-save mr-1"></i> @if(!$saleEdit) ذخیره معامله (Save) @else بروزرسانی معامله (Update) @endif
                       </button>
-                  </div>
+                    </div>
+                  </form>
                 </div>
-              </form>
-            @endif
+              </div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -479,6 +320,8 @@
                   <th class="border-top-0 text-center">قیمت مجموع</th>
                   <th class="border-top-0 text-center text-success">معادل (USD)</th>
                   <th class="border-top-0">کتگوری</th>
+                  <th class="border-top-0">نوعیت مواد</th>
+                  <th class="border-top-0">گدام</th>
                   <th class="border-top-0">تاریخ</th>
                   <th class="border-top-0">حالت</th>
                   <th class="border-top-0 hideOnPrint">عملیات</th>
@@ -495,6 +338,15 @@
                     <td class="font-weight-bold text-center">{{ number_format($material->original_amount, 2) }}</td>
                     <td class="font-weight-bold text-center text-success">${{ number_format($material->base_currency_amount, 2) }}</td>
                     <td>{{$material->category->material_category}}</td>
+                    <td>
+                      @if(optional($material->type)->subtype == 'dye')
+                        <span class="badge badge-danger">رنگ (Dye)</span>
+                      @else
+                        <span class="badge badge-success">تار (Yarn)</span>
+                      @endif
+                      <small class="d-block text-muted font-weight-bold">{{ optional($material->type)->material_type }}</small>
+                    </td>
+                    <td><span class="text-secondary font-weight-bold">{{ optional($material->warehouse)->name ?? '---' }}</span></td>
                     <td class="small">{{$material->date}}</td>
                     <td>
                         @if($material->status == 0)
@@ -511,7 +363,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="11" class="text-center py-5">
+                    <td colspan="13" class="text-center py-5">
                       <div class="text-muted"><i class="fa fa-info-circle mr-1"></i> هنوز فروش ثبت نشده است</div>
                     </td>
                   </tr>
@@ -558,49 +410,156 @@
           var currentWAC = 0;
           var afnRate = 1; // Default fallback
 
-          $('.select2').select2({
+          // Keep original options in memory for filtering
+          const originalCategories = $('#category_id option').map(function() {
+              return { value: this.value, text: this.text, subtype: $(this).data('subtype') };
+          }).get();
+
+          const originalTypes = $('#type_id option').map(function() {
+              return { value: this.value, text: this.text, subtype: $(this).data('subtype') };
+          }).get();
+
+          const originalWarehouses = $('#warehouse_id option').map(function() {
+              return { value: this.value, text: this.text, subtype: $(this).data('subtype') };
+          }).get();
+
+          // Initialize Select2 with modal dropdown parent to prevent z-index issues
+          $('#agent_id, #category_id, #type_id, #warehouse_id, #override_debit_account_id, #override_credit_account_id, #override_cogs_debit_id, #override_cogs_credit_id').select2({
+              dropdownParent: $('#saleModal'),
               width: '100%',
               dir: 'rtl'
           });
+
+          // Show modal immediately if edit mode is active
+          @if($saleEdit)
+              $('#saleModal').modal('show');
+          @endif
+
+          // Subtype dynamic filtering logic using memory cache (prevents select2 from breaking)
+          function filterOptions(subtype) {
+              // Category
+              const catSelect = $('#category_id');
+              const oldCatVal = catSelect.val();
+              catSelect.empty().append('<option value="">انتخاب دسته بندی</option>');
+              originalCategories.forEach(function(opt) {
+                  if (opt.value && (!opt.subtype || opt.subtype === subtype)) {
+                      catSelect.append($('<option>', { value: opt.value, text: opt.text, 'data-subtype': opt.subtype }));
+                  }
+              });
+              if (catSelect.find('option[value="' + oldCatVal + '"]').length > 0) {
+                  catSelect.val(oldCatVal);
+              }
+              catSelect.trigger('change.select2');
+
+              // Type
+              const typeSelect = $('#type_id');
+              const oldTypeVal = typeSelect.val();
+              typeSelect.empty().append('<option value="">انتخاب نوعیت</option>');
+              originalTypes.forEach(function(opt) {
+                  if (opt.value && (!opt.subtype || opt.subtype === subtype)) {
+                      typeSelect.append($('<option>', { value: opt.value, text: opt.text, 'data-subtype': opt.subtype }));
+                  }
+              });
+              if (typeSelect.find('option[value="' + oldTypeVal + '"]').length > 0) {
+                  typeSelect.val(oldTypeVal);
+              }
+              typeSelect.trigger('change.select2');
+
+              // Warehouse
+              const whSelect = $('#warehouse_id');
+              const oldWhVal = whSelect.val();
+              whSelect.empty().append('<option value="">انتخاب گدام</option>');
+              originalWarehouses.forEach(function(opt) {
+                  if (opt.value && (!opt.subtype || opt.subtype === subtype)) {
+                      whSelect.append($('<option>', { value: opt.value, text: opt.text, 'data-subtype': opt.subtype }));
+                  }
+              });
+              if (whSelect.find('option[value="' + oldWhVal + '"]').length > 0) {
+                  whSelect.val(oldWhVal);
+              }
+              whSelect.trigger('change.select2');
+          }
+
+          $('#sale_subtype').on('change', function() {
+              filterOptions($(this).val());
+          });
+
+          // Run initial filter on page load based on current selection
+          filterOptions($('#sale_subtype').val());
 
           // Currency Handling
           function updateRate() {
               var selected = $('#currency_id').find(':selected');
               var rate = selected.data('rate');
               $('#exchange_rate').val(parseFloat(rate).toFixed(8));
+              updateWacHint();
               calculateTruth();
           }
 
           $('#currency_id').on('change', updateRate);
           updateRate(); // Initial run
 
-          // Fetch WAC and Agent Balance
-          $('#agent_id, #category_id, #type_id, [name="warehouse_id"]').on('change', fetchContext);
+          // Fetch WAC, Available Stock and Agent Balance
+          $('#agent_id, #category_id, #type_id, #warehouse_id').on('change', fetchContext);
 
           function fetchContext() {
               var agentId = $('#agent_id').val();
               var catId = $('#category_id').val();
               var typeId = $('#type_id').val();
-              var whId = $('[name="warehouse_id"]').val();
+              var whId = $('#warehouse_id').val();
 
               if (agentId || (catId && typeId)) {
                   $.ajax({
                       url: "{{ route('dashboard.material-sales-info') }}",
-                      data: { agent_id: agentId, category_id: catId, type_id: typeId, warehouse_id: whId },
+                      data: { agent_id: agentId, category_id: catId, type_id: typeId, warehouse_id: whId, sale_id: "{{ $saleEdit ? $saleEdit->id : '' }}" },
                       success: function(res) {
                           if (res.balance !== undefined) {
                               $('#agent-balance').html('Balance: ' + parseFloat(res.balance).toLocaleString() + ' AFN');
                           }
                           if (res.wac !== undefined) {
                               currentWAC = parseFloat(res.wac);
-                              // Note: WAC is in USD base
-                              calculateTruth();
+                              updateWacHint();
                           }
                           if (res.available_stock !== undefined) {
-                              $('#material-stock-info').html('Available: ' + parseFloat(res.available_stock).toLocaleString() + ' Kg');
+                              var stock = parseFloat(res.available_stock);
+                              $('#material-stock-info').html('Available: ' + stock.toLocaleString() + ' Kg');
+                              $('#material-amount').data('available-stock', stock);
+                              validateStock();
                           }
+                          calculateTruth();
                       }
                   });
+              }
+          }
+
+          function updateWacHint() {
+              var rate = parseFloat($('#exchange_rate').val()) || 1;
+              var currCode = $('#currency_id').find(':selected').data('code') || 'USD';
+              var wacInTxCurrency = currentWAC;
+              if (currCode !== 'USD') {
+                  wacInTxCurrency = currentWAC / (rate || 1);
+              }
+              $('#purchase-price-hint').text('قیمت خرید (WAC): ' + wacInTxCurrency.toFixed(2) + ' ' + currCode + ' ($' + currentWAC.toFixed(2) + ')');
+          }
+
+          function validateStock() {
+              var qty = parseFloat($('#material-amount').val()) || 0;
+              var availableStock = parseFloat($('#material-amount').data('available-stock')) || 0;
+              
+              if ($('#type_id').val() && $('#warehouse_id').val()) {
+                  if (availableStock <= 0) {
+                      $('#stock-error-text').text('توجه: این مواد در گدام انتخاب شده موجود نمی‌باشد!').show();
+                      $('#btn-submit-sale').prop('disabled', true);
+                  } else if (qty > availableStock) {
+                      $('#stock-error-text').text('توجه: مقدار وارد شده بیشتر از موجودی گدام است (' + availableStock.toFixed(2) + ' Kg)').show();
+                      $('#btn-submit-sale').prop('disabled', true);
+                  } else {
+                      $('#stock-error-text').hide().text('');
+                      $('#btn-submit-sale').prop('disabled', false);
+                  }
+              } else {
+                  $('#stock-error-text').hide().text('');
+                  $('#btn-submit-sale').prop('disabled', false);
               }
           }
 
@@ -644,6 +603,7 @@
           }
 
           $('#material-amount, #material-price').on('input blur', calculateTruth);
+          $('#material-amount, #type_id, #warehouse_id').on('input change blur', validateStock);
 
           // Initial context load
           fetchContext();

@@ -9,9 +9,9 @@
       <div class="card">
         <div class="card-header">
           @if(!$accountEdit)
-            <h4>ایجاد حساب تار جدید</h4>
+            <h4>ایجاد حساب مواد خام جدید</h4>
           @else
-            <h4>ویرایش حساب تار</h4>
+            <h4>ویرایش حساب مواد خام</h4>
           @endif
         </div>
         <div class="card-body">
@@ -151,7 +151,7 @@
     <div class="col-sm-12">
       <div class="card">
         <div class="card-header">
-          <h5>حسابات تار</h5>
+          <h5>حسابات مواد خام</h5>
           @if(session("status"))
             <div class="alert alert-success status" style="display:none;" role="alert">
               <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span

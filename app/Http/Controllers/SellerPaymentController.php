@@ -36,8 +36,10 @@ class SellerPaymentController extends Controller
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
             
-            // FORENSIC RULE: Always use base_amount (USD) for the GL
-            $amount = $payment->base_amount;
+            // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
+            // performs the USD conversion exactly once (base_amount is already converted,
+            // passing it with a non-USD currency_code causes a double-conversion).
+            $amount = $payment->original_amount;
 
             $this->accountingService->postAutoTransaction('seller_payment', $condition, [
                 'date' => $payment->date,

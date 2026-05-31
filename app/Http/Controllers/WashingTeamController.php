@@ -138,16 +138,28 @@ class WashingTeamController extends Controller
 
             $carpetId->status = 3;
             $carpetId->washing_id = $request->team_id;
+            
+            $sourceWarehouseId = $carpetId->warehouse_id ?? 1;
+            $carpetId->warehouse_id = $request->warehouse_id;
+            
             $upd =  $carpetId->update();
 
-            // ERP Integration: Log the transfer to WIP Warehouse
-            // Assume coming from Main Warehouse (1)
+            // ERP Integration: Log the transfer to WIP Warehouse with complete cost details
+            $carpetCost = DB::table('items')
+                ->where('type', 'App\Carpet')
+                ->where('ref_id', $carpetId->carpet_id)
+                ->value('current_cost') ?? (float) ($carpetId->total_price ?? 0);
+
             $this->inventoryService->recordMovement([
                 'item_model' => $carpetId,
                 'type' => 'Washing Transfer',
                 'direction' => 'OUT',
                 'quantity' => 1,
-                'warehouse_id' => 1,
+                'warehouse_id' => $sourceWarehouseId,
+                'area' => (float) ($carpetId->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
                 'created_by' => auth()->id()
             ]);
 
@@ -157,6 +169,10 @@ class WashingTeamController extends Controller
                 'direction' => 'IN',
                 'quantity' => 1,
                 'warehouse_id' => $request->warehouse_id,
+                'area' => (float) ($carpetId->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
                 'created_by' => auth()->id()
             ]);
 

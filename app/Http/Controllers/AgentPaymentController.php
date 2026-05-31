@@ -32,12 +32,31 @@ class AgentPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
-            
-            // FORENSIC RULE: Always use base_amount (USD) for the GL
-            // Fallback for legacy records: calculate approximate USD if base_amount is missing
-            $amount = $payment->base_amount ?: ($payment->amount ?: ($payment->amount_af * 0.0125));
-            $currencyCode = $payment->currency_code ?: ($payment->amount > 0 ? 'USD' : 'AFN');
-            $exchangeRate = $payment->exchange_rate ?: ($payment->dollar_rate ?: 1);
+
+            // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
+            // performs the USD conversion exactly once (base_amount is already converted;
+            // passing it with a non-USD currency_code causes a double-conversion).
+            //
+            // Legacy fallback for old records that pre-date the forensic snapshot columns:
+            //   - If original_amount exists  → use it (native amount in original currency)
+            //   - Else if amount > 0         → use amount as native USD
+            //   - Else                       → use amount_af as native AFN
+            // The currency_code and exchange_rate fallbacks follow the same priority.
+            if ($payment->original_amount) {
+                $amount       = $payment->original_amount;
+                $currencyCode = $payment->currency_code ?: ($payment->amount > 0 ? 'USD' : 'AFN');
+                $exchangeRate = $payment->exchange_rate ?: ($payment->dollar_rate ?: 1);
+            } elseif ($payment->amount > 0) {
+                // Legacy USD record — amount column stores native USD, no conversion needed
+                $amount       = $payment->amount;
+                $currencyCode = 'USD';
+                $exchangeRate = 1;
+            } else {
+                // Legacy AFN record — amount_af stores native AFN
+                $amount       = $payment->amount_af;
+                $currencyCode = 'AFN';
+                $exchangeRate = $payment->dollar_rate ?: 1;
+            }
 
             $this->accountingService->postAutoTransaction('agent_payment', $condition, [
                 'date' => $payment->date,

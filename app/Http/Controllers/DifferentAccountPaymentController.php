@@ -29,7 +29,7 @@ class DifferentAccountPaymentController extends Controller
 
             $transaction = $this->accountingService->postAutoTransaction('different_account', $key, [
                 'date' => $payment->date,
-                'amount' => $payment->base_amount,
+                'amount' => $payment->amount,
                 'original_amount' => $payment->amount,
                 'currency_code' => $payment->currency_code ?: 'AFN',
                 'exchange_rate' => $payment->exchange_rate ?: 1,

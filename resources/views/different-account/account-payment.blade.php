@@ -54,7 +54,7 @@
                 {{ mb_substr($account->name, 0, 1) }}
             </div>
             <div>
-                <h2 class="mb-1 font-weight-bold">{{ $account->name }}</h2>
+                <h2 class="mb-1 font-weight-bold text-white">{{ $account->name }}</h2>
                 <div class="small opacity-80"><i class="feather icon-phone mr-1"></i> {{ $account->phone }} | <i class="feather icon-map-pin mr-1"></i> {{ $account->address }}</div>
             </div>
         </div>

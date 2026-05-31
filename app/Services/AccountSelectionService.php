@@ -27,7 +27,7 @@ class AccountSelectionService
         ],
         'PYMT_IN' => [
             'debit'  => ['account_type' => 'Asset'], // Must be cash/bank asset
-            'credit' => ['account_type' => 'Asset']  // Must be receivable asset
+            'credit' => ['account_type' => ['Asset', 'Liability']]  // Must be receivable asset or payable liability
         ],
         'PYMT_OUT' => [
             'debit'  => ['account_type' => 'Liability'], // Must be payable liability
@@ -111,8 +111,8 @@ class AccountSelectionService
             // Special handling for OR logic (e.g. Liability OR Cash)
             if (isset($filters['account_type']) && $filters['account_type'] === 'Liability' && isset($filters['is_cash_account'])) {
                  $query->where(function($q) {
-                     $q->where('account_type', 'Liability')
-                       ->orWhere('is_cash_account', 1);
+                      $q->where('account_type', 'Liability')
+                        ->orWhere('is_cash_account', 1);
                  });
                  
                  // Remove these from filters so they aren't added again as AND
@@ -121,7 +121,11 @@ class AccountSelectionService
             }
 
             foreach ($filters as $key => $value) {
-                $query->where($key, $value);
+                if (is_array($value)) {
+                    $query->whereIn($key, $value);
+                } else {
+                    $query->where($key, $value);
+                }
             }
         }
 
@@ -151,16 +155,24 @@ class AccountSelectionService
         if (!$account) throw new Exception("حساب انتخاب شده وجود ندارد.");
 
         foreach ($filters as $key => $value) {
-            if ($key === 'is_cash_account' && isset($filters['account_type']) && $filters['account_type'] === 'Liability') {
+            if (($key === 'is_cash_account' || $key === 'account_type') && isset($filters['account_type']) && $filters['account_type'] === 'Liability' && isset($filters['is_cash_account'])) {
                 if ($account->account_type !== 'Liability' && $account->is_cash_account != 1) {
                      throw new Exception("برای این معامله باید حساب بدهی یا حساب نقد انتخاب شود.");
                 }
                 continue; 
             }
             
-            if ($account->$key != $value) {
-                $attrName = ($key === 'account_type') ? 'نوعیت حساب' : (($key === 'report_group') ? 'گروه حساب' : $key);
-                throw new Exception("مقدار ($attrName) برای حساب انتخاب شده ($account->$key) است، اما برای این معامله ($value) لازم است.");
+            if (is_array($value)) {
+                if (!in_array($account->$key, $value)) {
+                    $attrName = ($key === 'account_type') ? 'نوعیت حساب' : (($key === 'report_group') ? 'گروه حساب' : $key);
+                    $valueStr = implode(' یا ', $value);
+                    throw new Exception("مقدار ($attrName) برای حساب انتخاب شده ($account->$key) است، اما برای این معامله ($valueStr) لازم است.");
+                }
+            } else {
+                if ($account->$key != $value) {
+                    $attrName = ($key === 'account_type') ? 'نوعیت حساب' : (($key === 'report_group') ? 'گروه حساب' : $key);
+                    throw new Exception("مقدار ($attrName) برای حساب انتخاب شده ($account->$key) است، اما برای این معامله ($value) لازم است.");
+                }
             }
         }
 

@@ -36,8 +36,10 @@ class FinishingTeamPaymentController extends Controller
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
             
-            // FORENSIC RULE: Always use base_amount (USD) for the GL
-            $amount = $payment->base_amount;
+            // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
+            // performs the USD conversion exactly once (base_amount is already converted,
+            // passing it with a non-USD currency_code causes a double-conversion).
+            $amount = $payment->original_amount;
 
             $this->accountingService->postAutoTransaction('finishing_payment', $mKey, array_merge([
                 'date' => $payment->date,
@@ -278,7 +280,7 @@ class FinishingTeamPaymentController extends Controller
 
             // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payed->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Record Edited', get_class($payed));
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Record Edited', 'Finishing_payment');
             }
 
             $currency = \App\Currency::find($request->currency_id);
@@ -346,7 +348,7 @@ class FinishingTeamPaymentController extends Controller
 
             // Reverse Accounting Entry (Only if approved) - pass class name to avoid ID collision reversals with other models
             if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted', get_class($payment));
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted', 'Finishing_payment');
             }
 
             $activity = new Activity();

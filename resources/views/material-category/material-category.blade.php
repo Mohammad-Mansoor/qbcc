@@ -26,6 +26,16 @@
                       @error('material_category') <p class="text-danger">{{$message}}</p> @enderror
                     </div>
                   </div>
+                  <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                    <div class="form-group fill">
+                      <label>نوعیت کتگوری (Subtype)</label>
+                      <select name="subtype" class="form-control">
+                        <option value="yarn">تار / مواد خام</option>
+                        <option value="dye">رنگ</option>
+                      </select>
+                      @error('subtype') <p class="text-danger">{{$message}}</p> @enderror
+                    </div>
+                  </div>
                 </div>
                 <div class="row">
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
@@ -49,6 +59,16 @@
                              value="{{$categoryEdit->material_category}}">
                       <small class="text-danger">@error('material_category') {{ __('message.'.$message) }}@enderror
                       </small>
+                    </div>
+                  </div>
+                  <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                    <div class="form-group fill">
+                      <label>نوعیت کتگوری (Subtype)</label>
+                      <select name="subtype" class="form-control">
+                        <option value="yarn" {{ $categoryEdit->subtype == 'yarn' ? 'selected' : '' }}>تار / مواد خام</option>
+                        <option value="dye" {{ $categoryEdit->subtype == 'dye' ? 'selected' : '' }}>رنگ</option>
+                      </select>
+                      <small class="text-danger">@error('subtype') {{ $message }}@enderror</small>
                     </div>
                   </div>
                 </div>
@@ -99,9 +119,8 @@
               <tr>
                 <th>آی دی</th>
                 <th>کتگوری</th>
+                <th>نوعیت کتگوری</th>
                 <th>ویرایش</th>
-          
-          
               </tr>
               </thead>
               <tbody>
@@ -109,9 +128,15 @@
                 <tr class="ur{{ $cat->material_category_id }}">
                   <td>{{$cat->material_category_id}}</td>
                   <td>{{$cat->material_category}}</td>
+                  <td>
+                    @if($cat->subtype == 'dye')
+                      <span class="badge badge-warning">رنگ</span>
+                    @else
+                      <span class="badge badge-primary">تار / مواد خام</span>
+                    @endif
+                  </td>
                   <td class="hideOnPrint"><a href="/dashboard/material-category/{{$cat->material_category_id}}/edit"
                                              class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
-          
               @endforeach
               </tbody>
             </table>

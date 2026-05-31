@@ -13,37 +13,39 @@ class WarehouseController extends Controller
 {
     public function index()
     {
-        $warehouses = Warehouse::all();
-
-        foreach ($warehouses as $w) {
-            // Calculate Material Stock
-            $materialStats = \DB::table('inventory_transactions')
-                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                ->where('inventory_transactions.warehouse_id', $w->id)
-                ->where('inventory_transactions.status', 1)
-                ->where('items.type', 'App\MaterialType')
-                ->select(
-                    \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as total_qty"),
-                    \DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_val")
-                )
-                ->first();
-
-            // Calculate Carpet Stock (Quantity only usually, but let's try value if available)
-            $carpetStats = \DB::table('inventory_transactions')
-                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                ->where('inventory_transactions.warehouse_id', $w->id)
-                ->where('inventory_transactions.status', 1)
-                ->where('items.type', 'App\Carpet')
-                ->select(
-                    \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as total_qty"),
-                    \DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_val")
-                )
-                ->first();
-
-            $w->material_qty = $materialStats->total_qty ?? 0;
-            $w->carpet_qty = $carpetStats->total_qty ?? 0;
-            $w->total_asset_value = ($materialStats->total_val ?? 0) + ($carpetStats->total_val ?? 0);
-        }
+        $warehouses = Warehouse::select('*')
+            ->selectSub(function($query) {
+                $query->from('inventory_transactions')
+                    ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                    ->whereColumn('inventory_transactions.warehouse_id', 'warehouses.id')
+                    ->where('inventory_transactions.status', 1)
+                    ->where('items.type', 'App\MaterialType')
+                    ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END), 0)");
+            }, 'material_qty')
+            ->selectSub(function($query) {
+                $query->from('inventory_transactions')
+                    ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                    ->whereColumn('inventory_transactions.warehouse_id', 'warehouses.id')
+                    ->where('inventory_transactions.status', 1)
+                    ->where('items.type', 'App\Carpet')
+                    ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END), 0)");
+            }, 'carpet_qty')
+            ->selectSub(function($query) {
+                $query->from('inventory_transactions')
+                    ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                    ->whereColumn('inventory_transactions.warehouse_id', 'warehouses.id')
+                    ->where('inventory_transactions.status', 1)
+                    ->where('items.type', 'App\Carpet')
+                    ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.area ELSE -inventory_transactions.area END), 0)");
+            }, 'carpet_area')
+            ->selectSub(function($query) {
+                $query->from('inventory_transactions')
+                    ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                    ->whereColumn('inventory_transactions.warehouse_id', 'warehouses.id')
+                    ->where('inventory_transactions.status', 1)
+                    ->selectRaw("COALESCE(SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost), 0)");
+            }, 'total_asset_value')
+            ->get();
 
         $currencies = \App\Currency::where('is_active', 1)->get();
         return view('accounting.warehouses.index', compact('warehouses', 'currencies'));
@@ -54,13 +56,15 @@ class WarehouseController extends Controller
         $request->validate([
             'name' => 'required|unique:warehouses,name',
             'location' => 'nullable',
-            'type' => 'nullable|string'
+            'type' => 'nullable|string',
+            'subtype' => 'required|in:carpet,yarn,dye'
         ]);
 
         $warehouse = Warehouse::create([
             'name' => $request->name,
             'location' => $request->location,
             'type' => $request->type,
+            'subtype' => $request->subtype,
             'is_active' => 1
         ]);
 
@@ -81,10 +85,12 @@ class WarehouseController extends Controller
             'name' => 'required|unique:warehouses,name,' . $id,
             'location' => 'nullable',
             'type' => 'nullable|string',
+            'subtype' => 'required|in:carpet,yarn,dye',
             'is_active' => 'required|boolean'
         ]);
 
         $warehouse->update($request->all());
+
 
         return redirect()->back()->with('status', 'اطلاعات گدام بروزرسانی شد.');
     }

@@ -21,8 +21,18 @@
                   <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
                     <div class="form-group fill">
                       <label> نام مواد</label>
-                      <input type="text" style="direction: rtl" name="material_type" id="province" class="form-control">
+                      <input type="text" style="direction: rtl" name="material_type" id="province" class="form-control" required>
                       @error('material_type') <p class="text-danger">{{$message}}</p> @enderror
+                    </div>
+                  </div>
+                  <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                    <div class="form-group fill">
+                      <label> نوعیت (Subtype)</label>
+                      <select name="subtype" class="form-control" style="direction: rtl" required>
+                        <option value="yarn" selected>تار (Yarn)</option>
+                        <option value="dye">رنگ (Dye)</option>
+                      </select>
+                      @error('subtype') <p class="text-danger">{{$message}}</p> @enderror
                     </div>
                   </div>
                 </div>
@@ -45,8 +55,18 @@
                     <div class="form-group fill">
                       <label> نام مواد</label>
                       <input type="text" style="direction:rtl" name="material_type"
-                             value="{{$mtypeEdit->material_type}}" class="form-control">
+                             value="{{$mtypeEdit->material_type}}" class="form-control" required>
                       @error('material_type') <p class="text-danger">{{$message}}</p> @enderror
+                    </div>
+                  </div>
+                  <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                    <div class="form-group fill">
+                      <label> نوعیت (Subtype)</label>
+                      <select name="subtype" class="form-control" style="direction: rtl" required>
+                        <option value="yarn" {{ $mtypeEdit->subtype == 'yarn' ? 'selected' : '' }}>تار (Yarn)</option>
+                        <option value="dye" {{ $mtypeEdit->subtype == 'dye' ? 'selected' : '' }}>رنگ (Dye)</option>
+                      </select>
+                      @error('subtype') <p class="text-danger">{{$message}}</p> @enderror
                     </div>
                   </div>
                 </div>
@@ -54,7 +74,7 @@
                   
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
-                      <a href="/dashboard/provinces" class="btn btn-sm btn-default" type="reset">انصراف</a>
+                      <a href="/dashboard/materialtypes" class="btn btn-sm btn-default" type="reset">انصراف</a>
                       <button class="btn btn-sm btn-primary submit-btn" type="submit">ذخیره</button>
                     </div>
                   </div>
@@ -99,6 +119,7 @@
               <tr>
                 <th>آی دی</th>
                 <th>مواد</th>
+                <th>نوعیت (Subtype)</th>
                 <th>ویرایش</th>
               </tr>
               </thead>
@@ -107,6 +128,7 @@
                 <tr class="ur{{ $type->material_type_id }}">
                   <td>{{$type->material_type_id}}</td>
                   <td>{{$type->material_type}}</td>
+                  <td>{{$type->subtype_fa}}</td>
                   <td><a href="/dashboard/materialtypes/{{$type->material_type_id}}/edit"
                          class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
         

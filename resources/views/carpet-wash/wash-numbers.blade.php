@@ -72,7 +72,7 @@
                       @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
                         <td><a href="/dashboard/carpet-wash/create/{{$wash->id}}"
                                class="btn btn-sm btn-info printBTN"><i
-                                    class="fa fa-pencil"></i>&nbsp; شست </a></td>
+                                    class="fa fa-pencil-alt"></i>&nbsp; شست </a></td>
                       @else
                         <td>شسته نشده</td>
                       @endif

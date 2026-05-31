@@ -176,7 +176,164 @@
     background-color: #fffbeb !important;
     color: #b45309 !important;
   }
+  
+  /* ANIMATED STATS CARDS */
+  .stat-card {
+    border: none;
+    border-radius: 16px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+  }
+  .stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    bottom: -30px;
+    left: -30px;
+    transition: all 0.5s ease;
+  }
+  .stat-card:hover::after {
+    transform: scale(1.5);
+  }
+  
+  .stat-card-blue {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+  }
+  .stat-card-indigo {
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: white;
+  }
+  .stat-card-green {
+    background: linear-gradient(135deg, #10b981, #047857);
+    color: white;
+  }
+  .stat-card-teal {
+    background: linear-gradient(135deg, #14b8a6, #0f766e);
+    color: white;
+  }
+  
+  .stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+  }
+  .stat-card:hover .stat-card-icon {
+    transform: rotate(-10deg) scale(1.1);
+    background: rgba(255, 255, 255, 0.25);
+  }
+  
+  .stat-card-val {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .stat-card-lbl {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.9;
+    margin-top: 4px;
+  }
 </style>
+
+@php
+  $pending_carpets = \App\Carpet::where('status', 4)->with('carpet_wash')->get();
+  $pending_pcs = $pending_carpets->count();
+  $pending_area = $pending_carpets->sum(function($c) {
+      return $c->carpet_wash ? $c->carpet_wash->area : ($c->area ?? 0);
+  });
+
+  $finished_works = \App\FinishingWork::where('status', 1)->get();
+  $finished_ops_count = $finished_works->count();
+  $finished_carpets_count = $finished_works->unique('carpetId')->count();
+  $total_cost_usd = $finished_works->sum('price');
+  $total_cost_afn = $finished_works->sum('price_af');
+@endphp
+
+<!-- ANIMATED STATS CARDS ROW -->
+<div class="row mb-4">
+  <!-- Card 1: Pending Pcs -->
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card stat-card stat-card-blue p-4 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-card-val">{{ $pending_pcs }} <span style="font-size: 1rem; font-weight: normal;">عدد</span></div>
+          <div class="stat-card-lbl">آماده تیاری (Pending Finishing)</div>
+        </div>
+        <div class="stat-card-icon">
+          <i class="fa fa-scissors"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Pending Area -->
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card stat-card stat-card-indigo p-4 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-card-val">{{ number_format($pending_area, 2) }} <span style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span></div>
+          <div class="stat-card-lbl">مساحت آماده (Pending Area)</div>
+        </div>
+        <div class="stat-card-icon">
+          <i class="fa fa-expand"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Finished Pcs -->
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card stat-card stat-card-green p-4 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-card-val">{{ $finished_carpets_count }} <span style="font-size: 1rem; font-weight: normal;">عدد</span></div>
+          <div class="stat-card-lbl">قالین‌های آماده شده (Finished Pcs)</div>
+          <small style="font-size: 0.75rem; opacity: 0.8;">تعداد عملیات: {{ $finished_ops_count }}</small>
+        </div>
+        <div class="stat-card-icon">
+          <i class="fa fa-check-circle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 4: Total Finishing Costs -->
+  <div class="col-xl-3 col-md-6 mb-4">
+    <div class="card stat-card stat-card-teal p-4 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-card-val">${{ number_format($total_cost_usd, 2) }}</div>
+          <div class="stat-card-lbl" style="font-size: 0.8rem;">
+            مجموع مصارف تیاری (Total Cost)
+            <br>
+            <span style="font-size: 0.75rem; opacity: 0.8;">{{ number_format($total_cost_afn, 2) }} AFN</span>
+          </div>
+        </div>
+        <div class="stat-card-icon">
+          <i class="fa fa-money"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- navbar -->
   <div class="row" style="display: flex; justify-content: center;">

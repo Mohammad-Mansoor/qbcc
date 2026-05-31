@@ -323,8 +323,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/search-repaired', 'CarpetRepairController@search_repaired');
     Route::post('/repair-date-search', 'CarpetRepairController@repair_date_search');
 
-    Route::get('/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
-    Route::get('/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
+    Route::match(['get', 'post'], '/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
+    Route::match(['get', 'post'], '/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
 
     // Agent Carpets Details
 

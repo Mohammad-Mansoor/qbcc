@@ -78,10 +78,24 @@
                                         </div>
                                     </td>
                                     <td class="py-3 text-right border-dark font-weight-bold" style="font-size: 1.1rem;">
-                                        {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
+                                        @if($entry->debit > 0)
+                                            {{ number_format($entry->debit, 2) }} <small class="text-muted font-weight-bold">{{ $entry->currency_code }}</small>
+                                            @if($entry->currency_code !== 'USD')
+                                                <small class="d-block text-muted font-weight-normal" style="font-size: 0.8rem;">(${{ number_format($entry->base_debit, 2) }})</small>
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
                                     </td>
                                     <td class="py-3 text-right border-dark px-4 font-weight-bold" style="font-size: 1.1rem;">
-                                        {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
+                                        @if($entry->credit > 0)
+                                            {{ number_format($entry->credit, 2) }} <small class="text-muted font-weight-bold">{{ $entry->currency_code }}</small>
+                                            @if($entry->currency_code !== 'USD')
+                                                <small class="d-block text-muted font-weight-normal" style="font-size: 0.8rem;">(${{ number_format($entry->base_credit, 2) }})</small>
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach
@@ -90,10 +104,10 @@
                                 <tr class="font-weight-bold">
                                     <td colspan="2" class="text-right py-4 px-4 border-dark" style="font-size: 1.2rem;">مجموع (Total Amount):</td>
                                     <td class="text-right py-4 border-dark text-primary font-weight-bold border-top-double" style="font-size: 1.2rem;">
-                                        ${{ number_format($transaction->entries->sum('debit'), 2) }}
+                                        ${{ number_format($transaction->entries->sum('base_debit'), 2) }}
                                     </td>
                                     <td class="text-right py-4 px-4 border-dark text-primary font-weight-bold border-top-double" style="font-size: 1.2rem;">
-                                        ${{ number_format($transaction->entries->sum('credit'), 2) }}
+                                        ${{ number_format($transaction->entries->sum('base_credit'), 2) }}
                                     </td>
                                 </tr>
                             </tfoot>

@@ -42,6 +42,19 @@ class CarpetRepairController extends Controller
         return DB::transaction(function () use ($carpet_id) {
             $carpet = Carpet::find($carpet_id);
             
+            // Get original source warehouse from the latest OUT transaction for this carpet
+            $originalTransaction = DB::table('inventory_transactions')
+                ->where('reference_type', get_class($carpet))
+                ->where('reference_id', $carpet->carpet_id)
+                ->where('type', 'Kachaee Transfer')
+                ->where('direction', 'OUT')
+                ->where('status', 1)
+                ->orderByDesc('id')
+                ->first();
+            $originalWarehouseId = $originalTransaction ? $originalTransaction->warehouse_id : 1;
+
+            $targetWarehouseId = request('warehouse_id') ?? $originalWarehouseId;
+
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای نشده ها به دفتر مرکزی بازگشت شد ";
@@ -50,10 +63,45 @@ class CarpetRepairController extends Controller
             
             $carpet->status = 1;
             $carpet->kachaee_id = null;
+            $carpet->warehouse_id = $targetWarehouseId;
             $carpet->update();
 
             // Reverse inventory movement
             $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Non-Repair)');
+
+            // If target warehouse is different, record transfer to it
+            if ($targetWarehouseId != $originalWarehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                $this->inventoryService->recordMovement([
+                    'item_model' => $carpet,
+                    'type' => 'Warehouse Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $originalWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $this->inventoryService->recordMovement([
+                    'item_model' => $carpet,
+                    'type' => 'Warehouse Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $targetWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+            }
 
             return back()->with('status','موفقانه بازگشت شد !');
         });
@@ -72,7 +120,20 @@ class CarpetRepairController extends Controller
             }
             
             $carpet = Carpet::find($carpet_id);
-            
+
+            // Get original source warehouse from the latest OUT transaction for this carpet
+            $originalTransaction = DB::table('inventory_transactions')
+                ->where('reference_type', get_class($carpet))
+                ->where('reference_id', $carpet->carpet_id)
+                ->where('type', 'Kachaee Transfer')
+                ->where('direction', 'OUT')
+                ->where('status', 1)
+                ->orderByDesc('id')
+                ->first();
+            $originalWarehouseId = $originalTransaction ? $originalTransaction->warehouse_id : 1;
+
+            $targetWarehouseId = request('warehouse_id') ?? $originalWarehouseId;
+
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = " قالین نمبر  " . $carpet->carpet_no . " از کچای شده ها به دفتر مرکزی بازگشت شد ";
@@ -81,10 +142,45 @@ class CarpetRepairController extends Controller
             
             $carpet->status = 1;
             $carpet->kachaee_id = null;
+            $carpet->warehouse_id = $targetWarehouseId;
             $carpet->update();
 
             // Reverse the physical transfer
             $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Repaired)');
+
+            // If target warehouse is different, record transfer to it
+            if ($targetWarehouseId != $originalWarehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                $this->inventoryService->recordMovement([
+                    'item_model' => $carpet,
+                    'type' => 'Warehouse Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $originalWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $this->inventoryService->recordMovement([
+                    'item_model' => $carpet,
+                    'type' => 'Warehouse Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $targetWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+            }
 
             return back()->with('status','موفقانه بازگشت شد !');
         });
@@ -94,8 +190,9 @@ class CarpetRepairController extends Controller
         $agents = Agents::all();
         $nonrepaireds = Carpet::where('status','=',2)->where('kachaee_id','!=',null)->orderBy('updated_at','DESC')->get();
         $repaireds = CarpetRepair::orderBy('carpetId','DESC')->paginate(30);
+        $warehouses = DB::table('warehouses')->get();
         $search = '';
-        return view('carpet-repair.index',compact('nonrepaireds', 'agents', 'repaireds','search'));
+        return view('carpet-repair.index',compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
     }
 
     public function search_kachaee_number($kachaee_number,$team_id){
@@ -149,6 +246,9 @@ class CarpetRepairController extends Controller
         return DB::transaction(function () use ($request, $carpetId) {
             $carpetId->status = 2;
             $carpetId->kachaee_id = $request->team_id;
+            
+            $sourceWarehouseId = $carpetId->warehouse_id ?? 1;
+            $carpetId->warehouse_id = $request->warehouse_id;
             $carpetId->update();
             
             $activity = new Activity();
@@ -157,14 +257,22 @@ class CarpetRepairController extends Controller
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            // ERP Integration: Log the transfer to WIP Warehouse
-            // Assume coming from Main Warehouse (1)
+            // ERP Integration: Log the transfer to WIP Warehouse with complete cost details
+            $carpetCost = DB::table('items')
+                ->where('type', 'App\Carpet')
+                ->where('ref_id', $carpetId->carpet_id)
+                ->value('current_cost') ?? (float) ($carpetId->total_price ?? 0);
+
             $this->inventoryService->recordMovement([
                 'item_model' => $carpetId,
                 'type' => 'Kachaee Transfer',
                 'direction' => 'OUT',
                 'quantity' => 1,
-                'warehouse_id' => 1,
+                'warehouse_id' => $sourceWarehouseId,
+                'area' => (float) ($carpetId->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
                 'created_by' => auth()->id()
             ]);
 
@@ -174,6 +282,10 @@ class CarpetRepairController extends Controller
                 'direction' => 'IN',
                 'quantity' => 1,
                 'warehouse_id' => $request->warehouse_id,
+                'area' => (float) ($carpetId->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
                 'created_by' => auth()->id()
             ]);
             
@@ -405,8 +517,9 @@ class CarpetRepairController extends Controller
 
 
         $repaireds = CarpetRepair::orderBy('carpetId','DESC')->paginate(30);
+        $warehouses = DB::table('warehouses')->get();
         $search = '';
-        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search'));
+        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
     }
     public function search_repaired(Request $request)
     {
@@ -420,7 +533,8 @@ class CarpetRepairController extends Controller
             ->orWhereHas('team', function ($query) use ($search) {
                 $query->where('name', 'like', '%' . $search . '%');
             })->get();
-        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search'));
+        $warehouses = DB::table('warehouses')->get();
+        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
     }
     public function repair_date_search(Request $request)
     {
@@ -429,7 +543,8 @@ class CarpetRepairController extends Controller
         $agents = Agents::all();
         $nonrepaireds = Carpet::where('status','=',2)->where('kachaee_id','!=',null)->orderBy('updated_at','DESC')->get();
         $repaireds = CarpetRepair::whereBetween("date", [$start, $end])->get();
+        $warehouses = DB::table('warehouses')->get();
         $search = 'search';
-        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search'));
+        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
     }
 }

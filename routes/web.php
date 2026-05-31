@@ -343,8 +343,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/search-repaired', 'CarpetRepairController@search_repaired');
     Route::post('/repair-date-search', 'CarpetRepairController@repair_date_search');
 
-    Route::get('/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
-    Route::get('/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
+    Route::match(['get', 'post'], '/return-to-center-from-non-repair/{id}','CarpetRepairController@return_to_center_from_non_repair');
+    Route::match(['get', 'post'], '/return-to-center-from-repair/{id}','CarpetRepairController@return_to_center_from_repair');
 
     // Agent Carpets Details
 
@@ -387,7 +387,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,SP,SCO,CCO,OM,DE,FI']], function () {
 
 
-    Route::get('/carpet-wash/sent-to-finish/{carpet}', 'CarpetWashController@sent_to_finishing_center');
+    Route::match(['get', 'post'], '/carpet-wash/sent-to-finish/{carpet}', 'CarpetWashController@sent_to_finishing_center');
 
 
     Route::get('washing-team/sending-to-washing/{carpetId}', 'WashingTeamController@sending_to_washing');
@@ -458,7 +458,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::post('/search-wash-number-sh-for-wash/', 'CarpetWashController@search_wash_numbersh_for_wash');
     Route::get('/search-wash-numbersh-payment/{wash_number_sh},{team_id}', 'CarpetWashController@search_wash_numbersh_payment');
     Route::get('/carpet-wash/return-to-center/{id}','CarpetWashController@return_to_center');
-    Route::get('/carpet-wash/return-to-kachaee/{id}','CarpetWashController@return_to_kachaee');
+    Route::match(['get', 'post'], '/carpet-wash/return-to-kachaee/{id}','CarpetWashController@return_to_kachaee');
 
     Route::get('/all-carpet-edit/{id}', 'DashboardController@all_carpet_edit_dashboard');
 

@@ -40,11 +40,55 @@ class InventoryService
         $baseUnitCost = bcmul((string)$unitCost, (string)$exchangeRate, 12);
         $baseUnitCost = round((float)$baseUnitCost, 4);
 
+        // Enforce Warehouse Subtype Segregation
+        $warehouse = DB::table('warehouses')->where('id', $warehouseId)->first();
+        if ($warehouse && isset($warehouse->subtype)) {
+            $resolvedType = get_class($parentModel);
+            $materialTypeId = null;
+
+            if ($parentModel instanceof \App\PurchaseMaterial) {
+                $resolvedType = 'App\MaterialType';
+                $materialTypeId = $parentModel->material_type;
+            } elseif ($parentModel instanceof \App\MaterialSale) {
+                $resolvedType = 'App\MaterialType';
+                $materialTypeId = $parentModel->type_id;
+            } elseif ($parentModel instanceof \App\CarpetMaterial) {
+                $resolvedType = 'App\MaterialType';
+                $materialTypeId = $parentModel->type_id;
+            } elseif ($parentModel instanceof \App\MaterialAccountPayment) {
+                $resolvedType = 'App\MaterialType';
+                $materialTypeId = $parentModel->type_id;
+            } elseif ($resolvedType === 'App\MaterialType') {
+                $materialTypeId = $parentModel->material_type_id;
+            }
+
+            if ($warehouse->subtype === 'carpet') {
+                if ($resolvedType !== 'App\Carpet') {
+                    throw new Exception("این گدام مخصوص نگهداری قالین می‌باشد و شما نمی‌توانید مواد در آن ذخیره کنید.");
+                }
+            } else {
+                if ($resolvedType !== 'App\MaterialType') {
+                    throw new Exception("این گدام مخصوص نگهداری مواد خام می‌باشد و شما نمی‌توانید قالین در آن ذخیره کنید.");
+                }
+                if ($materialTypeId) {
+                    $matType = DB::table('material_types')->where('material_type_id', $materialTypeId)->first();
+                    if ($matType && $matType->subtype !== $warehouse->subtype) {
+                        $whSubtypeName = $warehouse->subtype === 'yarn' ? 'تار' : 'رنگ';
+                        $matSubtypeName = $matType->subtype === 'yarn' ? 'تار' : 'رنگ';
+                        throw new Exception("این گدام مخصوص نگهداری {$whSubtypeName} می‌باشد، اما شما قصد ذخیره {$matSubtypeName} را دارید.");
+                    }
+                }
+            }
+        }
+
         // 1. Idempotency Check
+
         $exists = DB::table('inventory_transactions')
             ->where('reference_type', get_class($model))
             ->where('reference_id', $model->getKey())
             ->where('type', $type)
+            ->where('direction', $direction)
+            ->where('status', 1)
             ->exists();
         
         if ($exists) {
@@ -59,10 +103,23 @@ class InventoryService
             $this->updateWAC($item, $quantity, $baseUnitCost, $isValueAdjustment);
         }
 
+        // Resolve category_id
+        $categoryId = $data['category_id'] ?? null;
+        if (!$categoryId) {
+            if ($parentModel instanceof \App\PurchaseMaterial) {
+                $categoryId = $parentModel->material_category;
+            } elseif ($parentModel instanceof \App\MaterialSale) {
+                $categoryId = $parentModel->category_id;
+            } elseif ($parentModel instanceof \App\CarpetMaterial) {
+                $categoryId = $parentModel->category_id;
+            }
+        }
+
         // 4. Create Transaction
         $transaction = DB::table('inventory_transactions')->insertGetId([
             'item_id' => $item->id,
             'warehouse_id' => $warehouseId,
+            'category_id' => $categoryId,
             'type' => $type,
             'direction' => $direction,
             'quantity' => $quantity,
@@ -258,6 +315,7 @@ class InventoryService
                 DB::table('inventory_transactions')->insert([
                     'item_id' => $tx->item_id,
                     'warehouse_id' => $tx->warehouse_id,
+                    'category_id' => $tx->category_id,
                     'type' => 'REVERSAL',
                     'direction' => ($tx->direction === 'IN' ? 'OUT' : 'IN'),
                     'quantity' => $tx->quantity,
@@ -267,7 +325,7 @@ class InventoryService
                     'is_value_adjustment' => $tx->is_value_adjustment,
                     'reference_type' => get_class($model),
                     'reference_id' => $model->getKey(),
-                    'status' => 1,
+                    'status' => 0,
                     'created_by' => auth()->id(),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -277,7 +335,7 @@ class InventoryService
                 $revDirection = ($tx->direction === 'IN' ? 'OUT' : 'IN');
                 $this->updateLegacyStock($model, $revDirection, $tx->quantity);
 
-                // Mark original as reversed
+                // Mark original as inactive so it does not count in stock balance and bypasses idempotency checks
                 DB::table('inventory_transactions')->where('id', $tx->id)->update(['status' => 0]);
             }
         });

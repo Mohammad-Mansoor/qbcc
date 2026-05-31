@@ -41,7 +41,7 @@ class ReportController extends Controller
                 ->where('le.party_type', 'App\Customer')
                 ->where('le.party_id', $customerId)
                 ->where('lt.date', '<', $startDate)
-                ->where('lt.status', 'posted')
+                ->whereIn('lt.status', ['posted', 'reversed'])
                 ->first();
             
             $openingBalance = $opening->balance ?? 0;
@@ -53,7 +53,7 @@ class ReportController extends Controller
                 ->where('le.party_type', 'App\Customer')
                 ->where('le.party_id', $customerId)
                 ->whereBetween('lt.date', [$startDate, $endDate])
-                ->where('lt.status', 'posted')
+                ->whereIn('lt.status', ['posted', 'reversed'])
                 ->orderBy('lt.date')
                 ->orderBy('lt.id')
                 ->get();
@@ -112,7 +112,7 @@ class ReportController extends Controller
             ->join('ledger_entries as le', 'coa.id', '=', 'le.account_id')
             ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->where('coa.is_cash_account', 1)
-            ->where('lt.status', 'posted')
+            ->whereIn('lt.status', ['posted', 'reversed'])
             ->where('lt.date', '<', $startDate)
             ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
             ->first();
@@ -123,7 +123,7 @@ class ReportController extends Controller
             ->join('ledger_entries as le', 'coa.id', '=', 'le.account_id')
             ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->where('coa.is_cash_account', 1)
-            ->where('lt.status', 'posted')
+            ->whereIn('lt.status', ['posted', 'reversed'])
             ->where('lt.date', '<=', $endDate)
             ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
             ->first();
@@ -134,7 +134,7 @@ class ReportController extends Controller
         $plQuery = DB::table('chart_of_accounts as coa')
             ->join('ledger_entries as le', 'coa.id', '=', 'le.account_id')
             ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-            ->where('lt.status', 'posted')
+            ->whereIn('lt.status', ['posted', 'reversed'])
             ->whereBetween('lt.date', [$startDate, $endDate])
             ->whereIn('coa.account_type', ['Revenue', 'Expense'])
             ->select(
@@ -164,7 +164,7 @@ class ReportController extends Controller
             ->leftJoin('ledger_entries as le', 'coa.id', '=', 'le.account_id')
             ->leftJoin('ledger_transactions as lt', function ($join) {
                 $join->on('le.transaction_id', '=', 'lt.id')
-                     ->where('lt.status', '=', 'posted');
+                     ->whereIn('lt.status', ['posted', 'reversed']);
             })
             ->select(
                 'coa.id',
@@ -307,7 +307,7 @@ class ReportController extends Controller
                     ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
                     ->where('le.account_id', $accountId)
                     ->where('lt.date', '<', $startDate)
-                    ->where('lt.status', 'posted')
+                    ->whereIn('lt.status', ['posted', 'reversed'])
                     ->first();
                 
                 $openingBalance = $opening->balance ?? 0;
@@ -324,7 +324,7 @@ class ReportController extends Controller
             }
 
             $entries = $query->whereBetween('lt.date', [$startDate, $endDate])
-                ->where('lt.status', 'posted')
+                ->whereIn('lt.status', ['posted', 'reversed'])
                 ->orderBy('lt.date')
                 ->orderBy('lt.id')
                 ->get();
@@ -350,7 +350,7 @@ class ReportController extends Controller
                 DB::raw('SUM(le.base_debit - le.base_credit) as balance')
             )
             ->whereBetween('lt.date', [$startDate, $endDate])
-            ->where('lt.status', 'posted')
+            ->whereIn('lt.status', ['posted', 'reversed'])
             ->groupBy('coa.id', 'coa.account_code', 'coa.account_name')
             ->get();
 
@@ -504,7 +504,7 @@ class ReportController extends Controller
                 DB::raw('SUM(CASE WHEN coa.normal_balance = "debit" THEN (le.base_debit - le.base_credit) ELSE (le.base_credit - le.base_debit) END) as balance')
             )
             ->where('coa.account_type', $type)
-            ->where('lt.status', 'posted');
+            ->whereIn('lt.status', ['posted', 'reversed']);
 
         if ($startDate) {
             $query->where('lt.date', '>=', $startDate);

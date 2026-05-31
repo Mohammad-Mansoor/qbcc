@@ -15,8 +15,7 @@
             <a href="/dashboard/qarz-mardom?type=kharidar_tar">
               <div class="admin-content analysis-progrebar-ctn res-mg-t-15"
                    style="background-color:#fff; margin-bottom:20px; border-bottom:3px solid #0D2267; text-shadow: 0.1em 0.1em 0.15em #ccc;">
-                <h5 class="text-right text-uppercase" style="color:#000; margin-bottom:20px;"><b>مجموعه قرض مشتری
-                    تار</b>
+                <h5 class="text-right text-uppercase" style="color:#000; margin-bottom:20px;"><b>مجموعه قرض مشتری مواد خام</b>
                 </h5>
                 <hr>
                 <div class="row vertical-center-box vertical-center-box-tablet">

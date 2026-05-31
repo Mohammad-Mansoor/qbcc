@@ -333,12 +333,12 @@
                         <div class="col-md-3">
                             <div class="input-group-modern">
                                 <label>ارز انتخابی</label>
-                                <select id="currency_select" class="form-control-modern">
+                                <select name="currency_id" id="currency_select" class="form-control-modern">
                                     @foreach($currencies as $curr)
                                         @php
                                             $isDefault = false;
-                                            if ($editCarpet) {
-                                                $isDefault = ($editCarpet->currency_code == $curr->code);
+                                            if ($editCarpet && ($editCarpet->currency_id !== null || $editCarpet->currency_code !== null)) {
+                                                $isDefault = ($editCarpet->currency_id == $curr->id || $editCarpet->currency_code == $curr->code);
                                             } else {
                                                 // Map agent account_type to currency code
                                                 $agentType = strtolower($agent->account_type);
@@ -348,7 +348,7 @@
                                                 elseif ($agentType == 'eur' || $agentType == 'euro') $isDefault = ($curr->code == 'EUR');
                                             }
                                         @endphp
-                                        <option value="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}" {{ $isDefault ? 'selected' : '' }}>
+                                        <option value="{{ $curr->id }}" data-code="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}" {{ $isDefault ? 'selected' : '' }}>
                                             {{ $curr->name }} ({{ $curr->code }})
                                         </option>
                                     @endforeach
@@ -359,7 +359,7 @@
                         <div class="col-md-3">
                             <div class="input-group-modern">
                                 <label id="price_label">قیمت فی متر (AFN)</label>
-                                <input type="number" step="0.01" id="price_per_meter" name="original_price" value="{{ $editCarpet ? $editCarpet->original_price : '' }}" class="form-control-modern calc-trigger">
+                                <input type="number" step="0.01" id="price_per_meter" name="price_input" value="{{ $editCarpet ? ($editCarpet->original_price ?? $editCarpet->price) : '' }}" class="form-control-modern calc-trigger">
                                 <input type="hidden" name="price" id="price_af_hidden">
                                 <input type="hidden" name="dollar_rate" id="dollar_rate_hidden">
                             </div>
@@ -375,6 +375,35 @@
                                 <label>مجموع (USD)</label>
                                 <input type="text" name="total_price" id="total_usd_input" class="form-control-modern bg-light font-weight-bold text-success" readonly>
                                 <input type="hidden" name="total_price_af" id="total_af_hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group-modern">
+                                <label>حساب بدهکار (GL Debit Override)</label>
+                                <select name="override_inventory_account_id" class="form-control-modern">
+                                    <option value="">انتخاب حساب بدهکار (پیش‌فرض)...</option>
+                                    @foreach($debitAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ ($editCarpet && $editCarpet->override_inventory_account_id == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_name }} ({{ $acc->account_code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group-modern">
+                                <label>حساب بستانکار (GL Credit Override)</label>
+                                <select name="override_credit_account_id" class="form-control-modern">
+                                    <option value="">انتخاب حساب بستانکار (پیش‌فرض)...</option>
+                                    @foreach($creditAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ ($editCarpet && $editCarpet->override_credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                            {{ $acc->account_name }} ({{ $acc->account_code }})
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -433,7 +462,7 @@
             $('#area_input').val(area.toFixed(2));
 
             let selectedOption = $('#currency_select option:selected');
-            let currencyCode = selectedOption.val();
+            let currencyCode = selectedOption.data('code');
             let exchangeRate = parseFloat(selectedOption.data('rate')) || 0; // Value of 1 unit in USD
             let priceInput = parseFloat($('#price_per_meter').val()) || 0;
 

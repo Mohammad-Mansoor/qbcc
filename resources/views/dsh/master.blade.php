@@ -256,28 +256,28 @@
           <li class="nav-item pcoded-hasmenu">
             <a href="#" class="nav-link "><span class="pcoded-micon"><i
                         class="feather icon-layout"></i></span><span
-                      class="pcoded-mtext"><b>تار</b></span></a>
+                      class="pcoded-mtext"><b>مواد خام</b></span></a>
             <ul class="pcoded-submenu">
-              <li><a href="/dashboard/material-purchase">خرید تار</a></li>
+              <li><a href="/dashboard/material-purchase">خرید مواد خام</a></li>
               @if(auth()->user()->role == 'SP')
-                <li><a href="/dashboard/purchase-material-request-list"> لیست درخواست خرید تار</a></li>
+                <li><a href="/dashboard/purchase-material-request-list"> لیست درخواست خرید مواد خام</a></li>
               @endif
-              <li><a href="/dashboard/material-sales">فروش تار</a></li>
+              <li><a href="/dashboard/material-sales">فروش مواد خام</a></li>
               @if(auth()->user()->role == 'SP')
-                <li><a href="/dashboard/material-sale-request-list"> لیست درخواست فروش تار</a></li>
+                <li><a href="/dashboard/material-sale-request-list"> لیست درخواست فروش مواد خام</a></li>
               @endif
-              <li><a href="/dashboard/material-stock">گدام تار</a></li>
-              <li><a href="/dashboard/string-seller">فروشنده تار</a></li>
+              <li><a href="/dashboard/material-stock">گدام مواد خام</a></li>
+              <li><a href="/dashboard/string-seller">فروشنده مواد خام</a></li>
               @if(auth()->user()->role == 'SP')
-                <li><a href="/dashboard/string-seller-request-list"> لیست درخواست پول فروشنده تار</a></li>
+                <li><a href="/dashboard/string-seller-request-list"> لیست درخواست پول فروشنده مواد خام</a></li>
               @endif
              
-              <!--<li><a href="/dashboard/material-category">کتگوری مواد</a></li> material category works on carpets controler search contract and weight carpets by agent function--> >
+              <li><a href="/dashboard/material-category">کتگوری مواد</a></li>
               <li><a href="/dashboard/materialtypes">نوعیت مواد</a></li>
               
-                       <li><a href="/dashboard/material-accounts">دخل و خرچ تار</a></li>
+                       <li><a href="/dashboard/material-accounts">دخل و خرچ مواد خام</a></li>
                         @if(auth()->user()->role == 'SP')
-              <li><a href="/dashboard/material-account-request-list"> لیست درخواست اکونت های تار</a></li>
+              <li><a href="/dashboard/material-account-request-list"> لیست درخواست اکونت های مواد خام</a></li>
                     @endif
             </ul>
           </li>
@@ -364,7 +364,7 @@
                         <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
                         <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
                           <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                        <li><a href="/dashboard/string_seller_balance_report">صورت حساب  تار فروش ها </a></li>
+                        <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
                         <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها  </a></li>
                          <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
                                  <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>

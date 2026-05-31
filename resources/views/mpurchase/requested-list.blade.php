@@ -1,5 +1,5 @@
 @extends('dsh.master')
-@section('title', 'لیست درخواست‌های خرید تار')
+@section('title', 'لیست درخواست‌های خرید مواد خام')
 @section('content')
 
 <div class="row">
@@ -44,6 +44,7 @@
             <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <tr style="color: #475569;">
                 <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">فاکتور #</th>
+                <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">نوعیت خرید</th>
                 <th style="padding: 12px 16px; font-weight: 600;">فروشنده</th>
                 <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">تاریخ</th>
                 <th style="padding: 12px 16px; font-weight: 600;">کتگوری</th>
@@ -57,6 +58,7 @@
                   <span style="color: #059669;">معادل USD</span>
                   <small class="d-block" style="font-weight: 400; color: #94a3b8; font-size: 0.72rem;">نرخ × مبلغ</small>
                 </th>
+                <th style="padding: 12px 16px; font-weight: 600; text-align: center;">گدام</th>
                 <th style="padding: 12px 16px; font-weight: 600;">قیمت به حروف</th>
                 <th class="hideOnPrint" style="padding: 12px 16px; font-weight: 600; text-align: center;">اقدام</th>
               </tr>
@@ -79,6 +81,15 @@
                   <span style="font-weight: 700; color: #f59e0b; font-family: monospace; font-size: 0.85rem;">
                     {{ $p->purchase_number }}
                   </span>
+                </td>
+
+                {{-- Parent Type --}}
+                <td style="padding: 10px 16px; white-space: nowrap;">
+                  @if(optional($p->materialType)->subtype == 'dye')
+                    <span class="badge badge-warning" style="font-weight: 600; padding: 4px 8px;">رنگ (Dye)</span>
+                  @else
+                    <span class="badge badge-primary" style="font-weight: 600; padding: 4px 8px;">تار (Yarn)</span>
+                  @endif
                 </td>
 
                 {{-- Seller --}}
@@ -140,6 +151,17 @@
                   </div>
                 </td>
 
+                {{-- Warehouse --}}
+                <td style="padding: 10px 16px; text-align: center;">
+                  @if($p->warehouse_id)
+                    <span style="background: #f0fdf4; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; border: 1px solid #bbf7d0;">
+                      {{ optional($p->warehouse)->name ?? 'گدام #'.$p->warehouse_id }}
+                    </span>
+                  @else
+                    <span style="color: #cbd5e1;">—</span>
+                  @endif
+                </td>
+
                 {{-- In Words --}}
                 <td style="padding: 10px 16px; color: #64748b; font-size: 0.82rem; max-width: 160px;">
                   {{ $p->in_words }}
@@ -161,7 +183,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="11" style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                <td colspan="13" style="text-align: center; padding: 60px 20px; color: #94a3b8;">
                   <i class="fa fa-inbox" style="font-size: 2.5rem; display: block; margin-bottom: 12px; color: #cbd5e1;"></i>
                   <strong style="font-size: 1rem; color: #64748b;">هیچ درخواستی در انتظار تایید نیست</strong>
                   <p style="margin-top: 4px; font-size: 0.85rem;">تمام درخواست‌های خرید تایید یا رد شده‌اند.</p>
@@ -174,7 +196,7 @@
             @if($requests->count() > 0)
             <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
               <tr>
-                <td colspan="4" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
+                <td colspan="6" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
                   مجموع صفحه جاری:
                 </td>
                 <td></td>
@@ -193,7 +215,7 @@
                     </span>
                   </div>
                 </td>
-                <td colspan="2"></td>
+                <td colspan="3"></td>
               </tr>
             </tfoot>
             @endif

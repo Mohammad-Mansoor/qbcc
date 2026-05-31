@@ -6,7 +6,8 @@ use App\Activity;
 use App\MaterialCategory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use\DB;
+use DB;
+use Auth;
 
 class MaterialCategoryController extends Controller
 {
@@ -96,7 +97,7 @@ class MaterialCategoryController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
 
-        $category->update($this->valData());
+        $category->update($this->valData($id));
         if($category){
             return redirect('/dashboard/material-category')->with('status', 'موفقانه بروز شد');
         }else{
@@ -129,10 +130,11 @@ class MaterialCategoryController extends Controller
     
     }
 
-    protected function valData()
+    protected function valData($id = null)
     {
         return request()->validate([
-            'material_category' => 'required|min:3|max:32|unique:material_categories'
+            'material_category' => 'required|min:3|max:32|unique:material_categories,material_category' . ($id ? ",$id,material_category_id" : ""),
+            'subtype' => 'required|in:yarn,dye'
         ]);
     }
 }

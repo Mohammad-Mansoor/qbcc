@@ -23,4 +23,14 @@ class MaterialType extends Model
     public function sale() {
         return $this->hasMany(MaterialSale::class , 'type_id', 'material_type_id');
     }
+
+    public function getSubtypeFaAttribute()
+    {
+        $map = [
+            'yarn' => 'تار',
+            'dye'  => 'رنگ',
+        ];
+        return $map[$this->subtype] ?? $this->subtype;
+    }
 }
+

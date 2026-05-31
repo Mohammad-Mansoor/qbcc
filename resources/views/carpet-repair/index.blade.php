@@ -161,7 +161,142 @@
         background: #fee2e2;
         color: #dc2626;
     }
+    
+    /* ANIMATED STATS CARDS */
+    .stat-card {
+        border: none;
+        border-radius: 16px;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        cursor: default;
+        box-shadow: 0 4px 20px 0 rgba(0,0,0,0.05);
+    }
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 50%;
+        bottom: -30px;
+        left: -30px;
+        transition: all 0.5s ease;
+    }
+    .stat-card:hover::after {
+        transform: scale(1.5);
+    }
+    
+    .stat-card-blue {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+    }
+    .stat-card-indigo {
+        background: linear-gradient(135deg, #6366f1, #4338ca);
+        color: white;
+    }
+    .stat-card-green {
+        background: linear-gradient(135deg, #10b981, #047857);
+        color: white;
+    }
+    .stat-card-teal {
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
+        color: white;
+    }
+    
+    .stat-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.15);
+        font-size: 1.4rem;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover .stat-card-icon {
+        transform: rotate(-10deg) scale(1.1);
+        background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .stat-card-val {
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .stat-card-lbl {
+        font-size: 0.85rem;
+        font-weight: 600;
+        opacity: 0.9;
+        margin-top: 4px;
+    }
 </style>
+
+  <!-- ANIMATED STATS CARDS ROW -->
+  <div class="row mb-4">
+    <!-- Card 1: Pending Pcs -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card stat-card stat-card-blue p-4 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-card-val">{{$nonrepaireds->count()}} <span style="font-size: 1rem; font-weight: normal;">عدد</span></div>
+            <div class="stat-card-lbl">قالین‌های آماده ترمیم (Pending Pcs)</div>
+          </div>
+          <div class="stat-card-icon">
+            <i class="fa fa-clock-o"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 2: Pending Area -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card stat-card stat-card-indigo p-4 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-card-val">{{number_format($nonrepaireds->sum('area'), 2)}} <span style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span></div>
+            <div class="stat-card-lbl">مساحت آماده ترمیم (Pending Area)</div>
+          </div>
+          <div class="stat-card-icon">
+            <i class="fa fa-cube"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 3: Completed Pcs -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card stat-card stat-card-green p-4 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-card-val">{{$repaireds->count()}} <span style="font-size: 1rem; font-weight: normal;">عدد</span></div>
+            <div class="stat-card-lbl">قالین‌های ترمیم شده (Completed Pcs)</div>
+          </div>
+          <div class="stat-card-icon">
+            <i class="fa fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 4: Completed Area -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card stat-card stat-card-teal p-4 h-100">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-card-val">{{number_format($repaireds->sum(function($r) { return $r->carpet->area ?? 0; }), 2)}} <span style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span></div>
+            <div class="stat-card-lbl">مساحت ترمیم شده (Completed Area)</div>
+          </div>
+          <div class="stat-card-icon">
+            <i class="fa fa-expand"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="row">
     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -218,6 +353,7 @@
                     <tr>
                       <th>شماره قالین</th>
                       <th>اسم کچایی گر</th>
+                      <th>گدام</th>
                       <th>نوعیت</th>
                       <th>طول</th>
                       <th>عرض</th>
@@ -232,6 +368,7 @@
                       <tr class="ur{{ $nonrepaired->carpet_id }}">
                         <td class="font-weight-bold text-dark">{{$nonrepaired->carpet_no}}</td>
                         <td>{{$nonrepaired->kachaee->name}}</td>
+                        <td><span class="badge badge-light border">{{$nonrepaired->warehouse->name ?? 'نامشخص'}}</span></td>
                         <td><span class="badge badge-light border">{{$nonrepaired->type->carpet_type}}</span></td>
                         <td style="direction: ltr;">{{$nonrepaired->height}}</td>
                         <td style="direction: ltr;">{{$nonrepaired->width}}</td>
@@ -257,7 +394,12 @@
                                         ثبت ترمیم (Repair)
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item text-right text-warning" href="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}">
+                                    <a class="dropdown-item text-right text-warning btn-return-to-center" 
+                                       href="javascript:void(0)" 
+                                       data-carpet-id="{{$nonrepaired->carpet_id}}" 
+                                       data-carpet-no="{{$nonrepaired->carpet_no}}" 
+                                       data-current-warehouse-id="{{$nonrepaired->warehouse_id}}"
+                                       data-action-url="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}">
                                         <i class="feather icon-corner-up-right"></i>
                                         بازگشت به مرکزی
                                     </a>
@@ -267,9 +409,9 @@
                       </tr>
                     @endforeach
                     <tr style="background: #f8fafc;" class="font-weight-bold">
-                      <td colspan="3" class="text-right">مجموع:</td>
+                      <td colspan="4" class="text-right">مجموع:</td>
                       <td colspan="5" class="text-left" style="direction: ltr;">
-                          {{$nonrepaireds->count()}} pcs | {{$nonrepaireds->sum('area')}} m<sup>2</sup>
+                          {{$nonrepaireds->count()}} pcs | {{number_format($nonrepaireds->sum('area'), 2)}} m<sup>2</sup>
                       </td>
                       <td class="hideOnPrint"></td>
                     </tr>
@@ -324,6 +466,7 @@
                       <th>شماره قالین</th>
                       <th>نمبر کچایی</th>
                       <th>نوعیت</th>
+                      <th>گدام</th>
                       <th>حاشیه</th>
                       <th>زمینه</th>
                       <th>قیمت فی متر</th>
@@ -343,6 +486,7 @@
                           {{$repaired->kachaee_number}}</a>
                         </td>
                         <td>{{$repaired->carpet->type->carpet_type}}</td>
+                        <td><span class="badge badge-light border">{{$repaired->carpet->warehouse->name ?? 'نامشخص'}}</span></td>
                         <td>{{$repaired->carpet->margin}}</td>
                         <td>{{$repaired->carpet->field}}</td>
                         
@@ -378,7 +522,12 @@
                                           <i class="feather icon-send"></i>
                                           ارسال به شست (Send to Wash)
                                       </a>
-                                      <a class="dropdown-item text-right text-danger" href="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
+                                      <a class="dropdown-item text-right text-danger btn-return-to-center" 
+                                         href="javascript:void(0)" 
+                                         data-carpet-id="{{$repaired->carpetId}}" 
+                                         data-carpet-no="{{$repaired->carpet->carpet_no}}" 
+                                         data-current-warehouse-id="{{$repaired->carpet->warehouse_id}}"
+                                         data-action-url="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
                                           <i class="feather icon-corner-up-right"></i>
                                           بازگشت به مرکزی
                                       </a>
@@ -406,9 +555,9 @@
                       </tr>
                     @endforeach
                     <tr style="background: #f8fafc;" class="font-weight-bold">
-                      <td colspan="3" class="text-right">مجموع:</td>
+                      <td colspan="4" class="text-right">مجموع:</td>
                       <td colspan="7" class="text-left" style="direction: ltr;">
-                          {{$repaireds->count()}} pcs | {{$repaireds->sum('area')}} m<sup>2</sup>
+                          {{$repaireds->count()}} pcs | {{number_format($repaireds->sum(function($r) { return $r->carpet->area ?? 0; }), 2)}} m<sup>2</sup>
                       </td>
                       <td class="hideOnPrint"></td>
                     </tr>
@@ -421,9 +570,66 @@
                   @endif
                 </div>
               </div>
+  <!-- Return to Central Confirmation Modal -->
+  <div class="modal fade" id="returnToCenterModal" tabindex="-1" role="dialog" aria-labelledby="returnToCenterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+        <form id="returnToCenterForm" method="POST" action="">
+          @csrf
+          <div class="modal-header bg-warning text-dark" style="border-radius: 16px 16px 0 0; border: none; padding: 15px 20px;">
+            <h5 class="modal-title font-weight-bold" id="returnToCenterModalLabel">
+              <i class="fa fa-exclamation-triangle mr-2"></i> تأیید بازگشت به دفتر مرکزی
+            </h5>
+            <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body p-4 text-right" style="direction: rtl;">
+            <p class="font-weight-bold text-dark mb-3">آیا مطمئن هستید که می‌خواهید قالین شماره <span id="modalCarpetNo" class="text-danger font-weight-bold"></span> را به دفتر مرکزی بازگشت دهید؟</p>
+            
+            <div class="form-group">
+              <label for="modalWarehouseId" class="font-weight-bold text-muted">انتخاب گدام جهت بازگشت:</label>
+              <select name="warehouse_id" id="modalWarehouseId" class="form-control" style="border-radius: 8px; height: auto; padding: 10px;" required>
+                @foreach($warehouses as $wh)
+                  <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                @endforeach
+              </select>
             </div>
-        </div>
+          </div>
+          <div class="modal-footer bg-light" style="border-radius: 0 0 16px 16px; border: none; padding: 15px 20px;">
+            <button type="button" class="btn btn-secondary px-4" style="border-radius: 8px;" data-dismiss="modal">انصراف</button>
+            <button type="submit" class="btn btn-warning px-4 text-dark font-weight-bold" style="border-radius: 8px;">تأیید و بازگشت</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+
+  @section('scripts')
+  <script>
+      $(document).ready(function() {
+          $('.btn-return-to-center').on('click', function(e) {
+              e.preventDefault();
+              var carpetId = $(this).data('carpet-id');
+              var carpetNo = $(this).data('carpet-no');
+              var currentWarehouseId = $(this).data('current-warehouse-id');
+              var actionUrl = $(this).data('action-url');
+              
+              // Set carpet number in the text
+              $('#modalCarpetNo').text(carpetNo);
+              
+              // Set action URL on the form
+              $('#returnToCenterForm').attr('action', actionUrl);
+              
+              // Select the current warehouse as default
+              if (currentWarehouseId) {
+                  $('#modalWarehouseId').val(currentWarehouseId);
+              }
+              
+              // Show modal
+              $('#returnToCenterModal').modal('show');
+          });
+      });
+  </script>
+  @endsection
 @endsection

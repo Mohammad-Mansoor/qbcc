@@ -32,12 +32,14 @@ class MaterialSaleController extends Controller
         $agentId = $request->agent_id;
         $catId = $request->category_id;
         $typeId = $request->type_id;
+        $whId = $request->warehouse_id ?? 1;
 
-        \Log::info("Fetching sale info for Agent: $agentId, Category: $catId, Type: $typeId");
+        \Log::info("Fetching sale info for Agent: $agentId, Category: $catId, Type: $typeId, WH: $whId");
 
         $info = [
             'wac' => 0,
-            'balance' => 0
+            'balance' => 0,
+            'available_stock' => 0
         ];
 
         try {
@@ -53,16 +55,38 @@ class MaterialSaleController extends Controller
                 
                 if ($stock) {
                     $info['wac'] = $stock->price_per_kilo;
-                    
-                    // Also check if we have a WAC item registered
-                    $item = DB::table('items')
-                        ->where('type', 'App\MaterialType')
-                        ->where('ref_id', $typeId)
-                        ->first();
-                    
-                    if ($item) {
-                        $info['wac'] = $item->current_cost;
+                }
+                
+                // Also check if we have a WAC item registered
+                $item = DB::table('items')
+                    ->where('type', 'App\MaterialType')
+                    ->where('ref_id', $typeId)
+                    ->first();
+                
+                if ($item) {
+                    $info['wac'] = $item->current_cost;
+
+                    // Available stock in this warehouse
+                    $balance = DB::table('inventory_transactions')
+                        ->where('item_id', $item->id)
+                        ->where('warehouse_id', $whId)
+                        ->where('status', 1)
+                        ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+                        ->value('balance') ?? 0;
+
+                    // If editing an existing sale, add back the quantity allocated to it to prevent lockout
+                    if ($request->sale_id) {
+                        $allocatedQty = DB::table('inventory_transactions')
+                            ->where('reference_type', 'App\MaterialSale')
+                            ->where('reference_id', $request->sale_id)
+                            ->where('status', 1)
+                            ->where('direction', 'OUT')
+                            ->sum('quantity') ?? 0;
+                        
+                        $balance += $allocatedQty;
                     }
+
+                    $info['available_stock'] = $balance;
                 }
             }
         } catch (\Exception $e) {
@@ -99,7 +123,7 @@ class MaterialSaleController extends Controller
      */
     public function index()
     {
-        $material_sales = MaterialSale::orderBy('created_at','DESC')->paginate(60);
+        $material_sales = MaterialSale::with(['category', 'type', 'agent', 'warehouse'])->orderBy('created_at','DESC')->paginate(60);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = '';
@@ -149,6 +173,9 @@ class MaterialSaleController extends Controller
             ->orderBy('id', 'DESC')
             ->paginate(30);
 
+        $revenueMapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $cogsMapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
+
         foreach ($requests as $req) {
             // Get WAC from App\MaterialType item
             $wac = 0;
@@ -177,7 +204,7 @@ class MaterialSaleController extends Controller
                 ->value('balance') ?? 0;
         }
 
-        return view('mstock.material-sale-requested-list', compact('requests'));
+        return view('mstock.material-sale-requested-list', compact('requests', 'revenueMapping', 'cogsMapping'));
     }
 
     public function approve_request($id)
@@ -219,7 +246,7 @@ class MaterialSaleController extends Controller
     public function delete_request($id){
         $sale = MaterialSale::find($id);
         $sale->delete();
-        return response()->json(['status','error']);
+        return response()->json(['status' => 'success']);
     }
 
     /**
@@ -231,12 +258,25 @@ class MaterialSaleController extends Controller
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
-            $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
+            $itemId = DB::table('items')
+                ->where('type', 'App\MaterialType')
+                ->where('ref_id', $request->type_id)
+                ->value('id');
 
-            if (!$material_stock) {
-                return redirect()->back()->with('error', 'مواد درخواست شده در گدام نمیباشد‌!');
-            } elseif ($request->amount > $material_stock->quantity) {
-                return redirect()->back()->with('error', ' مواد در گدام ' . $material_stock->quantity . 'kg' . ' میباشد');
+            $availableStock = 0;
+            if ($itemId) {
+                $availableStock = DB::table('inventory_transactions')
+                    ->where('item_id', $itemId)
+                    ->where('warehouse_id', $request->warehouse_id ?? 1)
+                    ->where('status', 1)
+                    ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+                    ->value('balance') ?? 0;
+            }
+
+            if ($availableStock <= 0) {
+                return redirect()->back()->with('error', 'مواد مورد نظر در گدام انتخاب شده موجود نمی‌باشد!');
+            } elseif ($request->amount > $availableStock) {
+                return redirect()->back()->with('error', 'مقدار فروش بیشتر از موجودی گدام است! موجودی فعلی: ' . number_format($availableStock, 2) . ' کیلوگرام');
             }
 
             $data = $request->validate([
@@ -352,11 +392,25 @@ class MaterialSaleController extends Controller
                 $this->inventoryManager->reverseTransactions($materialSale, 'Material Sale Edited');
             }
 
-            if (Auth::user()->role == 'SP') {
-                $material_stock = MaterialStock::where('material_category', '=', $request->category_id)->where('material_type', '=', $request->type_id)->first();
-                if (!$material_stock || $request->amount > $material_stock->quantity) {
-                    return redirect()->back()->with('error', 'موجودی گدام کافی نیست!');
-                }
+            $itemId = DB::table('items')
+                ->where('type', 'App\MaterialType')
+                ->where('ref_id', $request->type_id)
+                ->value('id');
+
+            $availableStock = 0;
+            if ($itemId) {
+                $availableStock = DB::table('inventory_transactions')
+                    ->where('item_id', $itemId)
+                    ->where('warehouse_id', $request->warehouse_id ?? 1)
+                    ->where('status', 1)
+                    ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+                    ->value('balance') ?? 0;
+            }
+
+            if ($availableStock <= 0) {
+                return redirect()->back()->with('error', 'مواد مورد نظر در گدام انتخاب شده موجود نمی‌باشد!');
+            } elseif ($request->amount > $availableStock) {
+                return redirect()->back()->with('error', 'مقدار فروش بیشتر از موجودی گدام است! موجودی فعلی: ' . number_format($availableStock, 2) . ' کیلوگرام');
             }
 
             $materialSale->agent_id = $request->agent_id;

@@ -123,8 +123,12 @@ class AgentsCarpetController extends Controller
         $warehouses = \App\Warehouse::all();
         $editCarpet = '';
 
+        $selectionService = new \App\Services\AccountSelectionService();
+        $debitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
+        $creditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
 
-        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'currencies', 'warehouses'));
+        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'currencies', 'warehouses', 'debitAccounts', 'creditAccounts'));
+
 
     }
 
@@ -162,7 +166,12 @@ class AgentsCarpetController extends Controller
         $currencies = \App\Currency::all();
         $warehouses = \App\Warehouse::all();
 
-        return view('agents-carpet.index', compact('carpets', 'agent', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities', 'metrazh', 'mawad_ranga', 'mawad_pakhta', 'currencies', 'warehouses'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $debitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
+        $creditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
+
+        return view('agents-carpet.index', compact('carpets', 'agent', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'qualities', 'metrazh', 'mawad_ranga', 'mawad_pakhta', 'currencies', 'warehouses', 'debitAccounts', 'creditAccounts'));
+
     }
 
     /**
@@ -238,9 +247,15 @@ class AgentsCarpetController extends Controller
         $employees = AgentEmployee::all();
         $editCarpet = '';
 
+        $currencies = \App\Currency::all();
+        $warehouses = \App\Warehouse::all();
 
+        $selectionService = new \App\Services\AccountSelectionService();
+        $debitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
+        $creditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
 
-        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'search'));
+        return view('agents-carpet.index', compact('carpets', 'agent', 'mawad_ranga', 'mawad_pakhta', 'metrazh', 'AccountNo', 'orders', 'types', 'employees', 'editCarpet', 'search', 'currencies', 'warehouses', 'debitAccounts', 'creditAccounts'));
+
 
 
 

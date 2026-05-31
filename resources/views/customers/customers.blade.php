@@ -218,10 +218,10 @@
                                 <td class="hideOnPrint text-center">
                                     <div class="btn-group">
                                         <a href="/dashboard/customers/{{$cust->id}}/edit" class="btn btn-sm btn-outline-warning mr-1 p-1 px-2" title="ویرایش" style="border-radius: 6px;">
-                                            <i class="fa fa-pencil"></i>
+                                            <i class="feather icon-edit-2"></i>
                                         </a>
                                         <a href="/dashboard/customer-payments/{{$cust->id}}" class="btn btn-sm btn-outline-info p-1 px-2" title="حساب و پرداخت" style="border-radius: 6px;">
-                                            <i class="fa fa-money"></i>
+                                            <i class="feather icon-credit-card"></i>
                                         </a>
                                     </div>
                                 </td>

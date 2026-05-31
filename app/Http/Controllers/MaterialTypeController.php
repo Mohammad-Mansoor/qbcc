@@ -98,7 +98,7 @@ class MaterialTypeController extends Controller
         $activity->save();
         
         
-        $mtype->update($this->valData());
+        $mtype->update($this->valData($id));
         if (!$mtype){
             return redirect('/dashboard/materialtypes')->with('error', 'مشکل در سرور وجود دارد');
 
@@ -119,7 +119,7 @@ class MaterialTypeController extends Controller
     
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " نوعیت مواد  به نام " . $mtype->material_type . " از سیستم حذف شد ";
+        $activity->description = " نوعیت مواد  از سیستم حذف شد ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
         
@@ -131,10 +131,12 @@ class MaterialTypeController extends Controller
     }
 
 
-    protected function valData()
+    protected function valData($id = null)
     {
         return request()->validate([
-            'material_type' => 'required|min:3|max:32|unique:material_types'
+            'material_type' => 'required|min:3|max:32|unique:material_types,material_type,' . ($id ?: 'NULL') . ',material_type_id',
+            'subtype' => 'required|in:yarn,dye'
         ]);
     }
 }
+

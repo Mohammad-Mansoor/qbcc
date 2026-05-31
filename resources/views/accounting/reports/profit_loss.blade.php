@@ -192,6 +192,37 @@ if (!function_exists('formatAccounting')) {
                         </table>
                     </div>
 
+                    <!-- Explanation Section (Dari) -->
+                    <div class="card bg-light border-0 mt-5 no-print" style="border-radius: 12px;">
+                        <div class="card-body p-4">
+                            <h5 class="font-weight-bold text-dark mb-3" style="direction: rtl; text-align: right;">
+                                <i class="feather icon-info text-primary mr-2"></i> راهنمای محاسبات و فارمول صورت سود و ضرر
+                            </h5>
+                            <div style="direction: rtl; text-align: right; line-height: 1.8; font-size: 0.95rem; color: #4e5e6a;">
+                                <p><strong>فارمول عمومی محاسبه سود و ضرر:</strong></p>
+                                <div class="bg-white p-3 rounded text-center font-weight-bold mb-3 border" style="font-size: 1.1rem; direction: ltr;">
+                                    Net Profit/Loss = Total Net Revenue - Total Net Expenses
+                                </div>
+                                <div class="bg-white p-3 rounded text-center font-weight-bold mb-3 border" style="font-size: 1.1rem; direction: rtl;">
+                                    سود (ضرر) خالص = مجموع عواید خالص - مجموع هزینه‌های عملیاتی خالص
+                                </div>
+                                <p><strong>تعاریف و اجزای فارمول:</strong></p>
+                                <ul>
+                                    <li><strong>مجموع عواید خالص (Total Net Revenue):</strong> عبارت است از کل عواید فروشات ناخالص (Gross Sales) منهای اصلاحات، تخفیفات و تراکنش‌های برگشتی (Less Reversals).</li>
+                                    <li><strong>مجموع هزینه‌های عملیاتی خالص (Total Net Expenses):</strong> عبارت است از قیمت تمام‌شده کالای فروخته‌شده (COGS) و مصارف عمومی (Operational Expenses) منهای تراکنش‌های اصلاحی و برگشت مصارف.</li>
+                                </ul>
+                                <p><strong>نحوه عملکرد سیستم برگشت‌ها (Reversals) در گزارش:</strong></p>
+                                <p>
+                                    به منظور حفظ اصول حسابداری دوطرفه و جلوگیری از دستکاری در دوره‌های مالی بسته‌شده تاریخی (مانند ماه‌های گذشته)، سیستم جدید به صورت <strong>رویدادمحور بر اساس تاریخ واقعی ثبت</strong> عمل می‌کند:
+                                </p>
+                                <ul>
+                                    <li>اگر تراکنشی در ماه گذشته ثبت شده و در ماه جاری برگشت (Reverse) داده شود، تراکنش اصلی در ماه گذشته محفوظ مانده و سند برگشت آن در ماه جاری به عنوان یک تعدیل منفی در عواید یا مصارف نمایش داده می‌شود.</li>
+                                    <li>این گزارش کلیه اسناد تایید شده و برگشت‌خورده را به صورت پویا با توجه به تاریخ پست آن‌ها محاسبه می‌نماید تا تراز مالی (Trial Balance) و صورت سود و ضرر همواره همخوان و صد درصد دقیق باشند.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Print Signatures -->
                     <div class="mt-5 pt-5 d-none d-print-block">
                         <div class="row text-center">

@@ -149,11 +149,11 @@ class AccountingService
                 }
 
 
-                $exists = $query->lockForUpdate()->exists();
-                if ($exists) {
+                $existing = $query->lockForUpdate()->first();
+                if ($existing) {
                     $mKey = $data['mapping_key'] ?? 'N/A';
                     \Log::warning("Duplicate event blocked: {$data['source_type']} #{$data['source_id']} [$mKey]");
-                    return $query->first();
+                    return $existing;
                 }
             }
 
@@ -252,15 +252,23 @@ class AccountingService
      */
     public function reverseTransaction($transactionId, $reason = null)
     {
-        $original = LedgerTransaction::with('entries')->findOrFail($transactionId);
+        return DB::transaction(function () use ($transactionId, $reason) {
+            $original = LedgerTransaction::with('entries')
+                ->where('id', $transactionId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Period Locking Check
-        // Note: Reversals are usually posted for TODAY, but we must check if the original 
-        // is in a locked period to prevent tampering.
-        $this->failIfLocked($original->date);
+            // Period Locking Check
+            // Note: Reversals are usually posted for TODAY, but we must check if the original 
+            // is in a locked period to prevent tampering.
+            $this->failIfLocked($original->date);
 
-        return DB::transaction(function () use ($original, $reason) {
-            // 1. Create Reversal Transaction (Append-only)
+            // 1. Check if already reversed
+            if ($original->status === 'reversed' || $original->status === 0) {
+                throw new Exception("Transaction ID {$transactionId} has already been reversed.");
+            }
+
+            // 2. Create Reversal Transaction (Append-only)
             // Dated for TODAY to preserve historical reports of the original period
             $reversal = LedgerTransaction::create([
                 'date' => Carbon::now()->format('Y-m-d'), 
@@ -268,14 +276,14 @@ class AccountingService
                 'description' => "REVERSAL: " . ($reason ?? "Correction") . " | (Original Ref: " . $original->reference . ")",
                 'source_type' => $original->source_type,
                 'source_id' => $original->source_id,
-                'mapping_key' => $original->mapping_key ? 'REV-' . $original->mapping_key : null,
+                'mapping_key' => $original->mapping_key ? 'REV-' . $original->id . '-' . $original->mapping_key : null,
                 'journal_type' => $original->journal_type,
                 'status' => 'posted',
                 'posted_at' => now(),
                 'reversed_transaction_id' => $original->id,
             ]);
 
-            // 2. Create Flipped Entries
+            // 3. Create Flipped Entries
             foreach ($original->entries as $entry) {
                 LedgerEntry::create([
                     'transaction_id' => $reversal->id,
@@ -294,13 +302,14 @@ class AccountingService
                 ]);
             }
 
-            // 3. Link reversal to original (Implicitly linked via reversed_transaction_id on the reversal record)
-            // We update the original status to 'reversed' and append '-REV' to mapping_key to release unique key constraints.
+            // 4. Link reversal to original (Bi-directional linkage via reversed_transaction_id on both records)
+            // We update the original status to 'reversed', store the reversal ID, and append '-REV' to mapping_key to release unique key constraints.
             DB::table('ledger_transactions')
                 ->where('id', $original->id)
                 ->update([
                     'status' => 'reversed',
-                    'mapping_key' => $original->mapping_key ? $original->mapping_key . '-REV' : null
+                    'reversed_transaction_id' => $reversal->id,
+                    'mapping_key' => $original->mapping_key ? $original->mapping_key . '-REV-' . $original->id : null
                 ]);
 
             return $reversal;
@@ -383,5 +392,16 @@ class AccountingService
         foreach ($transactions as $tx) {
             $this->reverseTransaction($tx->id, $reason);
         }
+    }
+
+    /**
+     * Get the real-time accounting ledger balance for a given party (Agent, Customer, etc.)
+     */
+    public function getAccountBalance($partyType, $partyId)
+    {
+        return DB::table('ledger_entries')
+            ->where('party_type', $partyType)
+            ->where('party_id', $partyId)
+            ->sum(DB::raw("credit - debit")) ?? 0;
     }
 }

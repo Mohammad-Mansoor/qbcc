@@ -1,498 +1,654 @@
 @extends('dsh.master')
 
 @section('content')
-  
-  <br>
-  <!-- navbar -->
-  
-  <div id="PaidToDA">
+
+<style>
+    /* PREMIUM GLASSMORPHISM UI */
+    .glass-card {
+        background: white;
+        border: 1px solid var(--qbcc-border, #e2e8f0);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+        margin-bottom: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
     
-    <div class="row">
-      
-      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-        <div class="card">
+    .glass-header {
+        background: #f8fafc;
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--qbcc-border, #e2e8f0);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .glass-header h4 {
+        margin: 0;
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.2rem;
+    }
+    
+    .table-modern thead th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        border: none;
+        letter-spacing: 0.5px;
+        padding: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .table-modern tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f1f5f9;
+        color: #334155;
+    }
+
+    .table-modern tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    /* METADATA CARDS */
+    .meta-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+    }
+    
+    .meta-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--qbcc-primary, #3b82f6);
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .meta-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+    }
+
+    .meta-label {
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .meta-value {
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+    /* SEARCH INPUT MODERNIZATION */
+    .search-modern .form-control {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        box-shadow: none;
+        padding: 10px 15px;
+        transition: all 0.2s;
+    }
+    .search-modern .form-control:focus {
+        border-color: var(--qbcc-accent, #3b82f6);
+    }
+    .search-modern .btn-search {
+        border-radius: 8px;
+        background: var(--qbcc-accent, #3b82f6);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+    }
+    .search-modern .btn-search:hover {
+        background: #2563eb;
+    }
+    .search-modern .btn-clear {
+        border-radius: 8px;
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+        margin-right: 10px;
+        transition: all 0.2s;
+    }
+    .search-modern .btn-clear:hover {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+</style>
+
+<div id="PaidToDA">
+  <div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+      <div class="glass-card">
+        
+        <!-- Header -->
+        <div class="glass-header">
+          <h4><i class="fa fa-file-text-o mr-2 text-primary"></i> جزئیات بل شستشوی قالین (Wash Bill Details)</h4>
+          <div>
+            @if(session("status"))
+              <span class="badge badge-success px-3 py-2"><i class="fa fa-check mr-1"></i> {{session('status')}}</span>
+            @endif
+            @if(session("error"))
+              <span class="badge badge-danger px-3 py-2"><i class="fa fa-times mr-1"></i> {{session('error')}}</span>
+            @endif
+          </div>
+        </div>
+
+        <div class="card-body p-4">
           
-          <div class="card-header">
-            
-            <div class="row">
-              
-              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-                
-                
-                <div class="table-responsive">
-                  <table class="table table-xs table-hover">
-                    <thead>
-                    
-                    </thead>
-                    <tbody>
-                    
-                    <tr>
-                      <td style="color: dodgerblue;font-size: 15px;"><b>BILL DETAILS</b></td>
-                      <td style="color: dodgerblue;"><b></b></td>
-                    </tr>
-                    
-                    <tr style="direction: ltr;">
-                      
-                      <td><b>{{$wash_number}}</b></td>
-                      <td>Bill#:</td>
-                    </tr>
-                    <tr style="direction: ltr;">
-                      
-                      <td><b>{{$wash_date->created_at->format('Y-m-d')}}</b></td>
-                      
-                      <td>Bill Date:</td>
-                    </tr>
-                    
-                    
-                    </tbody>
-                  </table>
+          <!-- Metadata Overview Grid -->
+          <div class="row mb-4">
+            <!-- Bill details -->
+            <div class="col-md-6 mb-3 mb-md-0">
+              <div class="meta-box h-100">
+                <div class="meta-title"><i class="fa fa-info-circle mr-2"></i> مشخصات بل (Bill Details)</div>
+                <div class="meta-item">
+                  <span class="meta-label">Bill Number (نمبر بل):</span>
+                  <span class="meta-value text-primary">{{$wash_number}}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Bill Date (تاریخ بل):</span>
+                  <span class="meta-value">{{$wash_date->created_at->format('Y-m-d')}}</span>
                 </div>
               </div>
-              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"></div>
-              
-              <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-                <div class="table-responsive">
-                  <table class="table table-xs table-hover">
-                    <thead>
-                    
-                    </thead>
-                    <tbody>
-                    <tr style="direction: ltr;text-align: left;font-size: 15px;">
-                      
-                      <td style="color: dodgerblue;"><b>{{$team->name}}</b></td>
-                      <td style="color: dodgerblue;"><b>To</b></td>
-                    </tr>
-                    <tr style="direction: ltr;text-align: left">
-                      <td><b>{{$team->address}}</b></td>
-                      <td>Address :</td>
-                    </tr>
-                    <tr style="direction: ltr;text-align: left">
-                      <td><b>{{$team->contact_no}}</b></td>
-                      <td>Phone :</td>
-                    </tr>
+            </div>
 
-
-                    <?php
-                    $none_washed_total = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpets.status', 3)->get();
-
-                    ?>
-                    <tr style="direction: ltr;text-align: left">
-                      @if($none_washed_total)
-                        <td><b>{{$none_washed_total->count()}}</b></td>
-                      @else
-                        <td><b>0</b></td>
-                      @endif
-                      
-                      <td>None Washed Total:</td>
-                    </tr>
-                    </tbody>
-                  </table>
+            <!-- Worker Details -->
+            <div class="col-md-6">
+              <div class="meta-box h-100">
+                <div class="meta-title"><i class="fa fa-user mr-2"></i> مشخصات تحویل گیرنده (Worker Info)</div>
+                <div class="meta-item">
+                  <span class="meta-label">Washing Team (تیم شستشو):</span>
+                  <span class="meta-value text-success">{{$team->name}}</span>
                 </div>
-              
+                <div class="meta-item">
+                  <span class="meta-label">Phone (شماره تماس):</span>
+                  <span class="meta-value">{{$team->contact_no ?: '-'}}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Address (آدرس):</span>
+                  <span class="meta-value">{{$team->address ?: '-'}}</span>
+                </div>
+                <?php
+                  $none_washed_total = DB::table('carpets')
+                    ->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')
+                    ->where('carpet_washes.team_id', $team->id)
+                    ->where('carpets.status', 3)
+                    ->get();
+                ?>
+                <div class="meta-item">
+                  <span class="meta-label">Pending Washes (شست نشده ها):</span>
+                  <span class="meta-value text-danger font-weight-bold">{{$none_washed_total ? $none_washed_total->count() : 0}} قالین</span>
+                </div>
               </div>
             </div>
           </div>
-          <div class="card-body">
-            <div class="alert alert-success" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              جزئیات حذف شد
-            </div>
-            
-            @if(session("status"))
-              <div class="alert alert-success status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('status')}}
-              </div>
-            
-            @endif
-            @if(session("error"))
-              
-              <div class="alert alert-danger status text-center" style="display:none;" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                          aria-hidden="true">&times;</span></button>
-                {{session('error')}}
-              </div>
-            
-            @endif
-            <div class="row">
-              <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 hideOnPrint">
-                <form action="/dashboard/search-wash-number-for-wash" method="POST">
-                  @csrf
-                  
-                  <div class="row">
-                    <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5 hideOnPrint">
-                      <input type="hidden" name="team_id" value="{{$team->id}}">
-                      
-                      <label for="">شست نمبر ها</label>
-                      <select name="wash_number" id="" class="form-control">
+
+          <!-- Filters Row -->
+          <div class="row align-items-center mb-4 search-modern">
+            <!-- Dropdowns Search Form -->
+            <div class="col-lg-6 mb-3 mb-lg-0 hideOnPrint">
+              <form action="/dashboard/search-wash-number-for-wash" method="POST" class="w-100">
+                @csrf
+                <input type="hidden" name="team_id" value="{{$team->id}}">
+                <div class="row">
+                  <div class="col-sm-5">
+                    <div class="form-group mb-0">
+                      <label class="font-weight-bold mb-1">شست نمبر ها:</label>
+                      <select name="wash_number" class="form-control">
                         @foreach($wash_numbers as $w)
                           <option {{($w->wash_number == $wash_number ? 'selected' : '')}} value="{{$w->wash_number}}">{{$w->wash_number}}</option>
                         @endforeach
                       </select>
                     </div>
-                    <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5 hideOnPrint">
-                      
-                      
-                      <label for="">شسته شده و نشسته ها</label>
-                      <select name="wash_nonwash" id="" class="form-control">
-                        <option value="all">همه</option>
-                        <option value="washed">شسته شده ها</option>
-                        <option value="nonwashed">نشسته ها</option>
+                  </div>
+                  <div class="col-sm-5">
+                    <div class="form-group mb-0">
+                      <label class="font-weight-bold mb-1">وضعیت شستشو:</label>
+                      <select name="wash_nonwash" class="form-control">
+                        <option value="all" {{($wash_check == 'all' ? 'selected' : '')}}>همه</option>
+                        <option value="washed" {{($wash_check == 'washed' ? 'selected' : '')}}>شسته شده ها</option>
+                        <option value="nonwashed" {{($wash_check == 'nonwashed' ? 'selected' : '')}}>نشسته ها</option>
                       </select>
                     </div>
-                    <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint" style="margin-top: 40px">
-                      <button type="submit" class="btn btn-sm btn-primary btn-block">جستجو</button>
-                    </div>
                   </div>
-                
-                </form>
-              </div>
-              <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 hideOnPrint">
-                <form action="/dashboard/search-wash-number-for-wash" method="POST" id="dateSearch">
-                  @csrf
-                  <input type="hidden" name="team_id" value="{{$team->id}}">
-                  <input type="hidden" name="wash_number" value="{{$wash_number}}">
-                  <div class="row">
-                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-21">
-                      <span class="date-label">جستجو نمبر قالین</span><input type="text"
-                                                                             value="{{ Request::old('search') }}"
-                                                                             name="search" class="form-control"
-                                                                             placeholder="چستجو نمبر قالین"
-                                                                             required>
-                    </div>
+                  <div class="col-sm-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-search btn-block"><i class="fa fa-filter"></i></button>
                   </div>
-                </form>
-              </div>
-              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                <form action="/dashboard/search-carpet-type-from-wash-number" method="POST" id="dateSearch">
-                  @csrf
-                  <input type="hidden" name="team_id" value="{{$team->id}}">
-                  <input type="hidden" name="wash_number" value="{{$wash_number}}">
-                  <div class="row">
-                      <?php
-                      $carpet_types = \App\CarpetType::all();
-                      ?>
-                    <span class="date-label">جستجو نوعیت</span>
-                    <select name="carpet_type_id" id="" class="form-control" onchange="this.form.submit()">
-              <option value="">جستجو نوعیت</option>
-                      @foreach($carpet_types as $type)
-                        <option value="{{$type->carpet_type_id}}">{{$type->carpet_type}}</option>
-                      @endforeach
-                    </select>
-      
-                  </div>
-                </form>
-              </div>
-              
-              <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1 hideOnPrint">
-                <div class="btn btn-primary btn-sm hideOnPrint" onclick="printPage('PaidToDA')"
-                     style="float: left"><i class="fa fa-print"></i> Print
                 </div>
+              </form>
+            </div>
+
+            <!-- Carpet Number Search Form -->
+            <div class="col-lg-3 col-sm-6 mb-3 mb-lg-0 hideOnPrint">
+              <form action="/dashboard/search-wash-number-for-wash" method="POST">
+                @csrf
+                <input type="hidden" name="team_id" value="{{$team->id}}">
+                <input type="hidden" name="wash_number" value="{{$wash_number}}">
+                <div class="form-group mb-0">
+                  <label class="font-weight-bold mb-1">جستجو نمبر قالین:</label>
+                  <div class="input-group">
+                    <input type="text" value="{{ Request::old('search') }}" name="search" class="form-control" placeholder="جستجو نمبر قالین..." required>
+                    <div class="input-group-append">
+                      <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Carpet Type Search Form -->
+            <div class="col-lg-2 col-sm-4 mb-3 mb-lg-0 hideOnPrint">
+              <form action="/dashboard/search-carpet-type-from-wash-number" method="POST">
+                @csrf
+                <input type="hidden" name="team_id" value="{{$team->id}}">
+                <input type="hidden" name="wash_number" value="{{$wash_number}}">
+                <div class="form-group mb-0">
+                  <label class="font-weight-bold mb-1">جستجو نوعیت قالین:</label>
+                  <?php $carpet_types = \App\CarpetType::all(); ?>
+                  <select name="carpet_type_id" class="form-control" onchange="this.form.submit()">
+                    <option value="">همه نوعیت ها</option>
+                    @foreach($carpet_types as $type)
+                      <option value="{{$type->carpet_type_id}}">{{$type->carpet_type}}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </form>
+            </div>
+
+            <!-- Print Button -->
+            <div class="col-lg-1 col-sm-2 text-left hideOnPrint">
+              <div class="form-group mb-0">
+                <label class="d-none d-sm-block mb-1">&nbsp;</label>
+                <button class="btn btn-light border shadow-sm btn-block py-2" onclick="printPage('PaidToDA')">
+                  <i class="fa fa-print"></i>
+                </button>
               </div>
             </div>
-            
-            <div class="table-responsive">
-              <hr style="height: 3px;width: 100%;color: #0b97c4;background-color: #0b97c4">
-              <table class="table table-xs table-hover" style="direction: ltr;text-align: left">
-                <thead>
-                
-                <tr style="color: dodgerblue;">
-                  
-                  <td><b>ITEM#</b></td>
-                  <td><b>ITEM DESCRIPTION</b></td>
-                  <td><b>HEIGHT</b></td>
-                  <td><b>WIDTH</b></td>
-                  <td><b>AREA</b></td>
-                  <td><b>BACKGROUND</b></td>
-                  <td class="hideOnPrint"><b>WASH</b></td>
-                  <td>RETURN</td>
-                </tr>
-                </thead>
-                
-                <tbody>
-                @php($washed = 0)
-                @php($nonwashed = 0)
-                @php($washed_total_area = 0)
-                @php($nonwashed_total_area = 0)
-                @forelse ($carpet_washes as $wash)
-                  @if($wash_check == 'washed')
-                    @if($wash->carpet->status == 13  || $wash->carpet->status != 3)
-                      <tr>
-                        <td>{{$wash->carpet->carpet_no}}</td>
-                        @if($wash->carpet->type)
-                          <td>{{$wash->carpet->type->carpet_type}}</td>
-                        @else
-                          <td></td>
-                        @endif
-                        @if($wash->height)
-                          <td style="direction: ltr">{{$wash->height}} m</td>
-                        @else
-                          <td style="direction: ltr">{{$wash->carpet->height}} m</td>
-                        @endif
-                        @if($wash->width)
-                          <td style="direction: ltr">{{$wash->width}} m</td>
-                        @else
-                          <td style="direction: ltr">{{$wash->carpet->width}} m</td>
-                        @endif
-                        @if($wash->area)
-                          <span style="display: none">{{$washed_total_area += $wash->area}}</span>
-                          <td style="direction: ltr">{{$wash->area}} m <sup>2</sup></td>
-                        @else
-                          
-                          <td style="direction: ltr">{{$wash->carpet->area}} m <sup>2</sup></td>
-                          <span style="display: none">{{$nonwashed_total_area += $wash->carpet->area}}</span>
-                        @endif
-                        @if($wash->carpet->status == 13  || $wash->carpet->status != 3)
-                          <span style="display: none;">{{$washed ++}}</span>
-                        @elseif($wash->carpet->status == 3)
-                          <span style="display: none;">{{$nonwashed ++}}</span>
-                        @endif
-                        <td style="direction: ltr">{{$wash->carpet->field}} m</td>
-                        
-                        @if($wash->carpet->status == 13)
-                          <td>washed</td>
-                        @elseif($wash->carpet->status == 3)
-                          @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                            <td class="hideOnPrint"><a href="/dashboard/carpet-wash/create/{{$wash->id}}"
-                                                       class="btn btn-sm btn-info printBTN"><i
-                                        class="fa fa-pencil"></i>&nbsp; wash</a></td>
-                          @else
-                            <td>None Washed</td>
-                          @endif
-                        @else
-                          <td>از بخش شست رفته</td>
-                        @endif
+          </div>
 
-                        <!-- Return Action Column -->
-                        @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
-                          @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                            <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
-                            @if($kachaee)
-                              <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
-                                     class="btn btn-sm btn-warning printBTN"><i
-                                          class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
-                            @else
-                              <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
-                                     class="btn btn-sm btn-info printBTN"><i
-                                          class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
-                            @endif
-                          @else
-                            <td>-</td>
-                          @endif
-                        @else
-                          <td>-</td>
-                        @endif
-                      
-                      
-                      </tr>
-                    @endif
-                  @elseif($wash_check == 'nonwashed')
-  
-                    @if($wash->carpet->status == 3)
-                      <tr>
-                        <td>{{$wash->carpet->carpet_no}}</td>
-                        @if($wash->carpet->type)
-                          <td>{{$wash->carpet->type->carpet_type}}</td>
-                        @else
-                          <td></td>
-                        @endif
-                        @if($wash->height)
-                          <td style="direction: ltr">{{$wash->height}} m</td>
-                        @else
-                          <td style="direction: ltr">{{$wash->carpet->height}} m</td>
-                        @endif
-                        @if($wash->width)
-                          <td style="direction: ltr">{{$wash->width}} m</td>
-                        @else
-                          <td style="direction: ltr">{{$wash->carpet->width}} m</td>
-                        @endif
-                        @if($wash->area)
-                          <span style="display: none">{{$washed_total_area += $wash->area}}</span>
-                          <td style="direction: ltr">{{$wash->area}} m <sup>2</sup></td>
-                        @else
-        
-                          <td style="direction: ltr">{{$wash->carpet->area}} m <sup>2</sup></td>
-                          <span style="display: none">{{$nonwashed_total_area += $wash->carpet->area}}</span>
-                        @endif
-                        @if($wash->carpet->status == 13  || $wash->carpet->status != 3)
-                          <span style="display: none;">{{$washed ++}}</span>
-                        @elseif($wash->carpet->status == 3)
-                          <span style="display: none;">{{$nonwashed ++}}</span>
-                        @endif
-                        <td style="direction: ltr">{{$wash->carpet->field}} m</td>
-      
-                        @if($wash->carpet->status == 13)
-                          <td>washed</td>
-                        @elseif($wash->carpet->status == 3)
-                          @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                            <td class="hideOnPrint"><a href="/dashboard/carpet-wash/create/{{$wash->id}}"
-                                                       class="btn btn-sm btn-info printBTN"><i
-                                        class="fa fa-pencil"></i>&nbsp; wash</a></td>
-                          @else
-                            <td>None Washed</td>
-                          @endif
-                        @else
-                          <td>از بخش شست رفته</td>
-                        @endif
-
-                        <!-- Return Action Column -->
-                        @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
-                          @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                            <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
-                            @if($kachaee)
-                              <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
-                                     class="btn btn-sm btn-warning printBTN"><i
-                                          class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
-                            @else
-                              <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
-                                     class="btn btn-sm btn-info printBTN"><i
-                                          class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
-                            @endif
-                          @else
-                            <td>-</td>
-                          @endif
-                        @else
-                          <td>-</td>
-                        @endif
-    
-    
-                      </tr>
-                    @endif
-                  @else
-                    <tr>
-                      <td>{{$wash->carpet->carpet_no}}</td>
-                      @if($wash->carpet->type)
-                        <td>{{$wash->carpet->type->carpet_type}}</td>
-                      @else
-                        <td></td>
-                      @endif
-                      @if($wash->height)
-                        <td style="direction: ltr">{{$wash->height}} m</td>
-                      @else
-                        <td style="direction: ltr">{{$wash->carpet->height}} m</td>
-                      @endif
-                      @if($wash->width)
-                        <td style="direction: ltr">{{$wash->width}} m</td>
-                      @else
-                        <td style="direction: ltr">{{$wash->carpet->width}} m</td>
-                      @endif
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="table table-modern text-center" style="direction: ltr;">
+              <thead>
+              <tr>
+                <th>ITEM#</th>
+                <th>ITEM DESCRIPTION</th>
+                <th>HEIGHT</th>
+                <th>WIDTH</th>
+                <th>AREA</th>
+                <th>BACKGROUND</th>
+                <th class="hideOnPrint">STATUS / WASH</th>
+                <th>RETURN</th>
+              </tr>
+              </thead>
+              
+              <tbody>
+              @php($washed = 0)
+              @php($nonwashed = 0)
+              @php($washed_total_area = 0)
+              @php($nonwashed_total_area = 0)
+              
+              @forelse ($carpet_washes as $wash)
+                <?php
+                  $showRow = false;
+                  if ($wash_check == 'washed') {
+                      if ($wash->carpet->status == 13 || $wash->carpet->status != 3) {
+                          $showRow = true;
+                      }
+                  } elseif ($wash_check == 'nonwashed') {
+                      if ($wash->carpet->status == 3) {
+                          $showRow = true;
+                      }
+                  } else {
+                      $showRow = true;
+                  }
+                ?>
+                
+                @if($showRow)
+                  <tr>
+                    <td class="font-weight-bold text-dark">{{$wash->carpet->carpet_no}}</td>
+                    <td><span class="badge badge-light border">{{$wash->carpet->type->carpet_type ?? '-'}}</span></td>
+                    
+                    <td style="direction: ltr;">
+                      {{$wash->height ?: ($wash->carpet->height ?? 0)}} m
+                    </td>
+                    <td style="direction: ltr;">
+                      {{$wash->width ?: ($wash->carpet->width ?? 0)}} m
+                    </td>
+                    
+                    <td style="direction: ltr;">
                       @if($wash->area)
                         <span style="display: none">{{$washed_total_area += $wash->area}}</span>
-                        <td style="direction: ltr">{{$wash->area}} m <sup>2</sup></td>
+                        {{$wash->area}} m<sup>2</sup>
                       @else
-      
-                        <td style="direction: ltr">{{$wash->carpet->area}} m <sup>2</sup></td>
-                        <span style="display: none">{{$nonwashed_total_area += $wash->carpet->area}}</span>
+                        {{$wash->carpet->area ?? 0}} m<sup>2</sup>
+                        <span style="display: none">{{$nonwashed_total_area += ($wash->carpet->area ?? 0)}}</span>
                       @endif
-                      @if($wash->carpet->status == 13  || $wash->carpet->status != 3)
-                        <span style="display: none;">{{$washed ++}}</span>
-                      @elseif($wash->carpet->status == 3)
-                        <span style="display: none;">{{$nonwashed ++}}</span>
-                      @endif
-                      <td style="direction: ltr">{{$wash->carpet->field}} m</td>
-    
+                    </td>
+
+                    @if($wash->carpet->status == 13 || $wash->carpet->status != 3)
+                      <span style="display: none;">{{$washed ++}}</span>
+                    @elseif($wash->carpet->status == 3)
+                      <span style="display: none;">{{$nonwashed ++}}</span>
+                    @endif
+                    
+                    <td style="direction: ltr;">{{$wash->carpet->field ?? '-'}}</td>
+                    
+                    <!-- Wash Status / Action -->
+                    <td class="hideOnPrint">
                       @if($wash->carpet->status == 13)
-                        <td>washed</td>
+                        <span class="badge badge-success px-2 py-1" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Washed</span>
                       @elseif($wash->carpet->status == 3)
-                        @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                          <td class="hideOnPrint"><a href="/dashboard/carpet-wash/create/{{$wash->id}}"
-                                                     class="btn btn-sm btn-info printBTN"><i
-                                      class="fa fa-pencil"></i>&nbsp; wash</a></td>
+                        @if(true || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
+                          <a href="/dashboard/carpet-wash/create/{{$wash->id}}" class="btn btn-sm btn-primary px-3" style="border-radius: 8px;">
+                            <i class="fa fa-pencil-alt mr-1"></i> Wash
+                          </a>
                         @else
-                          <td>None Washed</td>
+                          <span class="badge badge-warning px-2 py-1" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Unwashed</span>
                         @endif
                       @else
-                        <td>از بخش شست رفته</td>
+                        <span class="badge badge-secondary px-2 py-1">Sent to Finish</span>
                       @endif
+                    </td>
 
-                      <!-- Return Action Column -->
+                    <!-- Return Action -->
+                    <td>
                       @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
                         @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
                           <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
                           @if($kachaee)
-                            <td><a href="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
-                                   class="btn btn-sm btn-warning printBTN"><i
-                                        class="fa fa-pencil"></i>&nbsp; بازگشت به کچایی</a></td>
+                            <button type="button" class="btn btn-sm btn-outline-warning btn-confirm-action" style="border-radius: 8px;"
+                                    data-action-url="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
+                                    data-carpet-no="{{$wash->carpet->carpet_no}}"
+                                    data-action-label="بازگشت به کچایی"
+                                    data-action-sublabel="Return to Kachaee (Repair)"
+                                    data-icon="fa fa-reply"
+                                    data-btn-class="warning"
+                                    data-needs-warehouse="1">
+                              <i class="fa fa-reply mr-1" style="color:#d97706;"></i> بازگشت به کچایی
+                            </button>
                           @else
-                            <td><a href="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
-                                   class="btn btn-sm btn-info printBTN"><i
-                                        class="fa fa-pencil"></i>&nbsp; بازگشت به مرکزی</a></td>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action" style="border-radius: 8px;"
+                                    data-action-url="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
+                                    data-carpet-no="{{$wash->carpet->carpet_no}}"
+                                    data-action-label="بازگشت به مرکزی"
+                                    data-action-sublabel="Return to Central Warehouse"
+                                    data-icon="fa fa-reply-all"
+                                    data-btn-class="danger"
+                                    data-needs-warehouse="0">
+                              <i class="fa fa-reply-all mr-1" style="color:#dc2626;"></i> بازگشت به مرکزی
+                            </button>
                           @endif
                         @else
-                          <td>-</td>
+                          <span class="text-muted">-</span>
                         @endif
                       @else
-                        <td>-</td>
+                        <span class="text-muted">-</span>
                       @endif
-  
-  
-                    </tr>
-                  @endif
-                @empty
-                  <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
-                @endforelse
-                
-                
-                </tbody>
-              </table>
-              <hr style="height: 3px;width: 100%;color: #0b97c4;background-color: #0b97c4">
-            
-            </div>
-            <div class="row">
-              
-              <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
-                  <?php
-                  if ($wash_check == 'washed'){
-                      $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status','!=', 3)->get();
-
-                  }else if ($wash_check == 'nonwashed'){
-                      $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', 3)->get();
-
-                  }else{
-                      $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->get();
-
-                  }
-
-                  ?>
-                <table class="table table-xs table-hover">
-                  <tbody>
-                  <tr>
-                    <td>&nbsp;{{$carpets->count()}} pcs</td>
-                    <td style="font-size: 12px;color: #0b97c4">QUANTITY</td>
-                  
+                    </td>
                   </tr>
-                  <tr>
-                    <td>m <sup>2</sup> &nbsp;{{$washed_total_area + $nonwashed_total_area}}</td>
-                    <td style="font-size: 12px;color: #0b97c4">TOTAL</td>
-                  
-                  </tr>
-                  
-                  <tr>
-                    
-                    <td>{{$washed}} pcs</td>
-                    <td style="font-size: 12px;color: #0b97c4">WASHED</td>
-                  </tr>
-                  <tr>
-                    
-                    <td>{{$nonwashed}} pcs</td>
-                    <td style="font-size: 12px;color: #0b97c4">NONE WASHED</td>
-                  </tr>
-                  
-                  
-                  </tbody>
-                </table>
-              </div>
-              <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
-              
+                @endif
+              @empty
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">هنوز موردی ثبت نشده است</td>
+                </tr>
+              @endforelse
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Summary Block -->
+          <div class="row mt-4">
+            <div class="col-md-5">
+              <?php
+                if ($wash_check == 'washed') {
+                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', '!=', 3)->get();
+                } elseif ($wash_check == 'nonwashed') {
+                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', 3)->get();
+                } else {
+                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->get();
+                }
+              ?>
+              <div class="meta-box">
+                <div class="meta-title"><i class="fa fa-calculator mr-2"></i> خلاصه بل (Bill Summary)</div>
+                <div class="meta-item">
+                  <span class="meta-label">QUANTITY (تعداد کل):</span>
+                  <span class="meta-value">{{$carpets->count()}} Pcs</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">TOTAL AREA (مساحت کل):</span>
+                  <span class="meta-value">{{number_format($washed_total_area + $nonwashed_total_area, 2)}} m²</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">WASHED (شسته شده):</span>
+                  <span class="meta-value text-success font-weight-bold">{{$washed}} Pcs</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">NONE WASHED (نشسته):</span>
+                  <span class="meta-value text-danger font-weight-bold">{{$nonwashed}} Pcs</span>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
-  
   </div>
+</div>
+
+{{-- ============================================================
+     CONFIRMATION MODAL — shared for all status-changing actions
+     ============================================================ --}}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" role="dialog"
+     aria-labelledby="confirmActionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px;">
+    <div class="modal-content" style="border: none; border-radius: 20px; overflow: hidden;
+         box-shadow: 0 25px 60px rgba(0,0,0,0.18);">
+
+      {{-- Header --}}
+      <div class="modal-header" id="confirmModalHeader"
+           style="padding: 24px 28px 16px; border-bottom: none;">
+        <div class="d-flex align-items-center">
+          <div id="confirmModalIconWrap"
+               style="width:52px; height:52px; border-radius:14px; display:flex;
+                      align-items:center; justify-content:center; font-size:1.4rem;
+                      margin-left:16px; flex-shrink:0;">
+            <i id="confirmModalIcon"></i>
+          </div>
+          <div>
+            <h5 class="mb-0 font-weight-bold" id="confirmModalTitle"
+                style="font-size:1.1rem; color:#1e293b;">تأیید عملیات</h5>
+            <small id="confirmModalSubtitle" class="text-muted">لطفاً قبل از ادامه مطالعه کنید</small>
+          </div>
+        </div>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                style="position:absolute; top:16px; left:20px; font-size:1.4rem; color:#94a3b8;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      {{-- Body --}}
+      <div class="modal-body" style="padding: 8px 28px 24px;">
+
+        {{-- Info card --}}
+        <div style="background:#f8fafc; border-radius:12px; padding:18px 20px;
+                    border: 1px solid #e2e8f0; margin-bottom: 16px;">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted" style="font-size:.85rem;">شماره قالین</span>
+            <span class="font-weight-bold" id="confirmModalCarpetNo"
+                  style="font-size:1rem; color:#1e293b; letter-spacing:.5px;"></span>
+          </div>
+          <hr style="border-color:#e2e8f0; margin: 10px 0;">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted" style="font-size:.85rem;">عملیات</span>
+            <span id="confirmModalActionName" style="font-size:.9rem; font-weight:600;"></span>
+          </div>
+        </div>
+
+        {{-- ► Warehouse selector (only shown for Return-to-Kachaee) --}}
+        <div id="confirmModalWarehouseWrap" style="display:none; margin-bottom:16px;">
+          <label style="font-size:.85rem; font-weight:700; color:#374151; margin-bottom:6px; display:block;">
+            <i class="fa fa-building-o mr-1" style="color:#f59e0b;"></i>
+            انتخاب انبار مقصد (Destination Warehouse)
+            <span class="text-danger">*</span>
+          </label>
+          <select id="confirmModalWarehouseSelect" name="warehouse_id"
+                  style="width:100%; border-radius:10px; border:2px solid #e2e8f0;
+                         padding:10px 14px; font-size:.9rem; color:#1e293b;
+                         background:#fff; appearance:none; outline:none;
+                         transition: border-color .2s;">
+            <option value="">— انبار را انتخاب کنید —</option>
+            @foreach(\App\Warehouse::where('is_active', true)->get() as $wh)
+              <option value="{{ $wh->id }}">{{ $wh->name }}@if($wh->location) — {{ $wh->location }}@endif</option>
+            @endforeach
+          </select>
+          <small class="text-muted" style="font-size:.78rem; margin-top:4px; display:block;">
+            قالین پس از بازگشت به کچایی در این انبار ثبت خواهد شد.
+          </small>
+        </div>
+
+        <p class="text-muted mb-0" style="font-size:.85rem; line-height:1.7;">
+          آیا مطمئن هستید؟ این عملیات وضعیت قالین را تغییر می‌دهد
+          و نمی‌توان به راحتی آن را بازگرداند.
+          <br><em style="font-size:.8rem;">
+            Are you sure? This will change the carpet status and may not be easily reversible.
+          </em>
+        </p>
+      </div>
+
+      {{-- Footer: hidden POST form + buttons --}}
+      <div class="modal-footer" style="border-top: 1px solid #f1f5f9; padding: 16px 28px 20px;
+           background:#fcfcfd; border-radius: 0 0 20px 20px;">
+
+        {{-- Hidden form used when action needs POST (e.g. return-to-kachaee with warehouse) --}}
+        <form id="confirmModalPostForm" method="POST" action="" style="display:none;">
+          @csrf
+          <input type="hidden" id="confirmModalPostWarehouseId" name="warehouse_id" value="">
+        </form>
+
+        <button type="button" class="btn btn-light" data-dismiss="modal"
+                style="border-radius:10px; padding:9px 22px; font-weight:600;
+                       border: 1px solid #e2e8f0; color:#64748b;">
+          <i class="fa fa-times mr-1"></i> انصراف
+        </button>
+
+        {{-- GET link (default: send-to-finish, return-to-center) --}}
+        <a href="#" id="confirmModalProceedBtn" class="btn btn-success"
+           style="border-radius:10px; padding:9px 24px; font-weight:600;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width:140px;">
+          <i id="confirmModalBtnIcon" class="fa fa-check mr-1"></i>
+          <span id="confirmModalBtnLabel">تأیید</span>
+        </a>
+
+        {{-- POST submit (return-to-kachaee only) --}}
+        <button type="button" id="confirmModalPostBtn" class="btn btn-warning"
+                style="display:none; border-radius:10px; padding:9px 24px; font-weight:600;
+                       min-width:140px;">
+          <i id="confirmModalPostBtnIcon" class="fa fa-reply mr-1"></i>
+          <span id="confirmModalPostBtnLabel">تأیید</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 @endsection
+
+@section('scripts')
+  <script>
+    /* ── Confirmation Modal Logic ── */
+    var colorMap = {
+      success : { bg: 'rgba(16,185,129,.12)', color: '#10b981', btn: 'success' },
+      warning : { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b', btn: 'warning' },
+      danger  : { bg: 'rgba(239,68,68,.12)',   color: '#ef4444', btn: 'danger'  }
+    };
+
+    $(document).on('click', '.btn-confirm-action', function () {
+      var url           = $(this).data('action-url');
+      var carpetNo      = $(this).data('carpet-no');
+      var label         = $(this).data('action-label');
+      var sublabel      = $(this).data('action-sublabel');
+      var icon          = $(this).data('icon');
+      var btnClass      = $(this).data('btn-class');
+      var needsWarehouse = parseInt($(this).data('needs-warehouse') || 0);
+      var palette       = colorMap[btnClass] || colorMap['success'];
+
+      /* populate modal header */
+      $('#confirmModalIconWrap').css({ background: palette.bg, color: palette.color });
+      $('#confirmModalIcon').attr('class', icon);
+      $('#confirmModalHeader').css('border-left', '4px solid ' + palette.color);
+      $('#confirmModalTitle').text(label);
+      $('#confirmModalSubtitle').text(sublabel);
+      $('#confirmModalCarpetNo').text(carpetNo);
+      $('#confirmModalActionName').text(label).css('color', palette.color);
+
+      if (needsWarehouse) {
+        /* ── KACHAEE RETURN & TAYAARI: show warehouse selector, use POST form ── */
+        $('#confirmModalWarehouseWrap').show();
+        $('#confirmModalWarehouseSelect').val('');
+        $('#confirmModalPostForm').attr('action', url);
+        $('#confirmModalPostWarehouseId').val('');
+
+        /* Dynamically update helper text based on action */
+        if (url.indexOf('sent-to-finish') !== -1) {
+          $('#confirmModalWarehouseWrap small').text('قالین پس از ارسال به بخش تیاری در این انبار ثبت خواهد شد.');
+        } else {
+          $('#confirmModalWarehouseWrap small').text('قالین پس از بازگشت به کچایی در این انبار ثبت خواهد شد.');
+        }
+
+        /* hide GET button, show POST button */
+        $('#confirmModalProceedBtn').hide();
+        $('#confirmModalPostBtn')
+          .show()
+          .removeClass('btn-success btn-warning btn-danger')
+          .addClass('btn-' + palette.btn);
+        $('#confirmModalPostBtnIcon').attr('class', icon + ' mr-1');
+        $('#confirmModalPostBtnLabel').text(label);
+      } else {
+        /* ── OTHER ACTIONS: simple GET link ── */
+        $('#confirmModalWarehouseWrap').hide();
+        $('#confirmModalProceedBtn')
+          .show()
+          .attr('href', url)
+          .removeClass('btn-success btn-warning btn-danger')
+          .addClass('btn-' + palette.btn)
+          .css('box-shadow', '0 4px 12px ' + palette.bg);
+        $('#confirmModalBtnIcon').attr('class', icon + ' mr-1');
+        $('#confirmModalBtnLabel').text(label);
+        $('#confirmModalPostBtn').hide();
+      }
+
+      $('#confirmActionModal').modal('show');
+    });
+
+    /* POST form submit — validate warehouse selected first */
+    $('#confirmModalPostBtn').on('click', function () {
+      var warehouseId = $('#confirmModalWarehouseSelect').val();
+      if (!warehouseId) {
+        /* highlight the select as required */
+        $('#confirmModalWarehouseSelect').css('border-color', '#ef4444');
+        $('#confirmModalWarehouseSelect').focus();
+        return;
+      }
+      $('#confirmModalWarehouseSelect').css('border-color', '#e2e8f0');
+      $('#confirmModalPostWarehouseId').val(warehouseId);
+      $('#confirmModalPostForm').submit();
+    });
+
+    /* Clear validation highlight when user picks a warehouse */
+    $('#confirmModalWarehouseSelect').on('change', function () {
+      if ($(this).val()) {
+        $(this).css('border-color', '#10b981');
+      }
+    });
+  </script>
+@endsection
+

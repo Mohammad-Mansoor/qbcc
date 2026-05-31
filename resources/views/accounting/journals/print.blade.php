@@ -192,10 +192,24 @@
                 <td class="text-center">{{ $entry->account->account_code }}</td>
                 <td class="text-right">{{ $entry->account->account_name }}</td>
                 <td class="text-left font-weight-bold">
-                    {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
+                    @if($entry->debit > 0)
+                        {{ number_format($entry->debit, 2) }} <small style="color: #666;">{{ $entry->currency_code }}</small>
+                        @if($entry->currency_code !== 'USD')
+                            <br><small style="color: #888; font-size: 11px;">(${{ number_format($entry->base_debit, 2) }})</small>
+                        @endif
+                    @else
+                        -
+                    @endif
                 </td>
                 <td class="text-left font-weight-bold">
-                    {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
+                    @if($entry->credit > 0)
+                        {{ number_format($entry->credit, 2) }} <small style="color: #666;">{{ $entry->currency_code }}</small>
+                        @if($entry->currency_code !== 'USD')
+                            <br><small style="color: #888; font-size: 11px;">(${{ number_format($entry->base_credit, 2) }})</small>
+                        @endif
+                    @else
+                        -
+                    @endif
                 </td>
             </tr>
             @endforeach
@@ -203,8 +217,8 @@
         <tfoot>
             <tr class="total-row">
                 <td colspan="2" class="text-center">مجموع نهایی (Total Amount)</td>
-                <td class="text-left font-weight-bold">${{ number_format($transaction->entries->sum('debit'), 2) }}</td>
-                <td class="text-left font-weight-bold">${{ number_format($transaction->entries->sum('credit'), 2) }}</td>
+                <td class="text-left font-weight-bold">${{ number_format($transaction->entries->sum('base_debit'), 2) }}</td>
+                <td class="text-left font-weight-bold">${{ number_format($transaction->entries->sum('base_credit'), 2) }}</td>
             </tr>
         </tfoot>
     </table>

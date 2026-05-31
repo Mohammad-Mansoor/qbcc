@@ -138,7 +138,7 @@ class PurchaseMaterialController extends Controller
     {
         $purchase = PurchaseMaterial::find($id);
         $purchase->delete();
-        return response()->json(['status', 'error']);
+        return response()->json(['status' => 'success']);
     }
 
 

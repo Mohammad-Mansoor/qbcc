@@ -205,7 +205,7 @@
                                                     <i class="feather icon-check-circle mr-2 text-success"></i> ارسال به تیاری (Finish)
                                                 </a>
                                                 <div class="dropdown-divider"></div>
-                                                <button class="dropdown-item py-2 px-3 small text-primary font-weight-bold" onclick="sendToStock({{$carpet->carpet_id}})">
+                                                <button class="dropdown-item py-2 px-3 small text-primary font-weight-bold" onclick="sendToStock({{$carpet->carpet_id}}, {{$carpet->warehouse_id ?? 'null'}})">
                                                     <i class="feather icon-package mr-2"></i> تایید نهایی و گدام (Stock)
                                                 </button>
                                             </div>
@@ -421,6 +421,44 @@
     </div>
 </div>
 
+<!-- MODAL: SEND TO STOCK -->
+<div class="modal fade" id="sendToStockModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0 overflow-hidden" style="border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);">
+            <div class="modal-header border-bottom p-4 bg-light">
+                <h5 class="font-weight-bold mb-0 text-primary">
+                    <i class="feather icon-package mr-2"></i> تایید نهایی و انتقال به گدام
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4" style="line-height: 1.8; text-align: right; direction: rtl;">
+                    با تایید نهایی این محصول، وضعیت آن به <strong>تکمیل شده (In Stock)</strong> تغییر یافته و از وضعیت موقت خارج خواهد شد. لطفاً گدام نهایی را جهت انتقال محصول انتخاب کنید:
+                </p>
+                
+                <input type="hidden" id="stock_carpet_id">
+                
+                <div class="form-group mb-0 text-right" style="direction: rtl;">
+                    <label class="form-label-premium">گدام هدف (Warehouse Location)</label>
+                    <select id="stock_warehouse_id" class="form-control premium-input">
+                        @foreach($warehouses as $w)
+                            <option value="{{ $w->id }}">{{ $w->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-top p-4 bg-light d-flex justify-content-between" style="direction: rtl;">
+                <button type="button" class="btn btn-secondary px-4 rounded-lg" data-dismiss="modal">لغو عملیات</button>
+                <button type="button" class="btn btn-primary px-4 rounded-lg shadow" id="btnConfirmSendToStock">
+                    <i class="feather icon-check-circle mr-1"></i> تایید و انتقال به انبار
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -484,6 +522,33 @@
         $("#buyCarpetForm").submit(function() {
             $(this).find(":submit").attr("disabled", "disabled").html('<i class="feather icon-loader mr-1"></i> در حال پردازش...');
         });
+
+        // Confirm send to stock with selected warehouse
+        $('#btnConfirmSendToStock').click(function() {
+            let carpet_id = $('#stock_carpet_id').val();
+            let warehouse_id = $('#stock_warehouse_id').val();
+            
+            $(this).attr('disabled', 'disabled').html('<i class="feather icon-loader mr-1"></i> در حال انتقال...');
+            
+            $.ajax({
+                type: 'GET',
+                url: '/dashboard/carpet-stock/sent-to-stock/' + carpet_id,
+                data: { warehouse_id: warehouse_id },
+                success: function (res) {
+                    if (res.status == 'success') {
+                        $('#sendToStockModal').modal('hide');
+                        swal("عملیات موفق!", "محصول با موفقیت به انبار منتقل شد.", "success").then(() => location.reload());
+                    } else {
+                        $('#btnConfirmSendToStock').removeAttr('disabled').html('<i class="feather icon-check-circle mr-1"></i> تایید و انتقال به انبار');
+                        swal("خطا در سیستم!", "متاسفانه امکان انتقال در حال حاضر وجود ندارد.", "error");
+                    }
+                },
+                error: function () {
+                    $('#btnConfirmSendToStock').removeAttr('disabled').html('<i class="feather icon-check-circle mr-1"></i> تایید و انتقال به انبار');
+                    swal("خطا در سیستم!", "یک خطای غیرمنتظره رخ داد.", "error");
+                }
+            });
+        });
     });
 
     function showImageModal(src, title) {
@@ -492,31 +557,12 @@
         $('#imagePreviewModal').modal('show');
     }
 
-    function sendToStock(carpet_id) {
-        swal({
-            title: "ارسال به گدام؟",
-            text: "با تایید این عمل، محصول از وضعیت جاری خارج شده و به موجودی گدام محصولات نهایی اضافه می‌شود.",
-            icon: "warning",
-            buttons: {
-                cancel: "لغو عملیات",
-                confirm: { text: "تایید و انتقال به انبار", className: "btn-primary" }
-            },
-            dangerMode: false
-        }).then((willConfirm) => {
-            if (willConfirm) {
-                $.ajax({
-                    type: 'GET',
-                    url: '/dashboard/carpet-stock/sent-to-stock/' + carpet_id,
-                    success: function (res) {
-                        if (res.status == 'success') {
-                            swal("عملیات موفق!", "محصول با موفقیت به انبار منتقل شد.", "success").then(() => location.reload());
-                        } else {
-                            swal("خطا در سیستم!", "متاسفانه امکان انتقال در حال حاضر وجود ندارد.", "error");
-                        }
-                    }
-                });
-            }
-        });
+    function sendToStock(carpet_id, current_warehouse_id) {
+        $('#stock_carpet_id').val(carpet_id);
+        if (current_warehouse_id) {
+            $('#stock_warehouse_id').val(current_warehouse_id);
+        }
+        $('#sendToStockModal').modal('show');
     }
 </script>
 @endsection

@@ -225,7 +225,7 @@
 
                                 <div class="form-group mb-4">
                                     <label class="field-label">نوع معامله (Entry Type)</label>
-                                    <select name="type" class="form-control custom-input font-weight-bold">
+                                    <select name="type" id="payment_type" class="form-control custom-input font-weight-bold">
                                         <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید / تصفیه (Balance In)</option>
                                         <option value="گرفت" class="text-danger" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت / علی الحساب (Payment Out)</option>
                                     </select>
@@ -248,6 +248,9 @@
                             </div>
 
                             <!-- Column 3: Accounting & Audit -->
+                            @php
+                                $defaultMapping = ($paymentEdit && $paymentEdit->type == 'گرفت') ? $mappingOut : $mappingIn;
+                            @endphp
                             <div class="col-lg-4">
                                 <h6 class="form-section-title"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting)</h6>
                                 
@@ -255,7 +258,7 @@
                                     <label class="field-label small">حساب بدهکار (Debit)</label>
                                     <select name="override_debit_account_id" id="override_debit_account_id" class="form-control custom-input">
                                         @foreach($allowedDebitAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                            <option value="{{ $acc->id }}" {{ (isset($currentDebitAccountId) && $currentDebitAccountId == $acc->id) || (!isset($currentDebitAccountId) && $defaultMapping && $defaultMapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
                                                 {{ $acc->account_code }} - {{ $acc->account_name }}
                                             </option>
                                         @endforeach
@@ -266,7 +269,7 @@
                                     <label class="field-label small">حساب بستانکار (Credit)</label>
                                     <select name="override_credit_account_id" id="override_credit_account_id" class="form-control custom-input">
                                         @foreach($allowedCreditAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                            <option value="{{ $acc->id }}" {{ (isset($currentCreditAccountId) && $currentCreditAccountId == $acc->id) || (!isset($currentCreditAccountId) && $defaultMapping && $defaultMapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
                                                 {{ $acc->account_code }} - {{ $acc->account_name }}
                                             </option>
                                         @endforeach
@@ -392,6 +395,23 @@
         $('#currency_id').select2();
         $('#override_debit_account_id').select2();
         $('#override_credit_account_id').select2();
+
+        // Dynamic account selection based on payment type (رسید vs گرفت)
+        const mappingInDebit = "{{ $mappingIn->debit_account_id ?? '' }}";
+        const mappingInCredit = "{{ $mappingIn->credit_account_id ?? '' }}";
+        const mappingOutDebit = "{{ $mappingOut->debit_account_id ?? '' }}";
+        const mappingOutCredit = "{{ $mappingOut->credit_account_id ?? '' }}";
+
+        $('#payment_type').on('change', function () {
+            const type = $(this).val();
+            if (type === 'رسید') {
+                $('#override_debit_account_id').val(mappingInDebit).trigger('change');
+                $('#override_credit_account_id').val(mappingInCredit).trigger('change');
+            } else {
+                $('#override_debit_account_id').val(mappingOutDebit).trigger('change');
+                $('#override_credit_account_id').val(mappingOutCredit).trigger('change');
+            }
+        });
 
         // LIVE TRUTH PREVIEW LOGIC
          function updateUsdPreview() {

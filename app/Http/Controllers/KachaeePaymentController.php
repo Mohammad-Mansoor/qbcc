@@ -26,8 +26,10 @@ class KachaeePaymentController extends Controller
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
             
-            // FORENSIC RULE: Always use base_amount (USD) for the GL
-            $amount = $payment->base_amount;
+            // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
+            // performs the USD conversion exactly once (base_amount is already converted;
+            // passing it with a non-USD currency_code causes a double-conversion).
+            $amount = $payment->original_amount;
 
             $this->accountingService->postAutoTransaction('kachaee_payment', $mKey, array_merge([
                 'date' => $payment->date,
@@ -39,6 +41,7 @@ class KachaeePaymentController extends Controller
                 'reference' => 'KCH-PAY-' . $payment->id,
                 'description' => "پرداخت بخش کچایی: " . $payment->description,
                 'source_id' => $payment->id,
+                'source_type' => 'App\KachaeePayment',
             ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Kachaee Payment #" . $payment->id . ": " . $e->getMessage());
@@ -189,12 +192,17 @@ class KachaeePaymentController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
         $all = 'true';
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'all'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'all'));
     }
 
     public function show($team_id)
@@ -226,11 +234,16 @@ class KachaeePaymentController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies'));
     }
 
     /**
@@ -264,11 +277,32 @@ class KachaeePaymentController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        // Retrieve existing transaction accounts to auto-select in edit view
+        $transaction = \App\LedgerTransaction::with('entries')
+            ->where('source_id', $paymentEdit->id)
+            ->where('source_type', 'App\KachaeePayment')
+            ->where('status', 'posted')
+            ->first();
+        
+        $currentDebitAccountId = null;
+        $currentCreditAccountId = null;
+        if ($transaction) {
+            foreach ($transaction->entries as $entry) {
+                if ($entry->debit > 0) $currentDebitAccountId = $entry->account_id;
+                if ($entry->credit > 0) $currentCreditAccountId = $entry->account_id;
+            }
+        }
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'currentDebitAccountId', 'currentCreditAccountId'));
     }
 
     /**

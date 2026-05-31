@@ -325,15 +325,49 @@ class CarpetsController extends Controller
 
     public function sending_to_stock(Carpet $id)
     {
+        $oldWarehouse = $id->warehouse_id;
+        $oldAccount = $id->override_inventory_account_id;
+        $oldCreditAccount = $id->override_credit_account_id;
+        $oldTotalPrice = $id->total_price;
+        $oldArea = $id->area;
+        $oldDate = $id->date;
+        $oldAgentId = $id->agent_id;
+        $oldCarpetNo = $id->carpet_no;
+        $oldParchaNo = $id->parcha_number;
+
+        if (request()->has('warehouse_id')) {
+            $id->warehouse_id = request()->get('warehouse_id');
+        }
+
+        // Reconcile/Re-post if warehouse or accounts changed (while status is still WIP / Purchased)
+        $this->syncAccounting(
+            $id,
+            $oldWarehouse,
+            $oldAccount,
+            $oldCreditAccount,
+            $oldTotalPrice,
+            $oldArea,
+            $oldDate,
+            $oldAgentId,
+            $oldCarpetNo,
+            $oldParchaNo
+        );
+
         $id->status = 5;
 
+        $warehouseName = '';
+        if ($id->warehouse_id) {
+            $warehouse = Warehouse::find($id->warehouse_id);
+            if ($warehouse) {
+                $warehouseName = " (" . $warehouse->name . ")";
+            }
+        }
 
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر  " . $id->carpet_no . " به گدام ارسال شد ";
+        $activity->description = " قالین نمبر  " . $id->carpet_no . " به گدام" . $warehouseName . " ارسال شد ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
-
 
         $upd = $id->update();
         if ($upd) {
@@ -341,8 +375,6 @@ class CarpetsController extends Controller
         } else {
             return response()->json(['error' => 'success']);
         }
-
-
     }
 
     public function all_carpets()
@@ -984,9 +1016,28 @@ class CarpetsController extends Controller
 
         $oldWarehouse = $carpet->warehouse_id;
         $oldAccount = $carpet->override_inventory_account_id;
+        $oldCreditAccount = $carpet->override_credit_account_id;
+        $oldTotalPrice = $carpet->total_price;
+        $oldArea = $carpet->area;
+        $oldDate = $carpet->date;
+        $oldAgentId = $carpet->agent_id;
+        $oldCarpetNo = $carpet->carpet_no;
+        $oldParchaNo = $carpet->parcha_number;
+
         $update = Carpet::where('carpet_id', $carpet_id)->update($data);
         if ($update) {
-            $this->syncAccounting(Carpet::find($carpet_id), $oldWarehouse, $oldAccount);
+            $this->syncAccounting(
+                Carpet::find($carpet_id),
+                $oldWarehouse,
+                $oldAccount,
+                $oldCreditAccount,
+                $oldTotalPrice,
+                $oldArea,
+                $oldDate,
+                $oldAgentId,
+                $oldCarpetNo,
+                $oldParchaNo
+            );
         }
         if ($update) {
             return redirect('/dashboard/list-weight')->with('status', 'پارچه موفقانه بروز شد !');
@@ -1006,6 +1057,9 @@ class CarpetsController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Carpet not found']);
 
         $carpet->status = 1;
+        if ($request->has('warehouse_id')) {
+            $carpet->warehouse_id = $request->warehouse_id;
+        }
         $carpet->update();
 
         $accountingService = resolve(\App\Services\AccountingService::class);
@@ -1016,10 +1070,12 @@ class CarpetsController extends Controller
                 'quantity' => 1,
                 'amount' => $carpet->total_price,
                 'warehouse_id' => $request->warehouse_id ?? ($carpet->warehouse_id ?? 1),
+                'area' => (float) ($carpet->area ?? 0),
                 'date' => now()->format('Y-m-d'),
                 'reference' => $carpet->parcha_number,
                 'description' => "Production Completion: #" . $carpet->parcha_number,
                 'override_debit_account_id' => $request->override_debit_account_id ?? $carpet->override_inventory_account_id,
+                'override_credit_account_id' => $request->override_credit_account_id ?? $carpet->override_credit_account_id,
             ]);
         } catch (\Exception $e) {
             \Log::error("ERP Sync failed: " . $e->getMessage());
@@ -1193,6 +1249,7 @@ class CarpetsController extends Controller
             'quantity' => 1,
             'unit_cost' => $carpet->total_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
+            'area' => (float) ($carpet->area ?? 0),
             'date' => $carpet->date ?? now()->format('Y-m-d'),
             'total_amount' => $carpet->total_price,
             'party_type' => 'App\Agents',
@@ -1200,6 +1257,7 @@ class CarpetsController extends Controller
             'reference' => $carpet->carpet_no,
             'description' => "Direct Purchase of Carpet #" . $carpet->carpet_no,
             'override_debit_account_id' => $request->override_inventory_account_id,
+            'override_credit_account_id' => $request->override_credit_account_id,
         ], function () use ($carpet, $request) {
             $carpet->save();
 
@@ -1336,9 +1394,28 @@ class CarpetsController extends Controller
 
         $oldWarehouse = $carpet->warehouse_id;
         $oldAccount = $carpet->override_inventory_account_id;
+        $oldCreditAccount = $carpet->override_credit_account_id;
+        $oldTotalPrice = $carpet->total_price;
+        $oldArea = $carpet->area;
+        $oldDate = $carpet->date;
+        $oldAgentId = $carpet->agent_id;
+        $oldCarpetNo = $carpet->carpet_no;
+        $oldParchaNo = $carpet->parcha_number;
+
         $update = Carpet::where('carpet_id', $carpet_id)->update($data);
         if ($update) {
-            $this->syncAccounting(Carpet::find($carpet_id), $oldWarehouse, $oldAccount);
+            $this->syncAccounting(
+                Carpet::find($carpet_id),
+                $oldWarehouse,
+                $oldAccount,
+                $oldCreditAccount,
+                $oldTotalPrice,
+                $oldArea,
+                $oldDate,
+                $oldAgentId,
+                $oldCarpetNo,
+                $oldParchaNo
+            );
         }
         if ($update) {
             return redirect('/dashboard/list-buy-carpet')->with('status', 'پارچه موفقانه بروز شد !');
@@ -1404,15 +1481,17 @@ class CarpetsController extends Controller
             'quantity' => 1,
             'unit_cost' => $carpet->total_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
+            'area' => (float) ($carpet->area ?? 0),
             'date' => $carpet->date ?? now()->format('Y-m-d'),
             'total_amount' => $carpet->total_price,
             'party_type' => 'App\Agents',
             'party_id' => $carpet->agent_id,
             'reference' => $carpet->parcha_number ?? $carpet->carpet_no,
             'description' => "Purchase of Carpet #" . ($carpet->parcha_number ?? $carpet->carpet_no),
-            'currency_code' => $currencyCode,
-            'exchange_rate' => $exchangeRate,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1.0,
             'override_debit_account_id' => $request->override_inventory_account_id,
+            'override_credit_account_id' => $request->override_credit_account_id,
         ], function () use ($carpet, $request) {
             $carpet->save();
 
@@ -1598,9 +1677,28 @@ class CarpetsController extends Controller
 
         $oldWarehouse = $carpet->warehouse_id;
         $oldAccount = $carpet->override_inventory_account_id;
+        $oldCreditAccount = $carpet->override_credit_account_id;
+        $oldTotalPrice = $carpet->total_price;
+        $oldArea = $carpet->area;
+        $oldDate = $carpet->date;
+        $oldAgentId = $carpet->agent_id;
+        $oldCarpetNo = $carpet->carpet_no;
+        $oldParchaNo = $carpet->parcha_number;
+
         $update = $carpet->update($data);
         if ($update) {
-            $this->syncAccounting($carpet, $oldWarehouse, $oldAccount);
+            $this->syncAccounting(
+                $carpet,
+                $oldWarehouse,
+                $oldAccount,
+                $oldCreditAccount,
+                $oldTotalPrice,
+                $oldArea,
+                $oldDate,
+                $oldAgentId,
+                $oldCarpetNo,
+                $oldParchaNo
+            );
         }
 
         if ($update) {
@@ -1659,6 +1757,7 @@ class CarpetsController extends Controller
             'status' => '',
             'warehouse_id' => '',
             'override_inventory_account_id' => '',
+            'override_credit_account_id' => '',
             'currency_id' => '',
             'currency_code' => '',
             'original_price' => '',
@@ -1694,6 +1793,7 @@ class CarpetsController extends Controller
             'status' => '',
             'warehouse_id' => '',
             'override_inventory_account_id' => '',
+            'override_credit_account_id' => '',
             'currency_id' => '',
             'currency_code' => '',
             'original_price' => '',
@@ -1706,32 +1806,54 @@ class CarpetsController extends Controller
     /**
      * Reverses and re-posts transactions if warehouse or account changed on a posted carpet
      */
-    private function syncAccounting($carpet, $oldWarehouseId, $oldAccountId)
-    {
-        if ($carpet->status == 1) {
-            if ($carpet->warehouse_id != $oldWarehouseId || $carpet->override_inventory_account_id != $oldAccountId) {
+    private function syncAccounting(
+        $carpet,
+        $oldWarehouseId,
+        $oldAccountId,
+        $oldCreditAccountId = null,
+        $oldTotalPrice = null,
+        $oldArea = null,
+        $oldDate = null,
+        $oldAgentId = null,
+        $oldCarpetNo = null,
+        $oldParchaNo = null
+    ) {
+        if (in_array($carpet->status, [1, 12])) {
+            if ($carpet->warehouse_id != $oldWarehouseId || 
+                $carpet->override_inventory_account_id != $oldAccountId || 
+                $carpet->override_credit_account_id != $oldCreditAccountId ||
+                ($oldTotalPrice !== null && $carpet->total_price != $oldTotalPrice) ||
+                ($oldArea !== null && $carpet->area != $oldArea) ||
+                ($oldDate !== null && $carpet->date != $oldDate) ||
+                ($oldAgentId !== null && $carpet->agent_id != $oldAgentId) ||
+                ($oldCarpetNo !== null && $carpet->carpet_no != $oldCarpetNo) ||
+                ($oldParchaNo !== null && $carpet->parcha_number != $oldParchaNo)) {
                 try {
-                    $this->inventoryManager->reverseTransactions($carpet, 'Correction: Warehouse/Account change');
+                    $this->inventoryManager->reverseTransactions($carpet, 'Correction: Warehouse/Account/Detail change');
                     if ($carpet->agent && $carpet->agent->contract_type == 'carpet seller') {
                         $this->inventoryManager->processPurchase($carpet, [
                             'quantity' => 1,
                             'unit_cost' => $carpet->total_price,
                             'warehouse_id' => $carpet->warehouse_id,
+                            'area' => (float) ($carpet->area ?? 0),
                             'date' => $carpet->date ?? now()->format('Y-m-d'),
                             'total_amount' => $carpet->total_price,
                             'party_type' => 'App\Agents',
                             'party_id' => $carpet->agent_id,
                             'reference' => $carpet->carpet_no,
                             'override_debit_account_id' => $carpet->override_inventory_account_id,
+                            'override_credit_account_id' => $carpet->override_credit_account_id,
                         ]);
                     } else {
                         $this->inventoryManager->processProductionCompletion($carpet, [
                             'quantity' => 1,
                             'amount' => $carpet->total_price,
                             'warehouse_id' => $carpet->warehouse_id,
+                            'area' => (float) ($carpet->area ?? 0),
                             'date' => now()->format('Y-m-d'),
                             'reference' => $carpet->parcha_number,
                             'override_debit_account_id' => $carpet->override_inventory_account_id,
+                            'override_credit_account_id' => $carpet->override_credit_account_id,
                         ]);
                     }
                 } catch (\Exception $e) {

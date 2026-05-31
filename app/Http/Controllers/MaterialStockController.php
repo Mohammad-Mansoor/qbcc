@@ -23,33 +23,34 @@ class MaterialStockController extends Controller
      */
     public function index()
     {
-        // Fetch stock data from inventory_transactions to get warehouse breakdown and asset value
-        $stock = DB::table('inventory_transactions')
-            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
-            ->join('material_stocks', 'material_types.material_type_id', '=', 'material_stocks.material_type')
-            ->leftJoin('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
-            ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-            ->where('items.type', 'App\MaterialType')
-            ->where('inventory_transactions.status', 1)
+        // Fetch stock data from inventory_transactions using direct category_id mapping
+        $stock = DB::table('inventory_transactions as it')
+            ->join('items as i', 'it.item_id', '=', 'i.id')
+            ->join('material_types as mt', 'i.ref_id', '=', 'mt.material_type_id')
+            ->leftJoin('warehouses as w', 'it.warehouse_id', '=', 'w.id')
+            ->join('material_categories as mc', 'it.category_id', '=', 'mc.material_category_id')
+            ->where('i.type', 'App\MaterialType')
+            ->where('it.status', 1)
             ->select(
-                'material_stocks.material_category as cat_id',
-                'material_stocks.material_type as type_id',
-                'material_categories.material_category',
-                'material_types.material_type',
-                'warehouses.name as warehouse_name',
-                'inventory_transactions.warehouse_id',
-                DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as quantity"),
-                DB::raw('AVG(items.current_cost) as price_per_kilo'),
-                DB::raw("SUM((CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) * items.current_cost) as total_value")
+                'mc.material_category_id as cat_id',
+                'mt.material_type_id as type_id',
+                'mc.material_category',
+                'mt.material_type',
+                'mt.subtype',
+                'w.name as warehouse_name',
+                'it.warehouse_id',
+                DB::raw("SUM(CASE WHEN it.direction = 'IN' THEN it.quantity ELSE -it.quantity END) as quantity"),
+                DB::raw('AVG(i.current_cost) as price_per_kilo'),
+                DB::raw("SUM((CASE WHEN it.direction = 'IN' THEN it.quantity ELSE -it.quantity END) * i.current_cost) as total_value")
             )
             ->groupBy(
-                'material_stocks.material_category', 
-                'material_stocks.material_type', 
-                'inventory_transactions.warehouse_id',
-                'material_categories.material_category',
-                'material_types.material_type',
-                'warehouses.name'
+                'mc.material_category_id',
+                'mt.material_type_id',
+                'it.warehouse_id',
+                'mc.material_category',
+                'mt.material_type',
+                'mt.subtype',
+                'w.name'
             )
             ->having('quantity', '>', 0)
             ->get();
@@ -57,16 +58,19 @@ class MaterialStockController extends Controller
         $sales = MaterialSale::all();
         
         $categories = MaterialCategory::all();
+        $types = MaterialType::all();
+        
+        $baseCurrency = \App\Currency::where('is_base_currency', true)->first() ?? \App\Currency::where('code', 'USD')->first();
+        $afnCurrency = \App\Currency::where('code', 'AFN')->first();
+
         $categoryTotals = [];
         foreach ($categories as $category) {
-            $total = DB::table('inventory_transactions')
-                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
-                ->join('material_stocks', 'material_types.material_type_id', '=', 'material_stocks.material_type')
-                ->where('items.type', 'App\MaterialType')
-                ->where('material_stocks.material_category', $category->material_category_id)
-                ->where('inventory_transactions.status', 1)
-                ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as balance")
+            $total = DB::table('inventory_transactions as it')
+                ->join('items as i', 'it.item_id', '=', 'i.id')
+                ->where('i.type', 'App\MaterialType')
+                ->where('it.status', 1)
+                ->where('it.category_id', $category->material_category_id)
+                ->selectRaw("SUM(CASE WHEN it.direction = 'IN' THEN it.quantity ELSE -it.quantity END) as balance")
                 ->value('balance') ?? 0;
 
             $categoryTotals[] = (object)[
@@ -75,8 +79,9 @@ class MaterialStockController extends Controller
             ];
         }
 
-        return view('mstock.index', compact('stock', 'sales', 'categoryTotals'));
+        return view('mstock.index', compact('stock', 'sales', 'categoryTotals', 'categories', 'types', 'baseCurrency', 'afnCurrency'));
     }
+
 
     public function history($cat, $type)
     {
@@ -95,7 +100,10 @@ class MaterialStockController extends Controller
             ->orderBy('inventory_transactions.created_at', 'DESC')
             ->get();
 
-        return view('mstock.history', compact('movements', 'category', 'typeModel'));
+        $baseCurrency = \App\Currency::where('is_base_currency', true)->first() ?? \App\Currency::where('code', 'USD')->first();
+        $afnCurrency = \App\Currency::where('code', 'AFN')->first();
+
+        return view('mstock.history', compact('movements', 'category', 'typeModel', 'baseCurrency', 'afnCurrency'));
     }
 
 

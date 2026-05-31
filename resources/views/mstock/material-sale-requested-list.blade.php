@@ -46,6 +46,7 @@
             <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <tr style="color: #475569;">
                 <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">فاکتور #</th>
+                <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">نوعیت فروش</th>
                 <th style="padding: 12px 16px; font-weight: 600;">نماینده</th>
                 <th style="padding: 12px 16px; font-weight: 600;">گدام</th>
                 <th style="padding: 12px 16px; font-weight: 600; text-align: center;">مقدار (KG)</th>
@@ -82,35 +83,73 @@
                 $stockOk    = ($material->available_stock >= $material->amount);
                 $rowBg      = $loop->even ? '#fafafa' : '#ffffff';
                 $hoverBg    = $stockOk ? '#f0fdf4' : '#fff5f5';
+                
+                // Account mappings resolution
+                $revDr = $material->debitAccount->account_name ?? ($revenueMapping->debitAccount->account_name ?? 'Default Debit');
+                $revCr = $material->creditAccount->account_name ?? ($revenueMapping->creditAccount->account_name ?? 'Default Credit');
+                $cogsDr = $material->cogsDebitAccount->account_name ?? ($cogsMapping->debitAccount->account_name ?? 'Default COGS Debit');
+                $cogsCr = $material->cogsCreditAccount->account_name ?? ($cogsMapping->creditAccount->account_name ?? 'Default COGS Credit');
               @endphp
               <tr style="background: {{ $rowBg }}; border-bottom: 1px solid #f1f5f9;"
                   onmouseover="this.style.background='{{ $hoverBg }}'" onmouseout="this.style.background='{{ $rowBg }}'">
-
+ 
                 {{-- Sale Number --}}
                 <td style="padding: 10px 16px; white-space: nowrap;">
-                  <span style="font-weight: 700; color: #0891b2; font-family: monospace; font-size: 0.85rem;">
+                  <span style="font-weight: 700; color: #0891b2; font-family: monospace; font-size: 0.85rem; display: block; margin-bottom: 2px;">
                     {{ $material->sale_number }}
                   </span>
+                  <button class="btn btn-link p-0 text-info"
+                          data-toggle="popover"
+                          data-trigger="hover"
+                          title="جزئیات فاکتور / Invoice Details"
+                          data-html="true"
+                          data-content="
+                            <div class='small' style='min-width:200px; direction:rtl; text-align:right;'>
+                              <strong>قیمت فی کیلو:</strong> {{ number_format($material->price, 2) }} {{ $currCode }}<br>
+                              <strong>مبلغ کل:</strong> {{ number_format($origAmt, 2) }} {{ $currCode }}<br>
+                              <strong>نرخ اسعار:</strong> {{ number_format($exchRate, 4) }}<br>
+                              <strong>معادل دالر:</strong> ${{ number_format($baseUSD, 2) }}<br>
+                              <hr class='my-1'>
+                              <strong>گدام:</strong> {{ $material->warehouse->name ?? 'Default' }}
+                            </div>
+                          "
+                          style="font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
+                    <i class="fa fa-info-circle"></i> جزئیات (Details)
+                  </button>
                 </td>
 
+                {{-- Sale Subtype (Yarn/Dye) --}}
+                <td style="padding: 10px 16px; white-space: nowrap;">
+                  @if(($material->category->subtype ?? $material->type->subtype) === 'dye')
+                    <span class="badge badge-warning text-white" style="font-weight: 600; padding: 4px 8px; background-color: #f59e0b;">رنگ (Dye)</span>
+                  @else
+                    <span class="badge badge-primary" style="font-weight: 600; padding: 4px 8px;">نخ (Yarn)</span>
+                  @endif
+                </td>
+ 
                 {{-- Agent --}}
                 <td style="padding: 10px 16px; color: #1e293b; font-weight: 500;">
                   {{ $material->agent->user->name ?? '—' }}
                 </td>
-
+ 
                 {{-- Warehouse --}}
                 <td style="padding: 10px 16px;">
-                  <span style="background: #f0fdf4; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; border: 1px solid #bbf7d0;">
+                  <span style="background: #f0fdf4; color: #16a34a; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; border: 1px solid #bbf7d0; display: block; margin-bottom: 2px; text-align: center;">
                     {{ $material->warehouse->name ?? 'گدام مرکزی' }}
                   </span>
+                  @if($material->warehouse && $material->warehouse->subtype)
+                    <span class="badge text-white" style="font-size: 0.7rem; padding: 2px 6px; background-color: {{ $material->warehouse->subtype === 'yarn' ? '#3b82f6' : '#f59e0b' }}; display: block; margin: 0 auto; width: fit-content;">
+                      {{ ucfirst($material->warehouse->subtype) }}
+                    </span>
+                  @endif
                 </td>
-
+ 
                 {{-- Amount --}}
                 <td style="padding: 10px 16px; text-align: center;" dir="ltr">
                   <span style="font-weight: 700; color: #1e293b;">{{ number_format($material->amount, 2) }}</span>
                   <span style="color: #94a3b8; font-size: 0.78rem;"> KG</span>
                 </td>
-
+ 
                 {{-- Available Stock --}}
                 <td style="padding: 10px 16px; text-align: center;" dir="ltr">
                   @if($stockOk)
@@ -123,7 +162,7 @@
                     </span>
                   @endif
                 </td>
-
+ 
                 {{-- Original Amount in transaction currency --}}
                 <td style="padding: 10px 16px; text-align: right; border-left: 2px solid #ede9fe;" dir="ltr">
                   <div style="display: flex; flex-direction: column; align-items: flex-end;">
@@ -138,7 +177,7 @@
                     @endif
                   </div>
                 </td>
-
+ 
                 {{-- USD Equivalent --}}
                 <td style="padding: 10px 16px; text-align: right;" dir="ltr">
                   <div style="display: inline-flex; align-items: center; gap: 4px; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; border: 1px solid #a7f3d0;">
@@ -146,7 +185,7 @@
                     <span style="font-weight: 700; color: #065f46; font-size: 0.95rem;">{{ number_format($baseUSD, 2) }}</span>
                   </div>
                 </td>
-
+ 
                 {{-- Estimated Profit --}}
                 <td style="padding: 10px 16px; text-align: right;" dir="ltr">
                   <div style="display: inline-flex; flex-direction: column; align-items: flex-end;">
@@ -160,7 +199,7 @@
                     </small>
                   </div>
                 </td>
-
+ 
                 {{-- Category & Type --}}
                 <td style="padding: 10px 16px;">
                   <span style="background: #ede9fe; color: #7c3aed; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 2px;">
@@ -168,12 +207,12 @@
                   </span>
                   <small style="color: #94a3b8;">{{ $material->category->material_category ?? '—' }}</small>
                 </td>
-
+ 
                 {{-- Date --}}
                 <td style="padding: 10px 16px; white-space: nowrap; color: #64748b; font-size: 0.85rem;">
                   {{ \Carbon\Carbon::parse($material->date)->format('d M Y') }}
                 </td>
-
+ 
                 {{-- Accounting Popover --}}
                 <td style="padding: 10px 16px; text-align: center;">
                   <button class="btn btn-xs"
@@ -182,19 +221,19 @@
                           title="Accounting Mappings"
                           data-html="true"
                           data-content="
-                            <div class='small' style='min-width:200px'>
-                              <strong style='color:#3b82f6'>Revenue Dr:</strong> {{ $material->debitAccount->account_name ?? 'Default' }}<br>
-                              <strong style='color:#3b82f6'>Revenue Cr:</strong> {{ $material->creditAccount->account_name ?? 'Default' }}<br>
+                            <div class='small' style='min-width:250px; direction:ltr; text-align:left;'>
+                              <strong style='color:#3b82f6'>Revenue Dr (Receivable):</strong><br> {{$revDr}}<br>
+                              <strong style='color:#3b82f6'>Revenue Cr (Revenue):</strong><br> {{$revCr}}<br>
                               <hr class='my-1'>
-                              <strong style='color:#ef4444'>COGS Dr:</strong> {{ $material->cogsDebitAccount->account_name ?? 'Default' }}<br>
-                              <strong style='color:#ef4444'>COGS Cr:</strong> {{ $material->cogsCreditAccount->account_name ?? 'Default' }}
+                              <strong style='color:#ef4444'>COGS Dr (Expense):</strong><br> {{$cogsDr}}<br>
+                              <strong style='color:#ef4444'>COGS Cr (Inventory):</strong><br> {{$cogsCr}}
                             </div>
                           "
                           style="background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; cursor: pointer;">
                     <i class="fa fa-university"></i>
                   </button>
                 </td>
-
+ 
                 {{-- Actions --}}
                 <td class="hideOnPrint" style="padding: 10px 16px; text-align: center; white-space: nowrap;">
                   <div class="btn-group" style="gap: 4px; display: inline-flex;">
@@ -213,7 +252,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="12" style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                <td colspan="13" style="text-align: center; padding: 60px 20px; color: #94a3b8;">
                   <i class="fa fa-inbox" style="font-size: 2.5rem; display: block; margin-bottom: 12px; color: #cbd5e1;"></i>
                   <strong style="font-size: 1rem; color: #64748b;">هیچ درخواست فروشی در انتظار تایید نیست</strong>
                   <p style="margin-top: 4px; font-size: 0.85rem;">تمام درخواست‌های فروش مواد تایید یا رد شده‌اند.</p>
@@ -221,7 +260,7 @@
               </tr>
             @endforelse
             </tbody>
-
+ 
             {{-- Summary Footer --}}
             @if($requests->count() > 0)
             @php
@@ -232,7 +271,7 @@
             @endphp
             <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
               <tr>
-                <td colspan="2" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
+                <td colspan="3" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
                   مجموع صفحه جاری:
                 </td>
                 <td></td>

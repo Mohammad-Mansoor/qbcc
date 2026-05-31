@@ -4,7 +4,7 @@
         <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
             <div class="card" id="print_header_card">
                 <div class="card-header" id="print_header_card_header">
-                    <h4> صورت حساب فروشنده های تار
+                    <h4> صورت حساب فروشندگان مواد خام
 
                     </h4>
                     <div class="btn-group" id="exportButton" style="float: left; margin-bottom: 4px;">
