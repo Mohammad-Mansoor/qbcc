@@ -228,8 +228,8 @@
                             @php($total_usd = 0)
                             @php($total_afn = 0)
                             @foreach($data as $d)
-                                @php($bal_af = \DB::table('agent_payments')->where('agent_id', $d->agent_id)->where('type', 'رسید')->sum('amount_af') - \DB::table('agent_payments')->where('agent_id', $d->agent_id)->where('type', 'گرفت')->sum('amount_af'))
-                                @php($bal_usd = \DB::table('agent_payments')->where('agent_id', $d->agent_id)->where('type', 'رسید')->sum('amount') - \DB::table('agent_payments')->where('agent_id', $d->agent_id)->where('type', 'گرفت')->sum('amount'))
+                                @php($bal_usd = $d->netBalanceUsd())
+                                @php($bal_af = $d->netBalanceAfn())
                                 @php($total_usd += $bal_usd)
                                 @php($total_afn += $bal_af)
                                 <tr>

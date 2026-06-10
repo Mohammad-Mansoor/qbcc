@@ -128,6 +128,7 @@
                                     <th class="border-0 px-4 py-3">نمبر انوایس</th>
                                     <th class="border-0 py-3 text-center">نوعیت</th>
                                     <th class="border-0 py-3 text-center">حالت انوایس</th>
+                                    <th class="border-0 py-3 text-center">وضعیت پرداخت</th>
                                     <th class="border-0 py-3 text-center">تاریخ</th>
                                     <th class="border-0 py-3">خریدار (مشتری/نماینده)</th>
                                     <th class="border-0 py-3">توضیحات</th>
@@ -156,6 +157,15 @@
                                             <span class="badge badge-danger px-3 py-2 rounded-pill"><i class="fa fa-lock mr-1"></i> بسته شده</span>
                                         @else
                                             <span class="badge badge-success px-3 py-2 rounded-pill"><i class="fa fa-unlock-alt mr-1"></i> باز / در جریان</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($invoice->payment_status === 'paid')
+                                            <span class="badge badge-soft-success px-3 py-2 rounded-pill">تصفیه شده (Paid)</span>
+                                        @elseif($invoice->payment_status === 'partially_paid')
+                                            <span class="badge badge-soft-orange px-3 py-2 rounded-pill">تادیه قسمتی (Partially)</span>
+                                        @else
+                                            <span class="badge badge-soft-danger px-3 py-2 rounded-pill">پرداخت نشده (Unpaid)</span>
                                         @endif
                                     </td>
                                     <td class="text-center small text-muted">
@@ -188,7 +198,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="py-5 text-center">
+                                    <td colspan="8" class="py-5 text-center">
                                         <i class="fa fa-inbox fa-3x text-muted opacity-3"></i>
                                         <p class="mt-3 text-muted font-weight-bold">هیچ انوایسی یافت نشد.</p>
                                     </td>
@@ -211,6 +221,8 @@
     .badge-soft-success { background-color: rgba(40, 167, 69, 0.1); color: #28a745; }
     .badge-soft-warning { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
     .badge-soft-info { background-color: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+    .badge-soft-danger { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+    .badge-soft-orange { background-color: rgba(253, 126, 20, 0.1); color: #fd7e14; }
     .btn-soft-primary { background-color: rgba(0, 123, 255, 0.1); color: #007bff; border: none; }
     .btn-soft-primary:hover { background-color: #007bff; color: white; }
     .rounded-lg { border-radius: 0.75rem !important; }

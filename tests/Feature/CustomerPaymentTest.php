@@ -62,7 +62,7 @@ class CustomerPaymentTest extends TestCase
         // We will pass exchange_rate = 0.013 (different from default 0.0125)
         $customRate = 0.01300000;
         $amount = 10000.00; // 10,000 AFN
-        
+
         $response = $this->actingAs($user)->post('/dashboard/customer-payments', [
             'customer_id' => $customer->id,
             'amount' => $amount,
@@ -84,25 +84,25 @@ class CustomerPaymentTest extends TestCase
         $this->assertEquals('AFN', $payment->currency_code);
         $this->assertEquals($customRate, $payment->exchange_rate);
         $this->assertEquals($amount, $payment->original_amount);
-        
+
         // Base amount: 10,000 * 0.013 = 130.00 USD
-        $expectedBaseAmount = bcmul((string)$amount, (string)$customRate, 4);
+        $expectedBaseAmount = bcmul((string) $amount, (string) $customRate, 4);
         $this->assertEquals($expectedBaseAmount, $payment->base_amount);
 
         // 6. Assert Ledger entries were correctly created with custom rate
         $this->assertNotNull($payment->ledger_transaction_id);
         $transaction = LedgerTransaction::with('entries')->find($payment->ledger_transaction_id);
         $this->assertNotNull($transaction);
-        
+
         $this->assertEquals(2, $transaction->entries->count());
 
         foreach ($transaction->entries as $entry) {
             $this->assertEquals('AFN', $entry->currency_code);
             $this->assertEquals($customRate, $entry->exchange_rate);
-            
+
             // Expected base_currency_amount: 130.0000
             // Since AccountingService rounds bcmul to 4 decimal places:
-            $expectedBaseEntryAmt = round((float)bcmul((string)$amount, (string)$customRate, 12), 4);
+            $expectedBaseEntryAmt = round((float) bcmul((string) $amount, (string) $customRate, 12), 4);
             $this->assertEquals($expectedBaseEntryAmt, $entry->base_currency_amount);
         }
     }

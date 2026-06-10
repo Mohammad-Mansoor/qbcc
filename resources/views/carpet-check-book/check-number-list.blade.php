@@ -373,9 +373,70 @@
                             <td class="text-left font-weight-bold">${{ number_format($carpets->sum('total_price'), 2) }}</td>
                             <td class="font-weight-bold">مبلغ کل قابل تادیه (Grand Total USD):</td>
                         </tr>
+                        <tr>
+                            <td class="text-left font-weight-bold text-success">${{ number_format($invoice->paid_amount, 2) }}</td>
+                            <td class="font-weight-bold text-muted">مجموع پرداخت شده (Total Paid USD):</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-weight-bold text-danger">${{ number_format($invoice->remaining_balance, 2) }}</td>
+                            <td class="font-weight-bold text-muted">باقیمانده (Remaining Balance USD):</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left">
+                                <span class="status-badge {{ $invoice->payment_status === 'paid' ? 'bg-success text-white' : ($invoice->payment_status === 'partially_paid' ? 'bg-info text-white' : 'bg-warning text-dark') }}">
+                                    {{ $invoice->payment_status === 'paid' ? 'تصفیه شده (Paid)' : ($invoice->payment_status === 'partially_paid' ? 'تادیه قسمتی (Partially Paid)' : 'پرداخت نشده (Unpaid)') }}
+                                </span>
+                            </td>
+                            <td class="font-weight-bold text-muted">وضعیت تصفیه مالی (Payment Status):</td>
+                        </tr>
                     </table>
                 </div>
             </div>
+
+            <!-- PAYMENT TRANSACTIONS / ALLOCATIONS HISTORY -->
+            @if($invoice->allocations && $invoice->allocations->count() > 0)
+            <div class="row mt-4 pt-4 border-top text-right" style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+                <div class="col-12">
+                    <h5 class="font-weight-bold text-dark mb-3" style="font-size: 15px; margin-bottom: 15px;"><i class="fa fa-credit-card text-success mr-1"></i> تاریخچه تادیات و پرداخت‌های بل خرید (Payment History)</h5>
+                    <div class="table-responsive">
+                        <table class="table-invoice" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background-color: #f8f9fa;">
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">تاریخ پرداخت (Date)</th>
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">سند/تفصیلات (Reference / Description)</th>
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">نوعیت پرداخت</th>
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">مقدار پرداختی ارز اصلی (Amount)</th>
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">نرخ تسعیر (FX Rate)</th>
+                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">معادل دالر (USD Amount)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($invoice->allocations as $pay)
+                                    @php($ap = $pay->agent_payment)
+                                    @if($ap)
+                                    <tr>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">{{ $ap->date }}</td>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">
+                                            <strong>سند #: {{ $ap->check_number }}</strong> - 
+                                            {{ $ap->description }}
+                                        </td>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                            <span class="status-badge {{ $ap->type == 'رسید' ? 'bg-success text-white' : 'bg-danger text-white' }}" style="padding: 3px 8px; border-radius: 4px; font-size: 11px;">
+                                                {{ $ap->type == 'رسید' ? 'رسید (Inflow)' : 'گرفت (Outflow)' }}
+                                            </span>
+                                        </td>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">{{ number_format($pay->allocated_amount, 2) }} {{ $ap->currency_code }}</td>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; direction: ltr;">{{ number_format($pay->exchange_rate, 8) }}</td>
+                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; color: #166534;">${{ number_format($pay->base_allocated_amount, 2) }}</td>
+                                    </tr>
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- SIGNATURE SECTION -->
             <div class="row signature-row">

@@ -118,6 +118,8 @@ class AgentPaymentController extends Controller
                 'agent_id' => 'required',
                 'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
                 'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'allocatable_id' => 'nullable|integer',
+                'allocatable_type' => 'nullable|string|in:App\PurchaseInvoice,App\Invoice',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -125,6 +127,27 @@ class AgentPaymentController extends Controller
 
             // FORENSIC RULE: BCMath Calculation (base_amount = original * rate)
             $baseAmount = bcmul($request->amount, $rate, 4);
+
+            // --- OVERPAYMENT PREVENTION & ALLOCATION VALIDATION ---
+            $document = null;
+            if ($request->allocatable_id && $request->allocatable_type) {
+                $modelClass = $request->allocatable_type;
+                $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->first();
+                
+                if (!$document) {
+                    return redirect()->back()->with('error', 'سند مورد نظر پیدا نشد (Document not found).')->withInput();
+                }
+
+                if ($document->payment_status === 'paid' || $document->remaining_balance <= 0.01) {
+                    return redirect()->back()->with('error', 'این سند قبلاً تصفیه شده است و نیاز به پرداخت ندارد.')->withInput();
+                }
+
+                if ($baseAmount > ($document->remaining_balance + 0.01)) {
+                    return redirect()->back()->withErrors([
+                        'amount' => "مبلغ پرداختی ($" . number_format($baseAmount, 2) . ") بزرگتر از باقیمانده سند ($" . number_format($document->remaining_balance, 2) . ") است."
+                    ])->withInput();
+                }
+            }
 
             $payed = new AgentPayment();
             $payed->description = $request->description;
@@ -160,6 +183,27 @@ class AgentPaymentController extends Controller
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
             $payed->save();
 
+            // Store allocation if linked
+            if ($document) {
+                \App\AgentPaymentAllocation::create([
+                    'agent_payment_id' => $payed->id,
+                    'allocatable_type' => $request->allocatable_type,
+                    'allocatable_id' => $request->allocatable_id,
+                    'allocated_amount' => $request->amount,
+                    'exchange_rate' => $rate,
+                    'base_allocated_amount' => $baseAmount,
+                ]);
+
+                // Recalculate document status
+                $remaining = $document->remaining_balance;
+                if ($remaining <= 0.01) {
+                    $document->payment_status = 'paid';
+                } else {
+                    $document->payment_status = 'partially_paid';
+                }
+                $document->save();
+            }
+
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
             }
@@ -186,11 +230,40 @@ class AgentPaymentController extends Controller
             return redirect('/dashboard/agents')->with('error', 'نماینده مورد نظر یافت نشد (Agent not found).');
         }
 
-        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('date', 'DESC')->paginate(30);
+        $payments = AgentPayment::where('agent_id', $agent_id)->doesntHave('allocations')->orderBy('date', 'DESC')->paginate(30);
+
+        // Fetch Carpet Purchase Bills (Bills)
+        $purchaseBills = \App\PurchaseInvoice::where('agent_id', $agent_id)
+            ->with(['carpets'])
+            ->orderBy('date', 'DESC')
+            ->get();
+            
+        // Fetch Dye & Yarn Sales Invoices
+        $salesInvoices = \App\Invoice::where('agent_id', $agent_id)
+            ->whereIn('type', ['dye', 'yarn'])
+            ->with(['material_sales'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Bills and Invoices
+        $totalOwedPurchases = $purchaseBills->sum(function($bill) { return $bill->total_amount; });
+        $totalPaidPurchases = DB::table('agent_payment_allocations')
+            ->join('purchase_invoices', 'agent_payment_allocations.allocatable_id', '=', 'purchase_invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\PurchaseInvoice')
+            ->where('purchase_invoices.agent_id', $agent_id)
+            ->sum('base_allocated_amount');
+
+        $totalReceivableSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalReceivedSales = DB::table('agent_payment_allocations')
+            ->join('invoices', 'agent_payment_allocations.allocatable_id', '=', 'invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\Invoice')
+            ->where('invoices.agent_id', $agent_id)
+            ->sum('base_allocated_amount');
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = AgentPayment::where('agent_id', $agent_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -200,8 +273,8 @@ class AgentPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
@@ -217,18 +290,49 @@ class AgentPaymentController extends Controller
         return view('agents.agent-payments', compact(
             'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
             'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies',
-            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit',
+            'purchaseBills', 'salesInvoices', 'totalOwedPurchases', 'totalPaidPurchases',
+            'totalReceivableSales', 'totalReceivedSales'
         ));
     }
 
     public function show_all($agent_id)
     {
-        $payments = AgentPayment::where('agent_id', $agent_id)->orderBy('date', 'DESC')->get();
+        $payments = AgentPayment::where('agent_id', $agent_id)->doesntHave('allocations')->orderBy('date', 'DESC')->get();
         $agent = Agents::find($agent_id);
+
+        // Fetch Carpet Purchase Bills (Bills)
+        $purchaseBills = \App\PurchaseInvoice::where('agent_id', $agent_id)
+            ->with(['carpets'])
+            ->orderBy('date', 'DESC')
+            ->get();
+            
+        // Fetch Dye & Yarn Sales Invoices
+        $salesInvoices = \App\Invoice::where('agent_id', $agent_id)
+            ->whereIn('type', ['dye', 'yarn'])
+            ->with(['material_sales'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Bills and Invoices
+        $totalOwedPurchases = $purchaseBills->sum(function($bill) { return $bill->total_amount; });
+        $totalPaidPurchases = DB::table('agent_payment_allocations')
+            ->join('purchase_invoices', 'agent_payment_allocations.allocatable_id', '=', 'purchase_invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\PurchaseInvoice')
+            ->where('purchase_invoices.agent_id', $agent_id)
+            ->sum('base_allocated_amount');
+
+        $totalReceivableSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalReceivedSales = DB::table('agent_payment_allocations')
+            ->join('invoices', 'agent_payment_allocations.allocatable_id', '=', 'invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\Invoice')
+            ->where('invoices.agent_id', $agent_id)
+            ->sum('base_allocated_amount');
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = AgentPayment::where('agent_id', $agent_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -238,8 +342,8 @@ class AgentPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
@@ -256,19 +360,50 @@ class AgentPaymentController extends Controller
         return view('agents.agent-payments', compact(
             'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
             'totalBaseSent', 'check_numbers', 'all', 'sale_numbers', 'currencies',
-            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit',
+            'purchaseBills', 'salesInvoices', 'totalOwedPurchases', 'totalPaidPurchases',
+            'totalReceivableSales', 'totalReceivedSales'
         ));
     }
 
     public function edit($payment_id)
     {
         $paymentEdit = AgentPayment::find($payment_id);
-        $payments = AgentPayment::where('agent_id', $paymentEdit->agent_id)->orderBy('date', 'DESC')->paginate(30);
+        $payments = AgentPayment::where('agent_id', $paymentEdit->agent_id)->doesntHave('allocations')->orderBy('date', 'DESC')->paginate(30);
         $agent = Agents::find($paymentEdit->agent_id);
+
+        // Fetch Carpet Purchase Bills (Bills)
+        $purchaseBills = \App\PurchaseInvoice::where('agent_id', $paymentEdit->agent_id)
+            ->with(['carpets'])
+            ->orderBy('date', 'DESC')
+            ->get();
+            
+        // Fetch Dye & Yarn Sales Invoices
+        $salesInvoices = \App\Invoice::where('agent_id', $paymentEdit->agent_id)
+            ->whereIn('type', ['dye', 'yarn'])
+            ->with(['material_sales'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Bills and Invoices
+        $totalOwedPurchases = $purchaseBills->sum(function($bill) { return $bill->total_amount; });
+        $totalPaidPurchases = DB::table('agent_payment_allocations')
+            ->join('purchase_invoices', 'agent_payment_allocations.allocatable_id', '=', 'purchase_invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\PurchaseInvoice')
+            ->where('purchase_invoices.agent_id', $paymentEdit->agent_id)
+            ->sum('base_allocated_amount');
+
+        $totalReceivableSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalReceivedSales = DB::table('agent_payment_allocations')
+            ->join('invoices', 'agent_payment_allocations.allocatable_id', '=', 'invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\Invoice')
+            ->where('invoices.agent_id', $paymentEdit->agent_id)
+            ->sum('base_allocated_amount');
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = AgentPayment::where('agent_id', $paymentEdit->agent_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -278,8 +413,8 @@ class AgentPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = AgentPayment::where('agent_id', $paymentEdit->agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $paymentEdit->agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
         $sale_numbers = MaterialSale::where('agent_id', $paymentEdit->agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
@@ -294,7 +429,9 @@ class AgentPaymentController extends Controller
         return view('agents.agent-payments', compact(
             'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
             'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies',
-            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit',
+            'purchaseBills', 'salesInvoices', 'totalOwedPurchases', 'totalPaidPurchases',
+            'totalReceivableSales', 'totalReceivedSales'
         ));
     }
 
@@ -317,6 +454,27 @@ class AgentPaymentController extends Controller
 
             if ($payed->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payed->id, 'Agent Payment Edited');
+            }
+
+            // Fetch and remove old allocations, updating document statuses first
+            $oldAllocations = \App\AgentPaymentAllocation::where('agent_payment_id', $payed->id)->get();
+            foreach ($oldAllocations as $alloc) {
+                $doc = $alloc->allocatable;
+                if ($doc) {
+                    $alloc->delete(); // Delete first
+                    $docPaid = \App\AgentPaymentAllocation::where('allocatable_type', $alloc->allocatable_type)
+                        ->where('allocatable_id', $alloc->allocatable_id)
+                        ->sum('base_allocated_amount') ?? 0;
+                    $docRemaining = $doc->total_amount - $docPaid;
+                    if ($docRemaining >= $doc->total_amount - 0.01) {
+                        $doc->payment_status = 'unpaid';
+                    } else if ($docRemaining <= 0.01) {
+                        $doc->payment_status = 'paid';
+                    } else {
+                        $doc->payment_status = 'partially_paid';
+                    }
+                    $doc->save();
+                }
             }
 
             $currency = \App\Currency::find($request->currency_id);
@@ -377,6 +535,27 @@ class AgentPaymentController extends Controller
 
             if ($payment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Agent Payment Deleted');
+            }
+
+            // Remove allocations and update document statuses
+            $allocations = \App\AgentPaymentAllocation::where('agent_payment_id', $payment->id)->get();
+            foreach ($allocations as $alloc) {
+                $doc = $alloc->allocatable;
+                if ($doc) {
+                    $alloc->delete(); // Delete first
+                    $docPaid = \App\AgentPaymentAllocation::where('allocatable_type', $alloc->allocatable_type)
+                        ->where('allocatable_id', $alloc->allocatable_id)
+                        ->sum('base_allocated_amount') ?? 0;
+                    $docRemaining = $doc->total_amount - $docPaid;
+                    if ($docRemaining >= $doc->total_amount - 0.01) {
+                        $doc->payment_status = 'unpaid';
+                    } else if ($docRemaining <= 0.01) {
+                        $doc->payment_status = 'paid';
+                    } else {
+                        $doc->payment_status = 'partially_paid';
+                    }
+                    $doc->save();
+                }
             }
 
             $activity = new Activity();

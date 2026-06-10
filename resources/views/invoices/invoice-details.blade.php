@@ -86,7 +86,11 @@
 
         <div class="card-body p-0">
             @php
-                $totalPaid = $invoice->payments->sum('amount');
+                if ($invoice->type === 'carpet') {
+                    $totalPaid = $invoice->payments->sum('amount_applied');
+                } else {
+                    $totalPaid = $invoice->paid_amount;
+                }
             @endphp
             @if($totalPaid > 0)
             <div class="alert alert-warning mb-0 border-0 rounded-0 text-right py-3 px-5 hideOnPrint" style="background-color: #fff3cd; color: #856404; font-size: 13px;">
@@ -191,7 +195,7 @@
                                         </span>
                                     @else
                                         @php
-                                            $totalPaid = $invoice->payments->sum('amount');
+                                            $totalPaid = $invoice->payments->sum('amount_applied');
                                         @endphp
                                         @if($totalPaid > 0)
                                             <button class="btn btn-soft-danger btn-sm rounded-pill px-3" disabled title="انوایس دارای پرداخت است. برای برگشت ابتدا پرداخت را حذف کنید.">
@@ -265,10 +269,11 @@
                 </div>
                 <div class="col-md-5">
                     @php
-                        $totalPaid = $invoice->payments->sum('amount');
                         if ($invoice->type === 'carpet') {
+                            $totalPaid = $invoice->payments->sum('amount_applied');
                             $totalDue = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
                         } else {
+                            $totalPaid = $invoice->paid_amount;
                             $totalDue = $invoice->material_sales->sum('base_currency_amount');
                         }
                         $balance = $totalDue - $totalPaid;
@@ -289,6 +294,68 @@
                     </div>
                 </div>
             </div>
+
+            <!-- PAYMENT TRANSACTIONS / ALLOCATIONS HISTORY -->
+            @if($invoice->type === 'carpet')
+                @php($docPayments = $invoice->payments)
+            @else
+                @php($docPayments = $invoice->allocations)
+            @endif
+
+            @if($docPayments && $docPayments->count() > 0)
+            <div class="row mt-4 pt-4 border-top text-right" style="margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px;">
+                <div class="col-12">
+                    <h5 class="font-weight-bold text-dark mb-3" style="font-size: 15px; margin-bottom: 15px;"><i class="fa fa-credit-card text-success mr-1"></i> تاریخچه تادیات و پرداخت‌های انوایس (Payment History)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped text-center align-middle" style="font-size: 12px; width: 100%;">
+                            <thead class="bg-light text-dark">
+                                <tr>
+                                    <th>تاریخ پرداخت (Date)</th>
+                                    <th class="text-right">سند/تفصیلات (Reference / Description)</th>
+                                    <th>نوعیت پرداخت</th>
+                                    <th>مقدار پرداختی ارز اصلی (Amount)</th>
+                                    <th>نرخ تسعیر (FX Rate)</th>
+                                    <th>معادل دالر (USD Amount)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($docPayments as $pay)
+                                    @if($invoice->type === 'carpet')
+                                        <tr>
+                                            <td>{{ $pay->payment->date ?? '---' }}</td>
+                                            <td class="text-right">{{ $pay->payment->description ?? 'بابت تصفیه انوایس قالین' }}</td>
+                                            <td><span class="badge badge-success px-2 py-1">دریافت مشتری (Customer Inflow)</span></td>
+                                            <td>{{ number_format($pay->amount_applied, 2) }} USD</td>
+                                            <td>1.00000000</td>
+                                            <td class="font-weight-bold text-success">${{ number_format($pay->amount_applied, 2) }}</td>
+                                        </tr>
+                                    @else
+                                        @php($ap = $pay->agent_payment)
+                                        @if($ap)
+                                        <tr>
+                                            <td>{{ $ap->date }}</td>
+                                            <td class="text-right">
+                                                <strong>سند #: {{ $ap->check_number }}</strong> - 
+                                                {{ $ap->description }}
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ $ap->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-2 py-1">
+                                                    {{ $ap->type == 'رسید' ? 'رسید (Inflow)' : 'گرفت (Outflow)' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ number_format($pay->allocated_amount, 2) }} {{ $ap->currency_code }}</td>
+                                            <td style="direction: ltr;">{{ number_format($pay->exchange_rate, 8) }}</td>
+                                            <td class="font-weight-bold text-success">${{ number_format($pay->base_allocated_amount, 2) }}</td>
+                                        </tr>
+                                        @endif
+                                    @endif
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
             
             <div class="row mt-5 pt-5 text-center">
                 <div class="col-4">

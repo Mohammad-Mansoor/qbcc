@@ -26,10 +26,10 @@ class InvoiceController extends Controller
     {
         return DB::transaction(function () use ($carpet_id) {
             $carpet = Carpet::findOrFail($carpet_id);
-            $sale = Sale::where('carpet_id', $carpet_id)->first();
+            $sale = Sale::where('carpet_id', $carpet_id)->where('is_returned', 0)->first();
 
             if (!$sale) {
-                return response()->json(['error' => 'success']);
+                return response()->json(['status' => 'error', 'message' => 'Sale record not found']);
             }
 
             // 1. Unified Reversal (Inventory + Accounting)
@@ -60,6 +60,25 @@ class InvoiceController extends Controller
             $sale->return_ledger_transaction_id = $reversalTx ? $reversalTx->id : null;
             $sale->returned_by = Auth::user()->id;
             $sale->save();
+
+            // 5. Recalculate invoice payment_status now that one item is returned
+            if ($sale->invoice_id) {
+                $invoice = \App\Invoice::with(['sale', 'payments'])->find($sale->invoice_id);
+                if ($invoice) {
+                    $newTotal = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
+                    $totalPaid = \App\InvoicePayment::where('invoice_id', $invoice->id)->sum('amount_applied') ?? 0;
+                    $remaining = $newTotal - $totalPaid;
+
+                    if ($totalPaid <= 0) {
+                        $invoice->payment_status = 'unpaid';
+                    } elseif ($remaining <= 0.01) {
+                        $invoice->payment_status = 'paid';
+                    } else {
+                        $invoice->payment_status = 'partially_paid';
+                    }
+                    $invoice->save();
+                }
+            }
 
             return response()->json(['status' => 'success']);
         });

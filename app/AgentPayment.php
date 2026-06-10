@@ -10,4 +10,9 @@ class AgentPayment extends Model
     public function agent(){
         return $this->belongsTo(Agents::class,'agent_id','agent_id');
     }
+
+    public function allocations()
+    {
+        return $this->hasMany(AgentPaymentAllocation::class, 'agent_payment_id');
+    }
 }

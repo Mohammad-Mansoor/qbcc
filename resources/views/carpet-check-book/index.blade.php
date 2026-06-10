@@ -48,6 +48,24 @@
         border: 1px solid #fecaca;
     }
 
+    .badge-paid {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .badge-partially {
+        background: #fff3e0;
+        color: #e65100;
+        border: 1px solid #ffe0b2;
+    }
+
+    .badge-unpaid {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
     .form-label-premium {
         font-weight: 700;
         color: #334155;
@@ -270,7 +288,8 @@
                             <th>نمبر بل خرید</th>
                             <th>نام نماینده (فروشنده)</th>
                             <th>تاریخ ثبت</th>
-                            <th>وضعیت</th>
+                            <th>وضعیت سند</th>
+                            <th>وضعیت پرداخت</th>
                             <th class="text-center">عملیات</th>
                         </tr>
                     </thead>
@@ -289,6 +308,15 @@
                                         {{ $invoice->status == 'open' ? 'باز (Open)' : 'بسته (Closed)' }}
                                     </span>
                                 </td>
+                                <td>
+                                    @if($invoice->payment_status === 'paid')
+                                        <span class="status-badge badge-paid">تصفیه شده (Paid)</span>
+                                    @elseif($invoice->payment_status === 'partially_paid')
+                                        <span class="status-badge badge-partially">تادیه قسمتی (Partially)</span>
+                                    @else
+                                        <span class="status-badge badge-unpaid">پرداخت نشده (Unpaid)</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <a href="/dashboard/check-book/{{ $invoice->id }}" class="btn btn-sm btn-light-primary border-0 shadow-none px-3" title="Details">
                                         <i class="feather icon-eye mr-1"></i> مشاهده جزئیات
@@ -297,7 +325,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-5">
+                                <td colspan="7" class="text-center text-muted py-5">
                                     <i class="feather icon-info" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                                     هیچ بل خریدی در سیستم ثبت نشده است.
                                 </td>

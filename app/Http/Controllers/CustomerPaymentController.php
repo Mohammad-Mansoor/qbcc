@@ -46,7 +46,7 @@ class CustomerPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
-            
+
             // USE THE FORENSIC BASE AMOUNT FOR THE LEDGER
             $baseAmount = $payment->base_amount > 0 ? $payment->base_amount : $payment->amount;
 
@@ -63,7 +63,7 @@ class CustomerPaymentController extends Controller
                 'override_debit_account_id' => $overrides['override_debit_account_id'] ?? $payment->override_debit_account_id ?? null,
                 'override_credit_account_id' => $overrides['override_credit_account_id'] ?? $payment->override_credit_account_id ?? null,
             ]);
-            
+
             $payment->ledger_transaction_id = $transaction->id;
             $payment->save();
         } catch (\Exception $e) {
@@ -85,13 +85,13 @@ class CustomerPaymentController extends Controller
             $payment = CustomerPayment::find($id);
             $payment->status = 1; // Approved
             $payment->update();
-            
+
             // Post to Accounting
             $this->postPaymentToAccounting($payment);
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = ($payment->amount > 0) 
+            $activity->description = ($payment->amount > 0)
                 ? " مبلغ " . $payment->amount . "دالر توسط سوپر ادمین اپروف شد "
                 : " مبلغ " . $payment->amount_af . "افغانی توسط سوپر ادمین اپروف شد ";
             $activity->user_id = Auth::user()->id;
@@ -101,10 +101,11 @@ class CustomerPaymentController extends Controller
         });
     }
 
-    public function delete_request($id){
+    public function delete_request($id)
+    {
         $credit = CustomerPayment::find($id);
         $credit->delete();
-        return response()->json(['status','error']);
+        return response()->json(['status', 'error']);
     }
 
 
@@ -145,14 +146,14 @@ class CustomerPaymentController extends Controller
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->invoice_number = $request->invoice_number;
-            
+
             // Populate Forensic Columns
             $payed->currency_id = $currency->id;
             $payed->currency_code = $currency->code;
             $payed->exchange_rate = $exchangeRate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = bcmul($request->amount, $exchangeRate, 4);
-            
+
             // Legacy Support
             $payed->dollar_rate = $exchangeRate > 0 ? (1 / $exchangeRate) : 0;
             if ($currency->code == 'USD') {
@@ -188,13 +189,21 @@ class CustomerPaymentController extends Controller
                             'amount_applied' => $amount,
                         ]);
                         $totalAllocated += $amount;
+
+                        // Recalculate and update invoice payment status
+                        $newRemaining = $remaining - $amount;
+                        if ($newRemaining <= 0.01) {
+                            $invoice->payment_status = 'paid';
+                        } else {
+                            $invoice->payment_status = 'partially_paid';
+                        }
+                        $invoice->save();
                     }
                 }
 
-                // Rule: Allocation Sum Validation (Optional: allow unallocated if business rules permit, 
-                // but here we enforce strict match if any allocation is provided)
-                if ($totalAllocated > 0 && abs($totalAllocated - $request->amount) > 0.01) {
-                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated) با مبلغ کل پرداخت ($request->amount) مطابقت ندارد.");
+                // Rule: Allocation Sum Validation comparing USD allocations to the USD base_amount of payment
+                if ($totalAllocated > 0 && abs($totalAllocated - $payed->base_amount) > 0.01) {
+                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated USD) با معادل دالر کل پرداخت ($" . number_format($payed->base_amount, 2) . ") مطابقت ندارد.");
                 }
             }
 
@@ -224,11 +233,35 @@ class CustomerPaymentController extends Controller
      */
     public function show($customer_id)
     {
-        $payments = CustomerPayment::where('customer_id',$customer_id)->orderBy('date','DESC')->paginate(30);
         $customer = Customer::find($customer_id);
-        
-        // FORENSIC DYNAMIC TOTALS
+        if (!$customer) {
+            return redirect()->route('customers.index')->with('error', 'مشتری مورد نظر یافت نشد.');
+        }
+
+        // Fetch unallocated payments for the cash ledger
+        $payments = CustomerPayment::where('customer_id', $customer_id)
+            ->doesntHave('allocations')
+            ->orderBy('date', 'DESC')
+            ->paginate(30);
+
+        // Fetch Carpet Sales Invoices
+        $salesInvoices = \App\Invoice::where('customer_id', $customer_id)
+            ->where('type', 'carpet')
+            ->with(['sale', 'payments'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Sales Invoices (in USD)
+        $totalOwedSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalPaidSales = DB::table('invoice_payments')
+            ->join('invoices', 'invoice_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.customer_id', $customer_id)
+            ->sum('amount_applied');
+
+        // FORENSIC DYNAMIC TOTALS for unallocated cash ledger payments
         $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -237,12 +270,21 @@ class CustomerPaymentController extends Controller
             ->get()
             ->keyBy('currency_code');
 
-        // Total in Base Currency (USD)
-        $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)->where('type', 'گرفت')->sum('base_amount');
+        // Total in Base Currency (USD) for unallocated cash ledger payments
+        $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'رسید')
+            ->sum('base_amount');
+
+        $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'گرفت')
+            ->sum('base_amount');
 
         $paymentEdit = '';
-        $invoice_numbers = Invoice::where('customer_id','=',$customer_id)->distinct()->get(['invoice_no']);
+        $invoice_numbers = Invoice::where('customer_id', '=', $customer_id)->distinct()->get(['invoice_no']);
 
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
@@ -250,15 +292,45 @@ class CustomerPaymentController extends Controller
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('customers.customer-payment', compact('customer','payments','paymentEdit','currencyTotals','totalBaseReceived','totalBaseSent','invoice_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        return view('customers.customer-payment', compact(
+            'customer', 'payments', 'paymentEdit', 'currencyTotals', 
+            'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
+            'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
+        ));
     }
 
-    public function show_all_payment($customer_id){
-        $payments = CustomerPayment::where('customer_id',$customer_id)->orderBy('date','DESC')->get();
+    public function show_all_payment($customer_id)
+    {
         $customer = Customer::find($customer_id);
+        if (!$customer) {
+            return redirect()->route('customers.index')->with('error', 'مشتری مورد نظر یافت نشد.');
+        }
 
-        // FORENSIC DYNAMIC TOTALS
+        // Fetch all unallocated payments
+        $payments = CustomerPayment::where('customer_id', $customer_id)
+            ->doesntHave('allocations')
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        // Fetch Carpet Sales Invoices
+        $salesInvoices = \App\Invoice::where('customer_id', $customer_id)
+            ->where('type', 'carpet')
+            ->with(['sale', 'payments'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Sales Invoices (in USD)
+        $totalOwedSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalPaidSales = DB::table('invoice_payments')
+            ->join('invoices', 'invoice_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.customer_id', $customer_id)
+            ->sum('amount_applied');
+
+        // FORENSIC DYNAMIC TOTALS for unallocated
         $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -267,13 +339,22 @@ class CustomerPaymentController extends Controller
             ->get()
             ->keyBy('currency_code');
 
-        // Total in Base Currency (USD)
-        $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)->where('type', 'گرفت')->sum('base_amount');
+        // Total in Base Currency (USD) for unallocated
+        $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'رسید')
+            ->sum('base_amount');
+
+        $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'گرفت')
+            ->sum('base_amount');
 
         $paymentEdit = '';
-        $invoice_numbers = Invoice::where('customer_id','=',$customer_id)->distinct()->get(['invoice_no']);
-    
+        $invoice_numbers = Invoice::where('customer_id', '=', $customer_id)->distinct()->get(['invoice_no']);
+
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
@@ -281,7 +362,12 @@ class CustomerPaymentController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
 
         $all = '';
-        return view('customers.customer-payment',compact('customer','payments','paymentEdit','currencyTotals','totalBaseReceived','totalBaseSent','invoice_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        return view('customers.customer-payment', compact(
+            'customer', 'payments', 'paymentEdit', 'currencyTotals', 
+            'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
+            'all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
+            'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
+        ));
     }
 
     /**
@@ -293,14 +379,58 @@ class CustomerPaymentController extends Controller
     public function edit($payment_id)
     {
         $paymentEdit = CustomerPayment::find($payment_id);
-        $payments = CustomerPayment::where('customer_id',$paymentEdit->customer_id)->orderBy('created_at','DESC')->paginate(30);
-        $customer = Customer::find($paymentEdit->customer_id);
-        $debits_us = CustomerPayment::where('type','=','گرفت')->where('customer_id',$paymentEdit->customer_id)->where('status',1)->sum('amount');
-        $debits_af = CustomerPayment::where('type','=','گرفت')->where('customer_id',$paymentEdit->customer_id)->where('status',1)->sum('amount_af');
-        $credit_us = CustomerPayment::where('type','=','رسید')->where('customer_id',$paymentEdit->customer_id)->where('status',1)->sum('amount');
-        $credit_af = CustomerPayment::where('type','=','رسید')->where('customer_id',$paymentEdit->customer_id)->where('status',1)->sum('amount_af');
-        $invoice_numbers = Invoice::where('customer_id','=',$paymentEdit->customer_id)->distinct()->get(['invoice_no']);
-    
+        if (!$paymentEdit) {
+            return redirect()->back()->with('error', 'سند پرداخت یافت نشد.');
+        }
+        $customer_id = $paymentEdit->customer_id;
+        $customer = Customer::find($customer_id);
+
+        $payments = CustomerPayment::where('customer_id', $customer_id)
+            ->doesntHave('allocations')
+            ->orderBy('date', 'DESC')
+            ->paginate(30);
+
+        // Fetch Carpet Sales Invoices
+        $salesInvoices = \App\Invoice::where('customer_id', $customer_id)
+            ->where('type', 'carpet')
+            ->with(['sale', 'payments'])
+            ->orderBy('invoice_date', 'DESC')
+            ->get();
+
+        // Calculate Totals for Sales Invoices (in USD)
+        $totalOwedSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+        $totalPaidSales = DB::table('invoice_payments')
+            ->join('invoices', 'invoice_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.customer_id', $customer_id)
+            ->sum('amount_applied');
+
+        // FORENSIC DYNAMIC TOTALS for unallocated
+        $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->select('currency_code', 
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+            )
+            ->groupBy('currency_code')
+            ->get()
+            ->keyBy('currency_code');
+
+        // Total in Base Currency (USD) for unallocated
+        $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'رسید')
+            ->sum('base_amount');
+
+        $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
+            ->where('status', 1)
+            ->doesntHave('allocations')
+            ->where('type', 'گرفت')
+            ->sum('base_amount');
+
+        $invoice_numbers = Invoice::where('customer_id', '=', $customer_id)->distinct()->get(['invoice_no']);
+
         $selectionService = new \App\Services\AccountSelectionService();
         $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
         $allowedDebitAccounts = $selectionService->getValidAccounts($mKey, 'debit');
@@ -308,7 +438,12 @@ class CustomerPaymentController extends Controller
         $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('customers.customer-payment',compact('customer','payments','paymentEdit','debits_us','debits_af','credit_af','credit_us','invoice_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        return view('customers.customer-payment', compact(
+            'customer', 'payments', 'paymentEdit', 'currencyTotals', 
+            'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
+            'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
+        ));
     }
 
     /**
@@ -352,7 +487,7 @@ class CustomerPaymentController extends Controller
             $payed->exchange_rate = $exchangeRate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = bcmul($request->amount, $exchangeRate, 4);
-            
+
             // Legacy Support
             $payed->dollar_rate = $exchangeRate > 0 ? (1 / $exchangeRate) : 0;
             if ($currency->code == 'USD') {
@@ -367,7 +502,9 @@ class CustomerPaymentController extends Controller
             $payed->update();
 
             // Clear old allocations and re-apply new ones with strict validation
+            $oldInvoices = \App\InvoicePayment::where('payment_id', $payed->id)->pluck('invoice_id')->unique()->toArray();
             \App\InvoicePayment::where('payment_id', $payed->id)->delete();
+            $newInvoices = [];
             if ($request->has('allocations')) {
                 $totalAllocated = 0;
                 foreach ($request->allocations as $invoiceId => $amount) {
@@ -387,11 +524,33 @@ class CustomerPaymentController extends Controller
                             'amount_applied' => $amount,
                         ]);
                         $totalAllocated += $amount;
+                        $newInvoices[] = $invoiceId;
                     }
                 }
 
-                if ($totalAllocated > 0 && abs($totalAllocated - $request->amount) > 0.01) {
-                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated) با مبلغ کل پرداخت ($request->amount) مطابقت ندارد.");
+                // Rule: Allocation Sum Validation comparing USD allocations to the USD base_amount of payment
+                if ($totalAllocated > 0 && abs($totalAllocated - $payed->base_amount) > 0.01) {
+                    throw new \Exception("مجموع مبالغ تخصیص داده شده ($totalAllocated USD) با معادل دالر کل پرداخت ($" . number_format($payed->base_amount, 2) . ") مطابقت ندارد.");
+                }
+            }
+
+            // Recalculate status for all affected invoices (both old and new)
+            $affectedInvoiceIds = array_unique(array_merge($oldInvoices, $newInvoices));
+            foreach ($affectedInvoiceIds as $invId) {
+                $inv = \App\Invoice::with(['sale', 'payments'])->find($invId);
+                if ($inv) {
+                    $total = $inv->sale->where('is_returned', 0)->sum('sale_cost_total');
+                    $paid = \App\InvoicePayment::where('invoice_id', $invId)->sum('amount_applied') ?? 0;
+                    $rem = $total - $paid;
+                    
+                    if ($paid <= 0) {
+                        $inv->payment_status = 'unpaid';
+                    } elseif ($rem <= 0.01) {
+                        $inv->payment_status = 'paid';
+                    } else {
+                        $inv->payment_status = 'partially_paid';
+                    }
+                    $inv->save();
                 }
             }
 
@@ -406,7 +565,7 @@ class CustomerPaymentController extends Controller
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            return redirect('/dashboard/customer-payments/'.$request->customer_id)->with('status', 'ویرایش موفقانه ثبت و اسناد حسابداری بروزرسانی شد!');
+            return redirect('/dashboard/customer-payments/' . $request->customer_id)->with('status', 'ویرایش موفقانه ثبت و اسناد حسابداری بروزرسانی شد!');
         });
     }
 
@@ -422,6 +581,9 @@ class CustomerPaymentController extends Controller
             $payment = CustomerPayment::find($id);
             $customer_name = DB::table('customers')->where('id', $payment->customer_id)->first();
 
+            // Track affected invoices before deleting
+            $affectedInvoices = \App\InvoicePayment::where('payment_id', $payment->id)->pluck('invoice_id')->unique()->toArray();
+
             // Reverse Accounting Entry (Only if approved)
             if ($payment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Payment Record Deleted');
@@ -434,6 +596,26 @@ class CustomerPaymentController extends Controller
             $activity->save();
 
             $payment->delete();
+
+            // Recalculate status for affected invoices
+            foreach ($affectedInvoices as $invId) {
+                $inv = \App\Invoice::with(['sale', 'payments'])->find($invId);
+                if ($inv) {
+                    $total = $inv->sale->where('is_returned', 0)->sum('sale_cost_total');
+                    $paid = \App\InvoicePayment::where('invoice_id', $invId)->sum('amount_applied') ?? 0;
+                    $rem = $total - $paid;
+                    
+                    if ($paid <= 0) {
+                        $inv->payment_status = 'unpaid';
+                    } elseif ($rem <= 0.01) {
+                        $inv->payment_status = 'paid';
+                    } else {
+                        $inv->payment_status = 'partially_paid';
+                    }
+                    $inv->save();
+                }
+            }
+
             return response()->json(['status' => 'success']);
         });
     }

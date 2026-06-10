@@ -46,4 +46,41 @@ class Agents extends Model
     public function material_sale(){
         return $this->hasMany(MaterialSale::class,'agent_id','agent_id');
     }
+
+    public function sales_invoices() {
+        return $this->hasMany(Invoice::class, 'agent_id', 'agent_id');
+    }
+
+    public function netBalanceUsd()
+    {
+        $purchaseBills = $this->purchase_invoices()->with('carpets')->get();
+        $totalOwedPurchases = $purchaseBills->sum(function($bill) { return $bill->total_amount; });
+        
+        $totalPaidPurchases = \DB::table('agent_payment_allocations')
+            ->join('purchase_invoices', 'agent_payment_allocations.allocatable_id', '=', 'purchase_invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\PurchaseInvoice')
+            ->where('purchase_invoices.agent_id', $this->agent_id)
+            ->sum('base_allocated_amount');
+
+        $salesInvoices = $this->sales_invoices()->whereIn('type', ['dye', 'yarn'])->with('material_sales')->get();
+        $totalReceivableSales = $salesInvoices->sum(function($inv) { return $inv->total_amount; });
+
+        $totalReceivedSales = \DB::table('agent_payment_allocations')
+            ->join('invoices', 'agent_payment_allocations.allocatable_id', '=', 'invoices.id')
+            ->where('agent_payment_allocations.allocatable_type', 'App\Invoice')
+            ->where('invoices.agent_id', $this->agent_id)
+            ->sum('base_allocated_amount');
+
+        $totalBaseReceived = $this->payment()->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = $this->payment()->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+
+        return (($totalOwedPurchases - $totalPaidPurchases) + $totalBaseReceived) - (($totalReceivableSales - $totalReceivedSales) + $totalBaseSent);
+    }
+
+    public function netBalanceAfn()
+    {
+        $totalAfnReceived = $this->payment()->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('amount_af');
+        $totalAfnSent = $this->payment()->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('amount_af');
+        return $totalAfnReceived - $totalAfnSent;
+    }
 }
