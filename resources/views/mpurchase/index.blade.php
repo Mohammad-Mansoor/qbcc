@@ -86,6 +86,7 @@
               <thead style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
                 <tr style="color: #475569;">
                   <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">فاکتور #</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center; white-space: nowrap;">بل خرید</th>
                   <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">نوعیت خرید</th>
                   <th style="padding: 12px 16px; font-weight: 600;">فروشنده</th>
                   <th style="padding: 12px 16px; font-weight: 600; white-space: nowrap;">تاریخ</th>
@@ -124,6 +125,17 @@
                        style="font-weight: 700; color: #3b82f6; font-family: monospace; font-size: 0.85rem;">
                       {{ $p->purchase_number }}
                     </a>
+                  </td>
+
+                  {{-- Purchase Bill Image --}}
+                  <td style="padding: 10px 16px; text-align: center; vertical-align: middle;">
+                    @if($p->purchase_bill)
+                      <a href="{{ asset($p->purchase_bill) }}" target="_blank">
+                        <img src="{{ asset($p->purchase_bill) }}" alt="بل خرید" style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                      </a>
+                    @else
+                      <span style="color: #cbd5e1;">—</span>
+                    @endif
                   </td>
 
                   {{-- Parent Type --}}
@@ -238,7 +250,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="13" style="text-align:center; padding: 40px; color: #94a3b8;">
+                  <td colspan="14" style="text-align:center; padding: 40px; color: #94a3b8;">
                     <i class="fa fa-inbox" style="font-size: 2rem; display:block; margin-bottom: 8px;"></i>
                     هیچ رکوردی یافت نشد
                   </td>
@@ -250,7 +262,7 @@
               @if($purchase->count() > 0)
               <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
                 <tr>
-                  <td colspan="6" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
+                  <td colspan="7" style="padding: 10px 16px; font-weight: 700; color: #475569; text-align: right;">
                     مجموع صفحه جاری:
                   </td>
                   <td style="padding: 10px 16px; font-weight: 700; color: #1e293b; text-align: center;" dir="ltr">
@@ -428,6 +440,16 @@
                     <label>قیمت کل به حروف (In Words)</label>
                     <input type="text" class="form-control" name="in_words" placeholder="قیمت به حروف" required>
                     <span class="form-helper">بیان مبلغ نهایی فاکتور به حروف فارسی جهت کنترل دستی.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-lg-12">
+                  <div class="form-group fill">
+                    <label style="font-weight: 700; color: #334155;">تصویر بل خرید (Purchase Bill Image)</label>
+                    <input type="file" name="purchase_bill" class="form-control" accept="image/*" style="border: 2px dashed #cbd5e1; padding: 12px; height: auto; border-radius: 8px;">
+                    <span class="form-helper">تصویر فاکتور خرید فیزیکی (فرمت‌های مجاز: jpeg, png, jpg, gif, webp).</span>
                   </div>
                 </div>
               </div>
@@ -629,6 +651,22 @@
                     <label>قیمت کل به حروف (In Words)</label>
                     <input type="text" class="form-control" name="in_words" value="{{ $purchaseMaterial->in_words }}" placeholder="قیمت به حروف" required>
                     <span class="form-helper">قیمت نهایی فاکتور به حروف فارسی.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mt-3">
+                <div class="col-lg-12">
+                  <div class="form-group fill">
+                    <label style="font-weight: 700; color: #334155;">تصویر بل خرید (Purchase Bill Image)</label>
+                    @if($purchaseMaterial->purchase_bill)
+                      <div class="mb-2">
+                        <img src="{{ asset($purchaseMaterial->purchase_bill) }}" alt="بل فعلی" style="max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1; display: block;">
+                        <span class="form-helper text-muted">تصویر بل فعلی در بالا نمایش داده شده است. برای تغییر، تصویر جدیدی انتخاب کنید.</span>
+                      </div>
+                    @endif
+                    <input type="file" name="purchase_bill" class="form-control" accept="image/*" style="border: 2px dashed #cbd5e1; padding: 12px; height: auto; border-radius: 8px;">
+                    <span class="form-helper">تصویر فاکتور خرید فیزیکی جدید (فرمت‌های مجاز: jpeg, png, jpg, gif, webp).</span>
                   </div>
                 </div>
               </div>

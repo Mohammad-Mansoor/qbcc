@@ -18,8 +18,9 @@ class CustomerAccountOrderController extends Controller
     {
         $accountEdit = "";
         $customers = CustomerAccountOrder::all();
+        $global_customers = \App\Customer::all();
 
-        return view('customer-orders.customer-accounts', compact('accountEdit', 'customers'));
+        return view('customer-orders.customer-accounts', compact('accountEdit', 'customers', 'global_customers'));
     }
 
     /**
@@ -59,14 +60,11 @@ class CustomerAccountOrderController extends Controller
     public function show($customer_id)
     {
         $customer = CustomerAccountOrder::find($customer_id);
-        $customer_orders = DB::table('customer_orders')->where('customer_id',$customer_id)->orderBy('co_id','DESC')->get();
+        $customer_orders = CustomerOrder::where('customer_id',$customer_id)->orderBy('co_id','DESC')->get();
         $orderEdit = null;
         $main_customers = \App\Customer::all();
 
         return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders', 'main_customers'));
-
-
-
     }
 
     /**
@@ -79,8 +77,9 @@ class CustomerAccountOrderController extends Controller
     {
         $accountEdit = DB::table('customer_account_orders')->where('c_id', $customer_id)->first();
         $customers = CustomerAccountOrder::all();
+        $global_customers = \App\Customer::all();
 
-        return view('customer-orders.customer-accounts', compact('accountEdit', 'customers'));
+        return view('customer-orders.customer-accounts', compact('accountEdit', 'customers', 'global_customers'));
     }
 
     /**

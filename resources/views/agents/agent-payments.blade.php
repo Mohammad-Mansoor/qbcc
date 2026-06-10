@@ -266,6 +266,64 @@
                                     @endif
                                 </div>
                             </div>
+
+                            <!-- Account Overrides Section -->
+                            <div class="col-lg-12 mt-4">
+                                <h6 class="form-section-title"><i class="fa fa-university"></i> حسابات سفارشی (Manual GL Overrides) - <small class="text-muted">اختیاری (Optional)</small></h6>
+                                <div class="row">
+                                    <!-- Container for Received (رسید) -->
+                                    <div class="col-md-6 account-override-group" id="override_received_group" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="field-label">حساب بدهکار / Debit Account (رسید)</label>
+                                            <select name="override_debit_account_id" id="debit_received" class="form-control custom-input override-select">
+                                                <option value="">-- انتخاب حساب پیشفرض (Default Cash) --</option>
+                                                @foreach($pymtInDebit as $acc)
+                                                    <option value="{{$acc->id}}" {{ $paymentEdit && $paymentEdit->override_debit_account_id == $acc->id ? 'selected' : '' }}>
+                                                        {{$acc->account_code}} - {{$acc->account_name}} ({{$acc->account_type}})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label class="field-label">حساب بستانکار / Credit Account (رسید)</label>
+                                            <select name="override_credit_account_id" id="credit_received" class="form-control custom-input override-select">
+                                                <option value="">-- انتخاب حساب پیشفرض (Default Agent Control) --</option>
+                                                @foreach($pymtInCredit as $acc)
+                                                    <option value="{{$acc->id}}" {{ $paymentEdit && $paymentEdit->override_credit_account_id == $acc->id ? 'selected' : '' }}>
+                                                        {{$acc->account_code}} - {{$acc->account_name}} ({{$acc->account_type}})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Container for Sent (گرفت) -->
+                                    <div class="col-md-6 account-override-group" id="override_sent_group" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="field-label">حساب بدهکار / Debit Account (گرفت)</label>
+                                            <select name="override_debit_account_id" id="debit_sent" class="form-control custom-input override-select" disabled>
+                                                <option value="">-- انتخاب حساب پیشفرض (Default Agent Control) --</option>
+                                                @foreach($pymtOutDebit as $acc)
+                                                    <option value="{{$acc->id}}" {{ $paymentEdit && $paymentEdit->override_debit_account_id == $acc->id ? 'selected' : '' }}>
+                                                        {{$acc->account_code}} - {{$acc->account_name}} ({{$acc->account_type}})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label class="field-label">حساب بستانکار / Credit Account (گرفت)</label>
+                                            <select name="override_credit_account_id" id="credit_sent" class="form-control custom-input override-select" disabled>
+                                                <option value="">-- انتخاب حساب پیشفرض (Default Cash) --</option>
+                                                @foreach($pymtOutCredit as $acc)
+                                                    <option value="{{$acc->id}}" {{ $paymentEdit && $paymentEdit->override_credit_account_id == $acc->id ? 'selected' : '' }}>
+                                                        {{$acc->account_code}} - {{$acc->account_name}} ({{$acc->account_type}})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -406,6 +464,28 @@
         
         var $buttons = $('#agent_payment_table').find('caption').children().detach();
         $buttons.appendTo('#exportButton');
+
+        // MANUAL GL OVERRIDES TOGGLE
+        function toggleOverrideAccounts() {
+            const type = $('select[name="type"]').val();
+            if (type === 'رسید') {
+                $('#override_received_group').show();
+                $('#debit_received, #credit_received').prop('disabled', false).trigger('change');
+                
+                $('#override_sent_group').hide();
+                $('#debit_sent, #credit_sent').prop('disabled', true).trigger('change');
+            } else {
+                $('#override_received_group').hide();
+                $('#debit_received, #credit_received').prop('disabled', true).trigger('change');
+                
+                $('#override_sent_group').show();
+                $('#debit_sent, #credit_sent').prop('disabled', false).trigger('change');
+            }
+        }
+
+        $('.override-select').select2({ width: '100%' });
+        $('select[name="type"]').on('change', toggleOverrideAccounts);
+        toggleOverrideAccounts(); // Initial call
     });
 
     function deletePayment(id, agent_id) {

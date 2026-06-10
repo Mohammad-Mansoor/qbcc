@@ -52,39 +52,42 @@ class SaleController extends Controller
     {
          $search = $request->search;
 
-        $sales =  DB::table('sales')
-            ->join('carpets', 'sales.carpet_id', 'carpets.carpet_id')
-//            ->join('invoices', 'sales.invoice_id', 'invoices.id')
-//            ->join('customers', 'sales.customer_id', 'customers.id')
-            ->where('sales.type', 'like', '%' . $search . '%')
-            ->orWhere('sales.quality', 'like', '%' . $search . '%')
-//            ->orWhere('invoices.invoice_no', 'like', '%' . $search . '%')
-//            ->orWhere('customers.name', 'like', '%' . $search . '%')
-//            ->orWhere('customers.customer_code', 'like', '%' . $search . '%')
-            ->orWhere('carpets.carpet_no', 'like', '%' . $search . '%')
-            ->orWhere('carpets.width', 'like', '%' . $search . '%')
-            ->orWhere('carpets.height', 'like', '%' . $search . '%')
-            ->orWhere('carpets.area', 'like', '%' . $search . '%')
+        $sales = Sale::with(['carpet', 'invoice', 'customer'])
+            ->where(function($query) use ($search) {
+                $query->where('type', 'like', '%' . $search . '%')
+                      ->orWhere('quality', 'like', '%' . $search . '%')
+                      ->orWhereHas('carpet', function($q) use ($search) {
+                          $q->where('carpet_no', 'like', '%' . $search . '%')
+                            ->orWhere('width', 'like', '%' . $search . '%')
+                            ->orWhere('height', 'like', '%' . $search . '%')
+                            ->orWhere('area', 'like', '%' . $search . '%');
+                      })
+                      ->orWhereHas('invoice', function($q) use ($search) {
+                          $q->where('invoice_no', 'like', '%' . $search . '%');
+                      })
+                      ->orWhereHas('customer', function($q) use ($search) {
+                          $q->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('customer_code', 'like', '%' . $search . '%');
+                      });
+            })
+            ->orderBy('created_at', 'DESC')
             ->paginate(30);
 
 
-        $invoices = Invoice::orderBy('id','DESC')->get();
+        $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
 
 
         return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','search'));
-
-
-
     }
 
     public function index()
     {
        
         $sales = Sale::with(['carpet', 'invoice', 'customer'])->orderBy('created_at','DESC')->paginate(60);
-        $invoices = Invoice::orderBy('id','DESC')->get();
+        $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
@@ -92,7 +95,7 @@ class SaleController extends Controller
     }
     public function show_all(){
         $sales = Sale::with(['carpet', 'invoice', 'customer'])->orderBy('created_at','DESC')->paginate(50);
-        $invoices = Invoice::orderBy('id','DESC')->get();
+        $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
@@ -107,7 +110,7 @@ class SaleController extends Controller
     public function create()
     {
         $carpets = Carpet::where('status', 5)->get();
-        $invoices = Invoice::orderBy('id', 'DESC')->get();
+        $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id', 'DESC')->get();
         $packing_list = PakingList::orderBy('id', 'DESC')->get();
 
         $selectionService = new \App\Services\AccountSelectionService();
@@ -135,6 +138,13 @@ class SaleController extends Controller
             $carpet_id = Carpet::find($request->carpet_id);
             $invoice_id = Invoice::find($request->invoice_id);
 
+            if (!$invoice_id) {
+                return redirect()->back()->with('error', 'انوایس نامعتبر است!');
+            }
+            if ($invoice_id->status === 'closed') {
+                return redirect()->back()->with('error', 'این انوایس بسته شده است و امکان افزودن فروش جدید وجود ندارد!');
+            }
+
             $sale = new Sale();
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
             $sale->sale_cost_total = $request->sale_cost_total;
@@ -144,17 +154,15 @@ class SaleController extends Controller
             $sale->carpet_id = $request->carpet_id;
             $sale->invoice_id = $request->invoice_id;
             $sale->customer_id = $invoice_id->customer->id;
-            $sale->customer_code = $request->customer_code;
-            $sale->carpet_height = $request->carpet_height;
-            $sale->carpet_width = $request->carpet_width;
-            $sale->carpet_area = $request->carpet_area;
             $sale->currency_id = $request->currency_id;
             $sale->currency_code = \App\Currency::find($request->currency_id)->code ?? 'USD';
             $sale->exchange_rate = $request->exchange_rate ?? 1.0;
+            $sale->sale_date = Carbon::today()->format('Y-m-d');
+            $sale->description = "Sale of Carpet " . $carpet_id->carpet_no . " (Type: " . $request->carpet_type . ", Quality: " . $request->carpet_quality . ", Size: " . $carpet_id->width . "x" . $carpet_id->height . ", Area: " . $carpet_id->area . "m²)";
             $sale->save();
 
             $carpet_id->status = 6;
-            $carpet_id->package_id = $request->package_id;
+            $carpet_id->package_id = $request->package_id ?? $carpet_id->package_id;
             $carpet_id->save();
 
             $activity = new Activity();
@@ -169,8 +177,11 @@ class SaleController extends Controller
                 'sale_amount' => $sale->sale_cost_total,
                 'customer_id' => $sale->customer_id,
                 'quantity' => 1,
+                'warehouse_id' => $carpet_id->warehouse_id,
+                'area' => (float)($carpet_id->area ?? 0),
+                'unit_cost' => (float)($carpet_id->total_price ?? 0),
                 'reference' => 'SALE-' . $sale->id,
-                'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . ($invoice_id->customer->customer_code ?? ''),
                 'currency_code' => $sale->currency_code,
                 'exchange_rate' => $sale->exchange_rate,
                 'override_debit_account_id' => $request->override_debit_account_id,
@@ -209,7 +220,20 @@ class SaleController extends Controller
     public function edit($id)
     {
         $sale = Sale::find($id);
-        $invoices = Invoice::orderBy('id','DESC')->get();
+        if ($sale->invoice && $sale->invoice->status === 'closed') {
+            return redirect('/dashboard/sales')->with('error', 'این فروش در یک انوایس بسته شده قرار دارد و امکان ویرایش آن وجود ندارد!');
+        }
+
+        $invoices = Invoice::where('type', 'carpet')
+            ->where(function($q) use ($sale) {
+                $q->where('status', 'open');
+                if ($sale && $sale->invoice_id) {
+                    $q->orWhere('id', $sale->invoice_id);
+                }
+            })
+            ->orderBy('id','DESC')
+            ->get();
+            
         $carpet = Carpet::where('carpet_id',$sale->carpet_id)->first();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $package = Package::find($carpet->package_id);
@@ -243,11 +267,23 @@ class SaleController extends Controller
     {
         $this->accountingService->failIfLocked(Carbon::today()->format('Y-m-d'));
         return DB::transaction(function () use ($request, $id) {
+            $sale = Sale::find($id);
+            if ($sale->invoice && $sale->invoice->status === 'closed') {
+                return redirect()->back()->with('error', 'این فروش در یک انوایس بسته شده قرار دارد و امکان ویرایش آن وجود ندارد!');
+            }
+
+            $invoice_id = Invoice::find($request->invoice_id);
+            if (!$invoice_id) {
+                return redirect()->back()->with('error', 'انوایس نامعتبر است!');
+            }
+            if ($invoice_id->status === 'closed') {
+                return redirect()->back()->with('error', 'انوایس مقصد بسته شده است!');
+            }
+
             $carpet_id = Carpet::find($request->carpet_id);
-            $carpet_id->package_id = $request->package_id;
+            $carpet_id->package_id = $request->package_id ?? $carpet_id->package_id;
             $carpet_id->save();
             
-            $invoice_id = Invoice::find($request->invoice_id);
             $sale = Sale::find($id);
 
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
@@ -258,13 +294,11 @@ class SaleController extends Controller
             $sale->carpet_id = $request->carpet_id;
             $sale->invoice_id = $request->invoice_id;
             $sale->customer_id = $invoice_id->customer->id;
-            $sale->customer_code = $request->customer_code;
-            $sale->carpet_height = $request->carpet_height;
-            $sale->carpet_width = $request->carpet_width;
-            $sale->carpet_area = $request->carpet_area;
             $sale->currency_id = $request->currency_id;
             $sale->currency_code = \App\Currency::find($request->currency_id)->code ?? 'USD';
             $sale->exchange_rate = $request->exchange_rate ?? 1.0;
+            $sale->sale_date = Carbon::today()->format('Y-m-d');
+            $sale->description = "Sale of Carpet " . $carpet_id->carpet_no . " (Type: " . $request->carpet_type . ", Quality: " . $request->carpet_quality . ", Size: " . $carpet_id->width . "x" . $carpet_id->height . ", Area: " . $carpet_id->area . "m²)";
             $sale->update();
 
             $activity = new Activity();
@@ -282,8 +316,11 @@ class SaleController extends Controller
                 'sale_amount' => $sale->sale_cost_total,
                 'customer_id' => $sale->customer_id,
                 'quantity' => 1,
+                'warehouse_id' => $carpet_id->warehouse_id,
+                'area' => (float)($carpet_id->area ?? 0),
+                'unit_cost' => (float)($carpet_id->total_price ?? 0),
                 'reference' => 'SALE-' . $sale->id,
-                'description' => "ویرایش فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . $sale->customer_code,
+                'description' => "ویرایش فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . ($invoice_id->customer->customer_code ?? ''),
                 'currency_code' => $sale->currency_code,
                 'exchange_rate' => $sale->exchange_rate,
                 'override_debit_account_id' => $request->override_debit_account_id,

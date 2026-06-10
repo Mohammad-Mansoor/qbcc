@@ -361,6 +361,59 @@
                                 </div>
                             </div>
 
+                            <!-- 10. Party Type Filter -->
+                            <div class="col-md-4 mb-3">
+                                <label class="small font-weight-bold text-muted">نوعیت طرف معامله (Party Type):</label>
+                                <select id="filter_party_type" name="party_type" class="form-control modern-search" onchange="filterPartyTypeChanged(this)">
+                                    <option value="">همه</option>
+                                    <option value="App\Customer" {{ request('party_type') == 'App\Customer' ? 'selected' : '' }}>مشتری (Customer)</option>
+                                    <option value="App\Agents" {{ request('party_type') == 'App\Agents' ? 'selected' : '' }}>نماینده (Agent)</option>
+                                    <option value="App\OfficeEmployee" {{ request('party_type') == 'App\OfficeEmployee' ? 'selected' : '' }}>کارمند (Employee)</option>
+                                    <option value="App\StringSeller" {{ request('party_type') == 'App\StringSeller' ? 'selected' : '' }}>فروشنده تار (String Seller)</option>
+                                    <option value="App\WashingTeam" {{ request('party_type') == 'App\WashingTeam' ? 'selected' : '' }}>تیم شستشو (Washing Team)</option>
+                                    <option value="App\FinishingTeam" {{ request('party_type') == 'App\FinishingTeam' ? 'selected' : '' }}>تیم پرداخت (Finishing Team)</option>
+                                    <option value="App\Kachaee" {{ request('party_type') == 'App\Kachaee' ? 'selected' : '' }}>تیم کچه ای (Kachaee)</option>
+                                    <option value="App\NewDifferentAccount" {{ request('party_type') == 'App\NewDifferentAccount' ? 'selected' : '' }}>حساب متفرقه جدید (New Different Account)</option>
+                                    <option value="App\DifferentAccount" {{ request('party_type') == 'App\DifferentAccount' ? 'selected' : '' }}>حساب متفرقه (Different Account)</option>
+                                </select>
+                            </div>
+
+                            <!-- 11. Party Filter -->
+                            <div class="col-md-5 mb-3">
+                                <label class="small font-weight-bold text-muted">طرف معامله (Party):</label>
+                                <select id="filter_party_id" name="party_id" class="form-control select2-party" onchange="this.form.submit();" {{ !request('party_type') ? 'disabled' : '' }}>
+                                    <option value="">همه طرف های معامله</option>
+                                    @if(request('party_type') && request('party_id'))
+                                        @php
+                                            $partyName = '';
+                                            $pt = request('party_type');
+                                            $pid = request('party_id');
+                                            if ($pt == 'App\Customer') {
+                                                $partyName = \App\Customer::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\Agents') {
+                                                $agent = \App\Agents::find($pid);
+                                                $partyName = $agent ? $agent->name . ($agent->email ? " ({$agent->email})" : "") : "";
+                                            } elseif ($pt == 'App\OfficeEmployee') {
+                                                $partyName = \App\OfficeEmployee::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\StringSeller') {
+                                                $partyName = \App\StringSeller::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\WashingTeam') {
+                                                $partyName = \App\WashingTeam::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\FinishingTeam') {
+                                                $partyName = \App\FinishingTeam::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\Kachaee') {
+                                                $partyName = \App\Kachaee::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\NewDifferentAccount') {
+                                                $partyName = \App\NewDifferentAccount::find($pid)->name ?? '';
+                                            } elseif ($pt == 'App\DifferentAccount') {
+                                                $partyName = \App\DifferentAccount::find($pid)->name ?? '';
+                                            }
+                                        @endphp
+                                        <option value="{{ $pid }}" selected>{{ $partyName }}</option>
+                                    @endif
+                                </select>
+                            </div>
+
                             <div class="col-md-12 text-right">
                                 <button type="submit" class="btn btn-dark shadow-sm px-4 rounded-pill">
                                     <i class="feather icon-filter"></i> تطبیق فیلترها (Filter)
@@ -386,6 +439,7 @@
                     <thead>
                         <tr>
                             <th>تاریخ</th>
+                            <th>شناسه سند (GL ID)</th>
                             <th>نمبر سند (Ref)</th>
                             <th>تفصیلات (Description)</th>
                             <th>نوعیت</th>
@@ -398,6 +452,7 @@
                         @if($transactions->count() > 0)
                             @foreach($transactions as $tx)
                             <tr class="journal-row-click"
+                                data-journal-id="{{ $tx->journal_id ?? $tx->id }}"
                                 data-ref="{{ $tx->reference }}"
                                 data-date="{{ $tx->date }}"
                                 data-desc="{{ $tx->description }}"
@@ -414,6 +469,7 @@
                                     ];
                                 })) }}">
                                 <td>{{ $tx->date }}</td>
+                                <td class="font-weight-bold text-dark">{{ $tx->journal_id ?? $tx->id }}</td>
                                 <td class="font-weight-bold text-primary">{{ $tx->reference }}</td>
                                 <td>
                                     <span class="text-dark d-block" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -423,7 +479,7 @@
                                 <td>
                                     <span class="badge badge-light-info text-capitalize">{{ $tx->journal_type }}</span>
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     @if($tx->status == 'posted')
                                         <span class="badge badge-success rounded-pill px-3">تایید شده</span>
                                     @else
@@ -436,6 +492,7 @@
                                 <td class="text-right px-4">
                                     <div class="d-flex justify-content-end align-items-center">
                                         <button type="button" class="btn-modern-action btn-details mr-1 btn-quick-view" 
+                                                data-journal-id="{{ $tx->journal_id ?? $tx->id }}"
                                                 data-ref="{{ $tx->reference }}"
                                                 data-date="{{ $tx->date }}"
                                                 data-desc="{{ $tx->description }}"
@@ -463,7 +520,7 @@
                             @endforeach
                         @else
                             <tr class="no-records-row">
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="feather icon-search fa-3x mb-3 d-block opacity-25"></i>
                                     هیچ سند حسابداری با این مشخصات یافت نشد
                                 </td>
@@ -491,11 +548,15 @@
             </div>
             <div class="modal-body p-4">
                 <div class="row mb-3">
-                    <div class="col-md-6 col-6 text-left">
+                    <div class="col-md-4 col-4 text-left">
+                        <span class="text-muted d-block small">شناسه سند (GL ID):</span>
+                        <strong class="text-dark h5" id="qv-journal-id"></strong>
+                    </div>
+                    <div class="col-md-4 col-4 text-left">
                         <span class="text-muted d-block small">نمبر سند (Ref):</span>
                         <strong class="text-primary h5" id="qv-ref"></strong>
                     </div>
-                    <div class="col-md-6 col-6 text-right">
+                    <div class="col-md-4 col-4 text-right">
                         <span class="text-muted d-block small">تاریخ (Date):</span>
                         <strong class="text-dark h5" id="qv-date"></strong>
                     </div>
@@ -543,11 +604,83 @@
 <script src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.print.min.js"></script>
 
 <script>
+    function filterPartyTypeChanged(selectEl) {
+        let partySelect = document.querySelector('#filter_party_id');
+        let partyType = selectEl.value;
+
+        // Destroy existing select2 if initialized
+        if ($(partySelect).hasClass("select2-hidden-accessible")) {
+            $(partySelect).select2('destroy');
+        }
+
+        if (!partyType) {
+            partySelect.innerHTML = '<option value="">همه طرف های معامله</option>';
+            partySelect.disabled = true;
+            // Submit form to apply "all"
+            selectEl.form.submit();
+            return;
+        }
+
+        partySelect.disabled = false;
+        partySelect.innerHTML = '<option value="">همه طرف های معامله</option>';
+
+        // Initialize Select2 with AJAX to load parties dynamically
+        $(partySelect).select2({
+            placeholder: '-- انتخاب طرف معامله --',
+            allowClear: true,
+            ajax: {
+                url: '{{ route("accounting.journals.api.parties") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        type: partyType,
+                        q: params.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+        
+        // Trigger opening the dropdown immediately
+        $(partySelect).select2('open');
+    }
+
     $(document).ready(function() {
         // Initialize Select2
         $('#account_filter').select2({
             width: '100%'
         });
+
+        // Initialize filter party select if type is already selected
+        if ($('#filter_party_type').val()) {
+            $('#filter_party_id').select2({
+                placeholder: '-- انتخاب طرف معامله --',
+                allowClear: true,
+                ajax: {
+                    url: '{{ route("accounting.journals.api.parties") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            type: $('#filter_party_type').val(),
+                            q: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
 
         // Clickable row to trigger quick view modal
         $('.journal-row-click').on('click', function(e) {
@@ -559,13 +692,15 @@
         // Populating the quick view modal
         $(document).on('click', '.btn-quick-view', function(e) {
             e.stopPropagation();
+            var journalId = $(this).data('journal-id');
             var ref = $(this).data('ref');
             var date = $(this).data('date');
             var desc = $(this).data('desc');
             var url = $(this).data('url');
             var entries = $(this).data('entries');
             
-            $('#qv-ref').text(ref);
+            $('#qv-journal-id').text(journalId);
+            $('#qv-ref').text(ref || '-');
             $('#qv-date').text(date);
             $('#qv-desc').text(desc);
             $('#qv-details-btn').attr('href', url);

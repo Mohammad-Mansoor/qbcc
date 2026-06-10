@@ -98,8 +98,9 @@ class AgentsController extends Controller
             $AccountNo = 'AG-' . sprintf('%04d', '1');
         }
         $province = Province::orderBy('province')->get();
+        $currencies = Currency::all();
 
-        return view('agents.index', compact('data', 'accounts','agent','AccountNo','province'));
+        return view('agents.index', compact('data', 'accounts','agent','AccountNo','province', 'currencies'));
     }
     public  function deactive_accounts(){
         $data = Agents::where('account_status',0)->orderBy('agent_id', 'desc')->paginate(30);
@@ -116,8 +117,9 @@ class AgentsController extends Controller
             $AccountNo = 'AG-' . sprintf('%04d', '1');
         }
         $province = Province::orderBy('province')->get();
+        $currencies = Currency::all();
 
-        return view('agents.index', compact('data', 'agent','AccountNo','province'));
+        return view('agents.index', compact('data', 'agent','AccountNo','province', 'currencies'));
     }
 
     public function search(Request $request)
@@ -146,9 +148,10 @@ class AgentsController extends Controller
             $AccountNo = 'AG-' . sprintf('%04d', '1');
         }
         $province = Province::orderBy('province')->get();
+        $currencies = Currency::all();
 
 
-        return view('agents.index', compact('data','search','agent','AccountNo','province'));
+        return view('agents.index', compact('data','search','agent','AccountNo','province', 'currencies'));
     }
 //    public function carpet_seller(){
 //        $data = Agents::where('contract_type','carpet seller')->orderBy('agent_id' , 'desc')->get();

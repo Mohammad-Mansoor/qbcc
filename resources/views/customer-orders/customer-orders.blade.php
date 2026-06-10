@@ -2,128 +2,341 @@
 
 @section('content')
 <style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 15px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --info-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: rgba(226, 232, 240, 0.8);
     }
-    .order-header-mini {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+    }
+
+    .order-header-premium {
+        background: var(--primary-gradient);
         color: white;
+        padding: 2.25rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .order-header-premium::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    /* Stat Cards */
+    .stat-card {
         padding: 1.5rem;
-        border-radius: 15px;
-        margin-bottom: 1.5rem;
+        border-radius: 16px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px) scale(1.02);
+    }
+    .stat-card-primary { background: var(--primary-gradient); }
+    .stat-card-warning { background: var(--warning-gradient); }
+    .stat-card-info { background: var(--info-gradient); }
+    .stat-card-success { background: var(--success-gradient); }
+    
+    .stat-icon {
+        position: absolute;
+        left: 1.5rem;
+        bottom: 1rem;
+        font-size: 3.5rem;
+        opacity: 0.15;
+    }
+
+    /* Custom Badges */
+    .badge-premium {
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.025em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-premium-pending { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+    .badge-premium-progress { background: #dbeafe; color: #2563eb; border: 1px solid #bfdbfe; }
+    .badge-premium-completed { background: #d1fae5; color: #059669; border: 1px solid #a7f3d0; }
+
+    /* Custom progress bar */
+    .progress-premium {
+        height: 8px;
+        border-radius: 9999px;
+        background-color: #f1f5f9;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-premium {
+        height: 100%;
+        border-radius: 9999px;
+        background: var(--info-gradient);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-bar-completed {
+        background: var(--success-gradient);
+    }
+
+    /* Table modifications */
+    .table thead th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        color: #64748b;
+        background-color: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        border-top: none;
+        padding: 1rem 1.5rem;
+    }
+    .table tbody td {
+        padding: 1.25rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    /* Custom inline select */
+    .select-status-premium {
+        padding: 0.4rem 2rem 0.4rem 0.8rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background-color: #fff;
+        font-size: 0.825rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        cursor: pointer;
+        width: 140px;
+    }
+    .select-status-premium:focus {
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    .select-status-premium.status-pending { color: #d97706; border-color: #fde68a; background-color: #fffbeb; }
+    .select-status-premium.status-in_progress { color: #2563eb; border-color: #bfdbfe; background-color: #eff6ff; }
+    .select-status-premium.status-completed { color: #059669; border-color: #a7f3d0; background-color: #ecfdf5; }
+
+    /* Modals styling */
+    .modal-content-premium {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .modal-header-premium {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem 2rem;
+    }
+    .modal-body-premium {
+        padding: 2rem;
+    }
+
+    .form-control-premium {
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s;
+    }
+    .form-control-premium:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .btn-premium {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+    }
+    .btn-premium:hover {
+        opacity: 0.95;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        color: white;
+    }
+
+    /* Print layout */
+    @media print {
+        .hideOnPrint { display: none !important; }
+        .glass-card { box-shadow: none !important; border: 1px solid #ddd !important; }
     }
 </style>
 
-<div class="container-fluid">
-    <div class="order-header-mini glass-card" style="direction: rtl; text-align: right;">
-        <h3 class="text-white mb-0">{{$customer->customer_name}} - مدیریت فرمایشات</h3>
-        <p class="mb-0 opacity-75">کشور: {{ $customer->customer_country }}</p>
+@php
+    // Calculate dashboard statistics dynamically from the current list
+    $totalOrders = $customer_orders->count();
+    $pendingOrders = $customer_orders->where('status', 'pending')->count();
+    $inProgressOrders = $customer_orders->where('status', 'in_progress')->count();
+    $completedOrders = $customer_orders->where('status', 'completed')->count();
+@endphp
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="order-header-premium d-flex justify-content-between align-items-center flex-wrap gap-3" style="direction: rtl; text-align: right;">
+        <div>
+            <h2 class="text-white mb-2 font-weight-bold">مدیریت فرمایشات (Customer Orders)</h2>
+            <p class="mb-0 opacity-75">ثبت و مدیریت فنی و بررسی وضعیت پیشرفت سفارشات و مشخصات قالین مشتریان</p>
+        </div>
+        <div class="hideOnPrint">
+            <button class="btn btn-premium font-weight-bold shadow-sm" data-toggle="modal" data-target="#orderModal">
+                <i class="fa fa-plus-circle ml-2"></i> ثبت فرمایش جدید
+            </button>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-12 hideOnPrint">
-            <div class="card glass-card mb-4">
-                <div class="card-header" style="direction: rtl; text-align: right;">
-                    <h5 class="mb-0">{{ $orderEdit ? 'ویرایش فرمایش' : 'ثبت فرمایش جدید' }}</h5>
-                </div>
-                
-                <!-- Dari Explanation Alert -->
-                <div class="alert alert-info mx-3 mt-3" style="direction: rtl; text-align: right; border-radius: 10px; border: none; background: #e8f5e9;">
-                    <h5 class="text-success"><i class="fa fa-file-invoice mr-2"></i> مدیریت فرمایشات و اتصال به سیستم مالی</h5>
-                    <p class="mb-2 small">در این مرحله، شما یک "پروژه" یا "قرارداد" جدید برای مشتری ایجاد می‌کنید. این فرمایش به صورت خودکار به سیستم حسابداری متصل می‌شود.</p>
-                    <div class="row small mt-2">
-                        <div class="col-md-4"><strong>شماره فرمایش:</strong> نام طرح، نمبر قرارداد یا یک کد شناسایی برای این فرمایش وارد کنید.</div>
-                        <div class="col-md-4"><strong>حساب اصلی مشتری:</strong> این مهم‌ترین بخش است! با انتخاب حساب اصلی، تمام عواید و طلبات این فرمایش به صورت خودکار در دفتر کل (Ledger) مشتری ثبت می‌شود.</div>
-                        <div class="col-md-4"><strong>دکمه جزئیات (Details):</strong> بعد از ذخیره، روی دکمه Details کلیک کنید تا مشخصات دقیق هر قالین را ثبت نمایید.</div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form action="{{ $orderEdit ? '/dashboard/customer-orders/'.$orderEdit->co_id : '/dashboard/customer-orders' }}" method="post">
-                        @csrf
-                        @if($orderEdit) {{ method_field('patch') }} @endif
-                        
-                        <input type="hidden" name="customer_account_order_id" value="{{$customer->c_id}}">
+    @if(session("status") || session("error"))
+        <div class="alert {{ session('status') ? 'alert-success' : 'alert-danger' }} status mb-4 border-0 rounded-lg py-3 text-center font-weight-bold shadow-none" style="direction: rtl;">
+            {{ session('status') ?: session('error') }}
+        </div>
+    @endif
 
-                        <div class="row align-items-end" style="direction: rtl; text-align: right;">
-                            <div class="col-md-3">
-                                <label class="small font-weight-bold">نمبر/نام فرمایش</label>
-                                <input type="text" name="order_name" class="form-control" value="{{ optional($orderEdit)->order_name ?? '' }}" required>
-                                <small class="text-muted d-block mt-1">یک نام یا نمبر برای شناسایی این فرمایش وارد کنید.</small>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="small font-weight-bold">تاریخ فرمایش</label>
-                                <input type="date" name="order_date" class="form-control" value="{{ optional($orderEdit)->order_date ?? date('Y-m-d') }}" required>
-                                <small class="text-muted d-block mt-1">تاریخ ثبت این فرمایش را انتخاب کنید.</small>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="small font-weight-bold">اتصال به حساب اصلی (حساب دفتر کل)</label>
-                                <select name="customer_id" class="form-control select2" required>
-                                    <option value="">انتخاب حساب مشتری</option>
-                                    @foreach($main_customers as $mc)
-                                        <option value="{{$mc->id}}" {{ (is_object($orderEdit) && $orderEdit->main_customer_id == $mc->id) ? 'selected' : '' }}>
-                                            {{$mc->name}} ({{$mc->country}})
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <small class="text-muted d-block mt-1">این فرمایش به حساب مالی این مشتری وصل خواهد شد.</small>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fa fa-save"></i> ذخیره فرمایش
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+    <!-- Statistics Grid -->
+    <div class="row mb-4 hideOnPrint" style="direction: rtl; text-align: right;">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon"><i class="fa fa-folder-open"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">مجموع کل فرمایشات</small>
+                <h2 class="font-weight-bold mb-0">{{ $totalOrders }}</h2>
             </div>
         </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-warning">
+                <div class="stat-icon"><i class="fa fa-hourglass-half"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">فرمایشات معلق</small>
+                <h2 class="font-weight-bold mb-0">{{ $pendingOrders }}</h2>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon"><i class="fa fa-spinner"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">فرمایشات در حال اجرا</small>
+                <h2 class="font-weight-bold mb-0">{{ $inProgressOrders }}</h2>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">فرمایشات تکمیل شده</small>
+                <h2 class="font-weight-bold mb-0">{{ $completedOrders }}</h2>
+            </div>
+        </div>
+    </div>
 
+    <!-- Table Grid -->
+    <div class="row">
         <div class="col-lg-12">
             <div class="card glass-card">
-                <div class="card-header d-flex justify-content-between" style="direction: rtl;">
-                    <h5 class="mb-0">فرمایشات موجود</h5>
-                    <button class="btn btn-sm btn-light" onclick="window.print()"><i class="fa fa-print"></i> چاپ</button>
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3" style="direction: rtl;">
+                    <h5 class="mb-0 font-weight-bold text-dark"><i class="fa fa-list text-primary ml-2"></i>فرمایشات موجود</h5>
+                    <button class="btn btn-sm btn-outline-secondary hideOnPrint" onclick="window.print()"><i class="fa fa-print ml-1"></i> چاپ گزارش</button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="pr-4 text-right">نام / نمبر فرمایش</th>
-                                    <th class="text-right">تاریخ فرمایش</th>
-                                    <th class="text-right">حساب متصل</th>
+                            <thead>
+                                <tr style="direction: rtl; text-align: right;">
+                                    <th class="pr-4">نام / نمبر فرمایش</th>
+                                    <th>تاریخ ثبت</th>
+                                    <th>حساب مشتری</th>
+                                    <th>میزان پیشرفت</th>
+                                    <th>وضعیت</th>
                                     <th class="text-left pl-4">عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($customer_orders as $co)
-                                    @php 
-                                        $linkedCust = DB::table('customers')->where('id', $co->main_customer_id)->first();
+                                    @php
+                                        // Calculate carpet details statistics for progress
+                                        $totalCarpets = $co->details->count();
+                                        $completedCarpets = $co->details->where('current_status', 'completed')->count();
+                                        $progressPercentage = $totalCarpets > 0 ? round(($completedCarpets / $totalCarpets) * 100) : 0;
                                     @endphp
-                                    <tr>
-                                        <td class="pr-4 text-right font-weight-bold text-primary">
-                                            <i class="fa fa-folder-open ml-2"></i> {{ $co->order_name }}
+                                    <tr style="direction: rtl; text-align: right;">
+                                        <td class="pr-4 font-weight-bold text-dark">
+                                            <i class="fa fa-folder-open text-muted ml-2"></i> {{ $co->order_name }}
                                         </td>
-                                        <td class="text-right">{{ $co->order_date }}</td>
-                                        <td class="text-right">
-                                            @if($linkedCust)
-                                                <span class="badge badge-info">{{ $linkedCust->name }}</span>
+                                        <td class="text-muted">{{ $co->order_date }}</td>
+                                        <td>
+                                            @if($co->customer)
+                                                <span class="badge-premium badge-premium-progress">{{ $co->customer->name }} ({{ $co->customer->country }})</span>
                                             @else
-                                                <span class="badge badge-warning">تایید نشده (Unlinked)</span>
+                                                <span class="badge-premium badge-premium-pending">تایید نشده (Unlinked)</span>
                                             @endif
                                         </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="small font-weight-bold text-muted ml-2">{{ $progressPercentage }}%</span>
+                                                <div class="progress-premium flex-grow-1" style="min-width: 100px;">
+                                                    <div class="progress-bar-premium {{ $progressPercentage == 100 ? 'progress-bar-completed' : '' }}" style="width: {{ $progressPercentage }}%"></div>
+                                                </div>
+                                                <small class="text-muted mr-2">({{ $completedCarpets }}/{{ $totalCarpets }} قالین)</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <form action="/dashboard/customer-orders/{{ $co->co_id }}" method="POST" class="d-inline status-order-form-{{ $co->co_id }}">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="order_name" value="{{ $co->order_name }}">
+                                                <input type="hidden" name="order_date" value="{{ $co->order_date }}">
+                                                <input type="hidden" name="main_customer_id" value="{{ $co->main_customer_id }}">
+                                                <select name="status" class="select-status-premium select-order-status-inline status-{{ $co->status }}" data-id="{{ $co->co_id }}">
+                                                    <option value="pending" {{ $co->status == 'pending' ? 'selected' : '' }}>معلق</option>
+                                                    <option value="in_progress" {{ $co->status == 'in_progress' ? 'selected' : '' }}>در حال اجرا</option>
+                                                    <option value="completed" {{ $co->status == 'completed' ? 'selected' : '' }}>تکمیل شده</option>
+                                                </select>
+                                            </form>
+                                        </td>
                                         <td class="text-left pl-4">
-                                            <a href="/dashboard/customer-order-details/{{$co->co_id}}" class="btn btn-sm btn-outline-primary ml-1">
-                                                <i class="fa fa-list"></i> جزئیات
+                                            <a href="/dashboard/customer-order-details/{{$co->co_id}}" class="btn btn-sm btn-outline-primary ml-1 font-weight-bold">
+                                                <i class="fa fa-list"></i> جزئیات قالین
                                             </a>
-                                            <a href="/dashboard/customer-orders/{{$co->co_id}}/edit" class="btn btn-sm btn-outline-info ml-1">
+                                            <a href="/dashboard/customer-orders/{{$co->co_id}}/edit" class="btn btn-sm btn-outline-info ml-1 font-weight-bold">
                                                 <i class="fa fa-edit"></i> ویرایش
                                             </a>
-                                            <button onclick="deleteOrder({{$co->co_id}})" class="btn btn-sm btn-outline-danger">
+                                            <button onclick="deleteOrder({{$co->co_id}})" class="btn btn-sm btn-outline-danger font-weight-bold">
                                                 <i class="fa fa-trash"></i> حذف
                                             </button>
                                         </td>
@@ -137,14 +350,85 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Create / Edit Order -->
+<div class="modal fade" id="orderModal" tabindex="-1" role="dialog" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content modal-content-premium">
+            <div class="modal-header modal-header-premium bg-white" style="direction: rtl;">
+                <h5 class="modal-title font-weight-bold text-dark" id="orderModalLabel">
+                    <i class="fa {{ $orderEdit ? 'fa-edit text-info' : 'fa-plus-circle text-primary' }} ml-2"></i>
+                    {{ $orderEdit ? 'ویرایش فرمایش' : 'ثبت فرمایش جدید' }}
+                </h5>
+                <button type="button" class="close ml-0 mr-auto" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ $orderEdit ? '/dashboard/customer-orders/'.$orderEdit->co_id : '/dashboard/customer-orders' }}" method="post">
+                @csrf
+                @if($orderEdit) {{ method_field('patch') }} @endif
+                
+                <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">نمبر/نام فرمایش <span class="text-danger">*</span></label>
+                            <input type="text" name="order_name" class="form-control form-control-premium" value="{{ optional($orderEdit)->order_name ?? '' }}" required placeholder="مثال: فرمایش شماره 45">
+                            <small class="text-muted d-block mt-1">یک عنوان یا شناسه برای فرمایش بنویسید.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">تاریخ فرمایش <span class="text-danger">*</span></label>
+                            <input type="date" name="order_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->order_date ?? date('Y-m-d') }}" required>
+                            <small class="text-muted d-block mt-1">تاریخ رسمی ثبت سفارش.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">اتصال به حساب اصلی (مشتری) <span class="text-danger">*</span></label>
+                            <select name="main_customer_id" class="form-control select2-modal" required>
+                                <option value="">انتخاب حساب مشتری</option>
+                                @foreach($main_customers as $mc)
+                                    <option value="{{$mc->id}}" {{ (is_object($orderEdit) && $orderEdit->main_customer_id == $mc->id) ? 'selected' : '' }}>
+                                        {{$mc->name}} ({{$mc->country}})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">مالک و سفارش‌دهنده این فرمایش.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">وضعیت فرمایش <span class="text-danger">*</span></label>
+                            <select name="status" class="form-control select2-modal" required>
+                                <option value="pending" {{ (is_object($orderEdit) && $orderEdit->status == 'pending') ? 'selected' : '' }}>معلق (Pending)</option>
+                                <option value="in_progress" {{ (is_object($orderEdit) && $orderEdit->status == 'in_progress') ? 'selected' : '' }}>در حال اجرا (In Progress)</option>
+                                <option value="completed" {{ (is_object($orderEdit) && $orderEdit->status == 'completed') ? 'selected' : '' }}>تکمیل شده (Completed)</option>
+                            </select>
+                            <small class="text-muted d-block mt-1">وضعیت کاری کلی فرمایش.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 justify-content-start py-3" style="border-radius: 0 0 24px 24px;">
+                    <button type="submit" class="btn btn-premium font-weight-bold">
+                        <i class="fa fa-save ml-1"></i> ذخیره تغییرات
+                    </button>
+                    <button type="button" class="btn btn-light font-weight-bold mr-2" data-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
 <script>
+    // Trigger modal immediately if editing
+    @if($orderEdit)
+        $(document).ready(function() {
+            $('#orderModal').modal('show');
+        });
+    @endif
+
     function deleteOrder(id) {
         swal({
-            title: "Are you sure?",
-            text: "This will delete the order and all its technical specifications!",
+            title: "آیا مطمئن هستید؟",
+            text: "با حذف این فرمایش، تمام مشخصات قالین‌های مربوطه نیز حذف خواهند شد!",
             icon: "warning",
             buttons: true,
             dangerMode: true,
@@ -158,13 +442,25 @@
                         if (res.status == 'success') {
                             location.reload();
                         } else {
-                            swal("Error", "Could not delete order", "error");
+                            swal("خطا", "امکان حذف وجود ندارد", "error");
                         }
                     }
                 });
             }
         });
     }
+
+    $(document).on('change', '.select-order-status-inline', function() {
+        var id = $(this).data('id');
+        $('.status-order-form-' + id).submit();
+    });
+
     $('.select2').select2({ width: '100%' });
+    
+    // Select2 inside modals wrapper
+    $('.select2-modal').select2({
+        dropdownParent: $('#orderModal'),
+        width: '100%'
+    });
 </script>
 @endsection

@@ -35,6 +35,9 @@ class Agents extends Model
     public function check_book() {
         return $this->hasMany(CarpetCheckBook::class , 'agent_id' , 'agent_id');
     }
+    public function purchase_invoices() {
+        return $this->hasMany(PurchaseInvoice::class , 'agent_id' , 'agent_id');
+    }
 
     public function payment(){
         return $this->hasMany(AgentPayment::class,'agent_id','agent_id');

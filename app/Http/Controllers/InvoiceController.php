@@ -67,45 +67,33 @@ class InvoiceController extends Controller
     public function index()
     {
         $customers = Customer::where('type','مشتری قالین')->get();
-        $invoices = Invoice::paginate(30);
+        $agents = \App\Agents::with('user')->get();
+        $invoices = Invoice::orderBy('id', 'desc')->paginate(30);
         $invoiceEdit = "";
-        $lastId = Invoice::latest()->first();
-
-        if($lastId) {
-            $lastId = $lastId->invoice_no;
-            $exp = explode('-',$lastId);
-            $invoice_no = end($exp);
-            $invoice_no++;
-            $invoice_no = 'QB-'.$invoice_no;
-        } else {
-            $invoice_no = 'QB-'.'1';
-        }
-        return view('invoices.index',compact('customers','invoiceEdit','invoice_no','invoices'));
+        $invoice_no = Invoice::generateNextInvoiceNo();
+        return view('invoices.index',compact('customers','agents','invoiceEdit','invoice_no','invoices'));
     }
+
     public function search(Request $request)
     {
         $search = $request->search;
         $customers = Customer::where('type','مشتری قالین')->get();
+        $agents = \App\Agents::with('user')->get();
+        
         $invoices = Invoice::where('invoice_no', 'like', '%' . $search . '%')
-            ->orwhere('invoice_date', 'like', '%' . $search . '%')
-            ->orwhereHas('customer', function ($query) use ($search) {
+            ->orWhere('invoice_date', 'like', '%' . $search . '%')
+            ->orWhereHas('customer', function ($query) use ($search) {
                 $query->where('name', 'like', '%' . $search . '%');
-            })->paginate(30);
+            })
+            ->orWhereHas('agent.user', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(30);
 
         $invoiceEdit = "";
-        $lastId = Invoice::latest()->first();
-
-        if($lastId) {
-            $lastId = $lastId->invoice_no;
-            $exp = explode('-',$lastId);
-            $invoice_no = end($exp);
-            $invoice_no++;
-            $invoice_no = 'QB-'.$invoice_no;
-        } else {
-            $invoice_no = 'QB-'.'1';
-        }
-        return view('invoices.index',compact('customers','invoiceEdit','invoice_no','invoices'));
-
+        $invoice_no = Invoice::generateNextInvoiceNo();
+        return view('invoices.index',compact('customers','agents','invoiceEdit','invoice_no','invoices'));
     }
 
     public function search_carpet(Request $request)
@@ -113,37 +101,42 @@ class InvoiceController extends Controller
         $search = $request->search;
         $invoice = Invoice::find($request->invoice_id);
 
-        $sales =  DB::table('sales')
-            ->join('carpets', 'sales.carpet_id', 'carpets.carpet_id')
-            ->join('carpet_types','carpet_types.carpet_type_id','carpets.type_id')
-
-            ->where('carpets.carpet_no', 'like', '%' . $search . '%')
-            ->orWhere('carpets.width', 'like', '%' . $search . '%')
-            ->orWhere('carpets.height', 'like', '%' . $search . '%')
-            ->orWhere('carpets.area', 'like', '%' . $search . '%')
-            ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%')
-            ->paginate(30);
-
-
+        if ($invoice->type === 'carpet') {
+            $sales =  DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', 'carpets.carpet_id')
+                ->join('carpet_types','carpet_types.carpet_type_id','carpets.type_id')
+                ->where('sales.invoice_id', $request->invoice_id)
+                ->where(function($q) use ($search) {
+                    $q->where('carpets.carpet_no', 'like', '%' . $search . '%')
+                      ->orWhere('carpets.width', 'like', '%' . $search . '%')
+                      ->orWhere('carpets.height', 'like', '%' . $search . '%')
+                      ->orWhere('carpets.area', 'like', '%' . $search . '%')
+                      ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%');
+                })
+                ->select('sales.*', 'carpets.carpet_no', 'carpets.width', 'carpets.height', 'carpets.area')
+                ->paginate(30);
+        } else {
+            $sales = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', 'material_categories.material_category_id')
+                ->join('material_types', 'material_sales.type_id', 'material_types.material_type_id')
+                ->where('material_sales.invoice_id', $request->invoice_id)
+                ->where(function($q) use ($search) {
+                    $q->where('material_sales.sale_number', 'like', '%' . $search . '%')
+                      ->orWhere('material_categories.material_category', 'like', '%' . $search . '%')
+                      ->orWhere('material_types.material_type', 'like', '%' . $search . '%');
+                })
+                ->select('material_sales.*', 'material_categories.material_category', 'material_types.material_type')
+                ->paginate(30);
+        }
 
         return view('invoices.invoice-details',compact('invoice','sales','search'));
-
-
-
     }
 
     public function search_invoice_number($invoice_number , $customer_id){
-
-
         $customer = Customer::find($customer_id);
         $invoice = Invoice::Where('customer_id', '=', $customer_id)->where('invoice_no','=',$invoice_number)->first();
-
         $sales = Sale::where('invoice_id',$invoice->id)->where('customer_id',$customer_id)->paginate(30);
-
         return view('customers.invoice-number-list', compact('sales','customer','invoice_number'));
-
-
-
     }
 
     /**
@@ -165,20 +158,30 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $this->accountingService->failIfLocked($request->invoice_date);
-        $data = $request->validate([
-            'invoice_no' => 'required',
+        
+        $rules = [
+            'invoice_no' => 'required|unique:invoices,invoice_no',
             'invoice_date' => 'required',
-            'customer_id' => 'required',
+            'type' => 'required|in:carpet,dye,yarn',
             'invoice_description' => '',
-        ]);
+        ];
+        
+        if ($request->type === 'carpet') {
+            $rules['customer_id'] = 'required';
+        } else {
+            $rules['agent_id'] = 'required';
+        }
+        
+        $data = $request->validate($rules);
+        $data['status'] = 'open';
+        
         $invoice = Invoice::create($data);
         
-         $activity = new Activity();
+        $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
         $activity->description = "  انوایس نمبر  " . $request->invoice_no . " در سیستم اضافه شد. ";
         $activity->user_id = Auth::user()->id;
         $activity->save();
-        
         
         if($invoice) {
             return redirect('/dashboard/invoices')->with('status', ' موفقانه ثبت شد !');
@@ -186,7 +189,6 @@ class InvoiceController extends Controller
         else{
             return redirect('/dashboard/invoices')->with('error', 'مشکل در سرور وجود داره!');
         }
-
     }
 
     /**
@@ -198,7 +200,11 @@ class InvoiceController extends Controller
     public function show($id)
     {
         $invoice = Invoice::find($id);
-        $sales  = Sale::where('invoice_id',$id)->paginate(30);
+        if ($invoice->type === 'carpet') {
+            $sales = Sale::where('invoice_id',$id)->paginate(30);
+        } else {
+            $sales = \App\MaterialSale::where('invoice_id',$id)->paginate(30);
+        }
         return view('invoices.invoice-details',compact('invoice','sales'));
     }
 
@@ -210,13 +216,16 @@ class InvoiceController extends Controller
      */
     public function edit($id)
     {
+        $customers = Customer::where('type','مشتری قالین')->get();
+        $agents = \App\Agents::with('user')->get();
+        $invoices = Invoice::orderBy('id', 'desc')->paginate(30);
+        $invoiceEdit = Invoice::findOrFail($id);
+        
+        if ($invoiceEdit->status === 'closed') {
+            return redirect('/dashboard/invoices')->with('error', 'امکان ویرایش انوایس بسته شده وجود ندارد!');
+        }
 
-        $customers = Customer::all();
-        $invoices = Invoice::paginate(10);
-        $invoiceEdit = Invoice::find($id);
-
-        return view('invoices.index',compact('customers','invoiceEdit','invoices'));
-
+        return view('invoices.index',compact('customers','agents','invoiceEdit','invoices'));
     }
 
     /**
@@ -229,12 +238,29 @@ class InvoiceController extends Controller
     public function update(Request $request, Invoice $invoice)
     {
         $this->accountingService->failIfLocked($request->invoice_date);
-        $data = $request->validate([
-            'invoice_no' => 'required',
+        
+        if ($invoice->status === 'closed') {
+            return redirect('/dashboard/invoices')->with('error', 'امکان ویرایش انوایس بسته شده وجود ندارد!');
+        }
+        
+        $rules = [
+            'invoice_no' => 'required|unique:invoices,invoice_no,' . $invoice->id,
             'invoice_date' => 'required',
-            'customer_id' => 'required',
+            'type' => 'required|in:carpet,dye,yarn',
             'invoice_description' => '',
-        ]);
+        ];
+        
+        if ($request->type === 'carpet') {
+            $rules['customer_id'] = 'required';
+            $request->merge(['agent_id' => null]);
+        } else {
+            $rules['agent_id'] = 'required';
+            $request->merge(['customer_id' => null]);
+        }
+        
+        $data = $request->validate($rules);
+        $data['customer_id'] = $request->customer_id;
+        $data['agent_id'] = $request->agent_id;
         
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
@@ -242,15 +268,34 @@ class InvoiceController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
         
-        
-      $inv =   $invoice->update($data);
+        $inv = $invoice->update($data);
         if($inv) {
             return redirect('/dashboard/invoices')->with('status', ' موفقانه ثبت شد !');
         }
         else{
             return redirect('/dashboard/invoices')->with('error', 'مشکل در سرور وجود داره!');
         }
+    }
 
+    /**
+     * Close the invoice.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function closeInvoice($id)
+    {
+        $invoice = Invoice::findOrFail($id);
+        $invoice->status = 'closed';
+        $invoice->save();
+
+        $activity = new Activity();
+        $activity->date = Carbon::today()->format('Y-m-d');
+        $activity->description = "انوایس نمبر " . $invoice->invoice_no . " بسته شد ";
+        $activity->user_id = Auth::user()->id;
+        $activity->save();
+
+        return redirect()->back()->with('status', 'انوایس با موفقیت بسته شد!');
     }
 
     /**

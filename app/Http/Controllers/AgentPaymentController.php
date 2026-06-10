@@ -68,6 +68,8 @@ class AgentPaymentController extends Controller
                 'reference' => 'AGT-PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
+                'override_debit_account_id' => $payment->override_debit_account_id,
+                'override_credit_account_id' => $payment->override_credit_account_id,
             ]);
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Agent Payment #" . $payment->id . ": " . $e->getMessage());
@@ -114,6 +116,8 @@ class AgentPaymentController extends Controller
                 'description' => 'required',
                 'date' => 'required|date',
                 'agent_id' => 'required',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -138,6 +142,8 @@ class AgentPaymentController extends Controller
             $payed->exchange_rate = $rate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = $baseAmount;
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
 
             // Legacy dual-amount logic (for old reports compatibility)
             if($currency->code == 'USD'){
@@ -202,7 +208,17 @@ class AgentPaymentController extends Controller
         $sale_numbers = MaterialSale::where('agent_id', $agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+
+        return view('agents.agent-payments', compact(
+            'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
+            'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies',
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+        ));
     }
 
     public function show_all($agent_id)
@@ -230,7 +246,18 @@ class AgentPaymentController extends Controller
         $sale_numbers = MaterialSale::where('agent_id', $agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
         $all = '';
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'all', 'sale_numbers', 'currencies'));
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+
+        return view('agents.agent-payments', compact(
+            'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
+            'totalBaseSent', 'check_numbers', 'all', 'sale_numbers', 'currencies',
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+        ));
     }
 
     public function edit($payment_id)
@@ -258,7 +285,17 @@ class AgentPaymentController extends Controller
         $sale_numbers = MaterialSale::where('agent_id', $paymentEdit->agent_id)->orderBy('sale_number', 'DESC')->distinct()->get(['sale_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('agents.agent-payments', compact('agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies'));
+        $selectionService = new \App\Services\AccountSelectionService();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+
+        return view('agents.agent-payments', compact(
+            'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
+            'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies',
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit'
+        ));
     }
 
     public function update(Request $request, $payment_id)
@@ -269,6 +306,8 @@ class AgentPaymentController extends Controller
                 'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
                 'date' => 'required|date',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
             $payed = AgentPayment::find($payment_id);
@@ -297,6 +336,8 @@ class AgentPaymentController extends Controller
             $payed->exchange_rate = $rate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = $baseAmount;
+            $payed->override_debit_account_id = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
 
             // Legacy Support
             if($currency->code == 'USD'){

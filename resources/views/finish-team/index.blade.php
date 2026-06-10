@@ -231,6 +231,11 @@
               <tr>
                 <th class="px-4">آی دی</th>
                 <th>نام تیم</th>
+                <th>نام پدر</th>
+                <th>نمبر تذکره</th>
+                <th>شماره تماس</th>
+                <th>آدرس</th>
+                <th>نام ضمانت کننده</th>
                 <th>باقیات (USD Normalized)</th>
                 <th class="hideOnPrint text-center">ویرایش</th>
                 <th class="hideOnPrint text-center">حساب</th>
@@ -248,6 +253,11 @@
                   <tr>
                     <td class="px-4 font-weight-bold text-muted">{{ $t->id }}</td>
                     <td class="font-weight-bold">{{ $t->name }}</td>
+                    <td>{{ $t->father_name ?? 'N/A' }}</td>
+                    <td>{{ $t->tazkira_number ?? 'N/A' }}</td>
+                    <td style="direction: ltr; text-align: right;">{{ $t->contact_number ?? 'N/A' }}</td>
+                    <td>{{ $t->address ?? 'N/A' }}</td>
+                    <td>{{ $t->grantor_name ?? 'N/A' }}</td>
                     
                     @if($total_balance_usd > 0)
                       <td style="direction: ltr; color: green; font-weight: bold;">$ {{ number_format($total_balance_usd, 2) }}</td>
@@ -281,6 +291,11 @@
                     <tr>
                       <td class="px-4 font-weight-bold text-muted">{{ $t->id }}</td>
                       <td class="font-weight-bold">{{ $t->name }}</td>
+                      <td>{{ $t->father_name ?? 'N/A' }}</td>
+                      <td>{{ $t->tazkira_number ?? 'N/A' }}</td>
+                      <td style="direction: ltr; text-align: right;">{{ $t->contact_number ?? 'N/A' }}</td>
+                      <td>{{ $t->address ?? 'N/A' }}</td>
+                      <td>{{ $t->grantor_name ?? 'N/A' }}</td>
                       
                       @if($total_balance_usd > 0)
                         <td style="direction: ltr; color: green; font-weight: bold;">$ {{ number_format($total_balance_usd, 2) }}</td>
@@ -313,6 +328,11 @@
                 <tr style="background: #f8fafc; font-weight: bold;">
                   <td class="px-4"></td>
                   <td>مجموعه کل:</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                   @if($grand_total_balance > 0)
                     <td style="direction: ltr; color: green;">$ {{ number_format($grand_total_balance, 2) }}</td>
                   @elseif($grand_total_balance < 0)
@@ -336,7 +356,7 @@
 
 <!-- Create Team Modal -->
 <div class="modal fade" id="createTeamModal" tabindex="-1" role="dialog" aria-labelledby="createTeamModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
     <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 15px 50px rgba(0,0,0,0.15);">
       <div class="modal-header text-right" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 25px; display: flex; justify-content: space-between; align-items: center;">
         <h5 class="modal-title font-weight-bold" id="createTeamModalLabel"><i class="fa fa-plus-circle text-success"></i> ایجاد تیم جدید</h5>
@@ -346,11 +366,42 @@
       </div>
       <form action="/dashboard/finish-team" method="post">
         @csrf
-        <div class="modal-body" style="padding: 25px;">
-          <div class="form-group fill text-right">
-            <label class="font-weight-bold mb-2">نام تیم</label>
-            <input type="text" style="direction: rtl" name="name" id="name" class="form-control custom-input" placeholder="نام تیم را وارد کنید" required>
-            @error('name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+        <div class="modal-body text-right" style="padding: 25px; direction: rtl;">
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام تیم</label>
+              <input type="text" name="name" id="name" class="form-control custom-input" placeholder="نام تیم را وارد کنید" required>
+              @error('name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام پدر</label>
+              <input type="text" name="father_name" id="father_name" class="form-control custom-input" placeholder="نام پدر را وارد کنید">
+              @error('father_name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نمبر تذکره</label>
+              <input type="text" name="tazkira_number" id="tazkira_number" class="form-control custom-input" placeholder="نمبر تذکره را وارد کنید">
+              @error('tazkira_number') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">شماره تماس</label>
+              <input type="text" name="contact_number" id="contact_number" class="form-control custom-input text-left" placeholder="شماره تماس را وارد کنید" style="direction: ltr;">
+              @error('contact_number') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام ضمانت کننده</label>
+              <input type="text" name="grantor_name" id="grantor_name" class="form-control custom-input" placeholder="نام ضمانت کننده را وارد کنید">
+              @error('grantor_name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">آدرس</label>
+              <textarea name="address" id="address" class="form-control custom-input" placeholder="آدرس را وارد کنید" rows="1"></textarea>
+              @error('address') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
           </div>
         </div>
         <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 15px 25px;">
@@ -365,7 +416,7 @@
 <!-- Edit Team Modal -->
 @if($fteamEdit)
 <div class="modal fade" id="editTeamModal" tabindex="-1" role="dialog" aria-labelledby="editTeamModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
     <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 15px 50px rgba(0,0,0,0.15);">
       <div class="modal-header text-right" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 25px; display: flex; justify-content: space-between; align-items: center;">
         <h5 class="modal-title font-weight-bold" id="editTeamModalLabel"><i class="fa fa-pencil text-warning"></i> ویرایش تیم</h5>
@@ -376,11 +427,42 @@
       <form action="/dashboard/finish-team/{{$fteamEdit->id}}" method="post">
         @csrf
         @method('PUT')
-        <div class="modal-body" style="padding: 25px;">
-          <div class="form-group fill text-right">
-            <label class="font-weight-bold mb-2">نام تیم</label>
-            <input type="text" style="direction: rtl" name="name" value="{{$fteamEdit->name}}" id="name" class="form-control custom-input" required>
-            @error('name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+        <div class="modal-body text-right" style="padding: 25px; direction: rtl;">
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام تیم</label>
+              <input type="text" name="name" value="{{$fteamEdit->name}}" id="name" class="form-control custom-input" required>
+              @error('name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام پدر</label>
+              <input type="text" name="father_name" value="{{$fteamEdit->father_name}}" id="father_name" class="form-control custom-input">
+              @error('father_name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نمبر تذکره</label>
+              <input type="text" name="tazkira_number" value="{{$fteamEdit->tazkira_number}}" id="tazkira_number" class="form-control custom-input">
+              @error('tazkira_number') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">شماره تماس</label>
+              <input type="text" name="contact_number" value="{{$fteamEdit->contact_number}}" id="contact_number" class="form-control custom-input text-left" style="direction: ltr;">
+              @error('contact_number') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">نام ضمانت کننده</label>
+              <input type="text" name="grantor_name" value="{{$fteamEdit->grantor_name}}" id="grantor_name" class="form-control custom-input">
+              @error('grantor_name') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold mb-2">آدرس</label>
+              <textarea name="address" id="address" class="form-control custom-input" rows="1">{{$fteamEdit->address}}</textarea>
+              @error('address') <p class="text-danger mt-1">{{$message}}</p> @enderror
+            </div>
           </div>
         </div>
         <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 15px 25px;">
@@ -416,7 +498,7 @@
               exportButtons: true,
               position: "bottom",
               ignoreRows: null,
-              ignoreCols: [3, 4],
+              ignoreCols: [8, 9],
               trimWhitespace: true,
               RTL: true,
               sheetname: "finishing_teams"

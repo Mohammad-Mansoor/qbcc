@@ -1098,14 +1098,15 @@ class CarpetsController extends Controller
             ->with('agent')
             ->paginate(20);
 
-        $lastId = Carpet::max('carpet_no');
+        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
 
         if ($lastId) {
-            $lastId = substr($lastId, -5);
-            $lastId++;
-            $AccountNo = 'QB' . sprintf('%05d', $lastId);
+            $numericPart = preg_replace('/[^0-9]/', '', $lastId);
+            $nextVal = intval($numericPart) + 1;
+            $len = strlen($numericPart);
+            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB' . sprintf('%05d', '10101');
+            $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::all();
@@ -1116,8 +1117,9 @@ class CarpetsController extends Controller
         $warehouses = \App\Warehouse::all();
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+        $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
     }
 
     public function show_all_buy_carpet()
@@ -1130,13 +1132,14 @@ class CarpetsController extends Controller
             })
             ->with('agent')
             ->get();
-        $lastId = Carpet::max('carpet_no');
+        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
         if ($lastId) {
-            $lastId = substr($lastId, -5);
-            $lastId++;
-            $AccountNo = 'QB' . sprintf('%05d', $lastId);
+            $numericPart = preg_replace('/[^0-9]/', '', $lastId);
+            $nextVal = intval($numericPart) + 1;
+            $len = strlen($numericPart);
+            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB' . sprintf('%05d', '10101');
+            $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::all();
@@ -1148,8 +1151,9 @@ class CarpetsController extends Controller
         $currencies = \App\Currency::all();
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+        $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'all', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'all', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
     }
 
 
@@ -1186,13 +1190,14 @@ class CarpetsController extends Controller
             })
             ->get();
 
-        $lastId = Carpet::max('carpet_no');
+        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
         if ($lastId) {
-            $lastId = substr($lastId, -5);
-            $lastId++;
-            $AccountNo = 'QB' . sprintf('%05d', $lastId);
+            $numericPart = preg_replace('/[^0-9]/', '', $lastId);
+            $nextVal = intval($numericPart) + 1;
+            $len = strlen($numericPart);
+            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB' . sprintf('%05d', '10101');
+            $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::all();
@@ -1204,8 +1209,9 @@ class CarpetsController extends Controller
         $currencies = \App\Currency::all();
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+        $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
     }
 
 
@@ -1213,6 +1219,14 @@ class CarpetsController extends Controller
     {
 
         $data = $this->Valid();
+
+        if ($request->purchase_invoice_id) {
+            $invoice = \App\PurchaseInvoice::findOrFail($request->purchase_invoice_id);
+            if ($invoice->status === 'closed') {
+                return redirect()->back()->withErrors(['purchase_invoice_id' => 'این بل خرید بسته شده است و امکان اضافه کردن قالین جدید به آن وجود ندارد.'])->withInput();
+            }
+        }
+        $data['purchase_invoice_id'] = $request->purchase_invoice_id;
 
         $image = '';
         if ($request->has('carpet_image')) {
@@ -1329,13 +1343,14 @@ class CarpetsController extends Controller
             ->with('agent')
             ->paginate(20);
 
-        $lastId = Carpet::max('carpet_no');
+        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
         if ($lastId) {
-            $lastId = substr($lastId, -5);
-            $lastId++;
-            $AccountNo = 'QB' . sprintf('%05d', $lastId);
+            $numericPart = preg_replace('/[^0-9]/', '', $lastId);
+            $nextVal = intval($numericPart) + 1;
+            $len = strlen($numericPart);
+            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB' . sprintf('%05d', '10101');
+            $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::all();
@@ -1345,8 +1360,9 @@ class CarpetsController extends Controller
         $warehouses = \App\Warehouse::all();
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
+        $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
     }
 
     function UpdatetBuyCarpet(Request $request, $carpet_id)
@@ -1364,6 +1380,14 @@ class CarpetsController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
         $data = $this->UpdateValid();
+
+        if ($request->purchase_invoice_id) {
+            $invoice = \App\PurchaseInvoice::findOrFail($request->purchase_invoice_id);
+            if ($invoice->status === 'closed' && $carpet->purchase_invoice_id != $request->purchase_invoice_id) {
+                return redirect()->back()->withErrors(['purchase_invoice_id' => 'این بل خرید بسته شده است و امکان اضافه کردن قالین جدید به آن وجود ندارد.'])->withInput();
+            }
+        }
+        $data['purchase_invoice_id'] = $request->purchase_invoice_id;
 
         if ($request->has('carpet_image')) {
 
@@ -1735,7 +1759,7 @@ class CarpetsController extends Controller
         return request()->validate([
             'parcha_number' => '',
             'dollar_rate' => '',
-            'carpet_no' => '',
+            'carpet_no' => 'required|unique:carpets,carpet_no',
             'width' => '',
             'height' => '',
             'area' => '',
@@ -1763,15 +1787,26 @@ class CarpetsController extends Controller
             'original_price' => '',
             'employee_name' => '',
             'carpet_image' => 'nullable',
+            'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
         ]);
     }
 
-    protected function UpdateValid()
+    protected function UpdateValid($carpetId = null)
     {
+        if (is_null($carpetId)) {
+            $route = request()->route();
+            if ($route) {
+                $carpetId = $route->parameter('carpet') ?? $route->parameter('id') ?? $route->parameter('carpet_id');
+                if (is_object($carpetId) && method_exists($carpetId, 'getKey')) {
+                    $carpetId = $carpetId->getKey();
+                }
+            }
+        }
+
         return request()->validate([
             'parcha_number' => '',
             'dollar_rate' => '',
-            'carpet_no' => '',
+            'carpet_no' => 'required|unique:carpets,carpet_no,' . ($carpetId ?? 'NULL') . ',carpet_id',
             'width' => '',
             'height' => '',
             'area' => '',
@@ -1799,6 +1834,7 @@ class CarpetsController extends Controller
             'original_price' => '',
             'employee_name' => '',
             'carpet_image' => 'nullable',
+            'purchase_invoice_id' => 'nullable|exists:purchase_invoices,id',
         ]);
     }
 
@@ -1867,7 +1903,7 @@ class CarpetsController extends Controller
     {
         $carpet_types = CarpetType::all();
         $warehouses = Warehouse::all();
-        $invoices = Invoice::orderBy('id', 'DESC')->get();
+        $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id', 'DESC')->get();
         $packing_list = PakingList::orderBy('id', 'DESC')->get();
 
         $currencies = \App\Currency::all();

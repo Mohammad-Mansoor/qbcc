@@ -13,33 +13,28 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerOrderDetailsController extends Controller
 {
-    protected $inventoryManager;
-    protected $accountingService;
-
-    public function __construct(InventoryTransactionManager $inventoryManager, AccountingService $accountingService)
+    public function __construct()
     {
-        $this->inventoryManager = $inventoryManager;
-        $this->accountingService = $accountingService;
+        // Standalone specifications tracker
     }
+    
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-
     public function close_to_end_customer_order()
     {
         $today = Carbon::today();
-
         $today->modify('+31 days');
         $modified_date = $today->format('Y-m-d');
 
-
-        $orders = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('end_date','<=',$modified_date)->where('current_status','On loom')->get();
+        $orders = \Illuminate\Support\Facades\DB::table('customer_order_details')
+            ->where('end_date', '<=', $modified_date)
+            ->whereIn('current_status', ['On loom', 'in_progress', 'in progress'])
+            ->get();
 
         return view('customer-orders.close-to-end-order-list', compact('orders'));
-
-
     }
 
     public function index()
@@ -82,8 +77,8 @@ class CustomerOrderDetailsController extends Controller
             'customer_order_id' => 'required',
             'unit_price' => 'nullable|numeric',
             'total_amount' => 'nullable|numeric',
-            'currency_id' => 'required|exists:currencies,id',
-            'exchange_rate' => 'required|numeric',
+            'currency_id' => 'nullable|exists:currencies,id',
+            'exchange_rate' => 'nullable|numeric',
         ]);
 
         $image = '';
@@ -91,14 +86,20 @@ class CustomerOrderDetailsController extends Controller
             $file = $request->file('photo');
             $fileExt = $file->getClientOriginalExtension();
             if (!in_array($fileExt, ['jpg', 'png', 'jpeg'])) {
-
                 return redirect()->back()->with('error', 'Photo must be Png, Jpg, Jpeg!');
             }
             $fileName = time() . '' . rand(1000, 9999) . '-order-image.' . $fileExt;
             $image = $file->move('uploads/customer-order-image/', $fileName);
         }
 
-        $currency = \App\Currency::findOrFail($request->currency_id);
+        $currency_code = 'USD';
+        $currency_id = $request->currency_id;
+        if ($currency_id) {
+            $currency = \App\Currency::find($currency_id);
+            if ($currency) {
+                $currency_code = $currency->code;
+            }
+        }
 
         $ord = DB::table('customer_order_details')->insertGetId([ 
             'quality' => $request->quality, 
@@ -114,21 +115,19 @@ class CustomerOrderDetailsController extends Controller
             'end_date' => $request->end_date,
             'unit_price' => $request->unit_price ?? 0,
             'total_amount' => $request->total_amount ?? 0,
-            'currency_id' => $currency->id,
-            'currency_code' => $currency->code,
+            'currency_id' => $currency_id,
+            'currency_code' => $currency_code,
             'exchange_rate' => $request->exchange_rate ?? 1,
             'photo' => $image, 
             'current_status' => $request->current_status, 
             'customer_order_id' => $request->customer_order_id
         ]);
 
-
         if ($ord) {
             return redirect()->back()->with('status', 'Order Successfully Added!');
         } else {
-            return redirect()->back()->with('error', 'Internel Server Error!');
+            return redirect()->back()->with('error', 'Internal Server Error!');
         }
-
     }
 
     /**
@@ -150,7 +149,7 @@ class CustomerOrderDetailsController extends Controller
     public function edit($customer_order_details_id)
     {
         $orderEdit = CustomerOrderDetails::find($customer_order_details_id);
-        $customer_order_details = DB::table('customer_order_details')->orderBy('cod_id','DESC')->get();
+        $customer_order_details = DB::table('customer_order_details')->where('customer_order_id', $orderEdit->customer_order_id)->orderBy('cod_id','DESC')->get();
         $customer_order = CustomerOrder::find($orderEdit->customer_order_id);
         $currencies = \App\Currency::where('is_active', true)->get();
 
@@ -181,8 +180,8 @@ class CustomerOrderDetailsController extends Controller
             'current_status' => 'required',
             'unit_price' => 'nullable|numeric',
             'total_amount' => 'nullable|numeric',
-            'currency_id' => 'required|exists:currencies,id',
-            'exchange_rate' => 'required|numeric',
+            'currency_id' => 'nullable|exists:currencies,id',
+            'exchange_rate' => 'nullable|numeric',
         ]);
 
         $image = '';
@@ -193,7 +192,14 @@ class CustomerOrderDetailsController extends Controller
             $image = $file->move('uploads/customer-order-image/', $fileName);
         }
 
-        $currency = \App\Currency::findOrFail($request->currency_id);
+        $currency_code = 'USD';
+        $currency_id = $request->currency_id;
+        if ($currency_id) {
+            $currency = \App\Currency::find($currency_id);
+            if ($currency) {
+                $currency_code = $currency->code;
+            }
+        }
 
         $updateData = [
             'quality' => $request->quality,
@@ -209,8 +215,8 @@ class CustomerOrderDetailsController extends Controller
             'end_date' => $request->end_date,
             'unit_price' => $request->unit_price ?? 0,
             'total_amount' => $request->total_amount ?? 0,
-            'currency_id' => $currency->id,
-            'currency_code' => $currency->code,
+            'currency_id' => $currency_id,
+            'currency_code' => $currency_code,
             'exchange_rate' => $request->exchange_rate ?? 1,
             'current_status' => $request->current_status,
         ];
@@ -221,9 +227,8 @@ class CustomerOrderDetailsController extends Controller
 
         DB::table('customer_order_details')->where('cod_id', $order_detail_id)->update($updateData);
 
-        return redirect()->back()->with('status', 'Order Successfully Updated!');
+        return redirect('/dashboard/customer-order-details/' . $request->customer_order_id)->with('status', 'Order Successfully Updated!');
     }
-
 
     /**
      * Remove the specified resource from storage.
@@ -233,13 +238,6 @@ class CustomerOrderDetailsController extends Controller
      */
     public function destroy($order_detail_id)
     {
-        $ordDetail = CustomerOrderDetails::find($order_detail_id);
-        
-        // Reverse any linked transactions if they exist
-        if ($ordDetail->carpet_id) {
-             $this->inventoryManager->reverseTransactions($ordDetail, 'Order Detail Record Deleted');
-        }
-
         $ord = DB::table('customer_order_details')->where('cod_id', $order_detail_id)->delete();
 
         if ($ord) {
@@ -250,118 +248,47 @@ class CustomerOrderDetailsController extends Controller
     }
 
     /**
-     * Receive the custom order into physical stock
+     * Receive the custom order into physical stock (Disabled/Stubbed)
      */
     public function receiveIntoStock($id, Request $request)
     {
-        try {
-            return DB::transaction(function () use ($id, $request) {
-                $detail = CustomerOrderDetails::with('order.customer')->findOrFail($id);
-                
-                if ($detail->carpet_id) {
-                    return response()->json(['status' => 'error', 'message' => 'Already received into stock']);
-                }
-
-                // 1. Create a physical Carpet record (Legacy requirement)
-                $carpet = new \App\Carpet();
-                $carpet->carpet_no = $request->carpet_no;
-                
-                // Ensure valid quality_id or leave null (if allowed)
-                $q_id = $detail->quality_id ?? $request->quality_id;
-                if ($q_id && \App\Quality::where('id', $q_id)->exists()) {
-                    $carpet->quality_id = $q_id;
-                } else {
-                    $carpet->quality_id = \App\Quality::value('id'); // Get first available or null
-                }
-
-                // Ensure valid type_id
-                $t_id = $request->type_id ?? 1;
-                if (\App\CarpetType::where('carpet_type_id', $t_id)->exists()) {
-                    $carpet->type_id = $t_id;
-                } else {
-                    $carpet->type_id = \App\CarpetType::value('carpet_type_id');
-                }
-
-                $carpet->width = $detail->height; 
-                $carpet->height = $detail->width;
-                $carpet->area = $detail->area;
-                $carpet->warehouse_id = $request->warehouse_id ?? 1;
-                $carpet->agent_id = \App\Agents::value('agent_id') ?? 1; 
-                $carpet->status = 5; // In Stock
-                $carpet->date = \Carbon\Carbon::today()->format('Y-m-d');
-                $carpet->save();
-
-                // 2. Orchestrate through Inventory Manager (Accounting + Inventory Tx)
-                // Calculate USD-normalized cost for accurate COGS and WAC tracking.
-                // exchange_rate > 1 means it's a direct rate (e.g. 77 AFN/USD) → divide
-                // exchange_rate <= 1 means it's a multiplier (e.g. 0.01298 AFN/USD) → multiply
-                $orderRate = $detail->exchange_rate ?: 1;
-                $unit_cost_usd = ($orderRate > 1)
-                    ? round($detail->total_amount / $orderRate, 4)
-                    : round($detail->total_amount * $orderRate, 4);
-
-                $this->inventoryManager->processProductionCompletion($carpet, [
-                    'amount'      => $unit_cost_usd,  // USD-normalized for GL entry (DR Finished Goods / CR WIP)
-                    'unit_cost'   => $unit_cost_usd,  // WAC cost registered on the items table
-                    'quantity'    => 1,
-                    'reference'   => 'ORD-REC-' . $detail->cod_id,
-                    'description' => "Order #" . $detail->order->order_name . " received into stock",
-                    'warehouse_id' => $carpet->warehouse_id,
-                ]);
-
-                // 3. Link back
-                $detail->carpet_id = $carpet->carpet_id;
-                $detail->current_status = 'Ready';
-                $detail->save();
-
-                return response()->json(['status' => 'success', 'message' => 'Carpet received into stock successfully']);
-            });
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'System Error: ' . $e->getMessage()]);
-        }
+        return response()->json(['status' => 'error', 'message' => 'ERP/Inventory integration is disabled.']);
     }
 
     /**
-     * Process the final sale of the custom order
+     * Process the final sale of the custom order (Disabled/Stubbed)
      */
     public function processFinalSale($id, Request $request)
     {
-        try {
-            return DB::transaction(function () use ($id, $request) {
-                $detail = CustomerOrderDetails::with(['order.customer', 'carpet'])->findOrFail($id);
-                
-                if (!$detail->carpet_id) {
-                    return response()->json(['status' => 'error', 'message' => 'Carpet not yet in stock']);
-                }
+        return response()->json(['status' => 'error', 'message' => 'ERP/Financial integration is disabled.']);
+    }
 
-                if ($detail->current_status == 'Shipped') {
-                    return response()->json(['status' => 'error', 'message' => 'Already sold and shipped']);
-                }
+    /**
+     * Change carpet status inline
+     */
+    public function changeStatus(Request $request, $order_detail_id)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,in_progress,completed'
+        ]);
 
-                // 1. Orchestrate Sale through Inventory Manager
-                // This handles: DR AR, CR Revenue, DR COGS, CR Inventory
-                $this->inventoryManager->processSale($detail->carpet, [
-                    'sale_amount' => $detail->total_amount,
-                    'customer_id' => $detail->order->main_customer_id ?? $detail->order->customer_id, // Link to MASTER customer
-                    'date' => \Carbon\Carbon::today()->format('Y-m-d'),
-                    'reference' => 'ORD-SALE-' . $detail->cod_id,
-                    'description' => "Final delivery for Custom Order #" . $detail->order->order_name,
-                    'quantity' => 1,
-                    'warehouse_id' => $detail->carpet->warehouse_id ?? 1,
-                ]);
-
-                // 2. Update Status
-                $detail->current_status = 'Shipped';
-                $detail->save();
-
-                // Update physical carpet status
-                $detail->carpet->status = 6; // Sold
-                $detail->carpet->save();
-
-                return response()->json(['status' => 'success', 'message' => 'Final sale processed and order shipped']);
-            });
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'System Error: ' . $e->getMessage()]);
+        $detail = DB::table('customer_order_details')->where('cod_id', $order_detail_id)->first();
+        if (!$detail) {
+            return redirect()->back()->with('error', 'قالین یافت نشد.');
         }
+
+        DB::table('customer_order_details')
+            ->where('cod_id', $order_detail_id)
+            ->update(['current_status' => $request->status]);
+
+        // If carpet is downgraded to non-completed, check if order is completed and downgrade it to in_progress
+        if ($request->status != 'completed') {
+            DB::table('customer_orders')
+                ->where('co_id', $detail->customer_order_id)
+                ->where('status', 'completed')
+                ->update(['status' => 'in_progress']);
+        }
+
+        return redirect()->back()->with('status', 'وضعیت قالین با موفقیت بروزرسانی شد.');
     }
 }

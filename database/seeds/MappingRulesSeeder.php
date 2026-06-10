@@ -232,18 +232,21 @@ class MappingRulesSeeder extends Seeder
             $credit = $resolveAccount($rule['credit_code']);
 
             if ($debit && $credit) {
-                // Compute the mapping_key slug using the standard format
                 $slug = '';
-                switch ($rule['condition']) {
-                    case 'خوراکه': $slug = 'EXP_FOOD'; break;
-                    case 'ترانسپورت': $slug = 'EXP_TRANS'; break;
-                    case 'متفرقه': $slug = 'EXP_MISC'; break;
-                    case 'گرفت': $slug = 'PYMT_OUT'; break;
-                    case 'رسید': $slug = 'PYMT_IN'; break;
-                    case 'deposit': $slug = 'CASH_IN'; break;
-                    case 'withdrawal': $slug = 'CASH_OUT'; break;
-                    case 'purchase': $slug = 'ASSET_PURCH'; break;
-                    default: $slug = strtoupper(str_replace(' ', '_', $rule['transaction_type'] . '_' . $rule['condition']));
+                if ($rule['transaction_type'] === 'different_account') {
+                    $slug = ($rule['condition'] === 'رسید') ? 'DIFF_IN' : 'DIFF_OUT';
+                } else {
+                    switch ($rule['condition']) {
+                        case 'خوراکه': $slug = 'EXP_FOOD'; break;
+                        case 'ترانسپورت': $slug = 'EXP_TRANS'; break;
+                        case 'متفرقه': $slug = 'EXP_MISC'; break;
+                        case 'گرفت': $slug = 'PYMT_OUT'; break;
+                        case 'رسید': $slug = 'PYMT_IN'; break;
+                        case 'deposit': $slug = 'CASH_IN'; break;
+                        case 'withdrawal': $slug = 'CASH_OUT'; break;
+                        case 'purchase': $slug = 'ASSET_PURCH'; break;
+                        default: $slug = strtoupper(str_replace(' ', '_', $rule['transaction_type'] . '_' . $rule['condition']));
+                    }
                 }
 
                 MappingRule::updateOrCreate(
@@ -257,5 +260,277 @@ class MappingRulesSeeder extends Seeder
                 );
             }
         }
+
+        // Dynamically locate accounts for SALES_REVENUE without hardcoding IDs or codes
+        $receivableAccount = ChartOfAccount::where('account_type', 'Asset')
+            ->where('account_name', 'like', '%Receivable%')
+            ->first();
+        $salesRevenueAccount = ChartOfAccount::where('account_type', 'Revenue')
+            ->where('account_name', 'like', '%Sales%')
+            ->first();
+
+        if ($receivableAccount && $salesRevenueAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'sale', 'mapping_key' => 'SALES_REVENUE'],
+                [
+                    'condition' => 'revenue',
+                    'debit_account_id' => $receivableAccount->id,
+                    'credit_account_id' => $salesRevenueAccount->id,
+                    'description_template' => 'فروش قالین - درآمد (Sales Revenue): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'material_sale', 'mapping_key' => 'MATERIAL_REVENUE'],
+                [
+                    'condition' => 'credit',
+                    'debit_account_id' => $receivableAccount->id,
+                    'credit_account_id' => $salesRevenueAccount->id,
+                    'description_template' => 'فروش مواد - درآمد (Material Sales Revenue): {reference}'
+                ]
+            );
+        }
+
+        // Dynamically locate accounts for SALES_COGS without hardcoding IDs or codes
+        $cogsAccount = ChartOfAccount::where('account_type', 'Expense')
+            ->where('report_group', 'COGS')
+            ->first();
+        $inventoryAccount = ChartOfAccount::where('account_type', 'Asset')
+            ->where('report_group', 'Current Asset')
+            ->where('account_name', 'like', '%Inventory%')
+            ->first();
+
+        if ($cogsAccount && $inventoryAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'sale', 'mapping_key' => 'SALES_COGS'],
+                [
+                    'condition' => 'cogs',
+                    'debit_account_id' => $cogsAccount->id,
+                    'credit_account_id' => $inventoryAccount->id,
+                    'description_template' => 'قیمت تمام شده فروش (COGS): {reference}'
+                ]
+            );
+        }
+
+        // Dynamically locate accounts for Vendor Receipt (seller_payment / رسید)
+        $cashAccount = ChartOfAccount::where('account_type', 'Asset')
+            ->where('is_cash_account', true)
+            ->first();
+        $payableAccount = ChartOfAccount::where('account_type', 'Liability')
+            ->where(function($q) {
+                $q->where('account_name', 'like', '%Accounts Payable%')
+                  ->orWhere('account_name', 'like', '%Payable%');
+            })
+            ->first();
+
+        if ($cashAccount && $payableAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'seller_payment', 'condition' => 'رسید'],
+                [
+                    'mapping_key' => 'PYMT_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $payableAccount->id,
+                    'description_template' => 'رسید پول از فروشنده مواد (Vendor Receipt)'
+                ]
+            );
+        }
+
+        // Dynamically locate/ensure accounts for Vendor Payment (seller_payment / گرفت)
+        if ($payableAccount && $cashAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'seller_payment', 'condition' => 'گرفت'],
+                [
+                    'mapping_key' => 'PYMT_OUT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'پرداخت پول به فروشنده (Seller Payment)'
+                ]
+            );
+        }
+
+        // --- DYNAMIC PRODUCTION COMPLETION & ISSUE RULES ---
+        $finishedGoods = ChartOfAccount::where('account_name', 'like', '%Finished Goods%')->first();
+        $wip = ChartOfAccount::where('account_name', 'like', '%WIP%')
+            ->orWhere('account_name', 'like', '%Work In Progress%')
+            ->first();
+        $inventory = ChartOfAccount::where('account_name', 'like', '%Inventory%')
+            ->where('account_name', 'not like', '%Finished%')
+            ->where('account_name', 'not like', '%new%')
+            ->first();
+
+        if ($finishedGoods && $wip) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'production_completion', 'condition' => 'transfer'],
+                [
+                    'mapping_key' => 'PRODUCTION_COMPLETION_TRANSFER',
+                    'debit_account_id' => $finishedGoods->id,
+                    'credit_account_id' => $wip->id,
+                    'description_template' => 'Production Completion: {reference}'
+                ]
+            );
+        }
+
+        if ($wip && $inventory) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'production_start', 'condition' => 'transfer'],
+                [
+                    'mapping_key' => 'PRODUCTION_START_TRANSFER',
+                    'debit_account_id' => $wip->id,
+                    'credit_account_id' => $inventory->id,
+                    'description_template' => 'Production Issue (Start): {reference}'
+                ]
+            );
+        }
+
+        if ($wip && $payableAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'production_service', 'condition' => 'credit'],
+                [
+                    'mapping_key' => 'PRODUCTION_SERVICE_CREDIT',
+                    'debit_account_id' => $wip->id,
+                    'credit_account_id' => $payableAccount->id,
+                    'description_template' => 'Production Service cost capitalization: {reference}'
+                ]
+            );
+        }
+
+        // --- DYNAMIC PAYROLL & EMPLOYEE PAYMENT RULES ---
+        $salaryExpense = ChartOfAccount::where('account_name', 'like', '%Salary Expense%')->first();
+        $salaryPayable = ChartOfAccount::where('account_name', 'like', '%Salary Payable%')->first();
+
+        if ($salaryExpense && $salaryPayable) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'payroll', 'condition' => 'accrual'],
+                [
+                    'mapping_key' => 'PAYROLL_ACCRUAL',
+                    'debit_account_id' => $salaryExpense->id,
+                    'credit_account_id' => $salaryPayable->id,
+                    'description_template' => 'Salary Accrual for {reference}'
+                ]
+            );
+        }
+
+        if ($salaryPayable && $cashAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'employee_payment', 'condition' => 'payment'],
+                [
+                    'mapping_key' => 'PAYROLL_PAYMENT',
+                    'debit_account_id' => $salaryPayable->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'Salary Payment to Employee: {reference}'
+                ]
+            );
+        }
+
+        // --- DYNAMIC MATERIAL PAYMENTS ---
+        if ($cashAccount && $payableAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'material_payment_in', 'condition' => 'رسید'],
+                [
+                    'mapping_key' => 'MATERIAL_RECEIPT',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $payableAccount->id,
+                    'description_template' => 'رسید از بابت مواد (Material Receipt): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'material_payment_out', 'condition' => 'گرفت'],
+                [
+                    'mapping_key' => 'MATERIAL_PAYMENT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'پرداخت از بابت مواد (Material Payment): {reference}'
+                ]
+            );
+        }
+
+        // --- DYNAMIC WASHING & FINISHING PAYMENT RECEIPTS ---
+        if ($cashAccount && $payableAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'washing_payment', 'condition' => 'رسید'],
+                [
+                    'mapping_key' => 'PYMT_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $payableAccount->id,
+                    'description_template' => 'رسید پول از تیم شست (Washing Team Receipt)'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'finishing_payment', 'condition' => 'رسید'],
+                [
+                    'mapping_key' => 'PYMT_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $payableAccount->id,
+                    'description_template' => 'رسید پول از تیم تیاری (Finishing Team Receipt)'
+                ]
+            );
+        }
+
+        // --- DYNAMIC KACHAEE REPAIR TRANSFER ---
+        if ($wip) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'kachaee_transfer', 'condition' => 'ارسال به کچایی'],
+                [
+                    'mapping_key' => 'KCH_TRANS_OUT',
+                    'debit_account_id' => $wip->id,
+                    'credit_account_id' => $wip->id,
+                    'description_template' => 'ارسال به کچایی (Transfer to Kachaee): {reference}'
+                ]
+            );
+        }
+
+        // --- DYNAMIC FIXED ASSET DEPRECIATION ---
+        $depreciationExpense = ChartOfAccount::where('account_name', 'like', '%Depreciation Expense%')->first() 
+            ?: ChartOfAccount::where('account_name', 'like', '%Operational Expenses%')->first();
+        $accumulatedDepreciation = ChartOfAccount::where('account_name', 'like', '%Accumulated Depreciation%')->first();
+
+        if ($depreciationExpense && $accumulatedDepreciation) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'asset', 'condition' => 'depreciation'],
+                [
+                    'mapping_key' => 'ASSET_DEPRECIATION',
+                    'debit_account_id' => $depreciationExpense->id,
+                    'credit_account_id' => $accumulatedDepreciation->id,
+                    'description_template' => 'Asset Depreciation: {reference}'
+                ]
+            );
+        }
+
+        // --- DYNAMIC OPERATIONAL EXPENSE CATEGORIES ---
+        $operationalExpense = ChartOfAccount::where('account_name', 'like', '%Operational Expenses%')->first();
+        if ($operationalExpense && $cashAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'expense', 'condition' => 'ترمیمات و تیل'],
+                [
+                    'mapping_key' => 'EXP_FUEL',
+                    'debit_account_id' => $operationalExpense->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'هزینه ترمیمات و تیل (Fuel/Repair Expense): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'expense', 'condition' => 'اجوره'],
+                [
+                    'mapping_key' => 'EXP_WAGES',
+                    'debit_account_id' => $operationalExpense->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'هزینه اجوره (Wages Expense): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'expense', 'condition' => 'متفرقه دفتر'],
+                [
+                    'mapping_key' => 'EXP_MISC_OFFICE',
+                    'debit_account_id' => $operationalExpense->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'هزینه های متفرقه دفتر (Office Misc Expense): {reference}'
+                ]
+            );
+        }
     }
 }
+

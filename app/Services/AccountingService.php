@@ -159,6 +159,7 @@ class AccountingService
 
             // 3. Create Transaction Header
             $transaction = LedgerTransaction::create([
+                'journal_id' => $data['journal_id'] ?? null,
                 'date' => $data['date'],
                 'reference' => $data['reference'] ?? null,
                 'description' => $data['description'] ?? null,

@@ -17,6 +17,10 @@ class MaterialSale extends Model
         return $this->belongsTo(Agents::class,'agent_id','agent_id');
     }
 
+    public function invoice(){
+        return $this->belongsTo(Invoice::class,'invoice_id');
+    }
+
     public function warehouse(){
         return $this->belongsTo(Warehouse::class,'warehouse_id');
     }

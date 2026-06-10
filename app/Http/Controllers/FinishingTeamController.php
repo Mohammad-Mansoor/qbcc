@@ -21,7 +21,7 @@ class FinishingTeamController extends Controller
     public function index()
     {
         $fteamEdit = "";
-        $teams = FinishingTeam::all();
+        $teams = FinishingTeam::orderBy('id', 'desc')->get();
 
         $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
@@ -36,6 +36,7 @@ class FinishingTeamController extends Controller
 
             $fteamEdit = "";
             $teams = FinishingTeam::where('name', 'like','%'.$search.'%')
+                ->orderBy('id', 'desc')
                 ->get();
             $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
             $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
@@ -48,7 +49,7 @@ class FinishingTeamController extends Controller
         }
     public function accounts(){
         $fteamEdit = "";
-        $teams = FinishingTeam::all();
+        $teams = FinishingTeam::orderBy('id', 'desc')->get();
 
         $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
@@ -79,6 +80,11 @@ class FinishingTeamController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|max:32|unique:finishing_teams',
+            'father_name' => 'nullable|string|max:255',
+            'tazkira_number' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'grantor_name' => 'nullable|string|max:255',
         ]);
         $team = FinishingTeam::create($data);
          $activity = new Activity();
@@ -88,7 +94,7 @@ class FinishingTeamController extends Controller
         $activity->save();
         
         if ($team) {
-            return redirect('/dashboard/finish-team')->with('status', 'دسته بندی موفقانه ثبت شد !');
+            return redirect('/dashboard/finish-team')->with('status', 'تیم تیاری موفقانه ثبت شد !');
         } else {
             return redirect('/dashboard/finish-team')->with('error', 'مشکل در سرور وجود داره!');
         }
@@ -114,7 +120,7 @@ class FinishingTeamController extends Controller
     public function edit($id)
     {
         $fteamEdit = FinishingTeam::find($id);
-        $teams = FinishingTeam::paginate(6);
+        $teams = FinishingTeam::orderBy('id', 'desc')->paginate(6);
         $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
         $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
 
@@ -134,6 +140,11 @@ class FinishingTeamController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|max:32',
+            'father_name' => 'nullable|string|max:255',
+            'tazkira_number' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'grantor_name' => 'nullable|string|max:255',
         ]);
         
          $activity = new Activity();

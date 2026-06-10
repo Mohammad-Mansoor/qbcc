@@ -55,9 +55,15 @@
                         </div>
                         
                         <div class="form-group mb-4">
+                            <label class="font-weight-bold text-muted small">شناسه دفتر کل (GL ID)</label>
+                            <input type="text" name="journal_id" value="{{ old('journal_id', $nextJournalId) }}" class="form-control bg-light border-0 font-weight-bold text-primary" placeholder="مثلاً: JV-2026-00001" readonly>
+                            <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> شناسه دفتر کل خودکار تولید شده توسط سیستم.</small>
+                        </div>
+
+                        <div class="form-group mb-4">
                             <label class="font-weight-bold text-muted small">نمبر سند / مرجع (Reference)</label>
-                            <input type="text" name="reference" class="form-control bg-light border-0" placeholder="مثلاً: JV-1001">
-                            <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> نمبر فزیکی سند یا مرجع پیگیری.</small>
+                            <input type="text" name="reference" value="{{ old('reference') }}" class="form-control bg-light border-0" placeholder="مثلاً: JV-1001">
+                            <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> نمبر فزیکی سند یا مرجع پیگیری (اختیاری).</small>
                         </div>
 
                         <div class="form-group mb-4">
@@ -69,6 +75,31 @@
                                 <option value="adjustment">Adjustment (سند تعدیلی)</option>
                             </select>
                             <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> دسته‌بندی سند برای گزارشات بهتر.</small>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold text-muted small">نوعیت طرف معامله (Party Type)</label>
+                            <select id="party_type" name="party_type" class="form-control bg-light border-0" onchange="headerPartyTypeChanged(this)">
+                                <option value="">-- بدون طرف معامله --</option>
+                                <option value="App\Customer">مشتری (Customer)</option>
+                                <option value="App\Agents">نماینده (Agent)</option>
+                                <option value="App\OfficeEmployee">کارمند (Employee)</option>
+                                <option value="App\StringSeller">فروشنده تار (String Seller)</option>
+                                <option value="App\WashingTeam">تیم شستشو (Washing Team)</option>
+                                <option value="App\FinishingTeam">تیم پرداخت (Finishing Team)</option>
+                                <option value="App\Kachaee">تیم کچه ای (Kachaee)</option>
+                                <option value="App\NewDifferentAccount">حساب متفرقه جدید (New Different Account)</option>
+                                <option value="App\DifferentAccount">حساب متفرقه (Different Account)</option>
+                            </select>
+                            <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> در صورت تعلق کل سند به یک شخص/طرف معامله انتخاب کنید.</small>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold text-muted small">طرف معامله (Party)</label>
+                            <select id="party_id" name="party_id" class="form-control party-select" disabled>
+                                <option value="">-- بدون طرف معامله --</option>
+                            </select>
+                            <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> شخص یا طرف معامله مشخص سند.</small>
                         </div>
 
                         <div class="form-group mb-4">
@@ -94,10 +125,10 @@
                             <table class="table mb-0" id="journal-table">
                                 <thead class="bg-light text-muted small">
                                     <tr>
-                                        <th style="width: 40%">حساب (Account)</th>
-                                        <th>دیبت (Debit)</th>
-                                        <th>کریدت (Credit)</th>
-                                        <th style="width: 50px"></th>
+                                        <th style="width: 50%">حساب (Account)</th>
+                                        <th style="width: 23%">دیبت (Debit)</th>
+                                        <th style="width: 23%">کریدت (Credit)</th>
+                                        <th style="width: 4%"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -139,7 +170,7 @@
                                 </tbody>
                                 <tfoot class="bg-light">
                                     <tr class="font-weight-bold">
-                                        <td class="text-right p-3">مجموع (Totals):</td>
+                                        <td colspan="1" class="text-right p-3">مجموع (Totals):</td>
                                         <td class="p-3 text-primary" id="total-debit">$0.00</td>
                                         <td class="p-3 text-primary" id="total-credit">$0.00</td>
                                         <td></td>
@@ -171,7 +202,7 @@
         newRow.className = 'entry-row';
         newRow.innerHTML = `
             <td class="p-3">
-                <select name="entries[${rowCount}][account_id]" class="form-control select2" required>
+                <select name="entries[\${rowCount}][account_id]" class="form-control select2" required>
                     <option value="">-- انتخاب حساب --</option>
                     @foreach($accounts as $acc)
                         <option value="{{ $acc->id }}">{{ $acc->account_code }} - {{ $acc->account_name }}</option>
@@ -179,10 +210,10 @@
                 </select>
             </td>
             <td class="p-3">
-                <input type="number" step="0.01" name="entries[${rowCount}][debit]" class="form-control bg-light border-0 debit-input" value="0" onchange="calculateTotals()">
+                <input type="number" step="0.01" name="entries[\${rowCount}][debit]" class="form-control bg-light border-0 debit-input" value="0" onchange="calculateTotals()">
             </td>
             <td class="p-3">
-                <input type="number" step="0.01" name="entries[${rowCount}][credit]" class="form-control bg-light border-0 credit-input" value="0" onchange="calculateTotals()">
+                <input type="number" step="0.01" name="entries[\${rowCount}][credit]" class="form-control bg-light border-0 credit-input" value="0" onchange="calculateTotals()">
             </td>
             <td class="p-3 text-center">
                 <button type="button" class="btn btn-sm btn-icon btn-outline-danger border-0" onclick="this.closest('tr').remove(); calculateTotals();">
@@ -191,8 +222,53 @@
             </td>
         `;
         tbody.appendChild(newRow);
-        $('.select2').select2();
+        $(newRow).find('.select2').select2();
         rowCount++;
+    }
+
+    function headerPartyTypeChanged(selectEl) {
+        let partySelect = document.querySelector('#party_id');
+        let partyType = selectEl.value;
+
+        // Destroy existing select2 if initialized
+        if ($(partySelect).hasClass("select2-hidden-accessible")) {
+            $(partySelect).select2('destroy');
+        }
+
+        if (!partyType) {
+            partySelect.innerHTML = '<option value="">-- بدون طرف معامله --</option>';
+            partySelect.disabled = true;
+            return;
+        }
+
+        partySelect.disabled = false;
+        partySelect.innerHTML = '<option value=""></option>';
+
+        // Initialize Select2 with AJAX to load parties dynamically
+        $(partySelect).select2({
+            placeholder: '-- انتخاب طرف معامله --',
+            allowClear: true,
+            ajax: {
+                url: '{{ route("accounting.journals.api.parties") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        type: partyType,
+                        q: params.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
+        
+        // Trigger opening the dropdown immediately
+        $(partySelect).select2('open');
     }
 
     function calculateTotals() {

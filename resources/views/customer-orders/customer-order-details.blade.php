@@ -3,40 +3,201 @@
 @section('content')
 <style>
     :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --info-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         --glass-bg: rgba(255, 255, 255, 0.95);
-        --glass-border: rgba(255, 255, 255, 0.2);
+        --glass-border: rgba(226, 232, 240, 0.8);
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     .glass-card {
         background: var(--glass-bg);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(12px);
         border: 1px solid var(--glass-border);
-        border-radius: 15px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        transition: transform 0.3s ease;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .order-header {
+    .glass-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+    }
+
+    .order-header-premium {
         background: var(--primary-gradient);
         color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-    }
-
-    .status-badge {
-        padding: 5px 12px;
+        padding: 2.25rem;
         border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+        position: relative;
+        overflow: hidden;
     }
 
-    .status-on-loom { background: #fff3cd; color: #856404; }
-    .status-ready { background: #d4edda; color: #155724; }
-    .status-shipped { background: #cce5ff; color: #004085; }
-    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .order-header-premium::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    /* Stat Cards */
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 16px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px) scale(1.02);
+    }
+    .stat-card-primary { background: var(--primary-gradient); }
+    .stat-card-warning { background: var(--warning-gradient); }
+    .stat-card-info { background: var(--info-gradient); }
+    .stat-card-success { background: var(--success-gradient); }
+    .stat-card-danger { background: var(--danger-gradient); }
+    
+    .stat-icon {
+        position: absolute;
+        left: 1.25rem;
+        bottom: 0.75rem;
+        font-size: 3rem;
+        opacity: 0.15;
+    }
+
+    /* Custom Badges */
+    .badge-premium {
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.025em;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-premium-pending { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+    .badge-premium-progress { background: #dbeafe; color: #2563eb; border: 1px solid #bfdbfe; }
+    .badge-premium-completed { background: #d1fae5; color: #059669; border: 1px solid #a7f3d0; }
+
+    /* Custom progress bar */
+    .progress-premium {
+        height: 8px;
+        border-radius: 9999px;
+        background-color: #f1f5f9;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-premium {
+        height: 100%;
+        border-radius: 9999px;
+        background: var(--info-gradient);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-bar-completed {
+        background: var(--success-gradient);
+    }
+
+    /* Table modifications */
+    .table thead th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        color: #64748b;
+        background-color: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+        border-top: none;
+        padding: 1rem 1.5rem;
+    }
+    .table tbody td {
+        padding: 1.25rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    /* Custom inline select */
+    .select-status-premium {
+        padding: 0.4rem 2rem 0.4rem 0.8rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background-color: #fff;
+        font-size: 0.825rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        cursor: pointer;
+        width: 140px;
+    }
+    .select-status-premium:focus {
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    .select-status-premium.status-pending { color: #d97706; border-color: #fde68a; background-color: #fffbeb; }
+    .select-status-premium.status-in_progress { color: #2563eb; border-color: #bfdbfe; background-color: #eff6ff; }
+    .select-status-premium.status-completed { color: #059669; border-color: #a7f3d0; background-color: #ecfdf5; }
+
+    /* Modals styling */
+    .modal-content-premium {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .modal-header-premium {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem 2rem;
+    }
+    .modal-body-premium {
+        padding: 2rem;
+    }
+
+    .form-control-premium {
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s;
+    }
+    .form-control-premium:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .btn-premium {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+    }
+    .btn-premium:hover {
+        opacity: 0.95;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        color: white;
+    }
 
     .action-btn {
         width: 35px;
@@ -49,81 +210,50 @@
         margin-right: 5px;
         transition: all 0.2s;
     }
-
     .action-btn:hover {
         transform: translateY(-2px);
     }
 
-    .table-xs th {
-        font-weight: 600;
-        color: #4a5568;
-        background: #f7fafc;
-        border-top: none !important;
-    }
-
-    .finance-summary {
-        display: flex;
-        gap: 20px;
-        margin-top: 10px;
-    }
-
-    .finance-item {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 10px 20px;
-        border-radius: 10px;
-    }
-
+    /* Print layout */
     @media print {
         .hideOnPrint { display: none !important; }
-        .glass-card { box-shadow: none; border: 1px solid #ddd; }
+        .glass-card { box-shadow: none !important; border: 1px solid #ddd !important; }
     }
 </style>
 
-<div class="container-fluid">
-    <!-- Order Summary Header -->
-    <div class="order-header glass-card">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h2 class="mb-1 text-white">Order: #{{$customer_order->order_name}}</h2>
-                <p class="mb-0 opacity-75">Customer: <strong>{{$customer_order->customer->name ?? 'N/A'}}</strong></p>
-                <p class="mb-0 opacity-75">Date: {{ $customer_order->order_date }}</p>
-            </div>
-            <div class="col-md-6 text-right">
-                <div class="finance-summary justify-content-end">
-                    @php
-                        $usd_total = $customer_order_details->sum(function($q){
-                            $rate = $q->exchange_rate ?: 1;
-                            return $rate > 1 ? ($q->total_amount / $rate) : ($q->total_amount * $rate);
-                        });
-                        
-                        $grouped_totals = [];
-                        foreach($customer_order_details as $co_detail) {
-                            $code = $co_detail->currency_code ?: 'USD';
-                            $grouped_totals[$code] = ($grouped_totals[$code] ?? 0) + $co_detail->total_amount;
-                        }
-                    @endphp
-                    
-                    @foreach($grouped_totals as $code => $tot)
-                        @if($code != 'USD')
-                            <div class="finance-item">
-                                <small class="d-block opacity-75">Total Value ({{ $code }})</small>
-                                <span class="h4 text-white font-weight-bold">{{ number_format($tot, 2) }} {{ $code }}</span>
-                            </div>
-                        @endif
-                    @endforeach
-                    
-                    <div class="finance-item">
-                        <small class="d-block opacity-75">Total Value (USD)</small>
-                        <span class="h4 text-white font-weight-bold">${{ number_format($usd_total, 2) }}</span>
-                    </div>
-                </div>
-            </div>
+@php
+    $totalCarpets = count($customer_order_details);
+    $completedCarpets = $customer_order_details->where('current_status', 'completed')->count();
+    $inProgressCarpets = $customer_order_details->where('current_status', 'in_progress')->count();
+    $pendingCarpets = $customer_order_details->where('current_status', 'pending')->count();
+    $totalArea = $customer_order_details->sum('area');
+    $totalAmount = $customer_order_details->sum('total_amount');
+    $progressPercentage = $totalCarpets > 0 ? round(($completedCarpets / $totalCarpets) * 100) : 0;
+@endphp
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="order-header-premium d-flex justify-content-between align-items-center flex-wrap gap-3" style="direction: rtl; text-align: right;">
+        <div>
+            <h2 class="text-white mb-2 font-weight-bold">فرمایش: #{{$customer_order->order_name}}</h2>
+            <p class="mb-1 opacity-75">مشتری: <strong>{{$customer_order->customer->name ?? 'N/A'}} ({{$customer_order->customer->country ?? 'N/A'}})</strong></p>
+            <p class="mb-0 opacity-75">تاریخ ثبت: {{ $customer_order->order_date }} | وضعیت کلی: 
+                <span class="badge badge-light text-dark font-weight-bold" style="text-transform: uppercase;">{{ $customer_order->status }}</span>
+            </p>
+        </div>
+        <div class="hideOnPrint d-flex gap-2">
+            <button class="btn btn-premium font-weight-bold shadow-sm" data-toggle="modal" data-target="#carpetModal">
+                <i class="fa fa-plus-circle ml-2"></i> ثبت مشخصات قالین جدید
+            </button>
+            <a href="/dashboard/customer-orders" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
+                <i class="fa fa-arrow-right ml-1"></i> بازگشت
+            </a>
         </div>
     </div>
 
     @if($errors->any())
-        <div class="alert alert-danger glass-card mb-4">
-            <ul class="mb-0">
+        <div class="alert alert-danger glass-card mb-4 text-right" style="direction: rtl;">
+            <ul class="mb-0 pr-3">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -131,236 +261,129 @@
         </div>
     @endif
 
-    <div class="row">
-        <!-- Main Form Column -->
-        <div class="col-xl-12 col-lg-12 hideOnPrint">
-            <div class="card glass-card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center" style="direction: rtl;">
-                    <h5 class="mb-0">{{ $orderEdit ? 'ویرایش مشخصات تخنیکی قالین' : 'ثبت مشخصات تخنیکی قالین جدید' }}</h5>
-                    <button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#formCollapse">
-                        <i class="fa fa-chevron-down"></i>
-                    </button>
-                </div>
-                <div id="formCollapse" class="collapse show">
-                    <div class="card-body">
-                        <!-- Dari Explanation Block -->
-                        <div class="alert alert-primary mb-4" style="direction: rtl; text-align: right; border-radius: 12px; background: #e3f2fd; border: 1px solid #bbdefb;">
-                            <h5 class="text-primary mb-2"><i class="fa fa-cogs mr-2"></i> مشخصات تخنیکی و تاثیر بر سیستم‌های گدام و حسابداری</h5>
-                            <p class="mb-2">این صفحه برای ثبت دقیق هر قالین و مدیریت چرخه تولید آن تا فروش نهایی طراحی شده است.</p>
-                            <div class="row small">
-                                <div class="col-md-6 border-left">
-                                    <strong>۱. تاثیر بر گدام (Warehouse):</strong><br>
-                                    وقتی آیکون <i class="fa fa-download text-warning"></i> (رسید به گدام) را فشار می‌دهید، سیستم به صورت خودکار یک بارکد برای این قالین صادر کرده و آن را در گدام انتخابی شما ثبت می‌کند.
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>۲. تاثیر بر حسابداری (Accounting):</strong><br>
-                                    با هر مرحله (تولید یا فروش)، سیستم به صورت خودکار در دفتر کل (Ledger) سند می‌زند. دکمه <i class="fa fa-truck text-primary"></i> (تسلیمی) باعث کسر موجودی از گدام و ثبت عاید در حساب مالی مشتری می‌شود.
-                                </div>
-                            </div>
-                            <p class="mt-2 mb-0 small text-muted"><strong>نکته:</strong> برای مشاهده تمام اسناد مالی صادر شده برای هر قالین، از آیکون <i class="fa fa-list-alt"></i> (دفتر تفصیلی) استفاده کنید.</p>
-                        </div>
-                        <form action="{{ $orderEdit ? '/dashboard/customer-order-details/'.$orderEdit->cod_id : '/dashboard/customer-order-details' }}" method="post" enctype="multipart/form-data">
-                            @csrf
-                            @if($orderEdit)
-                                {{ method_field('patch') }}
-                            @endif
-                            <input type="hidden" name="customer_order_id" value="{{ $customer_order->co_id }}">
-                                            <div class="row" style="direction: rtl; text-align: right;">
-                                <!-- Technical Specs -->
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">کیفیت (Quality) <span class="text-danger">*</span></label>
-                                    <input type="text" name="quality" class="form-control form-control-sm" value="{{ optional($orderEdit)->quality ?? '' }}" required>
-                                    <small class="text-muted small">نوع گره، رج یا صنف قالین را وارد کنید.</small>
-                                </div>
-                                <div class="col-md-1 mb-3">
-                                    <label class="small font-weight-bold">طول (متر) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" name="height" id="height" class="form-control form-control-sm" value="{{ optional($orderEdit)->height ?? '' }}" required>
-                                    <small class="text-muted small">طول قالین به متر.</small>
-                                </div>
-                                <div class="col-md-1 mb-3">
-                                    <label class="small font-weight-bold">عرض (متر) <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" name="width" id="width" class="form-control form-control-sm" value="{{ optional($orderEdit)->width ?? '' }}" required>
-                                    <small class="text-muted small">عرض قالین به متر.</small>
-                                </div>
-                                <div class="col-md-1 mb-3">
-                                    <label class="small font-weight-bold">مساحت (m²)</label>
-                                    <input type="text" name="area" id="area" class="form-control form-control-sm bg-light" value="{{ optional($orderEdit)->area ?? '' }}" readonly>
-                                    <small class="text-muted small">محاسبه خودکار.</small>
-                                </div>
-                                <div class="col-md-1 mb-3">
-                                    <label class="small font-weight-bold">تار (Warp)</label>
-                                    <input type="text" name="warp" class="form-control form-control-sm" value="{{ optional($orderEdit)->warp ?? '' }}">
-                                    <small class="text-muted small">جنس تار.</small>
-                                </div>
-                                <div class="col-md-1 mb-3">
-                                    <label class="small font-weight-bold">پود (Weft)</label>
-                                    <input type="text" name="weft" class="form-control form-control-sm" value="{{ optional($orderEdit)->weft ?? '' }}">
-                                    <small class="text-muted small">جنس پود.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">نمبر بافنده</label>
-                                    <input type="text" name="weaver_code" class="form-control form-control-sm" value="{{ optional($orderEdit)->weaver_code ?? '' }}">
-                                    <small class="text-muted small">کد شناسایی بافنده.</small>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="small font-weight-bold">وضعیت فعلی <span class="text-danger">*</span></label>
-                                    <select name="current_status" class="form-control form-control-sm select2">
-                                        @foreach(['Graphing' => 'نقشه‌کشی', 'Dyeing' => 'رنگ‌ریزی', 'On loom' => 'روی دستگاه', 'Off loom' => 'ختم بافت', 'Washing' => 'شستشو', 'Finishing' => 'پرداخت', 'Repairing' => 'ترمیم', 'Ready' => 'آماده', 'Shipped' => 'تسلیم شده', 'Paused' => 'متوقف', 'Cancelled' => 'لغو شده'] as $val => $label)
-                                            <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted small">مرحله تولید قالین.</small>
-                                </div>
+    @if(session("status") || session("error"))
+        <div class="alert {{ session('status') ? 'alert-success' : 'alert-danger' }} status mb-4 border-0 rounded-lg py-3 text-center font-weight-bold shadow-none" style="direction: rtl;">
+            {{ session('status') ?: session('error') }}
+        </div>
+    @endif
 
-                                <!-- Finance Fields -->
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">واحد پولی <span class="text-danger">*</span></label>
-                                    <select name="currency_id" id="currency_id" class="form-control form-control-sm select2" required>
-                                        @foreach($currencies as $currency)
-                                            <option value="{{ $currency->id }}" 
-                                                    data-code="{{ $currency->code }}" 
-                                                    data-rate="{{ $currency->exchange_rate }}"
-                                                    {{ (is_object($orderEdit) && \App\Currency::where('code', $orderEdit->currency_code)->value('id') == $currency->id) ? 'selected' : ($currency->code == 'USD' ? 'selected' : '') }}>
-                                                {{ $currency->code }} ({{ $currency->name }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <small class="text-muted small">ارز مورد معامله.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">نرخ ارز</label>
-                                    <input type="number" step="0.00000001" name="exchange_rate" id="exchange_rate" class="form-control form-control-sm" value="{{ optional($orderEdit)->exchange_rate ?? '1' }}" required>
-                                    <small class="text-muted small">نرخ تبدیل به پول پایه.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">قیمت فی متر</label>
-                                    <input type="number" step="0.01" name="unit_price" id="unit_price" class="form-control form-control-sm" value="{{ optional($orderEdit)->unit_price ?? '' }}">
-                                    <small class="text-muted small">قیمت فروش فی متر مربع.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">مجموع مبلغ</label>
-                                    <input type="number" step="0.01" name="total_amount" id="total_amount" class="form-control form-control-sm bg-light font-weight-bold" value="{{ optional($orderEdit)->total_amount ?? '' }}" readonly>
-                                    <small class="text-muted small">محاسبه خودکار کل مبلغ.</small>
-                                </div>
+    <!-- Progress Dashboard Indicator -->
+    <div class="card glass-card mb-4 p-4 hideOnPrint" style="direction: rtl; text-align: right;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="font-weight-bold text-dark mb-0">میزان تکمیل قالین‌های فرمایش:</h6>
+            <h5 class="font-weight-bold text-primary mb-0">{{ $progressPercentage }}%</h5>
+        </div>
+        <div class="progress-premium" style="height: 12px;">
+            <div class="progress-bar-premium {{ $progressPercentage == 100 ? 'progress-bar-completed' : '' }}" style="width: {{ $progressPercentage }}%"></div>
+        </div>
+        <small class="text-muted d-block mt-2">تعداد {{ $completedCarpets }} قالین از مجموع {{ $totalCarpets }} قالین این فرمایش تکمیل شده است.</small>
+    </div>
 
-                                <!-- Logistics & Actions Grid Row -->
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">تاریخ شروع <span class="text-danger">*</span></label>
-                                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ optional($orderEdit)->start_date ?? date('Y-m-d') }}" required>
-                                    <small class="text-muted small">شروع بافت.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">تاریخ ختم (تخمینی)</label>
-                                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ optional($orderEdit)->end_date ?? '' }}">
-                                    <small class="text-muted small">تاریخ تسلیمی احتمالی.</small>
-                                </div>
-                                <div class="col-md-2 mb-3">
-                                    <label class="small font-weight-bold">عکس قالین</label>
-                                    <input type="file" name="photo" class="form-control form-control-sm">
-                                    <small class="text-muted small">نقشه یا عکس نمونه.</small>
-                                </div>
-
-                                <!-- Truth Preview USD Card -->
-                                <div class="col-md-3 mb-3 align-self-center">
-                                    <div class="truth-preview-box" style="background: #e3f2fd; border-right: 4px solid #1e88e5; padding: 10px 15px; border-radius: 8px; margin-top: 5px; box-shadow: 0 4px 15px rgba(30, 136, 229, 0.05);">
-                                        <span class="truth-label" style="font-size: 0.75rem; color: #0d47a1; font-weight: 700;"><i class="fa fa-shield"></i> معادل دالر (USD Normalized):</span><br>
-                                        <span class="truth-value" id="usd_truth_preview" style="font-size: 1.3rem; color: #0d47a1; font-weight: 800; font-family: 'Courier New', monospace;">$ 0.0000</span>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3 mb-3 align-self-center">
-                                    <button type="submit" class="btn btn-primary btn-sm btn-block py-2 font-weight-bold" style="border-radius: 8px;">
-                                        <i class="fa fa-save"></i> {{ $orderEdit ? 'بروزرسانی مشخصات' : 'ثبت مشخصات قالین' }}
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+    <!-- Statistics Grid -->
+    <div class="row mb-4 hideOnPrint" style="direction: rtl; text-align: right;">
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon"><i class="fa fa-th-large"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">تعداد کل قالین‌ها</small>
+                <h3 class="font-weight-bold mb-0">{{ $totalCarpets }} عدد</h3>
             </div>
         </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">قالین‌های تکمیل شده</small>
+                <h3 class="font-weight-bold mb-0">{{ $completedCarpets }} عدد</h3>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon"><i class="fa fa-spinner"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">قالین‌های در حال کار</small>
+                <h3 class="font-weight-bold mb-0">{{ $inProgressCarpets }} عدد</h3>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-warning">
+                <div class="stat-icon"><i class="fa fa-hourglass-start"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">قالین‌های معلق</small>
+                <h3 class="font-weight-bold mb-0">{{ $pendingCarpets }} عدد</h3>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-success" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                <div class="stat-icon"><i class="fa fa-vector-square"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">مجموع مساحت</small>
+                <h3 class="font-weight-bold mb-0">{{ number_format($totalArea, 2) }} m²</h3>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="stat-card stat-card-primary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                <div class="stat-icon"><i class="fa fa-dollar-sign"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">مجموع کل مبالغ</small>
+                <h3 class="font-weight-bold mb-0">${{ number_format($totalAmount, 2) }}</h3>
+            </div>
+        </div>
+    </div>
 
-        <!-- Details List Column -->
-        <div class="col-xl-12 col-lg-12">
+    <!-- Carpets List Grid -->
+    <div class="row">
+        <div class="col-lg-12">
             <div class="card glass-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Carpets in this Order</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-light" onclick="window.print()"><i class="fa fa-print"></i> Print Report</button>
-                    </div>
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3" style="direction: rtl;">
+                    <h5 class="mb-0 font-weight-bold text-dark"><i class="fa fa-th text-primary ml-2"></i>لیست قالین‌های ثبت شده در این فرمایش</h5>
+                    <button class="btn btn-sm btn-outline-secondary hideOnPrint" onclick="window.print()"><i class="fa fa-print ml-1"></i> چاپ لیست</button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover table-xs mb-0">
+                        <table class="table table-hover mb-0">
                             <thead>
                                 <tr style="direction: rtl; text-align: right;">
                                     <th class="pr-4">مشخصات تخنیکی قالین</th>
-                                    <th>وضعیت تولید</th>
-                                    <th>اطلاعات مالی</th>
+                                    <th>وضعیت کار</th>
+                                    <th>قیمت و مبلغ</th>
                                     <th>زمان‌بندی</th>
                                     <th class="text-left pl-4">عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($customer_order_details as $co)
-                                <tr>
+                                <tr style="direction: rtl; text-align: right;">
                                     <td class="pl-4 py-3">
                                         <div class="d-flex align-items-center">
-                                            <a href="#" class="mr-3" data-toggle="modal" data-target="#imageModal" data-src="/{{$co->photo}}">
-                                                <img src="/{{$co->photo}}" class="rounded" style="height: 45px; width: 45px; object-fit: cover; border: 1px solid #eee;" onerror="this.src='/uploads/placeholder.png'">
+                                            <a href="#" class="ml-3 hideOnPrint" data-toggle="modal" data-target="#imageModal" data-src="/{{$co->photo}}">
+                                                <img src="/{{$co->photo}}" class="rounded" style="height: 50px; width: 50px; object-fit: cover; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);" onerror="this.src='/uploads/placeholder.png'">
                                             </a>
                                             <div>
-                                                <span class="d-block font-weight-bold">{{ $co->quality }} ({{ $co->height }}x{{ $co->width }})</span>
-                                                <small class="text-muted">Area: {{ $co->area }} m² | Warp/Weft: {{ $co->warp }}/{{ $co->weft }}</small>
+                                                <span class="d-block font-weight-bold text-dark">{{ $co->quality }} ({{ $co->height }}x{{ $co->width }})</span>
+                                                <small class="text-muted">مساحت: {{ $co->area }} m² | تار و پود: {{ $co->warp }}/{{ $co->weft }}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="status-badge status-{{ strtolower(str_replace(' ', '-', $co->current_status)) }}">
-                                            {{ $co->current_status }}
-                                        </span>
-                                        @if($co->carpet_id)
-                                            <br><small class="text-info font-weight-bold">Barcode: {{ \App\Carpet::find($co->carpet_id)->carpet_no ?? 'LINKED' }}</small>
-                                        @endif
+                                        <form action="/dashboard/customer-order-details/{{ $co->cod_id }}/change-status" method="POST" class="d-inline status-carpet-form-{{ $co->cod_id }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <select name="status" class="select-status-premium select-carpet-status-inline status-{{ $co->current_status }}" data-id="{{ $co->cod_id }}">
+                                                <option value="pending" {{ $co->current_status == 'pending' ? 'selected' : '' }}>معلق</option>
+                                                <option value="in_progress" {{ $co->current_status == 'in_progress' ? 'selected' : '' }}>در حال کار</option>
+                                                <option value="completed" {{ $co->current_status == 'completed' ? 'selected' : '' }}>تکمیل شده</option>
+                                            </select>
+                                        </form>
                                     </td>
                                     <td>
-                                        @php
-                                            $item_rate = $co->exchange_rate ?: 1;
-                                            $usd_val = $item_rate > 1 ? ($co->total_amount / $item_rate) : ($co->total_amount * $item_rate);
-                                        @endphp
-                                        <span class="d-block font-weight-bold text-dark">{{ number_format($co->total_amount, 2) }} {{ $co->currency_code }}</span>
-                                        <small class="text-muted d-block">{{ number_format($co->unit_price, 2) }}/m² (Rate: {{ number_format($co->exchange_rate, 6) }})</small>
-                                        <small class="text-info font-weight-bold" style="color: #0d47a1 !important;">USD Eq: ${{ number_format($usd_val, 2) }}</small>
+                                        <span class="d-block font-weight-bold text-dark">${{ number_format($co->total_amount, 2) }}</span>
+                                        <small class="text-muted d-block">فی متر: ${{ number_format($co->unit_price, 2) }}</small>
                                     </td>
                                     <td>
-                                        <small class="d-block text-success">Start: {{ $co->start_date }}</small>
-                                        <small class="d-block text-danger">Due: {{ $co->end_date }}</small>
+                                        <small class="d-block text-success font-weight-bold"><i class="fa fa-calendar-alt ml-1"></i>شروع: {{ $co->start_date }}</small>
+                                        <small class="d-block text-danger font-weight-bold"><i class="fa fa-calendar-times ml-1"></i>تحویل: {{ $co->end_date ?: 'نامشخص' }}</small>
                                     </td>
-                                    <td class="text-right pr-4">
+                                    <td class="text-left pr-4 pl-4">
                                         <div class="btn-group">
-                                            <!-- Basic Actions -->
-                                            <a href="/dashboard/customer-order-details/{{$co->cod_id}}/edit" class="btn btn-light action-btn text-info" title="Edit Specs">
+                                            <a href="/dashboard/customer-order-details/{{$co->cod_id}}/edit" class="btn btn-light action-btn text-info" title="ویرایش مشخصات">
                                                 <i class="fa fa-edit"></i>
                                             </a>
-
-                                            <!-- ERP Integration Actions -->
-                                            @if(!$co->carpet_id)
-                                                <button class="btn btn-light action-btn text-warning" title="Receive into Stock" onclick="openReceiveModal({{$co->cod_id}})">
-                                                    <i class="fa fa-download"></i>
-                                                </button>
-                                            @elseif($co->current_status != 'Shipped')
-                                                <button class="btn btn-light action-btn text-primary" title="Complete Sale & Deliver" onclick="processSale({{$co->cod_id}})">
-                                                    <i class="fa fa-truck"></i>
-                                                </button>
-                                            @endif
-
-                                            @if($co->carpet_id)
-                                                <a href="/dashboard/accounting/reports/account-ledger?source_id={{$co->carpet_id}}&source_type=App\Carpet" class="btn btn-light action-btn text-secondary" title="View Ledger">
-                                                    <i class="fa fa-list-alt"></i>
-                                                </a>
-                                            @endif
-
-                                            <button class="btn btn-light action-btn text-danger" title="Delete" onclick="deleteOrder({{$co->cod_id}})">
+                                            <button class="btn btn-light action-btn text-danger mr-1" title="حذف قالین" onclick="deleteOrder({{$co->cod_id}})">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </div>
@@ -368,7 +391,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">No specifications added yet.</td>
+                                    <td colspan="5" class="text-center py-5 text-muted font-weight-bold">هیچ قالینی برای این فرمایش ثبت نشده است. برای ثبت قالین دکمه بالا را کلیک کنید.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -380,47 +403,123 @@
     </div>
 </div>
 
-<!-- Modal: Large Image -->
-<div class="modal fade" id="imageModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content glass-card">
-            <div class="modal-body p-0 text-center">
-                <img src="" id="modalImg" class="img-fluid rounded" style="max-height: 85vh;">
+<!-- Modal: Create / Edit Carpet Detail -->
+<div class="modal fade" id="carpetModal" tabindex="-1" role="dialog" aria-labelledby="carpetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content modal-content-premium">
+            <div class="modal-header modal-header-premium bg-white" style="direction: rtl;">
+                <h5 class="modal-title font-weight-bold text-dark" id="carpetModalLabel">
+                    <i class="fa {{ $orderEdit ? 'fa-edit text-info' : 'fa-plus-circle text-primary' }} ml-2"></i>
+                    {{ $orderEdit ? 'ویرایش مشخصات تخنیکی قالین' : 'ثبت مشخصات تخنیکی قالین جدید' }}
+                </h5>
+                <button type="button" class="close ml-0 mr-auto" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
+            <form action="{{ $orderEdit ? '/dashboard/customer-order-details/'.$orderEdit->cod_id : '/dashboard/customer-order-details' }}" method="post" enctype="multipart/form-data">
+                @csrf
+                @if($orderEdit)
+                    {{ method_field('patch') }}
+                @endif
+                <input type="hidden" name="customer_order_id" value="{{ $customer_order->co_id }}">
+                <input type="hidden" name="currency_id" value="1">
+                <input type="hidden" name="exchange_rate" value="1">
+
+                <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
+                    <div class="row">
+                        <!-- Technical Specs -->
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">کیفیت (Quality) <span class="text-danger">*</span></label>
+                            <input type="text" name="quality" class="form-control form-control-premium" value="{{ optional($orderEdit)->quality ?? '' }}" required placeholder="مثال: چوب‌رنگ 60 رجه">
+                            <small class="text-muted small">نوع گره، رج یا صنف قالین.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">طول (متر) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="height" id="height" class="form-control form-control-premium" value="{{ optional($orderEdit)->height ?? '' }}" required placeholder="طول">
+                            <small class="text-muted small">طول قالین به متر.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">عرض (متر) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="width" id="width" class="form-control form-control-premium" value="{{ optional($orderEdit)->width ?? '' }}" required placeholder="عرض">
+                            <small class="text-muted small">عرض قالین به متر.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">مساحت (m²)</label>
+                            <input type="text" name="area" id="area" class="form-control form-control-premium bg-light" value="{{ optional($orderEdit)->area ?? '' }}" readonly>
+                            <small class="text-muted small">محاسبه خودکار مساحت.</small>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">قیمت فی متر مربع (USD)</label>
+                            <input type="number" step="0.01" name="unit_price" id="unit_price" class="form-control form-control-premium" value="{{ optional($orderEdit)->unit_price ?? '' }}" placeholder="قیمت فی متر مربع">
+                            <small class="text-muted small">قیمت فروش فی متر مربع.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">مجموع مبلغ (USD)</label>
+                            <input type="number" step="0.01" name="total_amount" id="total_amount" class="form-control form-control-premium bg-light font-weight-bold" value="{{ optional($orderEdit)->total_amount ?? '' }}" readonly>
+                            <small class="text-muted small">محاسبه خودکار کل مبلغ.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">تار (Warp)</label>
+                            <input type="text" name="warp" class="form-control form-control-premium" value="{{ optional($orderEdit)->warp ?? '' }}" placeholder="جنس تار">
+                            <small class="text-muted small">جنس تار مورد استفاده.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">پود (Weft)</label>
+                            <input type="text" name="weft" class="form-control form-control-premium" value="{{ optional($orderEdit)->weft ?? '' }}" placeholder="جنس پود">
+                            <small class="text-muted small">جنس پود مورد استفاده.</small>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">نمبر بافنده</label>
+                            <input type="text" name="weaver_code" class="form-control form-control-premium" value="{{ optional($orderEdit)->weaver_code ?? '' }}" placeholder="کد بافنده">
+                            <small class="text-muted small">کد شناسایی بافنده.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">وضعیت فعلی تولید <span class="text-danger">*</span></label>
+                            <select name="current_status" class="form-control select2-modal">
+                                @foreach(['pending' => 'معلق (Pending)', 'in_progress' => 'در حال کار (In Progress)', 'completed' => 'تکمیل شده (Completed)'] as $val => $label)
+                                    <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted small">وضعیت کار قالین.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">تاریخ شروع بافت <span class="text-danger">*</span></label>
+                            <input type="date" name="start_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->start_date ?? date('Y-m-d') }}" required>
+                            <small class="text-muted small">شروع بافت.</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="small font-weight-bold">تاریخ ختم (تخمینی)</label>
+                            <input type="date" name="end_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->end_date ?? '' }}">
+                            <small class="text-muted small">تاریخ تسلیمی احتمالی.</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">عکس یا نقشه قالین</label>
+                            <input type="file" name="photo" class="form-control form-control-premium">
+                            <small class="text-muted small">نقشه یا عکس نمونه طراحی.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 justify-content-start py-3" style="border-radius: 0 0 24px 24px;">
+                    <button type="submit" class="btn btn-premium font-weight-bold">
+                        <i class="fa fa-save ml-1"></i> {{ $orderEdit ? 'بروزرسانی مشخصات' : 'ثبت مشخصات قالین' }}
+                    </button>
+                    <button type="button" class="btn btn-light font-weight-bold mr-2" data-dismiss="modal">انصراف</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Modal: Receive into Stock -->
-<div class="modal fade" id="receiveModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
+<!-- Modal: Large Image -->
+<div class="modal fade" id="imageModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content glass-card">
-            <form id="receiveForm">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Receive Carpet into Stock</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="receive_cod_id">
-                    <div class="form-group">
-                        <label>Barcode / Parcha Number</label>
-                        <input type="text" name="carpet_no" class="form-control" placeholder="e.g. PN-2024-001" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Warehouse Location</label>
-                        <select name="warehouse_id" class="form-control">
-                            @foreach(\App\Warehouse::all() as $wh)
-                                <option value="{{$wh->id}}">{{$wh->name}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Confirm Reception</button>
-                </div>
-            </form>
+            <div class="modal-body p-0 text-center">
+                <img src="" id="modalImg" class="img-fluid rounded animate__animated animate__zoomIn" style="max-height: 85vh; width: 100%; object-fit: contain;">
+            </div>
         </div>
     </div>
 </div>
@@ -429,7 +528,14 @@
 
 @section('scripts')
 <script>
-    // Real-time area, total, and USD Normalized calculation
+    // Trigger modal immediately if editing
+    @if($orderEdit)
+        $(document).ready(function() {
+            $('#carpetModal').modal('show');
+        });
+    @endif
+
+    // Real-time area and total calculation
     function calculateTotals() {
         let h = parseFloat($('#height').val()) || 0;
         let w = parseFloat($('#width').val()) || 0;
@@ -439,31 +545,9 @@
         let up = parseFloat($('#unit_price').val()) || 0;
         let total = area * up;
         $('#total_amount').val(total.toFixed(2));
-        
-        updateUsdPreview();
     }
 
-    function updateUsdPreview() {
-        let amount = parseFloat($('#total_amount').val()) || 0;
-        let rate = parseFloat($('#exchange_rate').val()) || 1;
-        let baseAmount = 0;
-        if (rate > 1) {
-            baseAmount = amount / rate;
-        } else {
-            baseAmount = amount * rate;
-        }
-        $('#usd_truth_preview').text('$ ' + parseFloat(baseAmount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4}));
-    }
-
-    $("#height, #width, #unit_price, #exchange_rate").on("keyup change input", calculateTotals);
-
-    // Auto-fill exchange rate based on currency selection from currencies table
-    $('#currency_id').on('change', function() {
-        let selectedOption = $(this).find('option:selected');
-        let rate = parseFloat(selectedOption.data('rate')) || 1;
-        $('#exchange_rate').val(rate);
-        calculateTotals();
-    });
+    $("#height, #width, #unit_price").on("keyup change input", calculateTotals);
 
     // Initial run on page load
     calculateTotals();
@@ -478,8 +562,8 @@
     // Delete Logic
     function deleteOrder(id) {
         swal({
-            title: "Are you sure?",
-            text: "This will also reverse any linked accounting entries!",
+            title: "آیا مطمئن هستید؟",
+            text: "مشخصات این قالین برای همیشه حذف خواهد شد!",
             icon: "warning",
             buttons: true,
             dangerMode: true,
@@ -493,7 +577,7 @@
                         if (res.status == 'success') {
                             location.reload();
                         } else {
-                            swal("Error", res.message || "Operation failed", "error");
+                            swal("خطا", res.message || "عملیات با خطا مواجه شد", "error");
                         }
                     }
                 });
@@ -501,64 +585,17 @@
         });
     }
 
-    // Receive Logic
-    function openReceiveModal(id) {
-        $('#receive_cod_id').val(id);
-        $('#receiveModal').modal('show');
-    }
-
-    $('#receiveForm').on('submit', function(e) {
-        e.preventDefault();
-        let id = $('#receive_cod_id').val();
-        $.ajax({
-            type: 'POST',
-            url: '/dashboard/customer-order-details/' + id + '/receive',
-            data: $(this).serialize(),
-            success: function(res) {
-                if(res.status == 'success') {
-                    swal("Success", res.message, "success").then(() => location.reload());
-                } else {
-                    swal("Operation Failed", res.message || "An unknown error occurred", "error");
-                }
-            },
-            error: function(xhr) {
-                let msg = "Server Error (500)";
-                if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                swal("System Error", msg, "error");
-            }
-        });
+    $(document).on('change', '.select-carpet-status-inline', function() {
+        var id = $(this).data('id');
+        $('.status-carpet-form-' + id).submit();
     });
 
-    // Final Sale Logic
-    function processSale(id) {
-        swal({
-            title: "Process Final Sale?",
-            text: "This will record revenue, COGS, and mark the order as delivered.",
-            icon: "info",
-            buttons: ["Cancel", "Yes, Shipped"],
-        }).then((confirm) => {
-            if (confirm) {
-                $.ajax({
-                    type: 'POST',
-                    url: '/dashboard/customer-order-details/' + id + '/sell',
-                    data: { _token: '{{csrf_token()}}' },
-                    success: function (res) {
-                        if (res.status == 'success') {
-                            swal("Shipped!", res.message, "success").then(() => location.reload());
-                        } else {
-                            swal("Operation Failed", res.message || "Could not process sale", "error");
-                        }
-                    },
-                    error: function(xhr) {
-                        let msg = "Server Error (500)";
-                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                        swal("System Error", msg, "error");
-                    }
-                });
-            }
-        });
-    }
-
     $('.select2').select2({ width: '100%' });
+
+    // Select2 inside modal
+    $('.select2-modal').select2({
+        dropdownParent: $('#carpetModal'),
+        width: '100%'
+    });
 </script>
 @endsection

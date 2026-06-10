@@ -152,10 +152,15 @@ class MaterialSaleController extends Controller
         $currencies = Currency::where('is_active', 1)->get();
         $baseCurrency = Currency::where('is_base_currency', 1)->first();
 
+        $invoices = \App\Invoice::whereIn('type', ['dye', 'yarn'])
+            ->where('status', 'open')
+            ->orderBy('id', 'DESC')
+            ->get();
+
         return view('mstock.material-sale', compact(
             'material_sales', 'categories', 'material_types', 'saleEdit', 'agents','SaleNo', 
             'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
-            'mapping', 'warehouses', 'currencies', 'baseCurrency'
+            'mapping', 'warehouses', 'currencies', 'baseCurrency', 'invoices'
         ));
     }
 
@@ -257,6 +262,14 @@ class MaterialSaleController extends Controller
      */
     public function store(Request $request)
     {
+        $inputs = $request->all();
+        foreach (['amount', 'price', 'total_price', 'total_price_af', 'exchange_rate', 'original_amount'] as $field) {
+            if (isset($inputs[$field])) {
+                $inputs[$field] = str_replace(',', '', $inputs[$field]);
+            }
+        }
+        $request->replace($inputs);
+
         return DB::transaction(function () use ($request) {
             $itemId = DB::table('items')
                 ->where('type', 'App\MaterialType')
@@ -280,8 +293,8 @@ class MaterialSaleController extends Controller
             }
 
             $data = $request->validate([
+                'invoice_id' => 'required|exists:invoices,id',
                 'agent_id' => 'required',
-                'sale_number' => 'required',
                 'amount' => 'required',
                 'price' => 'required',
                 'total_price' => 'required',
@@ -298,6 +311,12 @@ class MaterialSaleController extends Controller
                 'exchange_rate' => 'required',
                 'original_amount' => 'required'
             ]);
+
+            $invoice = \App\Invoice::findOrFail($request->invoice_id);
+            if ($invoice->status === 'closed') {
+                return redirect()->back()->with('error', 'انوایس مورد نظر بسته شده است و امکان ثبت فروش جدید در آن وجود ندارد!');
+            }
+            $data['sale_number'] = $invoice->invoice_no;
 
             $currency = Currency::findOrFail($request->currency_id);
             $data['currency_code'] = $currency->code;
@@ -357,6 +376,10 @@ class MaterialSaleController extends Controller
         $saleEdit = MaterialSale::find($id);
         $agents = Agents::all();
 
+        if ($saleEdit && $saleEdit->invoice && $saleEdit->invoice->status === 'closed') {
+            return redirect('/dashboard/material-sales')->with('error', 'این فروش در یک انوایس بسته شده قرار دارد و امکان ویرایش آن وجود ندارد!');
+        }
+
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_REVENUE', 'credit');
@@ -368,10 +391,20 @@ class MaterialSaleController extends Controller
         $currencies = Currency::where('is_active', 1)->get();
         $baseCurrency = Currency::where('is_base_currency', 1)->first();
 
+        $invoices = \App\Invoice::whereIn('type', ['dye', 'yarn'])
+            ->where(function($q) use ($saleEdit) {
+                $q->where('status', 'open');
+                if ($saleEdit && $saleEdit->invoice_id) {
+                    $q->orWhere('id', $saleEdit->invoice_id);
+                }
+            })
+            ->orderBy('id', 'DESC')
+            ->get();
+
         return view('mstock.material-sale', compact(
             'material_sales', 'agents', 'categories', 'material_types', 'saleEdit',
             'allowedDebitAccounts', 'allowedCreditAccounts', 'allowedCogsDebit', 'allowedCogsCredit',
-            'mapping', 'warehouses', 'currencies', 'baseCurrency'
+            'mapping', 'warehouses', 'currencies', 'baseCurrency', 'invoices'
         ));
     }
 
@@ -384,8 +417,37 @@ class MaterialSaleController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $inputs = $request->all();
+        foreach (['amount', 'price', 'total_price', 'total_price_af', 'exchange_rate', 'original_amount'] as $field) {
+            if (isset($inputs[$field])) {
+                $inputs[$field] = str_replace(',', '', $inputs[$field]);
+            }
+        }
+        $request->replace($inputs);
+
         return DB::transaction(function () use ($request, $id) {
             $materialSale = MaterialSale::find($id);
+
+            if ($materialSale->invoice && $materialSale->invoice->status === 'closed') {
+                return redirect()->back()->with('error', 'این فروش در یک انوایس بسته شده قرار دارد و امکان ویرایش آن وجود ندارد!');
+            }
+
+            $request->validate([
+                'invoice_id' => 'required|exists:invoices,id',
+                'agent_id' => 'required',
+                'amount' => 'required',
+                'price' => 'required',
+                'total_price' => 'required',
+                'total_price_af' => 'required',
+                'date' => 'required',
+                'category_id' => 'required',
+                'type_id' => 'required',
+            ]);
+
+            $invoice = \App\Invoice::findOrFail($request->invoice_id);
+            if ($invoice->status === 'closed') {
+                return redirect()->back()->with('error', 'انوایس مقصد بسته شده است!');
+            }
 
             // Reverse old transactions (Inventory + Accounting)
             if ($materialSale->status == 1) {
@@ -413,8 +475,9 @@ class MaterialSaleController extends Controller
                 return redirect()->back()->with('error', 'مقدار فروش بیشتر از موجودی گدام است! موجودی فعلی: ' . number_format($availableStock, 2) . ' کیلوگرام');
             }
 
+            $materialSale->invoice_id = $request->invoice_id;
+            $materialSale->sale_number = $invoice->invoice_no;
             $materialSale->agent_id = $request->agent_id;
-            $materialSale->sale_number = $request->sale_number;
             $materialSale->amount = $request->amount;
             $materialSale->price = $request->price;
             $materialSale->total_price = $request->total_price;

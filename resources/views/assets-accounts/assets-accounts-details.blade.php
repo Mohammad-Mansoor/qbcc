@@ -488,6 +488,39 @@
                                         </div>
                                     </div>
 
+                                    <!-- ACCOUNT OVERRIDES -->
+                                    <div class="col-lg-12 mt-3">
+                                        <div class="p-4" style="background: rgba(248, 250, 252, 0.8); border: 1px solid #e2e8f0; border-radius: 12px;">
+                                            <h6 class="mb-3 font-weight-bold text-slate-700"><i class="fa fa-university"></i> تنظیمات حسابی دارایی ثابت (General Ledger Mapping)</h6>
+                                            <div class="row">
+                                                <div class="col-lg-6 col-md-6 col-sm-12">
+                                                    <div class="form-group">
+                                                        <label class="form-label text-primary">حساب دارایی ثابت (Debit)</label>
+                                                        <select name="override_debit_account_id" id="override_debit_account_id" class="form-control premium-input select2">
+                                                            @foreach($allowedDebitAccounts as $acc)
+                                                                <option value="{{ $acc->id }}" {{ ($detailEdit->override_debit_account_id == $acc->id) || (!$detailEdit->override_debit_account_id && $mapping && $mapping->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6 col-md-6 col-sm-12">
+                                                    <div class="form-group">
+                                                        <label class="form-label text-primary">حساب پرداخت (Credit)</label>
+                                                        <select name="override_credit_account_id" id="override_credit_account_id" class="form-control premium-input select2">
+                                                            @foreach($allowedCreditAccounts as $acc)
+                                                                <option value="{{ $acc->id }}" {{ ($detailEdit->override_credit_account_id == $acc->id) || (!$detailEdit->override_credit_account_id && $mapping && $mapping->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                                                    {{ $acc->account_code }} - {{ $acc->account_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- USD Normalization Live Preview Card -->
                                     <div class="col-lg-12 my-3">
                                         <div class="usd-preview-card">

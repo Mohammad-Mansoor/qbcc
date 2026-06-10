@@ -91,8 +91,23 @@ class WashingTeamController extends Controller
         }
         $mapping = \App\MappingRule::where('mapping_key', 'washing_transfer')->first();
         $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
-        $warehouses = DB::table('warehouses')->get();
-        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo', 'warehouses', 'defaultWarehouse'));
+        
+        // Filter warehouses of subtype 'carpet'
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', 1)
+            ->where('subtype', 'carpet')
+            ->get();
+
+        // Calculate Washing team statistics (carpets currently held with status = 3)
+        $teamStats = DB::table('carpets')
+            ->select('washing_id', DB::raw('count(*) as qty'), DB::raw('sum(area) as total_area'))
+            ->where('status', 3)
+            ->whereNotNull('washing_id')
+            ->groupBy('washing_id')
+            ->get()
+            ->keyBy('washing_id');
+
+        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo', 'warehouses', 'defaultWarehouse', 'teamStats'));
     }
 
     // WASHING GETTING DONE

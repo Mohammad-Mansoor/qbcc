@@ -12,15 +12,22 @@ class FinishingWorkCategorySeeder extends Seeder
      */
     public function run()
     {
-        DB::table('finishing_team_categories')->insert([
-            ['category' => 'قیتان'],
-            ['category' => 'رفو'],
-            ['category' => 'چیت'],
-            ['category' => 'لبکی'],
-            ['category' => 'پوپک'],
-            ['category' => 'کش'],
-            ['category' => 'رنگ'],
+        $categories = [
+            ['id' => 1, 'category' => 'قیتان'],
+            ['id' => 2, 'category' => 'رفو'],
+            ['id' => 3, 'category' => 'چیت'],
+            ['id' => 4, 'category' => 'لبکی'],
+            ['id' => 5, 'category' => 'پوپک'],
+            ['id' => 6, 'category' => 'کش'],
+            ['id' => 7, 'category' => 'رنگ'],
+            ['id' => 8, 'category' => 'شیرازه'],
+        ];
 
-        ]);
+        foreach ($categories as $category) {
+            DB::table('finishing_team_categories')->updateOrInsert(
+                ['id' => $category['id']],
+                ['category' => $category['category']]
+            );
+        }
     }
 }

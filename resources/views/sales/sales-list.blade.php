@@ -248,7 +248,7 @@
                                                 {{ $sale->customer->name ?? '---' }}
                                             @endif
                                         </h6>
-                                        <span class="text-muted tiny">{{ $sale->customer_code }}</span>
+                                        <span class="text-muted tiny">{{ $sale->customer->customer_code ?? '---' }}</span>
                                     </div>
                                 </div>
                             </td>
@@ -310,6 +310,11 @@
                                         <i class="fa fa-ellipsis-v text-muted"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow-sm border-0 py-2" style="border-radius: 10px;">
+                                        @if(!($sale->invoice && $sale->invoice->status === 'closed'))
+                                        <a class="dropdown-item py-2 px-3 small text-primary" href="/dashboard/sales/{{$sale->id}}/edit">
+                                            <i class="fa fa-edit mr-2"></i> ویرایش فروش
+                                        </a>
+                                        @endif
 
                                         @if($sale->ledger_transaction_id)
                                         <a class="dropdown-item py-2 px-3 small" href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank">

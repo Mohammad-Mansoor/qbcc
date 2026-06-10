@@ -79,8 +79,13 @@ class NewMonthlyExpenseController extends Controller
             $expensesQuery->where('user_role', Auth::user()->role);
         }
         
-        $expenses = (clone $expensesQuery)->orderBy('id', 'DESC')->paginate(50);
-        $expenses_sp = (clone $expensesQuery)->orderBy('id', 'DESC')->paginate(50); // Legacy variable preservation
+        $expensesWithOverrides = (clone $expensesQuery)
+            ->leftJoin('chart_of_accounts as debit_acc', 'new_monthly_expense_balances.override_debit_account_id', '=', 'debit_acc.id')
+            ->leftJoin('chart_of_accounts as credit_acc', 'new_monthly_expense_balances.override_credit_account_id', '=', 'credit_acc.id')
+            ->select('new_monthly_expense_balances.*', 'debit_acc.account_name as debit_account_name', 'debit_acc.account_code as debit_account_code', 'credit_acc.account_name as credit_account_name', 'credit_acc.account_code as credit_account_code');
+
+        $expenses = (clone $expensesWithOverrides)->orderBy('new_monthly_expense_balances.id', 'DESC')->paginate(50);
+        $expenses_sp = (clone $expensesWithOverrides)->orderBy('new_monthly_expense_balances.id', 'DESC')->paginate(50); // Legacy variable preservation
 
         // Forensic Summaries
         $categoryTotals = (clone $expensesQuery)
@@ -95,8 +100,32 @@ class NewMonthlyExpenseController extends Controller
         $expenseEdit = '';
         $search = '';
 
+        $selectionService = new \App\Services\AccountSelectionService();
+        $expenseKeys = [
+            'EXP_FOOD',
+            'EXP_MISC_OFFICE',
+            'EXPENSE_کرایه_و_برق',
+            'EXP_TRANS',
+            'CASH_OUT',
+            'EXP_FUEL',
+            'PAYROLL_ACCRUAL',
+            'EXP_WAGES'
+        ];
+
+        $allowedAccountsMap = [];
+        foreach ($expenseKeys as $key) {
+            $allowedAccountsMap[$key] = [
+                'debit' => $selectionService->getValidAccounts($key, 'debit')->map(function($acc) {
+                    return ['id' => $acc->id, 'code' => $acc->account_code, 'name' => $acc->account_name];
+                })->toArray(),
+                'credit' => $selectionService->getValidAccounts($key, 'credit')->map(function($acc) {
+                    return ['id' => $acc->id, 'code' => $acc->account_code, 'name' => $acc->account_name];
+                })->toArray(),
+            ];
+        }
+
         return view('new-monthly-expense.expense-account-payments',
-            compact('expenseEdit', 'expenses', 'expenses_sp', 'categoryTotals', 'currencies', 'search', 'month_obj'));
+            compact('expenseEdit', 'expenses', 'expenses_sp', 'categoryTotals', 'currencies', 'search', 'month_obj', 'allowedAccountsMap'));
     }
 
     /**

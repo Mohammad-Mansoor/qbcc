@@ -246,26 +246,35 @@
                         <div class="col-md-8 border-right">
                             <h6 class="font-weight-bold text-primary mb-4 border-bottom pb-2"><i class="feather icon-info mr-1"></i> مشخصات عمومی خرید</h6>
                             <div class="row">
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-3 form-group">
                                     <label class="form-label-premium">نمبر پارچه (System ID)</label>
                                     <input type="text" value="{{ $editCarpet ? $editCarpet->carpet_no : $AccountNo }}" class="form-control premium-input bg-light" readonly>
                                     <input type="hidden" name="carpet_no" value="{{ $editCarpet ? $editCarpet->carpet_no : $AccountNo }}">
                                 </div>
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-3 form-group">
                                     <label class="form-label-premium">اسم فروشنده (Vendor)</label>
-                                    <select name="agent_id" class="form-control select2" required>
+                                    <select name="agent_id" id="modal_agent_id" class="form-control select2" required>
                                         <option value="">انتخاب فروشنده...</option>
                                         @foreach($agents as $ag)
                                             <option value="{{$ag->agent_id}}" {{ ($editCarpet && $editCarpet->agent_id == $ag->agent_id) || (old('agent_id') == $ag->agent_id) ? 'selected' : '' }}>{{$ag->user->name}} ({{$ag->account_no}})</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-3 form-group">
                                     <label class="form-label-premium">شماره فرمایش</label>
                                     <select name="order_id" class="form-control select2">
                                         <option value="">انتخاب فرمایش...</option>
                                         @foreach($orders as $ord)
                                             <option value="{{$ord->id}}" {{ ($editCarpet && $editCarpet->order_id == $ord->id) || (old('order_id') == $ord->id) ? 'selected' : '' }}>{{$ord->order_number}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label class="form-label-premium">بل خرید (Purchase Bill)</label>
+                                    <select name="purchase_invoice_id" id="modal_purchase_invoice_id" class="form-control select2">
+                                        <option value="">انتخاب بل خرید...</option>
+                                        @foreach($purchaseInvoices as $invoice)
+                                            <option value="{{$invoice->id}}" data-agent="{{ $invoice->agent_id }}" {{ ($editCarpet && $editCarpet->purchase_invoice_id == $invoice->id) || (old('purchase_invoice_id') == $invoice->id) ? 'selected' : '' }}>{{$invoice->invoice_number}} ({{$invoice->agent->user->name ?? ''}})</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -472,6 +481,47 @@
         $('.select2').select2({
             dropdownParent: $('#buyCarpetModal')
         });
+
+        // Dependent Dropdown: Filter Invoices by Vendor
+        var allInvoiceOptions = $('#modal_purchase_invoice_id option').clone();
+
+        function filterInvoices() {
+            var selectedAgent = $('#modal_agent_id').val();
+            var $invoiceSelect = $('#modal_purchase_invoice_id');
+            var currentlySelected = $invoiceSelect.val();
+
+            // Clear options
+            $invoiceSelect.empty();
+
+            // Add the default "please select" option
+            $invoiceSelect.append(allInvoiceOptions.first().clone());
+
+            // Filter and append matching options
+            allInvoiceOptions.slice(1).each(function() {
+                var agentId = $(this).data('agent');
+                if (!selectedAgent || agentId == selectedAgent) {
+                    $invoiceSelect.append($(this).clone());
+                }
+            });
+
+            // Restore selection if it still exists in the filtered options
+            if ($invoiceSelect.find('option[value="' + currentlySelected + '"]').length > 0) {
+                $invoiceSelect.val(currentlySelected);
+            } else {
+                $invoiceSelect.val('');
+            }
+
+            // Trigger change for Select2 to update
+            $invoiceSelect.trigger('change.select2');
+        }
+
+        // Trigger filter on agent selection change
+        $('#modal_agent_id').on('change', function() {
+            filterInvoices();
+        });
+
+        // Run filter on initial load
+        filterInvoices();
 
         // LIVE CALCULATION ENGINE
         function runForensicCalc() {

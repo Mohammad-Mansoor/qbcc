@@ -23,8 +23,8 @@ class NewMonthlyExpenseBalanceController extends Controller
         try {
             $slugMap = [
                 'خوراکه' => 'EXP_FOOD',
-                'متفرقه دفتر' => 'EXP_MISC',
-                'کرایه و برق' => 'EXP_RENT',
+                'متفرقه دفتر' => 'EXP_MISC_OFFICE',
+                'کرایه و برق' => 'EXPENSE_کرایه_و_برق',
                 'ترانسپورت' => 'EXP_TRANS',
                 'برداشت' => 'CASH_OUT',
                 'ترمیمات و تیل' => 'EXP_FUEL',
@@ -32,20 +32,41 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'اجوره' => 'EXP_WAGES',
             ];
             
-            $key = $slugMap[$expense->category] ?? 'EXP_MISC';
+            $key = $slugMap[$expense->category] ?? 'EXP_MISC_OFFICE';
 
-            // FORENSIC RULE: Always use base_amount (USD) for the GL
-            $amount = $expense->base_amount;
+            // Determine transaction type based on category mapping rule
+            $type = 'expense';
+            if ($expense->category === 'برداشت') {
+                $type = 'office_debit';
+            } elseif ($expense->category === 'معاشات') {
+                $type = 'payroll';
+            }
 
-            $this->accountingService->postAutoTransaction('expense', $key, [
+            // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
+            // performs the USD conversion exactly once (base_amount is already converted;
+            // passing it with a non-USD currency_code causes a double-conversion).
+            if ($expense->original_amount) {
+                $amount       = $expense->original_amount;
+                $currencyCode = $expense->currency_code;
+                $exchangeRate = $expense->exchange_rate;
+            } else {
+                // Legacy fallback: amount is already base USD
+                $amount       = $expense->amount;
+                $currencyCode = $expense->currency_code ?: 'USD';
+                $exchangeRate = $expense->exchange_rate ?: 1;
+            }
+
+            $this->accountingService->postAutoTransaction($type, $key, [
                 'date' => $expense->date,
                 'amount' => $amount,
-                'currency_code' => $expense->currency_code,
-                'exchange_rate' => $expense->exchange_rate,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'reference' => 'NEXP-' . $expense->id,
                 'description' => $expense->description . " (" . $expense->category . ")",
                 'source_type' => 'NewMonthlyExpenseBalance',
                 'source_id' => $expense->id,
+                'override_debit_account_id' => $expense->override_debit_account_id,
+                'override_credit_account_id' => $expense->override_credit_account_id,
             ]);
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for New Expense #" . $expense->id . ": " . $e->getMessage());
@@ -80,6 +101,8 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'date' => 'required|date',
                 'category' => 'required',
                 'month_id' => 'required',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -104,6 +127,8 @@ class NewMonthlyExpenseBalanceController extends Controller
             $expense->exchange_rate = $rate;
             $expense->original_amount = $request->amount;
             $expense->base_amount = $baseAmount;
+            $expense->override_debit_account_id = $request->override_debit_account_id;
+            $expense->override_credit_account_id = $request->override_credit_account_id;
 
             $expense->save();
 
@@ -125,8 +150,28 @@ class NewMonthlyExpenseBalanceController extends Controller
         $expenseEdit = NewMonthlyExpenseBalance::find($expense_id);
         $month = DB::table('new_monthly_expenses')->where('me_id',$expenseEdit->month_id)->first();
 
-        $expenses = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
-        $expenses_sp = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->orderBy('id','DESC')->paginate(50);
+        $expensesWithOverrides = DB::table('new_monthly_expense_balances')
+            ->leftJoin('chart_of_accounts as debit_acc', 'new_monthly_expense_balances.override_debit_account_id', '=', 'debit_acc.id')
+            ->leftJoin('chart_of_accounts as credit_acc', 'new_monthly_expense_balances.override_credit_account_id', '=', 'credit_acc.id')
+            ->select('new_monthly_expense_balances.*', 'debit_acc.account_name as debit_account_name', 'debit_acc.account_code as debit_account_code', 'credit_acc.account_name as credit_account_name', 'credit_acc.account_code as credit_account_code')
+            ->where('month_id',$month->me_id);
+
+        $expenses = (clone $expensesWithOverrides)->where('user_role',Auth::user()->role)->orderBy('new_monthly_expense_balances.id','DESC')->paginate(50);
+        $expenses_sp = (clone $expensesWithOverrides)->orderBy('new_monthly_expense_balances.id','DESC')->paginate(50);
+
+        $currencies = \App\Currency::all();
+
+        $expensesQuery = DB::table('new_monthly_expense_balances')->where('month_id', $month->me_id);
+        if (Auth::user()->role != 'SP') {
+            $expensesQuery->where('user_role', Auth::user()->role);
+        }
+        $categoryTotals = (clone $expensesQuery)
+            ->select('category', 'currency_code', 
+                DB::raw('SUM(original_amount) as total_original'),
+                DB::raw('SUM(base_amount) as total_base'))
+            ->groupBy('category', 'currency_code')
+            ->get()
+            ->groupBy('category');
 
         // ... stats calculation code ...
         // (Keeping existing UI logic but focusing on accounting integration)
@@ -184,6 +229,30 @@ class NewMonthlyExpenseBalanceController extends Controller
         $search ='';
         $month_obj = NewMonthlyExpense::find($month->me_id);
 
+        $selectionService = new \App\Services\AccountSelectionService();
+        $expenseKeys = [
+            'EXP_FOOD',
+            'EXP_MISC_OFFICE',
+            'EXPENSE_کرایه_و_برق',
+            'EXP_TRANS',
+            'CASH_OUT',
+            'EXP_FUEL',
+            'PAYROLL_ACCRUAL',
+            'EXP_WAGES'
+        ];
+
+        $allowedAccountsMap = [];
+        foreach ($expenseKeys as $key) {
+            $allowedAccountsMap[$key] = [
+                'debit' => $selectionService->getValidAccounts($key, 'debit')->map(function($acc) {
+                    return ['id' => $acc->id, 'code' => $acc->account_code, 'name' => $acc->account_name];
+                })->toArray(),
+                'credit' => $selectionService->getValidAccounts($key, 'credit')->map(function($acc) {
+                    return ['id' => $acc->id, 'code' => $acc->account_code, 'name' => $acc->account_name];
+                })->toArray(),
+            ];
+        }
+
         return view('new-monthly-expense.expense-account-payments',
             compact('expenseEdit','expenses','expenses_sp',
                 'khoraka_af','khoraka_usd','khoraka_cd',
@@ -201,7 +270,7 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'bardasht_sp_af','bardasht_sp_usd','bardasht_sp_cd',
                 'tel_sp_af','tel_sp_usd','tel_sp_cd',
                 'mashat_sp_af','mashat_sp_usd','mashat_sp_cd',
-                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month_obj'));
+                'ajora_sp_af','ajora_sp_usd','ajora_sp_cd','search','month_obj','allowedAccountsMap', 'categoryTotals', 'currencies'));
     }
 
     /**
@@ -222,6 +291,8 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'description' => 'required',
                 'date' => 'required|date',
                 'category' => 'required',
+                'override_debit_account_id' => 'nullable|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
             $expense = NewMonthlyExpenseBalance::find($expense_id);
@@ -247,6 +318,8 @@ class NewMonthlyExpenseBalanceController extends Controller
             $expense->exchange_rate = $rate;
             $expense->original_amount = $request->amount;
             $expense->base_amount = $baseAmount;
+            $expense->override_debit_account_id = $request->override_debit_account_id;
+            $expense->override_credit_account_id = $request->override_credit_account_id;
 
             $expense->update();
 

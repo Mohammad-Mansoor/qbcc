@@ -105,7 +105,7 @@
       </div>
 
       {{-- Description --}}
-      <div class="col-lg-4 col-md-6 col-sm-12">
+      <div class="col-lg-3 col-md-4 col-sm-12">
         <div class="form-group">
           <label style="font-size: 0.82rem; font-weight: 600; color: #475569;">توضیحات</label>
           <textarea name="description" rows="1" class="form-control form-control-sm"
@@ -115,13 +115,47 @@
       </div>
 
       {{-- Date --}}
-      <div class="col-lg-2 col-md-3 col-sm-6">
+      <div class="col-lg-3 col-md-4 col-sm-6">
         <div class="form-group">
           <label style="font-size: 0.82rem; font-weight: 600; color: #475569;">تاریخ</label>
           <input type="date" name="date"
                  value="{{ $isEdit ? $paymentEdit->date : date('Y-m-d') }}"
                  class="form-control form-control-sm" required>
           @error('date') <p class="text-danger" style="font-size: 0.75rem;">{{ $message }}</p> @enderror
+        </div>
+      </div>
+
+      {{-- Debit Account --}}
+      <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="form-group">
+          <label style="font-size: 0.82rem; font-weight: 600; color: #475569;">حساب بدهکار (DR)</label>
+          <select name="override_debit_account_id" class="form-control form-control-sm select2" required>
+            <option value="" disabled selected>انتخاب حساب بدهکار</option>
+            @foreach($allowedDebitAccounts as $acc)
+              <option value="{{ $acc->id }}"
+                {{ (($isEdit && $paymentEdit->override_debit_account_id == $acc->id) || (!$isEdit && $mappingPayroll && $mappingPayroll->debit_account_id == $acc->id)) ? 'selected' : '' }}>
+                {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+              </option>
+            @endforeach
+          </select>
+          @error('override_debit_account_id') <p class="text-danger" style="font-size: 0.75rem;">{{ $message }}</p> @enderror
+        </div>
+      </div>
+
+      {{-- Credit Account --}}
+      <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="form-group">
+          <label style="font-size: 0.82rem; font-weight: 600; color: #475569;">حساب بستانکار (CR)</label>
+          <select name="override_credit_account_id" class="form-control form-control-sm select2" required>
+            <option value="" disabled selected>انتخاب حساب بستانکار</option>
+            @foreach($allowedCreditAccounts as $acc)
+              <option value="{{ $acc->id }}"
+                {{ (($isEdit && $paymentEdit->override_credit_account_id == $acc->id) || (!$isEdit && $mappingPayroll && $mappingPayroll->credit_account_id == $acc->id)) ? 'selected' : '' }}>
+                {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+              </option>
+            @endforeach
+          </select>
+          @error('override_credit_account_id') <p class="text-danger" style="font-size: 0.75rem;">{{ $message }}</p> @enderror
         </div>
       </div>
 

@@ -64,19 +64,18 @@ class DashboardController extends Controller
 
         // Cash Accounts Breakdown
         $cashAccountsData = ChartOfAccount::where('is_cash_account', 1)->get();
+        $currencyRates = DB::table('currencies')->pluck('exchange_rate', 'code')->toArray();
         $cashAccounts = [];
         foreach ($cashAccountsData as $acc) {
-            $balance = DB::table('ledger_entries')
-                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-                ->where('ledger_entries.account_id', $acc->id)
-                ->where('ledger_transactions.status', 'posted')
-                ->sum(DB::raw('debit - credit'));
-                
             $base_balance = DB::table('ledger_entries')
                 ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
                 ->where('ledger_entries.account_id', $acc->id)
                 ->where('ledger_transactions.status', 'posted')
                 ->sum(DB::raw('base_debit - base_credit'));
+
+            $rate = floatval($currencyRates[$acc->currency ?? 'USD'] ?? 1.0);
+            if ($rate <= 0) $rate = 1.0; // Prevent division by zero
+            $balance = $base_balance / $rate;
 
             $cashAccounts[] = [
                 'name' => $acc->account_name,

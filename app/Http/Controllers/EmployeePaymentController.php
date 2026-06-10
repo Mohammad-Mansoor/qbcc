@@ -38,6 +38,8 @@ class EmployeePaymentController extends Controller
                 'description'  => $payment->description,
                 'source_type'  => get_class($payment),
                 'source_id'    => $payment->id,
+                'override_debit_account_id'  => $payment->override_debit_account_id,
+                'override_credit_account_id' => $payment->override_credit_account_id,
             ]);
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Employee Payment #" . $payment->id . ": " . $e->getMessage());
@@ -115,6 +117,8 @@ class EmployeePaymentController extends Controller
                 'exchange_rate'   => 'required|numeric|gt:0',
                 'type'            => 'required|in:رسید,گرفت',
                 'money_type'      => 'required|in:دالر,افغانی,USD,AFN,EUR,PKR',
+                'override_debit_account_id'  => 'required|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'required|exists:chart_of_accounts,id|different:override_debit_account_id',
             ]);
 
             $currency = \App\Currency::findOrFail($request->currency_id);
@@ -127,6 +131,8 @@ class EmployeePaymentController extends Controller
             $payed->type            = $request->type;
             $payed->employee_id     = $request->employee_id;
             $payed->dollar_rate     = $request->exchange_rate; // legacy field
+            $payed->override_debit_account_id  = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
 
             // Forensic FX snapshot
             $payed->currency_id          = $currency->id;
@@ -353,6 +359,8 @@ class EmployeePaymentController extends Controller
                 'exchange_rate'   => 'required|numeric|gt:0',
                 'type'            => 'required|in:رسید,گرفت',
                 'money_type'      => 'required',
+                'override_debit_account_id'  => 'required|exists:chart_of_accounts,id',
+                'override_credit_account_id' => 'required|exists:chart_of_accounts,id|different:override_debit_account_id',
             ]);
 
             $payed = EmployeePayment::find($payment_id);
@@ -373,6 +381,8 @@ class EmployeePaymentController extends Controller
             $payed->type                 = $request->type;
             $payed->employee_id          = $request->employee_id;
             $payed->dollar_rate          = $request->exchange_rate;
+            $payed->override_debit_account_id  = $request->override_debit_account_id;
+            $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->currency_id          = $currency->id;
             $payed->currency_code        = $currency->code;
             $payed->exchange_rate        = $request->exchange_rate;

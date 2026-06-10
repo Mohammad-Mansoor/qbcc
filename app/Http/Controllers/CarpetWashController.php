@@ -178,7 +178,24 @@ class CarpetWashController extends Controller
         $washeds = CarpetWash::orderBy('created_at', 'DESC')->paginate(60);
         $team = WashingTeam::all();
         $wash_check = 1;
-        return view('carpet-wash.index', compact('agents', 'washeds', 'team', 'wash_check'));
+
+        $kachaee_teams = \App\Kachaee::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 2)->where('kachaee_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $finishing_teams = \App\FinishingTeam::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 4)->where('finishing_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $carpet_warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
+        return view('carpet-wash.index', compact('agents', 'washeds', 'team', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
     }
 
     public function wash_numbers($team_id)
@@ -275,11 +292,27 @@ class CarpetWashController extends Controller
         $search = $request->search;
         $wash_check = 0;
 
+        $kachaee_teams = \App\Kachaee::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 2)->where('kachaee_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $finishing_teams = \App\FinishingTeam::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 4)->where('finishing_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $carpet_warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
         if ($request->has('from_non_washed')) {
             $team = WashingTeam::where('id', $team_id)->get();
             $wash_check = 1;
             $washeds = CarpetWash::orderBy('date', 'DESC')->paginate(60);
-            return view('carpet-wash.index', compact('washeds', 'team', 'wash_check'));
+            return view('carpet-wash.index', compact('washeds', 'team', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
         } else {
             $washeds = CarpetWash::where('wash_number','like','%'.$search.'%')
                 ->orWhere('wash_number_sh','like','%'.$search.'%')
@@ -292,7 +325,7 @@ class CarpetWashController extends Controller
 
             $wash_check = 2;
             $team = WashingTeam::all();
-            return view('carpet-wash.index', compact('washeds', 'team', 'team_id', 'wash_check'));
+            return view('carpet-wash.index', compact('washeds', 'team', 'team_id', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
         }
     }
     
@@ -305,7 +338,24 @@ class CarpetWashController extends Controller
 
         $wash_check = 2;
         $team = WashingTeam::all();
-        return view('carpet-wash.index', compact('washeds', 'team', 'wash_check'));
+
+        $kachaee_teams = \App\Kachaee::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 2)->where('kachaee_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $finishing_teams = \App\FinishingTeam::all()->map(function ($t) {
+            $wip_carpets = \App\Carpet::where('status', 4)->where('finishing_id', $t->id)->get();
+            $t->wip_area = $wip_carpets->sum('area');
+            $t->wip_count = $wip_carpets->count();
+            return $t;
+        });
+
+        $carpet_warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
+        return view('carpet-wash.index', compact('washeds', 'team', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
     }
 
     public function create_carpet_wash($id)
@@ -331,7 +381,9 @@ class CarpetWashController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
         $currency = \App\Currency::getLegacyAFNRate();
 
-        return view('carpet-wash.create', compact('carpet_wash','WashNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
+        return view('carpet-wash.create', compact('carpet_wash','WashNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies', 'warehouses'));
     }
 
     /**
@@ -347,69 +399,143 @@ class CarpetWashController extends Controller
             'exchange_rate' => 'required|numeric|min:0.0001',
             'account_id' => 'required|integer',
             'override_credit_account_id' => 'required|integer',
+            'warehouse_id' => 'required|integer|exists:warehouses,id',
         ]);
 
-        $carpet_wash = CarpetWash::find($request->wash_id);
-        $team_id = $carpet_wash->team_id;
-        $carpet = Carpet::find($request->carpetId);
+        return DB::transaction(function () use ($request) {
+            $carpet_wash = CarpetWash::where('id', $request->wash_id)->lockForUpdate()->firstOrFail();
+            $carpet = Carpet::where('carpet_id', $request->carpetId)->lockForUpdate()->firstOrFail();
+            $team_id = $carpet_wash->team_id;
 
-        // Convert amount to Base Currency (USD) for the ledger
-        $baseAmount = ($request->currency_code === 'USD') 
-            ? $request->total_price 
-            : $request->total_price; // Total price comes from JS as USD base
+            // Idempotency State Guard
+            if ($carpet->status == 13 || $carpet_wash->total_price > 0) {
+                return redirect('/dashboard/carpet-wash/wash-numbers/' . $team_id)
+                    ->with('status', 'این شست قبلاً ثبت شده است (Already processed)');
+            }
 
-        $result = $this->inventoryManager->recordProductionService($carpet_wash, $carpet, [
-            'type' => 'WASHING',
-            'amount' => $baseAmount,
-            'date' => $request->date,
-            'party_type' => 'App\WashingTeam',
-            'party_id' => $carpet_wash->team_id,
-            'reference' => $request->wash_number,
-            'description' => "هزینه شست قالین نمبر " . $carpet->carpet_no,
-            'warehouse_id' => $carpet->warehouse_id ?? 1,
-            'override_debit_account_id' => $request->account_id,
-            'override_credit_account_id' => $request->override_credit_account_id,
-            'area' => $request->area,
-        ], function () use ($request, $carpet_wash, $carpet, $baseAmount) {
-            // Legacy Data Sync + New ERP Fields
-            $carpet_wash->wash_number = $request->wash_number;
-            $carpet_wash->wash_number_sh = $request->wash_number_sh;
-            $carpet_wash->height = $request->height;
-            $carpet_wash->width = $request->width;
-            $carpet_wash->area = $request->area;
-            $carpet_wash->price = $request->price;
-            $carpet_wash->af_total_price = $request->af_total_price;
-            $carpet_wash->total_price = $request->total_price;
-            $carpet_wash->currency_code = $request->currency_code;
-            $carpet_wash->exchange_rate = $request->exchange_rate;
-            $carpet_wash->base_currency_amount = $baseAmount;
-            $carpet_wash->date = $request->date;
-            $carpet_wash->description = $request->description;
-            $carpet_wash->update();
+            // Convert amount to Base Currency (USD) for the ledger
+            $baseAmount = ($request->currency_code === 'USD') 
+                ? $request->total_price 
+                : $request->total_price; // Total price comes from JS as USD base
 
-            $carpet = Carpet::where('carpet_id', '=', $request->carpetId)->first();
-            $carpet->status = 13;
-            // Sync carpet dimensions in warehouse
-            $carpet->height = $request->height;
-            $carpet->width = $request->width;
-            $carpet->area = $request->area;
-            $carpet->total_price = $carpet->total_price + $request->af_total_price;
-            $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->exchange_rate ?? 1));
-            $carpet->update();
+            // Resolve the initial Washing WIP warehouse
+            $wipWarehouseId = DB::table('inventory_transactions')
+                ->where('reference_type', 'App\Carpet')
+                ->where('reference_id', $carpet->carpet_id)
+                ->where('type', 'Washing Transfer')
+                ->where('direction', 'IN')
+                ->where('status', 1)
+                ->value('warehouse_id') ?? $carpet->warehouse_id ?? 1;
 
-            $activity = new Activity();
-            $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " قالین نمبر " . $carpet->carpet_no . " شسته شد و در سیستم مالی ثبت گردید ";
-            $activity->user_id = Auth::user()->id;
-            $activity->save();
+            $warehouseId = $request->input('warehouse_id');
+
+            if ($warehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                $inventoryService = app(\App\Services\InventoryService::class);
+
+                // Resolve original area from WIP entry
+                $wipArea = DB::table('inventory_transactions')
+                    ->where('reference_type', 'App\Carpet')
+                    ->where('reference_id', $carpet->carpet_id)
+                    ->where('type', 'Washing Transfer')
+                    ->where('direction', 'IN')
+                    ->where('status', 1)
+                    ->value('area') ?? $carpet->area ?? 0;
+
+                $newArea = $request->area ?? $carpet->area ?? 0;
+
+                // Record Transfer OUT from WIP washing warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $carpet_wash,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Washing Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $wipWarehouseId,
+                    'area' => (float) $wipArea,
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                // Record Transfer IN to selected target warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $carpet_wash,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Washing Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $warehouseId,
+                    'area' => (float) $newArea,
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $carpet->warehouse_id = $warehouseId;
+                $carpet->update();
+            }
+
+            $result = $this->inventoryManager->recordProductionService($carpet_wash, $carpet, [
+                'type' => 'WASHING',
+                'amount' => $baseAmount,
+                'date' => $request->date,
+                'party_type' => 'App\WashingTeam',
+                'party_id' => $carpet_wash->team_id,
+                'reference' => $request->wash_number,
+                'description' => "هزینه شست قالین نمبر " . $carpet->carpet_no,
+                'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'override_debit_account_id' => $request->account_id,
+                'override_credit_account_id' => $request->override_credit_account_id,
+                'area' => $request->area,
+            ], function () use ($request, $carpet_wash, $carpet, $baseAmount) {
+                // Legacy Data Sync + New ERP Fields
+                $carpet_wash->wash_number = $request->wash_number;
+                $carpet_wash->wash_number_sh = $request->wash_number_sh;
+                $carpet_wash->height = $request->height;
+                $carpet_wash->width = $request->width;
+                $carpet_wash->area = $request->area;
+                $carpet_wash->price = $request->price;
+                $carpet_wash->af_total_price = $request->af_total_price;
+                $carpet_wash->total_price = $request->total_price;
+                $carpet_wash->currency_code = $request->currency_code;
+                $carpet_wash->exchange_rate = $request->exchange_rate;
+                $carpet_wash->base_currency_amount = $baseAmount;
+                $carpet_wash->date = $request->date;
+                $carpet_wash->description = $request->description;
+                $carpet_wash->update();
+
+                $carpet = Carpet::where('carpet_id', '=', $request->carpetId)->first();
+                $carpet->status = 13;
+                // Sync carpet dimensions in warehouse
+                $carpet->height = $request->height;
+                $carpet->width = $request->width;
+                $carpet->area = $request->area;
+                $carpet->total_price = $carpet->total_price + $request->af_total_price;
+                $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->exchange_rate ?? 1));
+                $carpet->warehouse_id = $request->warehouse_id;
+                $carpet->update();
+
+                $activity = new Activity();
+                $activity->date = Carbon::today()->format('Y-m-d');
+                $activity->description = " قالین نمبر " . $carpet->carpet_no . " شسته شد و در سیستم مالی ثبت گردید ";
+                $activity->user_id = Auth::user()->id;
+                $activity->save();
+            });
+
+            if ($result && isset($result['inventory_transaction_id'])) {
+                $carpet_wash->inventory_transaction_id = $result['inventory_transaction_id'];
+                $carpet_wash->save();
+            }
+
+            return redirect('/dashboard/carpet-wash/wash-numbers/'.$team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
         });
-
-        if ($result && isset($result['inventory_transaction_id'])) {
-            $carpet_wash->inventory_transaction_id = $result['inventory_transaction_id'];
-            $carpet_wash->save();
-        }
-
-        return redirect('/dashboard/carpet-wash/wash-numbers/'.$team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
     }
 
     /**
@@ -457,6 +583,8 @@ class CarpetWashController extends Controller
             if ($creditEntry) $existingCreditAccount = $creditEntry->account_id;
         }
 
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
         return view('carpet-wash.edit', compact(
             'wash',
             'washing_team',
@@ -467,7 +595,8 @@ class CarpetWashController extends Controller
             'currency',
             'currencies',
             'existingDebitAccount',
-            'existingCreditAccount'
+            'existingCreditAccount',
+            'warehouses'
         ));
     }
 
@@ -485,23 +614,88 @@ class CarpetWashController extends Controller
             'exchange_rate' => 'required|numeric|min:0.0001',
             'account_id' => 'required|integer',
             'override_credit_account_id' => 'required|integer',
+            'warehouse_id' => 'required|integer|exists:warehouses,id',
         ]);
 
         return DB::transaction(function () use ($request, $wash) {
-            $carpet = Carpet::find($request->carpetId);
+            // Apply pessimistic locking for safety
+            $wash = CarpetWash::where('id', $wash->id)->lockForUpdate()->firstOrFail();
+            $carpet = Carpet::where('carpet_id', $request->carpetId)->lockForUpdate()->firstOrFail();
 
+            // Accounting & Inventory Reversals are safely handled in one transaction by the manager
+            $this->inventoryManager->reverseTransactions($wash, 'Wash Record Edited');
+
+            // Resolve the initial Washing WIP warehouse
+            $wipWarehouseId = DB::table('inventory_transactions')
+                ->where('reference_type', 'App\Carpet')
+                ->where('reference_id', $carpet->carpet_id)
+                ->where('type', 'Washing Transfer')
+                ->where('direction', 'IN')
+                ->where('status', 1)
+                ->value('warehouse_id') ?? $carpet->warehouse_id ?? 1;
+
+            $warehouseId = $request->input('warehouse_id');
+
+            if ($warehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                $inventoryService = app(\App\Services\InventoryService::class);
+
+                // Resolve original area from WIP entry
+                $wipArea = DB::table('inventory_transactions')
+                    ->where('reference_type', 'App\Carpet')
+                    ->where('reference_id', $carpet->carpet_id)
+                    ->where('type', 'Washing Transfer')
+                    ->where('direction', 'IN')
+                    ->where('status', 1)
+                    ->value('area') ?? $carpet->area ?? 0;
+
+                $newArea = $request->area ?? $carpet->area ?? 0;
+
+                // Record Transfer OUT from WIP washing warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $wash,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Washing Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $wipWarehouseId,
+                    'area' => (float) $wipArea,
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                // Record Transfer IN to selected target warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $wash,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Washing Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $warehouseId,
+                    'area' => (float) $newArea,
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $carpet->warehouse_id = $warehouseId;
+            }
+
+            // Sync carpet pricing and dimensions
             $carpet->total_price = $carpet->total_price - $wash->af_total_price + $request->af_total_price;
             $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + ($request->af_total_price * ($request->exchange_rate ?? 1));
             $carpet->washing_id = $request->team_id;
-            
-            // Sync carpet dimensions
             $carpet->height = $request->height;
             $carpet->width = $request->width;
             $carpet->area = $request->area;
             $carpet->update();
-
-            // Accounting & Inventory Reversals are safely handled in one transaction by the manager
-            $this->inventoryManager->reverseTransactions($wash, 'Wash Record Edited');
 
             $baseAmount = ($request->currency_code === 'USD') 
                 ? $request->total_price 
@@ -556,24 +750,41 @@ class CarpetWashController extends Controller
 
     public function sent_to_finishing_center(Request $request, Carpet $carpet)
     {
-        return DB::transaction(function () use ($request, $carpet) {
-            $carpet->status = 4;
-            
-            $sourceWarehouseId = $carpet->warehouse_id;
+        $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'finishing_id' => 'required|exists:finishing_teams,id'
+        ]);
 
-            // Transfer to selected warehouse if provided
-            $warehouseId = $request->input('warehouse_id');
-            $warehouseName = null;
-            if ($warehouseId) {
-                $carpet->warehouse_id = $warehouseId;
-                $wh = \App\Warehouse::find($warehouseId);
-                $warehouseName = $wh ? $wh->name : null;
+        return DB::transaction(function () use ($request, $carpet) {
+            // Concurrency protection via pessimistic write-lock
+            $carpet = Carpet::where('carpet_id', $carpet->carpet_id)->lockForUpdate()->firstOrFail();
+
+            if ($carpet->status != 13) {
+                return redirect('/dashboard/carpet-wash')->with('error', 'قالین مذکور شسته شده نیست یا قبلا تعیین وضعیت شده است.');
             }
-            
+
+            $sourceWarehouseId = $carpet->warehouse_id ?? 1;
+            $targetWarehouseId = $request->warehouse_id;
+
+            // Update carpet state
+            $carpet->status = 4; // In Tayaari (Finishing)
+            $carpet->finishing_id = $request->finishing_id;
+            $carpet->warehouse_id = $targetWarehouseId;
             $carpet->update();
-            
+
+            $wh = \App\Warehouse::find($targetWarehouseId);
+            $warehouseName = $wh ? $wh->name : null;
+
+            // Record action in system activity log
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " به بخش تیاری ارسال شد " .
+                ($warehouseName ? " (انبار: " . $warehouseName . ")" : "") . " ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
             // Record physical inventory movement (transfer) if the warehouse actually changed
-            if ($warehouseId && $warehouseId != $sourceWarehouseId) {
+            if ($targetWarehouseId != $sourceWarehouseId) {
                 $carpetCost = DB::table('items')
                     ->where('type', 'App\Carpet')
                     ->where('ref_id', $carpet->carpet_id)
@@ -583,6 +794,7 @@ class CarpetWashController extends Controller
 
                 $inventoryService->recordMovement([
                     'item_model' => $carpet,
+                    'parent_item_model' => $carpet,
                     'type' => 'Finishing Transfer',
                     'direction' => 'OUT',
                     'quantity' => 1,
@@ -596,10 +808,11 @@ class CarpetWashController extends Controller
 
                 $inventoryService->recordMovement([
                     'item_model' => $carpet,
+                    'parent_item_model' => $carpet,
                     'type' => 'Finishing Transfer',
                     'direction' => 'IN',
                     'quantity' => 1,
-                    'warehouse_id' => $warehouseId,
+                    'warehouse_id' => $targetWarehouseId,
                     'area' => (float) ($carpet->area ?? 0),
                     'unit_cost' => $carpetCost,
                     'currency_code' => 'USD',
@@ -608,14 +821,80 @@ class CarpetWashController extends Controller
                 ]);
             }
 
+            return redirect('/dashboard/carpet-wash')->with('status', 'قالین موفقانه به بخش تیاری فرستاده شد');
+        });
+    }
+
+    public function sent_to_kachaee(Request $request, Carpet $carpet)
+    {
+        $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'kachaee_id' => 'required|exists:kachaees,id'
+        ]);
+
+        return DB::transaction(function () use ($request, $carpet) {
+            // Concurrency protection via pessimistic write-lock
+            $carpet = Carpet::where('carpet_id', $carpet->carpet_id)->lockForUpdate()->firstOrFail();
+
+            if ($carpet->status != 13) {
+                return redirect('/dashboard/carpet-wash')->with('error', 'قالین مذکور شسته شده نیست یا قبلا تعیین وضعیت شده است.');
+            }
+
+            $sourceWarehouseId = $carpet->warehouse_id ?? 1;
+            $targetWarehouseId = $request->warehouse_id;
+
+            // Update carpet state
+            $carpet->status = 2; // In Kachaee
+            $carpet->kachaee_id = $request->kachaee_id;
+            $carpet->warehouse_id = $targetWarehouseId;
+            $carpet->update();
+
+            // Record action in system activity log
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " قالین نمبر " . $carpet->carpet_no . " به تیاری ارسال شد " .
-                ($warehouseName ? " (انبار: " . $warehouseName . ")" : "") . " ";
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " به بخش کچایی ارسال شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
-            
-            return redirect('/dashboard/carpet-wash')->with('status', 'قالین موفقانه به بخش تیاری فرستاده شد');
+
+            // ERP Integration: Physical movement with WAC cost
+            $carpetCost = DB::table('items')
+                ->where('type', 'App\Carpet')
+                ->where('ref_id', $carpet->carpet_id)
+                ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+            $inventoryService = app(\App\Services\InventoryService::class);
+
+            // Record Transfer OUT from old warehouse
+            $inventoryService->recordMovement([
+                'item_model' => $carpet,
+                'parent_item_model' => $carpet,
+                'type' => 'Kachaee Transfer',
+                'direction' => 'OUT',
+                'quantity' => 1,
+                'warehouse_id' => $sourceWarehouseId,
+                'area' => (float) ($carpet->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
+                'created_by' => auth()->id()
+            ]);
+
+            // Record Transfer IN to selected target warehouse
+            $inventoryService->recordMovement([
+                'item_model' => $carpet,
+                'parent_item_model' => $carpet,
+                'type' => 'Kachaee Transfer',
+                'direction' => 'IN',
+                'quantity' => 1,
+                'warehouse_id' => $targetWarehouseId,
+                'area' => (float) ($carpet->area ?? 0),
+                'unit_cost' => $carpetCost,
+                'currency_code' => 'USD',
+                'exchange_rate' => 1.0,
+                'created_by' => auth()->id()
+            ]);
+
+            return redirect('/dashboard/carpet-wash')->with('status', 'قالین موفقانه به بخش کچایی ارسال گردید');
         });
     }
 

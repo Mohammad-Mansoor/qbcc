@@ -215,14 +215,28 @@ class CarpetRepairController extends Controller
         // Fetch warehouse mappings
         $mapping = DB::table('mapping_rules')->where('transaction_type', 'kachaee_transfer')->first();
         $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
-        $warehouses = DB::table('warehouses')->get();
+        
+        // Filter warehouses of subtype 'carpet'
+        $warehouses = DB::table('warehouses')
+            ->where('is_active', 1)
+            ->where('subtype', 'carpet')
+            ->get();
+
+        // Calculate Kachaee team statistics (carpets currently held with status = 2)
+        $teamStats = DB::table('carpets')
+            ->select('kachaee_id', DB::raw('count(*) as qty'), DB::raw('sum(area) as total_area'))
+            ->where('status', 2)
+            ->whereNotNull('kachaee_id')
+            ->groupBy('kachaee_id')
+            ->get()
+            ->keyBy('kachaee_id');
 
         if(Auth::user()->role != 'SO' && Auth::user()->role != 'SP'){
             if(!empty($check)){
                 $okay = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
                 if($okay->kachaee_amount != 0 || $okay->kachaee_amount != null){
                     $kachaee_team = Kachaee::all();
-                    return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse'));
+                    return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse', 'teamStats'));
                 }else{
                     return back()->with('error','قالین مذکور برای کچایی ثبت نشده است !');
                 }
@@ -231,10 +245,8 @@ class CarpetRepairController extends Controller
             }
         }else{
             $kachaee_team = Kachaee::all();
-            return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse'));
+            return view('carpet-repair.sending-to-repair',compact('kachaee_team','carpetId', 'warehouses', 'defaultWarehouse', 'teamStats'));
         }
-
-
     }
     // REPAIR GETTING DONE
     public function repair_team_selected(Request $request, Carpet $carpetId){

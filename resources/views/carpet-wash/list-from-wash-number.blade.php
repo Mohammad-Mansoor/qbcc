@@ -368,7 +368,7 @@
                                     data-carpet-no="{{$wash->carpet->carpet_no}}"
                                     data-action-label="بازگشت به کچایی"
                                     data-action-sublabel="Return to Kachaee (Repair)"
-                                    data-icon="fa fa-reply"
+                                    data-modal-icon="fa fa-reply"
                                     data-btn-class="warning"
                                     data-needs-warehouse="1">
                               <i class="fa fa-reply mr-1" style="color:#d97706;"></i> بازگشت به کچایی
@@ -379,7 +379,7 @@
                                     data-carpet-no="{{$wash->carpet->carpet_no}}"
                                     data-action-label="بازگشت به مرکزی"
                                     data-action-sublabel="Return to Central Warehouse"
-                                    data-icon="fa fa-reply-all"
+                                    data-modal-icon="fa fa-reply-all"
                                     data-btn-class="danger"
                                     data-needs-warehouse="0">
                               <i class="fa fa-reply-all mr-1" style="color:#dc2626;"></i> بازگشت به مرکزی
@@ -576,7 +576,7 @@
       var carpetNo      = $(this).data('carpet-no');
       var label         = $(this).data('action-label');
       var sublabel      = $(this).data('action-sublabel');
-      var icon          = $(this).data('icon');
+      var icon          = $(this).data('modal-icon');
       var btnClass      = $(this).data('btn-class');
       var needsWarehouse = parseInt($(this).data('needs-warehouse') || 0);
       var palette       = colorMap[btnClass] || colorMap['success'];

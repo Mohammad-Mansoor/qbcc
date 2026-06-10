@@ -103,13 +103,66 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row" style="margin-top: 15px;">
+                            <div class="col-lg-3">
+                                <div class="form-group">
+                                    <label class="text-info pull-right">حساب بدهکار (Debit Account)</label>
+                                    <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2">
+                                        @foreach($allowedDebitAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (($finish->debit_account_id ?? ($mapping ? $mapping->debit_account_id : null)) == $acc->id) ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                                <div class="form-group">
+                                    <label class="text-info pull-right">حساب بستانکار (Credit Account)</label>
+                                    <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2">
+                                        @foreach($allowedCreditAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (($finish->credit_account_id ?? ($mapping ? $mapping->credit_account_id : null)) == $acc->id) ? 'selected' : '' }}>
+                                                {{ $acc->account_code }} - {{ $acc->account_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                              <div class="form-group fill" style="margin-top: 20px;">
+                                <label>آیا مراحل تیاری به کلی تمام شده است؟</label>
+                                <input type="radio" class="finished" name="finished" value="1"
+                                       {{$finish->carpet->status == 5?'checked':''}} style="margin-right: 20px;padding:5px;"><span
+                                        style="margin:0 10px">بلی</span>
+                                <input type="radio" class="finished" name="finished" value="0"
+                                       {{$finish->carpet->status != 5?'checked':''}} style="margin-right: 20px;padding:5px;"><span
+                                        style="margin:0 10px">نخیر</span>
+                              </div>
+                            </div>
+                        </div>
+                        <div class="row" id="warehouse_transfer_section" style="margin-bottom: 20px;">
+                            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                              <div class="form-group fill">
+                                <label class="pull-right">انبار نهایی (Target Warehouse)</label>
+                                <select name="warehouse_id" id="warehouse_id" class="form-control select2">
+                                  @foreach($warehouses as $wh)
+                                    <option value="{{$wh->id}}" {{ ($finish->warehouse_id ?? $finish->carpet->warehouse_id) == $wh->id ? 'selected' : '' }}>
+                                      {{$wh->name}}
+                                    </option>
+                                  @endforeach
+                                </select>
+                              </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
                                 <div class="form-group fill">
                                     <button class="btn btn-warning btn-sm"><a href="/dashboard/finishing-center">
                                             انصراف </a></button>
                                     <button class="btn btn-primary btn-sm marginx" type="submit"> <span
-                                                class="fa fa-save"></span> ذخیره</button>
+                                                 class="fa fa-save"></span> ذخیره</button>
                                 </div>
                             </div>
                         </div>
@@ -120,4 +173,27 @@
         </div>
     </div>
 </div>
+
+@section('scripts')
+  <script>
+      $(document).ready(function() {
+          $('#override_debit_account_id').select2({ width: '100%' });
+          $('#override_credit_account_id').select2({ width: '100%' });
+          $('#warehouse_id').select2({ width: '100%' });
+
+          function toggleWarehouseSection() {
+              $('#warehouse_transfer_section').show();
+              $('#warehouse_id').attr('required', 'required');
+          }
+          
+          $('input[name="finished"]').on('change', toggleWarehouseSection);
+          toggleWarehouseSection();
+
+          $('form').on('submit', function () {
+              var $btn = $(this).find('button[type="submit"]');
+              $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> لطفا صبر کنید...');
+          });
+      });
+  </script>
+@endsection
 @endsection

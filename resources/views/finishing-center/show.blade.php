@@ -67,7 +67,7 @@
               <tbody>
               <tr>
                 <td>هزینه تیاری قالین</td>
-                <td style="direction: ltr;text-align:right">{{round($finish->price_af , 2) }} $</td>
+                <td style="direction: ltr;text-align:right">{{ round(($finish->currency_code == 'AFN' ? $finish->price_af : $finish->price), 2) }} {{ $finish->currency_code ?? 'USD' }}</td>
                 <td>تاریخ تیاری قالین</td>
                 <td>{{$finish->date }}</td>
               </tr>

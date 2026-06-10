@@ -74,9 +74,16 @@
                         </div>
                         <div class="col-lg-4">
                           <div class="form-group mb-3">
-                            <label class="font-weight-bold text-dark">فاکتور فروش (Sale Invoice #)</label>
-                            <input type="text" name="sale_number" value="{{ $saleEdit ? $saleEdit->sale_number : $SaleNo }}" class="form-control font-weight-bold" required style="background: #f8fafc; height: 38px;">
-                            <small class="text-muted d-block mt-1">شماره سند یا فاکتور ثبت فروش در سیستم.</small>
+                            <label class="font-weight-bold text-dark">انتخاب انوایس فروش (Sale Invoice)</label>
+                            <select name="invoice_id" id="invoice_id_select" required class="form-control font-weight-bold select2" style="height: 38px;">
+                              <option value="">انتخاب انوایس...</option>
+                              @foreach($invoices as $inv)
+                                <option value="{{ $inv->id }}" data-type="{{ $inv->type }}" data-agent="{{ $inv->agent_id }}" {{ ($saleEdit && $saleEdit->invoice_id == $inv->id) ? 'selected' : '' }}>
+                                  {{ $inv->invoice_no }} ({{ $inv->type === 'dye' ? 'رنگ' : 'نخ' }} - {{ $inv->agent->user->name ?? $inv->agent->name ?? '---' }})
+                                </option>
+                              @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">با انتخاب انوایس، نوعیت فروش و نماینده به صورت خودکار تنظیم خواهند شد.</small>
                           </div>
                         </div>
                         <div class="col-lg-4">
@@ -356,9 +363,13 @@
                         @endif
                     </td>
                     <td class="hideOnPrint">
-                        <a class="btn btn-sm btn-outline-emerald py-0 px-2" href="/dashboard/material-sales/{{$material->id}}/edit">
-                            <i class="fa fa-edit"></i>
-                        </a>
+                        @if($material->invoice && $material->invoice->status === 'closed')
+                            <span class="text-muted small"><i class="fa fa-lock"></i> انوایس بسته شده</span>
+                        @else
+                            <a class="btn btn-sm btn-outline-emerald py-0 px-2" href="/dashboard/material-sales/{{$material->id}}/edit">
+                                <i class="fa fa-edit"></i>
+                            </a>
+                        @endif
                     </td>
                   </tr>
                 @empty
@@ -423,11 +434,27 @@
               return { value: this.value, text: this.text, subtype: $(this).data('subtype') };
           }).get();
 
+          const originalInvoices = $('#invoice_id_select option').map(function() {
+              return { value: this.value, text: this.text, type: $(this).data('type'), agent: $(this).data('agent') };
+          }).get();
+
           // Initialize Select2 with modal dropdown parent to prevent z-index issues
-          $('#agent_id, #category_id, #type_id, #warehouse_id, #override_debit_account_id, #override_credit_account_id, #override_cogs_debit_id, #override_cogs_credit_id').select2({
+          $('#invoice_id_select, #agent_id, #category_id, #type_id, #warehouse_id, #override_debit_account_id, #override_credit_account_id, #override_cogs_debit_id, #override_cogs_credit_id').select2({
               dropdownParent: $('#saleModal'),
               width: '100%',
               dir: 'rtl'
+          });
+
+          $('#invoice_id_select').on('change', function() {
+              var selected = $(this).find(':selected');
+              var type = selected.data('type');
+              var agentId = selected.data('agent');
+              if (type && $('#sale_subtype').val() !== type) {
+                  $('#sale_subtype').val(type).trigger('change');
+              }
+              if (agentId && $('#agent_id').val() != agentId) {
+                  $('#agent_id').val(agentId).trigger('change');
+              }
           });
 
           // Show modal immediately if edit mode is active
@@ -478,6 +505,25 @@
                   whSelect.val(oldWhVal);
               }
               whSelect.trigger('change.select2');
+
+              // Invoice
+              const invSelect = $('#invoice_id_select');
+              const oldInvVal = invSelect.val();
+              invSelect.empty().append('<option value="">انتخاب انوایس...</option>');
+              originalInvoices.forEach(function(opt) {
+                  if (opt.value && (!opt.type || opt.type === subtype)) {
+                      invSelect.append($('<option>', {
+                          value: opt.value,
+                          text: opt.text,
+                          'data-type': opt.type,
+                          'data-agent': opt.agent
+                      }));
+                  }
+              });
+              if (invSelect.find('option[value="' + oldInvVal + '"]').length > 0) {
+                  invSelect.val(oldInvVal);
+              }
+              invSelect.trigger('change.select2');
           }
 
           $('#sale_subtype').on('change', function() {

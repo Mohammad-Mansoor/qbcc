@@ -328,6 +328,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::post('/search-weight-carpet-by-agent','CarpetsController@search_weight_carpet_by_agent');
 
     // Route for seller check book
+    Route::post('check-book/{id}/close', 'CarpetCheckBookController@closeInvoice')->name('check-book.close');
     Route::resource('/check-book', 'CarpetCheckBookController')->parameters(['check-book' => 'chck']);
     Route::post('check-book/search', 'CarpetCheckBookController@Filter');
     Route::post('check-book/search-agent', 'CarpetCheckBookController@search_agent');
@@ -388,6 +389,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
 
     Route::match(['get', 'post'], '/carpet-wash/sent-to-finish/{carpet}', 'CarpetWashController@sent_to_finishing_center');
+    Route::post('/carpet-wash/sent-to-kachaee/{carpet}', 'CarpetWashController@sent_to_kachaee');
 
 
     Route::get('washing-team/sending-to-washing/{carpetId}', 'WashingTeamController@sending_to_washing');
@@ -439,6 +441,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     /** Route For invoices */
     Route::resource('/invoices', 'InvoiceController');
+    Route::post('/invoices/{id}/close', 'InvoiceController@closeInvoice');
     Route::post('/search-invoice','InvoiceController@search');
     Route::get('/invoices/search-invoice-number/{invoice_number},{customer_id}', 'InvoiceController@search_invoice_number');
     Route::post('/search-carpet-from-invoice', 'InvoiceController@search_carpet');
@@ -497,11 +500,12 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     Route::resource('/new-monthly-expense-payments','NewMonthlyExpenseBalanceController');
     
-      Route::resource('/customer-account-for-orders','CustomerAccountOrderController');
+    Route::resource('/customer-account-for-orders','CustomerAccountOrderController');
     Route::resource('/customer-orders','CustomerOrderController');
     Route::resource('/customer-order-details','CustomerOrderDetailsController');
     Route::post('/customer-order-details/{id}/receive', 'CustomerOrderDetailsController@receiveIntoStock');
     Route::post('/customer-order-details/{id}/sell', 'CustomerOrderDetailsController@processFinalSale');
+    Route::patch('/customer-order-details/{id}/change-status', 'CustomerOrderDetailsController@changeStatus');
 
     Route::get('/close-to-end-customer-order','CustomerOrderDetailsController@close_to_end_customer_order');
     
@@ -574,6 +578,7 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
     /** Journal Vouchers */
     Route::get('/journals', 'Accounting\JournalController@index')->name('accounting.journals.index');
     Route::get('/journals/create', 'Accounting\JournalController@create')->name('accounting.journals.create');
+    Route::get('/journals/api/parties', 'Accounting\JournalController@getParties')->name('accounting.journals.api.parties');
     Route::post('/journals', 'Accounting\JournalController@store')->name('accounting.journals.store');
     Route::get('/journals/{id}', 'Accounting\JournalController@show')->name('accounting.journals.show');
     Route::get('/journals/{id}/print', 'Accounting\JournalController@print')->name('accounting.journals.print');
@@ -590,6 +595,14 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
         'update' => 'accounting.warehouses.update',
         'destroy' => 'accounting.warehouses.destroy',
     ]);
+
+    /** Warehouse Transfers */
+    Route::get('/transfers', 'Accounting\InventoryTransferController@index')->name('accounting.transfers.index');
+    Route::get('/transfers/create', 'Accounting\InventoryTransferController@create')->name('accounting.transfers.create');
+    Route::post('/transfers', 'Accounting\InventoryTransferController@store')->name('accounting.transfers.store');
+    Route::get('/transfers/{id}', 'Accounting\InventoryTransferController@show')->name('accounting.transfers.show');
+    Route::post('/transfers/{id}/reverse', 'Accounting\InventoryTransferController@reverse')->name('accounting.transfers.reverse');
+    Route::get('/transfers/api/items', 'Accounting\InventoryTransferController@getWarehouseItems')->name('accounting.transfers.api.items');
 
     /** Financial Reports */
     Route::get('/reports/trial-balance', 'Accounting\ReportController@trialBalance')->name('accounting.reports.trial_balance');

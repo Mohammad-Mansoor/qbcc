@@ -172,6 +172,17 @@ class PurchaseMaterialController extends Controller
             $data['status'] = 0;
         }
 
+        // Handle purchase bill image upload
+        if ($request->hasFile('purchase_bill')) {
+            $file = $request->file('purchase_bill');
+            $fileExt = $file->getClientOriginalExtension();
+            $fileName = time() . '' . rand(1000, 9999) . '-purchase-bill.' . $fileExt;
+            $file->move('uploads/purchase-bill/', $fileName);
+            $data['purchase_bill'] = 'uploads/purchase-bill/' . $fileName;
+        } else {
+            unset($data['purchase_bill']);
+        }
+
         // FORENSIC SNAPSHOTS
         $currency = Currency::find($request->currency_id);
         $rate = $request->exchange_rate ?: $currency->exchange_rate;
@@ -273,6 +284,22 @@ class PurchaseMaterialController extends Controller
 
             $data = $this->Valid();
 
+            // Handle purchase bill image upload
+            if ($request->hasFile('purchase_bill')) {
+                $file = $request->file('purchase_bill');
+                $fileExt = $file->getClientOriginalExtension();
+                $fileName = time() . '' . rand(1000, 9999) . '-purchase-bill.' . $fileExt;
+                $file->move('uploads/purchase-bill/', $fileName);
+                $data['purchase_bill'] = 'uploads/purchase-bill/' . $fileName;
+
+                // Delete old file if it exists
+                if ($purchaseMaterial->purchase_bill && file_exists(public_path($purchaseMaterial->purchase_bill))) {
+                    @unlink(public_path($purchaseMaterial->purchase_bill));
+                }
+            } else {
+                unset($data['purchase_bill']);
+            }
+
             // FORENSIC SNAPSHOTS
             $currency = Currency::find($request->currency_id);
             $rate = $request->exchange_rate ?: $currency->exchange_rate;
@@ -329,6 +356,10 @@ class PurchaseMaterialController extends Controller
                 $this->inventoryManager->reverseTransactions($purchase, 'Purchase Record Deleted');
             }
 
+            if ($purchase->purchase_bill && file_exists(public_path($purchase->purchase_bill))) {
+                @unlink(public_path($purchase->purchase_bill));
+            }
+
             $purchase->delete();
             return response()->json(['status' => 'success']);
         });
@@ -352,7 +383,8 @@ class PurchaseMaterialController extends Controller
             'exchange_rate' => 'required|numeric',
             'override_debit_account_id' => '',
             'override_credit_account_id' => '',
-            'status' => ''
+            'status' => '',
+            'purchase_bill' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
         ]);
     }
 }

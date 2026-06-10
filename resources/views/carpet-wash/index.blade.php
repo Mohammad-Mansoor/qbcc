@@ -458,53 +458,76 @@
                       <td class="hideOnPrint">
                         <div class="d-flex justify-content-center align-items-center">
                           <a href="/dashboard/carpet-wash/{{$washed->id}}/edit"
-                             class="btn btn-sm btn-outline-primary mr-1" title="ویرایش">
-                            <i class="fa fa-pencil-alt" style="color:#3b82f6;"></i>
+                             class="mx-1" data-toggle="tooltip" title="ویرایش">
+                            <i class="fa fa-pencil-alt" style="color:#3b82f6; font-size: 1.15rem;"></i>
                           </a>
 
                           @if ($washed->carpet->status == 13)
                             <button type="button"
-                               class="btn btn-sm btn-outline-success mr-1 btn-confirm-action"
+                               class="btn-confirm-action mx-1"
+                               style="background: none; border: none; padding: 0; cursor: pointer;"
+                               data-toggle="tooltip"
                                title="ارسال به بخش تیاری"
                                data-action-url="/dashboard/carpet-wash/sent-to-finish/{{$washed->carpet->carpet_id}}"
                                data-carpet-no="{{$washed->carpet->carpet_no}}"
                                data-action-label="ارسال به بخش تیاری"
                                data-action-sublabel="Send to Finishing Section"
-                               data-icon="fa fa-paper-plane"
+                               data-modal-icon="fa fa-paper-plane"
                                data-btn-class="success"
-                               data-needs-warehouse="1">
-                              <i class="fa fa-paper-plane" style="color:#10b981;"></i>
+                               data-needs-warehouse="1"
+                               data-needs-tayaari="1">
+                              <i class="fa fa-paper-plane" style="color:#10b981; font-size: 1.15rem;"></i>
+                            </button>
+
+                            <button type="button"
+                               class="btn-confirm-action mx-1"
+                               style="background: none; border: none; padding: 0; cursor: pointer;"
+                               data-toggle="tooltip"
+                               title="ارسال به کچایی"
+                               data-action-url="/dashboard/carpet-wash/sent-to-kachaee/{{$washed->carpet->carpet_id}}"
+                               data-carpet-no="{{$washed->carpet->carpet_no}}"
+                               data-action-label="ارسال به کچایی"
+                               data-action-sublabel="Send to Kachaee Section (Repair)"
+                               data-modal-icon="fa fa-wrench"
+                               data-btn-class="primary"
+                               data-needs-warehouse="1"
+                               data-needs-kachaee="1">
+                              <i class="fa fa-wrench" style="color:#3b82f6; font-size: 1.15rem;"></i>
                             </button>
                           @endif
 
                           @if($washed->carpet->status == 13 || $washed->carpet->status == 3)
                             @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
                               <?php $kachaee = \App\CarpetRepair::where('carpetId', $washed->carpetId)->first(); ?>
-                              @if($kachaee)
+                               @if($kachaee)
                                 <button type="button"
-                                   class="btn btn-sm btn-outline-warning mr-1 btn-confirm-action"
+                                   class="btn-confirm-action mx-1"
+                                   style="background: none; border: none; padding: 0; cursor: pointer;"
+                                   data-toggle="tooltip"
                                    title="بازگشت به کچایی"
                                    data-action-url="/dashboard/carpet-wash/return-to-kachaee/{{$washed->id}}"
                                    data-carpet-no="{{$washed->carpet->carpet_no}}"
                                    data-action-label="بازگشت به کچایی"
                                    data-action-sublabel="Return to Kachaee (Repair)"
-                                   data-icon="fa fa-reply"
+                                   data-modal-icon="fa fa-reply"
                                    data-btn-class="warning"
                                    data-needs-warehouse="1">
-                                  <i class="fa fa-reply" style="color:#d97706;"></i>
+                                  <i class="fa fa-reply" style="color:#d97706; font-size: 1.15rem;"></i>
                                 </button>
                               @else
                                 <button type="button"
-                                   class="btn btn-sm btn-outline-danger mr-1 btn-confirm-action"
+                                   class="btn-confirm-action mx-1"
+                                   style="background: none; border: none; padding: 0; cursor: pointer;"
+                                   data-toggle="tooltip"
                                    title="بازگشت به مرکزی"
                                    data-action-url="/dashboard/carpet-wash/return-to-center/{{$washed->id}}"
                                    data-carpet-no="{{$washed->carpet->carpet_no}}"
                                    data-action-label="بازگشت به مرکزی"
                                    data-action-sublabel="Return to Central Warehouse"
-                                   data-icon="fa fa-reply-all"
+                                   data-modal-icon="fa fa-reply-all"
                                    data-btn-class="danger"
                                    data-needs-warehouse="0">
-                                  <i class="fa fa-reply-all" style="color:#dc2626;"></i>
+                                  <i class="fa fa-reply-all" style="color:#dc2626; font-size: 1.15rem;"></i>
                                 </button>
                               @endif
                             @endif
@@ -592,7 +615,7 @@
           </div>
         </div>
 
-        {{-- ► Warehouse selector (only shown for Return-to-Kachaee) --}}
+        {{-- ► Warehouse selector (only shown for Return-to-Kachaee, Sent-to-Finish, and Sent-to-Kachaee) --}}
         <div id="confirmModalWarehouseWrap" style="display:none; margin-bottom:16px;">
           <label style="font-size:.85rem; font-weight:700; color:#374151; margin-bottom:6px; display:block;">
             <i class="fa fa-building-o mr-1" style="color:#f59e0b;"></i>
@@ -605,13 +628,47 @@
                          background:#fff; appearance:none; outline:none;
                          transition: border-color .2s;">
             <option value="">— انبار را انتخاب کنید —</option>
-            @foreach(\App\Warehouse::where('is_active', true)->get() as $wh)
+            @foreach($carpet_warehouses as $wh)
               <option value="{{ $wh->id }}">{{ $wh->name }}@if($wh->location) — {{ $wh->location }}@endif</option>
             @endforeach
           </select>
           <small class="text-muted" style="font-size:.78rem; margin-top:4px; display:block;">
-            قالین پس از بازگشت به کچایی در این انبار ثبت خواهد شد.
+            قالین در این انبار ثبت خواهد شد.
           </small>
+        </div>
+
+        {{-- ► Kachaee team selector (only shown for Send to Kachaee) --}}
+        <div id="confirmModalKachaeeTeamWrap" style="display:none; margin-bottom:16px;">
+          <label style="font-size:.85rem; font-weight:700; color:#374151; margin-bottom:6px; display:block;">
+            <i class="fa fa-users mr-1" style="color:#3b82f6;"></i>
+            انتخاب تیم کچایی (Kachaee Team)
+            <span class="text-danger">*</span>
+          </label>
+          <select id="confirmModalKachaeeTeamSelect" name="kachaee_id" class="select2" style="width:100%;">
+            <option value="">— تیم کچایی را انتخاب کنید —</option>
+            @foreach($kachaee_teams as $team)
+              <option value="{{ $team->id }}">
+                {{ $team->name }} ({{ number_format($team->wip_area, 2) }} متر مربع، {{ $team->wip_count }} تخته)
+              </option>
+            @endforeach
+          </select>
+        </div>
+
+        {{-- ► Tayaari team selector (only shown for Send to Tayaari) --}}
+        <div id="confirmModalTayaariTeamWrap" style="display:none; margin-bottom:16px;">
+          <label style="font-size:.85rem; font-weight:700; color:#374151; margin-bottom:6px; display:block;">
+            <i class="fa fa-users mr-1" style="color:#10b981;"></i>
+            انتخاب تیم تیاری (Finishing Team)
+            <span class="text-danger">*</span>
+          </label>
+          <select id="confirmModalTayaariTeamSelect" name="finishing_id" class="select2" style="width:100%;">
+            <option value="">— تیم تیاری را انتخاب کنید —</option>
+            @foreach($finishing_teams as $team)
+              <option value="{{ $team->id }}">
+                {{ $team->name }} ({{ number_format($team->wip_area, 2) }} متر مربع، {{ $team->wip_count }} تخته)
+              </option>
+            @endforeach
+          </select>
         </div>
 
         <p class="text-muted mb-0" style="font-size:.85rem; line-height:1.7;">
@@ -665,12 +722,20 @@
   <script>
     $('#carpet_type_id').select2();
     $('#team_id').select2();
+    $('[data-toggle="tooltip"]').tooltip();
+    $('#confirmModalKachaeeTeamSelect').select2({
+        dropdownParent: $('#confirmActionModal')
+    });
+    $('#confirmModalTayaariTeamSelect').select2({
+        dropdownParent: $('#confirmActionModal')
+    });
 
     /* ── Confirmation Modal Logic ── */
     var colorMap = {
       success : { bg: 'rgba(16,185,129,.12)', color: '#10b981', btn: 'success' },
       warning : { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b', btn: 'warning' },
-      danger  : { bg: 'rgba(239,68,68,.12)',   color: '#ef4444', btn: 'danger'  }
+      danger  : { bg: 'rgba(239,68,68,.12)',   color: '#ef4444', btn: 'danger'  },
+      primary : { bg: 'rgba(59,130,246,.12)',  color: '#3b82f6', btn: 'primary' }
     };
 
     $(document).on('click', '.btn-confirm-action', function () {
@@ -678,9 +743,11 @@
       var carpetNo      = $(this).data('carpet-no');
       var label         = $(this).data('action-label');
       var sublabel      = $(this).data('action-sublabel');
-      var icon          = $(this).data('icon');
+      var icon          = $(this).data('modal-icon');
       var btnClass      = $(this).data('btn-class');
       var needsWarehouse = parseInt($(this).data('needs-warehouse') || 0);
+      var needsKachaee   = parseInt($(this).data('needs-kachaee') || 0);
+      var needsTayaari   = parseInt($(this).data('needs-tayaari') || 0);
       var palette       = colorMap[btnClass] || colorMap['success'];
 
       /* populate modal header */
@@ -692,8 +759,24 @@
       $('#confirmModalCarpetNo').text(carpetNo);
       $('#confirmModalActionName').text(label).css('color', palette.color);
 
+      // Handle Kachaee team dropdown visibility
+      if (needsKachaee) {
+        $('#confirmModalKachaeeTeamWrap').show();
+        $('#confirmModalKachaeeTeamSelect').val('').trigger('change');
+      } else {
+        $('#confirmModalKachaeeTeamWrap').hide();
+      }
+
+      // Handle Tayaari team dropdown visibility
+      if (needsTayaari) {
+        $('#confirmModalTayaariTeamWrap').show();
+        $('#confirmModalTayaariTeamSelect').val('').trigger('change');
+      } else {
+        $('#confirmModalTayaariTeamWrap').hide();
+      }
+
       if (needsWarehouse) {
-        /* ── KACHAEE RETURN & TAYAARI: show warehouse selector, use POST form ── */
+        /* ── KACHAEE RETURN & TAYAARI & SEND TO KACHAEE: show warehouse selector, use POST form ── */
         $('#confirmModalWarehouseWrap').show();
         $('#confirmModalWarehouseSelect').val('');
         $('#confirmModalPostForm').attr('action', url);
@@ -702,6 +785,8 @@
         /* Dynamically update helper text based on action */
         if (url.indexOf('sent-to-finish') !== -1) {
           $('#confirmModalWarehouseWrap small').text('قالین پس از ارسال به بخش تیاری در این انبار ثبت خواهد شد.');
+        } else if (url.indexOf('sent-to-kachaee') !== -1) {
+          $('#confirmModalWarehouseWrap small').text('قالین پس از ارسال به کچایی در این انبار ثبت خواهد شد.');
         } else {
           $('#confirmModalWarehouseWrap small').text('قالین پس از بازگشت به کچایی در این انبار ثبت خواهد شد.');
         }
@@ -710,7 +795,7 @@
         $('#confirmModalProceedBtn').hide();
         $('#confirmModalPostBtn')
           .show()
-          .removeClass('btn-success btn-warning btn-danger')
+          .removeClass('btn-success btn-warning btn-danger btn-primary')
           .addClass('btn-' + palette.btn);
         $('#confirmModalPostBtnIcon').attr('class', icon + ' mr-1');
         $('#confirmModalPostBtnLabel').text(label);
@@ -720,7 +805,7 @@
         $('#confirmModalProceedBtn')
           .show()
           .attr('href', url)
-          .removeClass('btn-success btn-warning btn-danger')
+          .removeClass('btn-success btn-warning btn-danger btn-primary')
           .addClass('btn-' + palette.btn)
           .css('box-shadow', '0 4px 12px ' + palette.bg);
         $('#confirmModalBtnIcon').attr('class', icon + ' mr-1');
@@ -731,7 +816,7 @@
       $('#confirmActionModal').modal('show');
     });
 
-    /* POST form submit — validate warehouse selected first */
+    /* POST form submit — validate warehouse and kachaee/tayaari selected first */
     $('#confirmModalPostBtn').on('click', function () {
       var warehouseId = $('#confirmModalWarehouseSelect').val();
       if (!warehouseId) {
@@ -742,6 +827,39 @@
       }
       $('#confirmModalWarehouseSelect').css('border-color', '#e2e8f0');
       $('#confirmModalPostWarehouseId').val(warehouseId);
+
+      // Validate Kachaee team if visible
+      if ($('#confirmModalKachaeeTeamWrap').is(':visible')) {
+        var kachaeeId = $('#confirmModalKachaeeTeamSelect').val();
+        if (!kachaeeId) {
+          $('#confirmModalKachaeeTeamSelect').next('.select2-container').find('.select2-selection').css('border-color', '#ef4444');
+          return;
+        }
+        $('#confirmModalKachaeeTeamSelect').next('.select2-container').find('.select2-selection').css('border-color', '#e2e8f0');
+        
+        // Append kachaee_id input dynamically to post form
+        if ($('#confirmModalPostKachaeeId').length === 0) {
+          $('#confirmModalPostForm').append('<input type="hidden" id="confirmModalPostKachaeeId" name="kachaee_id">');
+        }
+        $('#confirmModalPostKachaeeId').val(kachaeeId);
+      }
+
+      // Validate Tayaari team if visible
+      if ($('#confirmModalTayaariTeamWrap').is(':visible')) {
+        var tayaariId = $('#confirmModalTayaariTeamSelect').val();
+        if (!tayaariId) {
+          $('#confirmModalTayaariTeamSelect').next('.select2-container').find('.select2-selection').css('border-color', '#ef4444');
+          return;
+        }
+        $('#confirmModalTayaariTeamSelect').next('.select2-container').find('.select2-selection').css('border-color', '#e2e8f0');
+        
+        // Append finishing_id input dynamically to post form
+        if ($('#confirmModalPostFinishingId').length === 0) {
+          $('#confirmModalPostForm').append('<input type="hidden" id="confirmModalPostFinishingId" name="finishing_id">');
+        }
+        $('#confirmModalPostFinishingId').val(tayaariId);
+      }
+
       $('#confirmModalPostForm').submit();
     });
 
@@ -749,6 +867,20 @@
     $('#confirmModalWarehouseSelect').on('change', function () {
       if ($(this).val()) {
         $(this).css('border-color', '#10b981');
+      }
+    });
+
+    /* Clear validation highlight when user picks a kachaee team */
+    $('#confirmModalKachaeeTeamSelect').on('change', function () {
+      if ($(this).val()) {
+        $(this).next('.select2-container').find('.select2-selection').css('border-color', '#10b981');
+      }
+    });
+
+    /* Clear validation highlight when user picks a tayaari team */
+    $('#confirmModalTayaariTeamSelect').on('change', function () {
+      if ($(this).val()) {
+        $(this).next('.select2-container').find('.select2-selection').css('border-color', '#10b981');
       }
     });
   </script>

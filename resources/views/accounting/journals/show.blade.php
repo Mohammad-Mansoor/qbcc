@@ -38,8 +38,12 @@
                         </div>
                         <div class="col-5 text-right">
                             <div class="d-inline-block text-left mr-4">
+                                <span class="d-block small text-muted font-weight-bold">شناسه سند (GL ID):</span>
+                                <h4 class="mb-0 font-weight-bold text-dark">{{ $transaction->journal_id ?? $transaction->id }}</h4>
+                            </div>
+                            <div class="d-inline-block text-left mr-4">
                                 <span class="d-block small text-muted font-weight-bold">نمبر سند (Ref):</span>
-                                <h4 class="mb-0 font-weight-bold text-primary">{{ $transaction->reference }}</h4>
+                                <h4 class="mb-0 font-weight-bold text-primary">{{ $transaction->reference ?? '-' }}</h4>
                             </div>
                             <div class="d-inline-block text-left">
                                 <span class="d-block small text-muted font-weight-bold">تاریخ (Date):</span>

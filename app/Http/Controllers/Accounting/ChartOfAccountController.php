@@ -36,16 +36,19 @@ class ChartOfAccountController extends Controller
             ->unique()
             ->toArray();
 
+        // Fetch all currency rates indexed by currency code
+        $currencyRates = DB::table('currencies')->pluck('exchange_rate', 'code')->toArray();
+
         foreach ($accounts as $acc) {
-            // 1. Calculate Original Currency Balance
-            $acc->balance = DB::table('ledger_entries')
-                ->where('account_id', $acc->id)
-                ->sum(DB::raw('debit - credit'));
-            
-            // 2. Calculate USD-Normalized Balance (Base Balance)
+            // 1. Calculate USD-Normalized Balance (Base Balance)
             $acc->base_balance = DB::table('ledger_entries')
                 ->where('account_id', $acc->id)
                 ->sum(DB::raw('base_debit - base_credit'));
+
+            // 2. Calculate Original Currency Balance using the universal formula
+            $rate = floatval($currencyRates[$acc->currency] ?? 1.0);
+            if ($rate <= 0) $rate = 1.0; // Prevent division by zero
+            $acc->balance = $acc->base_balance / $rate;
             
             // 3. Protection Status
             $acc->is_protected = in_array($acc->id, $protectedIds);

@@ -258,6 +258,19 @@
                 </select>
               </div>
             </div>
+
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="form-group">
+                <label class="pull-right">انبار نهایی (Target Warehouse)</label>
+                <select name="warehouse_id" id="warehouse_id" class="form-control select2" required>
+                  @foreach($warehouses as $wh)
+                    <option value="{{$wh->id}}" {{ (old('warehouse_id', $carpet_wash->carpet->warehouse_id) == $wh->id) ? 'selected' : '' }}>
+                      {{$wh->name}}
+                    </option>
+                  @endforeach
+                </select>
+              </div>
+            </div>
           </div>
 
           <div class="row">
@@ -319,6 +332,12 @@
         if ($.fn.select2) {
             $('.select2').select2({ width: '100%' });
         }
+
+        // Prevent double submission
+        $('form').on('submit', function () {
+            var $btn = $(this).find('button[type="submit"]');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> لطفا صبر کنید...');
+        });
 
         // Dynamic exchange rate updates
         $('#currency_code').on('change', function () {

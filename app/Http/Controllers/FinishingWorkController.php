@@ -56,11 +56,14 @@ class FinishingWorkController extends Controller
         $currencyObj = \App\Currency::where('code', 'AFN')->first();
         $currency = ($currencyObj && $currencyObj->exchange_rate > 0) ? (1 / $currencyObj->exchange_rate) : 70.0;
 
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
         return view('finishing-center.create', compact(
             'carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 
             'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency', 'currencies',
             'qaitan_check', 'rofo_check', 'cheet_check', 'labaki_check', 
-            'popak_check', 'kash_check', 'rang_check', 'shiraza_check'
+            'popak_check', 'kash_check', 'rang_check', 'shiraza_check',
+            'warehouses'
         ));
     }
 
@@ -87,7 +90,7 @@ class FinishingWorkController extends Controller
             $category = FinishingTeamCategory::find($work->category_id);
             $this->inventoryManager->recordProductionService($work, $carpet, [
                 'type' => 'FINISHING',
-                'amount' => $work->price,
+                'amount' => ($work->currency_code && $work->currency_code !== 'USD') ? $work->price_af : $work->price,
                 'currency_code' => $work->currency_code ?? 'USD',
                 'exchange_rate' => $work->exchange_rate ?? 1.0,
                 'date' => $work->date,
@@ -96,6 +99,8 @@ class FinishingWorkController extends Controller
                 'reference' => $work->finish_number,
                 'description' => "هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
                 'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'override_debit_account_id' => $work->debit_account_id,
+                'override_credit_account_id' => $work->credit_account_id,
             ]);
 
             $activity = new Activity();
@@ -285,6 +290,12 @@ class FinishingWorkController extends Controller
             $finish->price = $baseUsdAmount;
             $finish->price_af = $priceAf;
             $finish->base_currency_amount = $baseUsdAmount;
+            $finish->debit_account_id = $request->override_debit_account_id;
+            $finish->credit_account_id = $request->override_credit_account_id;
+
+            if ($request->has('warehouse_id')) {
+                $finish->warehouse_id = $request->input('warehouse_id');
+            }
             
             if (Auth::user()->role == 'SP' || $request->is_direct_store) {
                 $finish->status = 1;
@@ -305,14 +316,17 @@ class FinishingWorkController extends Controller
                     'reference' => $finish->finish_number,
                     'description' => "هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
                     'warehouse_id' => $carpet->warehouse_id ?? 1,
-                    'override_debit_account_id' => $request->override_debit_account_id,
-                    'override_credit_account_id' => $request->override_credit_account_id,
+                    'override_debit_account_id' => $finish->debit_account_id,
+                    'override_credit_account_id' => $finish->credit_account_id,
                 ]);
             } else {
                 $finish->status = 0;
                 $finish->save();
             }
+
+            return $finish;
         }
+        return null;
     }
 
     public function store_refinish(Request $request)
@@ -339,7 +353,7 @@ class FinishingWorkController extends Controller
         $request->merge(['is_direct_store' => true]);
         
         DB::transaction(function () use ($request) {
-            $carpet = Carpet::find($request->carpetId);
+            $carpet = Carpet::where('carpet_id', $request->carpetId)->lockForUpdate()->firstOrFail();
             $newCarpet = CarpetWash::where('carpetId', $request->carpetId)->first() ?? $carpet;
 
             $categories = [
@@ -347,14 +361,64 @@ class FinishingWorkController extends Controller
                 5 => 'popak', 6 => 'kash', 7 => 'rang', 8 => 'shiraza'
             ];
 
+            $lastSavedFinish = null;
             foreach ($categories as $id => $suffix) {
-                $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix);
+                $res = $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix);
+                if ($res) {
+                    $lastSavedFinish = $res;
+                }
             }
 
             if ($request->finished == 1) {
                 $carpet->status = 5;
-                $carpet->update();
             }
+
+            $warehouseId = $request->input('warehouse_id');
+            $sourceWarehouseId = $carpet->warehouse_id;
+
+            if ($warehouseId && $warehouseId != $sourceWarehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                $inventoryService = app(\App\Services\InventoryService::class);
+                $refModel = $lastSavedFinish ?? $carpet;
+
+                // Record Transfer OUT from old warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $refModel,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Finishing Completion Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $sourceWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                // Record Transfer IN to selected target warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $refModel,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Finishing Completion Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $warehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $carpet->warehouse_id = $warehouseId;
+            }
+
+            $carpet->update();
         });
 
         return redirect('/dashboard/finishing-center')->with('status', 'عملیات تیاری با موفقیت ثبت و در سیستم مالی درج گردید');
@@ -378,10 +442,35 @@ class FinishingWorkController extends Controller
         $team_categories = FinishingTeamCategory::all();
 
         $currency = $finish->currency_code ?? 'USD';
-        $mainPrice = $finish->price;
-        $mainPrice_af = $finish->price_af;
+        
+        // Calculate unit price instead of using the total amount
+        $totalAmountInOriginalCurrency = ($finish->currency_code == 'AFN') ? $finish->price_af : $finish->price;
+        $unitPrice = 0;
+        $category_id = $finish->category_id;
+        
+        if (in_array($category_id, [1, 3, 5, 6, 7])) {
+            $unitPrice = $newCarpet->area > 0 ? ($totalAmountInOriginalCurrency / $newCarpet->area) : 0;
+        } elseif (in_array($category_id, [4, 8])) {
+            $unitPrice = ($newCarpet->height > 0) ? ($totalAmountInOriginalCurrency / ($newCarpet->height * 2)) : 0;
+        } elseif ($category_id == 2) {
+            $unitPrice = $totalAmountInOriginalCurrency;
+        }
 
-        return view('finishing-center.edit', compact('finish', 'carpet', 'newCarpet', 'teams', 'team', 'category', 'team_categories', 'currency', 'mainPrice', 'mainPrice_af'));
+        $mainPrice = $finish->price;
+        $mainPrice_af = round($unitPrice, 4);
+
+        $selectionService = new \App\Services\AccountSelectionService();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
+
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+
+        return view('finishing-center.edit', compact(
+            'finish', 'carpet', 'newCarpet', 'teams', 'team', 'category', 'team_categories', 
+            'currency', 'mainPrice', 'mainPrice_af',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'warehouses'
+        ));
     }
 
     public function update(Request $request, FinishingWork $finish)
@@ -392,6 +481,10 @@ class FinishingWorkController extends Controller
 
             // Accounting Reversal - pass class name to avoid ID collision reversals with other models
             $this->accountingService->reverseTransactionBySource($finish->id, 'Finishing Work Edited', get_class($finish));
+
+            // Reverse Completion Transfer linked to this FinishingWork
+            $inventoryService = app(\App\Services\InventoryService::class);
+            $inventoryService->reverseMovement($finish, 'Finishing Work Edited');
 
             // Recalculate price
             $rate = $request->price_af;
@@ -425,6 +518,15 @@ class FinishingWorkController extends Controller
             $finish->price_af = $newPriceAfn;
             $finish->base_currency_amount = $newPriceUsd;
             
+            $finish->debit_account_id = $request->override_debit_account_id;
+            $finish->credit_account_id = $request->override_credit_account_id;
+
+            if ($request->has('warehouse_id')) {
+                $finish->warehouse_id = $request->input('warehouse_id');
+            } else {
+                $finish->warehouse_id = null;
+            }
+
             $finish->date = $request->date;
             $finish->description = $request->description;
             $finish->update();
@@ -432,8 +534,9 @@ class FinishingWorkController extends Controller
             // ERP Integration: Re-post value addition
             $category = FinishingTeamCategory::find($finish->category_id);
             $this->inventoryManager->recordProductionService($finish, $carpet, [
-                'type' => 'FINISHING_EDIT',
-                'amount' => $finish->price,
+                'type' => 'FINISHING',
+                'mapping_key' => 'FINISHING_CREDIT',
+                'amount' => ($finish->currency_code && $finish->currency_code !== 'USD') ? $finish->price_af : $finish->price,
                 'currency_code' => $finish->currency_code ?? 'USD',
                 'exchange_rate' => $finish->exchange_rate ?? 1.0,
                 'date' => $finish->date,
@@ -442,7 +545,61 @@ class FinishingWorkController extends Controller
                 'reference' => $finish->finish_number,
                 'description' => "ویرایش هزینه " . ($category->category ?? 'Preparation') . " قالین نمبر " . $carpet->carpet_no,
                 'warehouse_id' => $carpet->warehouse_id ?? 1,
+                'override_debit_account_id' => $finish->debit_account_id,
+                'override_credit_account_id' => $finish->credit_account_id,
             ]);
+
+            // Re-post completion transfer if finished
+            if ($request->finished == 1) {
+                $carpet->status = 5;
+            } else {
+                if ($carpet->status == 5) {
+                    $carpet->status = 4;
+                }
+            }
+
+            $warehouseId = $request->input('warehouse_id');
+            $sourceWarehouseId = $carpet->warehouse_id;
+
+            if ($warehouseId && $warehouseId != $sourceWarehouseId) {
+                $carpetCost = DB::table('items')
+                    ->where('type', 'App\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->value('current_cost') ?? (float) ($carpet->total_price ?? 0);
+
+                // Record Transfer OUT from old warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $finish,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Finishing Completion Transfer',
+                    'direction' => 'OUT',
+                    'quantity' => 1,
+                    'warehouse_id' => $sourceWarehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                // Record Transfer IN to selected target warehouse
+                $inventoryService->recordMovement([
+                    'item_model' => $finish,
+                    'parent_item_model' => $carpet,
+                    'type' => 'Finishing Completion Transfer',
+                    'direction' => 'IN',
+                    'quantity' => 1,
+                    'warehouse_id' => $warehouseId,
+                    'area' => (float) ($carpet->area ?? 0),
+                    'unit_cost' => $carpetCost,
+                    'currency_code' => 'USD',
+                    'exchange_rate' => 1.0,
+                    'created_by' => auth()->id()
+                ]);
+
+                $carpet->warehouse_id = $warehouseId;
+            }
+            $carpet->update();
 
             return redirect('/dashboard/finishing-center')->with('status', 'تیاری با موفقیت ویرایش و سیستم مالی بروزرسانی شد');
         });
@@ -454,6 +611,29 @@ class FinishingWorkController extends Controller
             $work = FinishingWork::find($id);
             // Reverse Accounting - pass class name to avoid ID collision reversals with other models
             $this->accountingService->reverseTransactionBySource($work->id, 'Finishing Work Deleted', get_class($work));
+            
+            // Revert Carpet completion status and warehouse if this work completed it
+            $outTx = DB::table('inventory_transactions')
+                ->where('reference_type', get_class($work))
+                ->where('reference_id', $work->id)
+                ->where('type', 'Finishing Completion Transfer')
+                ->where('direction', 'OUT')
+                ->where('status', 1)
+                ->first();
+            
+            if ($outTx) {
+                $carpet = Carpet::find($work->carpetId);
+                if ($carpet) {
+                    $carpet->status = 4; // Back to finishing WIP status
+                    $carpet->warehouse_id = $outTx->warehouse_id; // Restore source warehouse
+                    $carpet->update();
+                }
+            }
+
+            // Reverse Completion Transfer linked to this FinishingWork
+            $inventoryService = app(\App\Services\InventoryService::class);
+            $inventoryService->reverseMovement($work, 'Finishing Work Deleted');
+
             $work->delete();
             return response()->json(['status' => 'success']);
         });

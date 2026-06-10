@@ -64,6 +64,15 @@ class JournalController extends Controller
             });
         }
 
+        if ($request->party_type) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('party_type', $request->party_type);
+                if ($request->party_id) {
+                    $q->where('party_id', $request->party_id);
+                }
+            });
+        }
+
         $transactions = $query->paginate(30);
         $accounts = ChartOfAccount::orderBy('account_code')->get();
         return view('accounting.journals.index', compact('transactions', 'accounts'));
@@ -72,14 +81,145 @@ class JournalController extends Controller
     public function create()
     {
         $accounts = ChartOfAccount::orderBy('account_code')->get();
-        return view('accounting.journals.create', compact('accounts'));
+        
+        $year = date('Y');
+        $prefix = "JV-{$year}-";
+        $lastTransactions = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")->get();
+        
+        $maxNum = 0;
+        foreach ($lastTransactions as $t) {
+            $numPart = str_replace($prefix, '', $t->journal_id);
+            if (is_numeric($numPart)) {
+                $maxNum = max($maxNum, intval($numPart));
+            }
+        }
+        
+        $nextNum = $maxNum + 1;
+        $nextJournalId = $prefix . sprintf('%05d', $nextNum);
+
+        return view('accounting.journals.create', compact('accounts', 'nextJournalId'));
+    }
+
+    public function getParties(Request $request)
+    {
+        $type = $request->input('type');
+        $search = $request->input('q');
+
+        $results = [];
+
+        switch ($type) {
+            case 'App\Customer':
+                $query = \App\Customer::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\Agents':
+                $query = \App\Agents::with('user');
+                if ($search) {
+                    $query->whereHas('user', function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('email', 'like', "%{$search}%");
+                    });
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return [
+                        'id' => $item->agent_id,
+                        'text' => $item->user ? ($item->user->name . ' (' . $item->user->email . ')') : 'Unnamed Agent'
+                    ];
+                });
+                break;
+
+            case 'App\OfficeEmployee':
+                $query = \App\OfficeEmployee::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\StringSeller':
+                $query = \App\StringSeller::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\WashingTeam':
+                $query = \App\WashingTeam::query();
+                if ($search) {
+                    $query->where(function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('last_name', 'like', "%{$search}%");
+                    });
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name . ($item->last_name ? ' ' . $item->last_name : '')];
+                });
+                break;
+
+            case 'App\FinishingTeam':
+                $query = \App\FinishingTeam::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\Kachaee':
+                $query = \App\Kachaee::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\NewDifferentAccount':
+                $query = \App\NewDifferentAccount::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+
+            case 'App\DifferentAccount':
+                $query = \App\DifferentAccount::query();
+                if ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+                $results = $query->limit(50)->get()->map(function($item) {
+                    return ['id' => $item->id, 'text' => $item->name];
+                });
+                break;
+        }
+
+        return response()->json($results);
     }
 
     public function store(Request $request)
     {
         $request->validate([
+            'journal_id' => 'nullable|string|unique:ledger_transactions,journal_id',
             'date' => 'required|date',
             'description' => 'required',
+            'journal_type' => 'required|string',
+            'party_type' => 'nullable|string',
+            'party_id' => 'nullable|integer',
             'entries' => 'required|array|min:2',
             'entries.*.account_id' => 'required|exists:chart_of_accounts,id',
             'entries.*.debit' => 'required|numeric|min:0',
@@ -87,6 +227,9 @@ class JournalController extends Controller
         ]);
 
         try {
+            $partyType = $request->input('party_type') ?: null;
+            $partyId = $request->input('party_id') ?: null;
+
             $entries = [];
             foreach ($request->entries as $entry) {
                 $entries[] = [
@@ -94,10 +237,29 @@ class JournalController extends Controller
                     'debit' => $entry['debit'],
                     'credit' => $entry['credit'],
                     'currency_code' => $entry['currency_code'] ?? 'USD',
+                    'party_type' => $partyType,
+                    'party_id' => $partyId,
                 ];
             }
 
+            $journalId = $request->journal_id;
+            if (empty($journalId)) {
+                $year = date('Y');
+                $prefix = "JV-{$year}-";
+                $lastTransactions = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")->get();
+                $maxNum = 0;
+                foreach ($lastTransactions as $t) {
+                    $numPart = str_replace($prefix, '', $t->journal_id);
+                    if (is_numeric($numPart)) {
+                        $maxNum = max($maxNum, intval($numPart));
+                    }
+                }
+                $nextNum = $maxNum + 1;
+                $journalId = $prefix . sprintf('%05d', $nextNum);
+            }
+
             $this->accountingService->postTransaction([
+                'journal_id' => $journalId,
                 'date' => $request->date,
                 'reference' => $request->reference,
                 'description' => $request->description,

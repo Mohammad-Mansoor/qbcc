@@ -37,7 +37,7 @@ class InventoryReportController extends Controller
                 'items.current_cost',
                 DB::raw("SUM(CASE WHEN inventory_transactions.direction = 'IN' AND inventory_transactions.is_value_adjustment = 0 THEN inventory_transactions.quantity WHEN inventory_transactions.direction = 'OUT' THEN -inventory_transactions.quantity ELSE 0 END) as stock_balance"),
                 DB::raw("SUM(CASE WHEN inventory_transactions.direction = 'IN' AND inventory_transactions.is_value_adjustment = 0 THEN inventory_transactions.area WHEN inventory_transactions.direction = 'OUT' THEN -inventory_transactions.area ELSE 0 END) as area_balance"),
-                DB::raw("SUM(inventory_transactions.total_cost) as total_value")
+                DB::raw("SUM(CASE WHEN inventory_transactions.direction = 'IN' THEN inventory_transactions.total_cost WHEN inventory_transactions.direction = 'OUT' THEN -inventory_transactions.total_cost ELSE 0 END) as total_value")
             )
             ->groupBy('items.id', 'items.type', 'items.ref_id', 'items.current_cost');
 

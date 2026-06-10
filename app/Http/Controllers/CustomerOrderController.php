@@ -17,10 +17,12 @@ class CustomerOrderController extends Controller
      */
     public function index()
     {
+        $customer_orders = CustomerOrder::with(['customer', 'details'])->orderBy('co_id', 'DESC')->get();
+        $main_customers = \App\Customer::orderBy('name')->get();
+        $orderEdit = null;
 
-
+        return view('customer-orders.customer-orders', compact('orderEdit', 'customer_orders', 'main_customers'));
     }
-
 
     /**
      * Show the form for creating a new resource.
@@ -42,18 +44,22 @@ class CustomerOrderController extends Controller
     {
         $data = $request->validate([
             'order_name' => 'required',
-            'order_date' => 'required',
-            'customer_account_order_id' => 'required', 
-            'customer_id' => 'required', // This is the Master Customer from the dropdown
+            'order_date' => 'required|date',
+            'main_customer_id' => 'required|exists:customers,id',
+            'status' => 'required|in:pending,in_progress,completed',
         ]);
 
-        $ord = DB::table('customer_orders')->insertGetId([
-            'order_name' => $request->order_name, 
-            'order_date' => $request->order_date, 
-            'customer_id' => $request->customer_account_order_id,
-            'main_customer_id' => $request->customer_id,
-            // Fallback for old column
-            'customer_order' => $request->order_name
+        if ($request->status == 'completed') {
+            return redirect()->back()->with('error', 'یک فرمایش جدید نمی‌تواند مستقیماً تکمیل شده باشد. ابتدا باید قالین‌ها را ثبت و تکمیل کنید.');
+        }
+
+        $ord = CustomerOrder::create([
+            'order_name' => $request->order_name,
+            'order_date' => $request->order_date,
+            'main_customer_id' => $request->main_customer_id,
+            'status' => $request->status,
+            'customer_order' => $request->order_name, // fallback for legacy column
+            'customer_id' => null, // null out legacy c_id
         ]);
 
         if ($ord) {
@@ -82,12 +88,11 @@ class CustomerOrderController extends Controller
      */
     public function edit($order_id)
     {
-        $orderEdit = CustomerOrder::find($order_id);
-        $customer_orders = DB::table('customer_orders')->where('customer_id', $orderEdit->customer_id)->orderBy('co_id','DESC')->get();
-        $customer = CustomerAccountOrder::find($orderEdit->customer_id);
-        $main_customers = \App\Customer::all();
+        $orderEdit = CustomerOrder::findOrFail($order_id);
+        $customer_orders = CustomerOrder::with(['customer', 'details'])->orderBy('co_id', 'DESC')->get();
+        $main_customers = \App\Customer::orderBy('name')->get();
 
-        return view('customer-orders.customer-orders', compact('orderEdit', 'customer','customer_orders', 'main_customers'));
+        return view('customer-orders.customer-orders', compact('orderEdit', 'customer_orders', 'main_customers'));
     }
 
     /**
@@ -101,23 +106,39 @@ class CustomerOrderController extends Controller
     {
         $data = $request->validate([
             'order_name' => 'required',
-            'order_date' => 'required',
-            'customer_account_order_id' => 'required',
-            'customer_id' => 'required',
+            'order_date' => 'required|date',
+            'main_customer_id' => 'required|exists:customers,id',
+            'status' => 'required|in:pending,in_progress,completed',
         ]);
 
-        $ord = DB::table('customer_orders')->where('co_id', $order_id)->update([
-            'order_name' => $request->order_name,   
+        if ($request->status == 'completed') {
+            $totalCarpets = DB::table('customer_order_details')->where('customer_order_id', $order_id)->count();
+            $nonCompleted = DB::table('customer_order_details')
+                ->where('customer_order_id', $order_id)
+                ->where('current_status', '!=', 'completed')
+                ->count();
+
+            if ($totalCarpets == 0) {
+                return redirect()->back()->with('error', 'نمی‌توانید وضعیت فرمایش را به تکمیل شده تغییر دهید زیرا هیچ قالینی برای این فرمایش ثبت نشده است.');
+            }
+            if ($nonCompleted > 0) {
+                return redirect()->back()->with('error', 'نمی‌توانید وضعیت فرمایش را به تکمیل شده تغییر دهید زیرا همه قالین‌های این فرمایش تکمیل نشده‌اند.');
+            }
+        }
+
+        $order = CustomerOrder::findOrFail($order_id);
+        $ord = $order->update([
+            'order_name' => $request->order_name,
             'order_date' => $request->order_date,
-            'customer_id' => $request->customer_account_order_id,
-            'main_customer_id' => $request->customer_id,
+            'main_customer_id' => $request->main_customer_id,
+            'status' => $request->status,
             'customer_order' => $request->order_name
         ]);
 
         if ($ord) {
-            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_account_order_id)->with('status', 'موفقانه ثبت شد !');
+            return redirect('/dashboard/customer-orders')->with('status', 'موفقانه ثبت شد !');
         } else {
-            return redirect('/dashboard/customer-account-for-orders/'.$request->customer_account_order_id)->with('error', 'مشکل در سرور وجود داره!');
+            return redirect('/dashboard/customer-orders')->with('error', 'مشکل در سرور وجود داره!');
         }
     }
 
@@ -129,6 +150,7 @@ class CustomerOrderController extends Controller
      */
     public function destroy($order_id)
     {
+        DB::table('customer_order_details')->where('customer_order_id', $order_id)->delete();
         $ord = DB::table('customer_orders')->where('co_id', $order_id)->delete();
 
         if ($ord) {

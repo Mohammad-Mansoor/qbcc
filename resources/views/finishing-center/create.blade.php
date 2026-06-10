@@ -828,6 +828,20 @@
                   </div>
                 </div>
               </div>
+              <div class="row" id="warehouse_transfer_section" style="margin-bottom: 20px;">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                  <div class="form-group fill">
+                    <label class="pull-right">انبار نهایی (Target Warehouse)</label>
+                    <select name="warehouse_id" id="warehouse_id" class="form-control select2">
+                      @foreach($warehouses as $wh)
+                        <option value="{{$wh->id}}" {{ $carpet->warehouse_id == $wh->id ? 'selected' : '' }}>
+                          {{$wh->name}}
+                        </option>
+                      @endforeach
+                    </select>
+                  </div>
+                </div>
+              </div>
               <div class="row">
                 <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                   <div class="form-group fill">
@@ -881,10 +895,23 @@
               });
           }
           
-          $('#currency_code').on('change', updateCurrencyUI);
+           $('#currency_code').on('change', updateCurrencyUI);
           
           // Trigger change on load to sync with active rate
           updateCurrencyUI();
+
+          function toggleWarehouseSection() {
+              $('#warehouse_transfer_section').show();
+              $('#warehouse_id').attr('required', 'required');
+          }
+          
+          $('input[name="finished"]').on('change', toggleWarehouseSection);
+          toggleWarehouseSection();
+
+          $('form').on('submit', function () {
+              var $btn = $(this).find('button[type="submit"]');
+              $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> لطفا صبر کنید...');
+          });
       });
       function valid() {
           var qaitan_checkbox = $('.qaitan_checkbox').prop('checked');

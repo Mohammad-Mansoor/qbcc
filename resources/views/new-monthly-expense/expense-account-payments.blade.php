@@ -252,12 +252,26 @@
                         <input type="date" name="date" class="form-control custom-input" value="{{ $expenseEdit ? $expenseEdit->date : date('Y-m-d') }}" required>
                     </div>
 
-                    <div class="col-lg-6 col-md-12 form-group mb-4">
+                    <div class="col-lg-9 col-md-12 form-group mb-4">
                         <label class="field-label">توضیحات (Description)</label>
                         <input type="text" name="description" class="form-control custom-input" value="{{ $expenseEdit ? $expenseEdit->description : '' }}" placeholder="شرح مصرف را وارد کنید..." required>
                     </div>
 
-                    <div class="col-lg-3 col-md-12 text-left mt-4">
+                    <div class="col-lg-4 col-md-6 form-group mb-4">
+                        <label class="field-label">حساب بدهکار سفارشی (Manual Debit Override)</label>
+                        <select name="override_debit_account_id" id="override_debit_account_id" class="form-control custom-input select2">
+                            <option value="">-- پیشفرض سیستم (Default) --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-4 col-md-6 form-group mb-4">
+                        <label class="field-label">حساب بستانکار سفارشی (Manual Credit Override)</label>
+                        <select name="override_credit_account_id" id="override_credit_account_id" class="form-control custom-input select2">
+                            <option value="">-- پیشفرض سیستم (Default) --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-4 col-md-12 text-left mt-4">
                         <button class="btn btn-primary btn-block rounded-pill py-3 font-weight-bold shadow-lg" type="submit" style="background:#4a148c; border:none;">
                             <i class="fa fa-save"></i> {{ $expenseEdit ? 'بروزرسانی سند' : 'ثبت نهایی' }}
                         </button>
@@ -298,7 +312,32 @@
                                     {{ $e->category }}
                                 </span>
                             </td>
-                            <td class="small">{{ $e->description }}</td>
+                            <td class="small">
+                                {{ $e->description }}
+                                @if(isset($e->debit_account_code) || isset($e->credit_account_code))
+                                    <div class="mt-1 small" style="color: #7b1fa2;">
+                                        @if(isset($e->debit_account_code))
+                                            <span class="badge badge-light border" style="color: #7b1fa2;"><i class="fa fa-long-arrow-left"></i> بدهکار: [{{ $e->debit_account_code }}] {{ $e->debit_account_name }}</span>
+                                        @endif
+                                        @if(isset($e->credit_account_code))
+                                            <span class="badge badge-light border" style="color: #7b1fa2;"><i class="fa fa-long-arrow-right"></i> بستانکار: [{{ $e->credit_account_code }}] {{ $e->credit_account_name }}</span>
+                                        @endif
+                                    </div>
+                                @elseif(isset($e->override_debit_account_id) || isset($e->override_credit_account_id))
+                                    @php
+                                        $dAcc = $e->override_debit_account_id ? \App\ChartOfAccount::find($e->override_debit_account_id) : null;
+                                        $cAcc = $e->override_credit_account_id ? \App\ChartOfAccount::find($e->override_credit_account_id) : null;
+                                    @endphp
+                                    <div class="mt-1 small" style="color: #7b1fa2;">
+                                        @if($dAcc)
+                                            <span class="badge badge-light border" style="color: #7b1fa2;"><i class="fa fa-long-arrow-left"></i> بدهکار: [{{ $dAcc->account_code }}] {{ $dAcc->account_name }}</span>
+                                        @endif
+                                        @if($cAcc)
+                                            <span class="badge badge-light border" style="color: #7b1fa2;"><i class="fa fa-long-arrow-right"></i> بستانکار: [{{ $cAcc->account_code }}] {{ $cAcc->account_name }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                            </td>
                             <td class="font-weight-bold text-purple">{{ $e->currency_code ?: ($e->currency == 2 ? 'USD' : 'AFN') }}</td>
                             <td class="font-weight-bold" style="direction: ltr;">{{ number_format($e->original_amount ?: $e->amount, 2) }}</td>
                             <td class="text-muted small" style="direction: ltr;">{{ number_format($e->exchange_rate ?: ($e->dollar_rate ?: 1), 6) }}</td>
@@ -341,6 +380,49 @@
 <script>
     $(document).ready(function () {
         $('.select2').select2({ width: '100%' });
+
+        const allowedAccounts = @json($allowedAccountsMap ?? []);
+        const categoryMappingKeys = {
+            'خوراکه': 'EXP_FOOD',
+            'متفرقه دفتر': 'EXP_MISC_OFFICE',
+            'کرایه و برق': 'EXPENSE_کرایه_و_برق',
+            'ترانسپورت': 'EXP_TRANS',
+            'برداشت': 'CASH_OUT',
+            'ترمیمات و تیل': 'EXP_FUEL',
+            'معاشات': 'PAYROLL_ACCRUAL',
+            'اجوره': 'EXP_WAGES'
+        };
+
+        function populateOverrideAccounts() {
+            const category = $('select[name="category"]').val();
+            const key = categoryMappingKeys[category];
+            const data = allowedAccounts[key] || { debit: [], credit: [] };
+
+            const selectedDebit = "{{ $expenseEdit ? $expenseEdit->override_debit_account_id : '' }}";
+            const selectedCredit = "{{ $expenseEdit ? $expenseEdit->override_credit_account_id : '' }}";
+
+            // Debit Select
+            const debitSelect = $('#override_debit_account_id');
+            debitSelect.empty().append('<option value="">-- پیشفرض سیستم (Default) --</option>');
+            data.debit.forEach(acc => {
+                const selected = acc.id == selectedDebit ? 'selected' : '';
+                debitSelect.append(`<option value="${acc.id}" ${selected}>[${acc.code}] ${acc.name}</option>`);
+            });
+
+            // Credit Select
+            const creditSelect = $('#override_credit_account_id');
+            creditSelect.empty().append('<option value="">-- پیشفرض سیستم (Default) --</option>');
+            data.credit.forEach(acc => {
+                const selected = acc.id == selectedCredit ? 'selected' : '';
+                creditSelect.append(`<option value="${acc.id}" ${selected}>[${acc.code}] ${acc.name}</option>`);
+            });
+
+            debitSelect.trigger('change.select2');
+            creditSelect.trigger('change.select2');
+        }
+
+        $('select[name="category"]').on('change', populateOverrideAccounts);
+        populateOverrideAccounts();
 
         function updateUsdPreview() {
             const amount = parseFloat($('#original_amount').val()) || 0;

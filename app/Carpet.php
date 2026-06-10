@@ -20,6 +20,9 @@ class Carpet extends Model
     public function check_book() {
         return $this->HasOne(CarpetCheckBook::class , 'carpet_id' , 'carpet_id');
     }
+    public function purchase_invoice() {
+        return $this->belongsTo(PurchaseInvoice::class , 'purchase_invoice_id' , 'id');
+    }
     public function repair() {
         return $this->hasMany(CarpetRepair::class , 'carpetId' , 'carpet_id');
     }
@@ -35,6 +38,9 @@ class Carpet extends Model
     }
     public function washing(){
         return $this->belongsTo(WashingTeam::class,'washing_id','id');
+    }
+    public function finishing_team(){
+        return $this->belongsTo(FinishingTeam::class,'finishing_id','id');
     }
 
     public function carpet_wash(){

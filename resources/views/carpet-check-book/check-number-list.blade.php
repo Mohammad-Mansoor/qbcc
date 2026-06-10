@@ -1,208 +1,398 @@
 @extends('dsh.master')
-
+@section('title', 'بل خرید قالین - ' . $invoice->invoice_number)
 @section('content')
-  
-  <div class="row" id="check-number-list">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-body">
-          
-          <div class="row">
-            <div class="col-sm-4">
-              <div class="sparkline8-graph text-muted">
-                
-                <div class="table-responsive">
-                  <table class="table table-sm table-hover text-right">
-                    <thead>
-                    
-                    </thead>
-                    <tbody>
-                    
-                    <tr>
-                      <td style="color: dodgerblue;"><b>PURCHASE DETAILS</b></td>
-                      <td style="color: dodgerblue;"><b></b></td>
-                    
-                    </tr>
-                    <tr>
-                      <td><b>{{$check_number}}</b></td>
-                      <td style="direction: ltr">Bill #:</td>
-                    </tr>
-                    <tr>
-                      <td><b>{{$check_date->date}}</b></td>
-                      <td style="direction: ltr">Bill DATE:</td>
-                    </tr>
-                    
-                    </tbody>
-                  </table>
-                </div>
-              
-              </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6"></div>
-            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-              <h4 style="direction: ltr">TO : {{$agent->user->name}}</h4>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 hideOnPrint">
-              <form action="/dashboard/check-book/search-check-number" method="post">
-                @csrf
-                <input type="hidden" name="agent_id" value="{{$agent->agent_id}}">
-                
-                <label for="">چیک نمبر ها</label>
-                <select name="check_number" id="" class="form-control" onchange="this.form.submit()">
-                  @foreach($check_numbers as $check)
-                    <option {{($check->check_number == $check_number ? 'selected' : '')}} value="{{$check->check_number}}">{{$check->check_number}}</option>
-                  @endforeach
-                </select>
-              
-              </form>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 hideOnPrint">
-              <form action="/dashboard/check-book/search-check-number" method="POST" id="dateSearch">
-                @csrf
-                <input type="hidden" name="agent_id" value="{{$agent->agent_id}}">
-                <input type="hidden" name="check_number" value="{{$check_number}}">
-                <div class="row">
-                  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-21">
-                    <span class="date-label">جستجو نمبر قالین</span><input type="text"
-                                                                           value="{{ Request::old('search') }}"
-                                                                           name="search" class="form-control"
-                                                                           placeholder="چستجو نمبر قالین"
-                                                                           required>
-                  </div>
-                </div>
-              </form>
-            
-            </div>
-            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 hideOnPrint">
-              
-              <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-                <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('check-number-list')"><i
-                          class="fa fa-print"></i> چاپ
-                </div>
-              
-              </div>
-            
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-sm-12">
-              
-              <div class="sparkline8-graph text-muted">
-                
-                <div class="table-responsive">
-                  <hr style="height: 3px;width: 100%;color: #0b97c4;background-color: #0b97c4">
-                  <table class="table table-sm table-hover text-right" style="direction: ltr;" id="check_number_list">
-                    <thead>
-                    
-                    <tr style="direction:rtl">
-                      
-                      <td><b>ITEM#</b></td>
-                      <td><b>ITEM DESCRIPTION</b></td>
-                      <td><b>HEIGHT</b></td>
-                      <td><b>WIDTH</b></td>
-                      <td><b>AREA</b></td>
-                      <td><b>UNIT PRICE</b></td>
-                      <td><b>TOTAL</b></td>
-                      <td><b>EXPEN</b></td>
-                      <td><b>TOTAL AMOUNT</b></td>
-                    
-                    </tr>
-                    </thead>
-                    
-                    <tbody>
-                    @php($grand_total = 0)
-                    @forelse ($checkbooks as $checkbook)
-                      <tr style="direction:ltr;">
-                        <td>{{$checkbook->carpet->carpet_no}}</td>
-                        <td>{{$checkbook->carpet->type->carpet_type}}</td>
-                        <td style="direction: ltr">{{$checkbook->height}} m</td>
-                        <td style="direction: ltr">{{$checkbook->width}} m</td>
-                        <td style="direction: ltr">{{$checkbook->area}} m <sup>2</sup></td>
-                        <td style="direction: ltr">{{$checkbook->carpet->price}} $</td>
-                        <td style="direction: ltr">{{$checkbook->carpet->price * $checkbook->carpet->area}}
-                          $
-                        </td>
-                        <td>{{$checkbook->kachaee_dollar_amount }}</td>
-                        <td><span
-                                  style="display: none">{{$grand_total += ($checkbook->carpet->price * $checkbook->carpet->area) - $checkbook->kachaee_dollar_amount }}}</span> {{($checkbook->carpet->price * $checkbook->carpet->area) - $checkbook->kachaee_dollar_amount }}
-                          $
-                        </td>
-                      </tr>
-                    @empty
-                      <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>
-                    @endforelse
-                    
-                    
-                    </tbody>
-                  </table>
-                  <hr style="height: 3px;width: 100%;color: #0b97c4;background-color: #0b97c4">
-                
-                </div>
-              
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            
-            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-4">
-              <table style="direction: ltr" class="table table-sm">
-                <tbody>
-                <tr style="direction: ltr">
-                  <td style="font-size: 12px;color: #0b97c4">QUANTITY</td>
-                  <td>Pcs &nbsp;{{$checkbooks->count()}}</td>
-                </tr>
-                <tr style="direction: ltr">
-                  <td style="font-size: 12px;color: #0b97c4">TOTAL</td>
-                  <td> &nbsp;{{$checkbooks->sum('area')}} m <sup>2</sup></td>
-                </tr>
-                
-                <tr style="direction: ltr">
-                  <td style="font-size: 12px;color: #0b97c4">GRAND TOTAL</td>
-                  <td>$ &nbsp;{{$grand_total}}</td>
-                </tr>
-                
-                </tbody>
-              </table>
-            </div>
-            <div class="col-lg-9 col-md-9 col-sm-9 col-xs-8">
-            
-            </div>
-          </div>
+<style>
+    :root {
+        --qbcc-primary: #0f172a;
+        --qbcc-secondary: #334155;
+        --qbcc-accent: #2563eb;
+        --qbcc-border: #cbd5e1;
+        --radius-lg: 16px;
+        --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+
+    .invoice-card {
+        background: #ffffff;
+        border: 1px solid var(--qbcc-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        padding: 40px;
+        margin-bottom: 30px;
+        direction: rtl;
+        font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+    }
+
+    .invoice-header {
+        border-bottom: 2px solid var(--qbcc-primary);
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+
+    .company-logo-section {
+        text-align: right;
+    }
+
+    .company-name {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--qbcc-primary);
+        margin-bottom: 5px;
+    }
+
+    .company-details {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .invoice-title-section {
+        text-align: left;
+    }
+
+    .invoice-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--qbcc-accent);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    .invoice-meta-table {
+        font-size: 13px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .invoice-meta-table td {
+        padding: 4px 8px;
+    }
+
+    .invoice-meta-table td.label {
+        font-weight: 700;
+        color: #64748b;
+        text-align: left;
+        padding-left: 15px;
+    }
+
+    .invoice-meta-table td.value {
+        font-weight: 700;
+        color: var(--qbcc-primary);
+        text-align: right;
+    }
+
+    .billing-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .billing-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--qbcc-primary);
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+
+    .billing-details {
+        font-size: 13px;
+        color: var(--qbcc-secondary);
+        line-height: 1.8;
+    }
+
+    .table-invoice {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+
+    .table-invoice th {
+        background: var(--qbcc-primary);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 12px 10px;
+        text-align: center;
+        border: 1px solid var(--qbcc-primary);
+    }
+
+    .table-invoice td {
+        padding: 12px 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 13px;
+        text-align: center;
+        color: var(--qbcc-secondary);
+    }
+
+    .table-invoice tr:nth-child(even) {
+        background: #f8fafc;
+    }
+
+    .totals-section {
+        margin-bottom: 40px;
+    }
+
+    .totals-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .totals-table td {
+        padding: 10px 15px;
+        font-size: 14px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .totals-table tr.grand-total td {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--qbcc-accent);
+        border-top: 2px solid var(--qbcc-primary);
+        border-bottom: 2px solid var(--qbcc-primary);
+        background: #eff6ff;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-block;
+    }
+
+    .badge-open {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .badge-closed {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .signature-row {
+        margin-top: 60px;
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 30px;
+    }
+
+    .signature-box {
+        text-align: center;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .signature-line {
+        border-top: 1px solid #94a3b8;
+        width: 80%;
+        margin: 40px auto 10px auto;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #print-area, #print-area * {
+            visibility: visible;
+        }
+
+        #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            border: none;
+            box-shadow: none;
+            direction: rtl;
+        }
+
+        .hide-on-print {
+            display: none !important;
+        }
+
+        .table-invoice th {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .totals-table tr.grand-total td {
+            background-color: #eff6ff !important;
+            color: #2563eb !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+
+<div class="row hide-on-print mb-4">
+    <div class="col-sm-12 d-flex justify-content-between align-items-center bg-white p-3 rounded-lg shadow-sm">
+        <div>
+            <h4 class="font-weight-bold mb-1">مشاهده و چاپ بل خرید</h4>
+            <span class="text-muted small">مدیریت فاکتورهای رسمی و چاپ استاندارد</span>
         </div>
-      </div>
+        <div class="d-flex align-items-center gap-2">
+            @if($invoice->status == 'open')
+                <form action="/dashboard/check-book/{{ $invoice->id }}/close" method="post" class="d-inline ml-2" onsubmit="return confirm('آیا مطمئن هستید؟');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger rounded-lg px-4 shadow-sm">
+                        <i class="feather icon-lock mr-1"></i> بستن بل خرید
+                    </button>
+                </form>
+            @endif
+            <button class="btn btn-primary rounded-lg shadow px-4" onclick="window.print()">
+                <i class="feather icon-printer mr-1"></i> چاپ بل خرید (Print)
+            </button>
+        </div>
     </div>
-  </div>
+</div>
 
+<div class="row">
+    <div class="col-lg-12">
+        <div class="invoice-card" id="print-area">
+            <!-- INVOICE HEADER -->
+            <div class="invoice-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6 col-sm-6 company-logo-section">
+                        <div class="company-name">شرکت تولیدی قالین QBCC</div>
+                        <div class="company-details">
+                            آدرس: کابل، افغانستان<br>
+                            ایمیل: info@qbcc.com | تلفن: +93 (0) 700 000 000<br>
+                            سیستم مدیریت مالی Forensic ERP
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-6 invoice-title-section">
+                        <div class="invoice-title">بل خرید قالین</div>
+                        <table class="invoice-meta-table">
+                            <tr>
+                                <td class="value">{{ $invoice->invoice_number }}</td>
+                                <td class="label">نمبر بل خرید:</td>
+                            </tr>
+                            <tr>
+                                <td class="value">{{ $invoice->date }}</td>
+                                <td class="label">تاریخ صدور:</td>
+                            </tr>
+                            <tr>
+                                <td class="value">
+                                    <span class="status-badge {{ $invoice->status == 'open' ? 'badge-open' : 'badge-closed' }}">
+                                        {{ $invoice->status == 'open' ? 'باز (Open)' : 'بسته (Closed)' }}
+                                    </span>
+                                </td>
+                                <td class="label">وضعیت بل خرید:</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-@endsection
+            <!-- SUPPLIER INFO -->
+            <div class="billing-section">
+                <div class="row">
+                    <div class="col-md-6 text-right">
+                        <div class="billing-title"><i class="feather icon-user mr-1"></i> مشخصات فروشنده (نماینده)</div>
+                        <div class="billing-details">
+                            <strong>نام نماینده:</strong> {{ $invoice->agent->user->name ?? 'N/A' }}<br>
+                            <strong>ولد:</strong> {{ $invoice->agent->agent_father_name ?? 'N/A' }}<br>
+                            <strong>کد حساب نماینده:</strong> {{ $invoice->agent->account_no ?? 'N/A' }}<br>
+                            <strong>آدرس:</strong> {{ $invoice->agent->agent_address ?? 'N/A' }}
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <div class="billing-title"><i class="feather icon-home mr-1"></i> مشخصات تحویل‌گیرنده</div>
+                        <div class="billing-details">
+                            <strong>نام سازمان:</strong> دفتر مرکزی QBCC<br>
+                            <strong>بخش تحویل‌گیرنده:</strong> مدیریت انبار و گدام مرکزی قالین<br>
+                            <strong>آدرس دفتر:</strong> چهارراهی صدارت، کابل، افغانستان<br>
+                            <strong>سیستم مالی:</strong> حسابداری دوبانده (Double Entry Ledger)
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-@section('scripts')
-  
-  <script>
-      $(document).ready(function () {
-          $("#check_number_list").tableExport({
-              headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
-              footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)
-              formats: ["xlsx", "txt"],              // (String[]), filetype(s) for the export, (default: ['xlsx', 'csv', 'txt'])
-              filename: "id",                     // (id, String), filename for the downloaded file, (default: 'id')
-              bootstrap: true,                   // (Boolean), style buttons using bootstrap, (default: true)
-              exportButtons: true,                // (Boolean), automatically generate the built-in export buttons for each of the specified formats (default: true)
-              position: "bottom",                 // (top, bottom), position of the caption element relative to table, (default: 'bottom')
-              ignoreRows: null,                   // (Number, Number[]), row indices to exclude from the exported file(s) (default: null)
-              ignoreCols: null,                   // (Number, Number[]), column indices to exclude from the exported file(s) (default: null)
-              trimWhitespace: true,               // (Boolean), remove all leading/trailing newlines, spaces, and tabs from cell text in the exported file(s) (default: false)
-              RTL: true,                         // (Boolean), set direction of the worksheet to right-to-left (default: false)
-              sheetname: "id",
+            <!-- CARPETS LIST TABLE -->
+            <table class="table-invoice">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">ردیف</th>
+                        <th style="width: 15%">نمبر قالین (ID)</th>
+                        <th style="width: 15%">نوعیت قالین</th>
+                        <th style="width: 15%">کیفیت</th>
+                        <th style="width: 10%">طول (Height)</th>
+                        <th style="width: 10%">عرض (Width)</th>
+                        <th style="width: 10%">مساحت (Area)</th>
+                        <th style="width: 10%">قیمت فی متر (USD)</th>
+                        <th style="width: 10%">مجموع قیمت (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($carpets as $index => $carpet)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td class="font-weight-bold text-dark">{{ $carpet->carpet_no }}</td>
+                            <td>{{ $carpet->type->carpet_type ?? 'N/A' }}</td>
+                            <td>{{ $carpet->quality->quality ?? 'N/A' }}</td>
+                            <td>{{ number_format($carpet->height, 2) }} m</td>
+                            <td>{{ number_format($carpet->width, 2) }} m</td>
+                            <td>{{ number_format($carpet->area, 2) }} m²</td>
+                            <td>${{ number_format($carpet->price, 2) }}</td>
+                            <td class="font-weight-bold text-dark">${{ number_format($carpet->total_price, 2) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">هیچ قالینی به این بل خرید اضافه نشده است.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
 
-          });
-          var $buttons = $('#check_number_list').find('caption').children().detach();
-          // Append the buttons to an element of your choosing
-          $buttons.appendTo('#exportButton');
+            <!-- AGGREGATE TOTALS -->
+            <div class="row totals-section">
+                <div class="col-md-7"></div>
+                <div class="col-md-5">
+                    <table class="totals-table text-right">
+                        <tr>
+                            <td class="text-left font-weight-bold text-dark">{{ $carpets->count() }} تخته</td>
+                            <td class="font-weight-bold text-muted">مجموع تعداد (Quantity):</td>
+                        </tr>
+                        <tr>
+                            <td class="text-left font-weight-bold text-dark">{{ number_format($carpets->sum('area'), 2) }} m²</td>
+                            <td class="font-weight-bold text-muted">مجموع مساحت (Total Area):</td>
+                        </tr>
+                        <tr class="grand-total">
+                            <td class="text-left font-weight-bold">${{ number_format($carpets->sum('total_price'), 2) }}</td>
+                            <td class="font-weight-bold">مبلغ کل قابل تادیه (Grand Total USD):</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
 
-      });
-  
-  
-  </script>
+            <!-- SIGNATURE SECTION -->
+            <div class="row signature-row">
+                <div class="col-md-4 col-sm-4 signature-box">
+                    <div>امضا و تایید تحویل‌دهنده (فروشنده)</div>
+                    <div class="signature-line"></div>
+                </div>
+                <div class="col-md-4 col-sm-4 signature-box">
+                    <div>امضا و تایید مدیر گدام (رسیور)</div>
+                    <div class="signature-line"></div>
+                </div>
+                <div class="col-md-4 col-sm-4 signature-box">
+                    <div>امضای نهایی مدیریت مالی / خزانه</div>
+                    <div class="signature-line"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

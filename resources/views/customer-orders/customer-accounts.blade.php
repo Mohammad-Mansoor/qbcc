@@ -152,7 +152,12 @@
                             @csrf
                             <div class="form-group mb-4">
                                 <label class="field-label">نام کامل مشتری (Customer Name)</label>
-                                <input type="text" name="customer_name" class="form-control custom-input text-right" placeholder="نام مشتری یا شرکت..." required>
+                                <select name="customer_name" class="form-control custom-input select2 text-right" required>
+                                    <option value="" disabled selected>انتخاب مشتری...</option>
+                                    @foreach($global_customers as $c)
+                                        <option value="{{ $c->name }}">{{ $c->name }}</option>
+                                    @endforeach
+                                </select>
                                 @error('customer_name') 
                                     <p class="text-danger small mt-1">{{trans('message.'.$message)}}</p>
                                 @enderror
@@ -177,7 +182,11 @@
                             @csrf
                             <div class="form-group mb-4">
                                 <label class="field-label">نام کامل مشتری (Customer Name)</label>
-                                <input type="text" name="customer_name" value="{{$accountEdit->customer_name}}" class="form-control custom-input text-right" required>
+                                <select name="customer_name" class="form-control custom-input select2 text-right" required>
+                                    @foreach($global_customers as $c)
+                                        <option value="{{ $c->name }}" {{ $accountEdit->customer_name == $c->name ? 'selected' : '' }}>{{ $c->name }}</option>
+                                    @endforeach
+                                </select>
                                 @error('customer_name') 
                                     <p class="text-danger small mt-1">{{trans('message.'.$message)}}</p>
                                 @enderror

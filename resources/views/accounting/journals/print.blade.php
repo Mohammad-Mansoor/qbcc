@@ -163,10 +163,16 @@
     <!-- Metadata Info -->
     <table class="info-table">
         <tr>
-            <td style="width: 15%;"><strong>نمبر سند:</strong></td>
-            <td style="width: 35%;">{{ $transaction->reference }}</td>
+            <td style="width: 15%;"><strong>شناسه سند (GL ID):</strong></td>
+            <td style="width: 35%;">{{ $transaction->journal_id ?? $transaction->id }}</td>
+            <td style="width: 15%;"><strong>نمبر سند (Ref):</strong></td>
+            <td style="width: 35%;">{{ $transaction->reference ?? '-' }}</td>
+        </tr>
+        <tr>
             <td style="width: 15%;"><strong>تاریخ:</strong></td>
             <td style="width: 35%;">{{ $transaction->date }}</td>
+            <td style="width: 15%;"></td>
+            <td style="width: 35%;"></td>
         </tr>
     </table>
 

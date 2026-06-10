@@ -384,261 +384,6 @@
 
         <div class="card-body p-0" id="carpet_stock_print">
   
-          <!-- SALES REGISTER MODAL -->
-          <div class="modal fade" id="sale_modal" role="dialog" aria-labelledby="myLargeModalLabel" aria-modal="true">
-            <div class="modal-dialog modal-lg">
-              <div class="modal-content shadow-lg border-0">
-                <div class="modal-header bg-primary text-white">
-                  <h5 class="modal-title h4 text-white" id="roomEditModalLabel">ثبت فروش قالین</h5>
-                  <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
-                </div>
-                <form action="/dashboard/sales" method="post" id="sale_form">
-                  <div class="modal-body">
-                    @csrf
-                    <div class="row">
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class=""> نمبر انوایس</label>
-                          <select name="invoice_id" id="invoice_id" required class="form-control select2-modal">
-                            <option value="">~~~</option>
-                            @foreach($invoices as $invoice)
-                              <option {{ (Request::old('invoice_id') == $invoice->id ? 'selected' : '') }} value="{{$invoice->id}}"
-                                      customer_name="{{$invoice->customer->customer_code}}"
-                                      customer_company="{{$invoice->customer->company_name}}"
-                                      customer_address="{{$invoice->customer->company_address}}"
-                              >{{$invoice->invoice_no}}</option>
-                            @endforeach
-                          </select>
-                          <small class="text-danger">@error('invoice_id') {{ __('message.'.$message) }}@enderror</small>
-                        </div>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class=""> پکینگ نمبر</label>
-                          <select name="packing_id" id="packing_id" required class="form-control select2-modal">
-                            <option value="">~~~</option>
-                            @foreach($packing_list as $packing)
-                              <option {{ (Request::old('packing_id') == $packing->id ? 'selected' : '') }} value="{{$packing->id}}">{{$packing->packing_no}}</option>
-                            @endforeach
-                          </select>
-                          <small class="text-danger">@error('packing_id') {{ __('message.'.$message) }}@enderror</small>
-                        </div>
-                      </div>
-                      
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class=""> پکیج نمبر</label>
-                          <select name="package_id" id="package_id" required class="form-control select2-modal">
-                            <option value=""></option>
-                          </select>
-                          <small class="text-danger">@error('package_id') {{ __('message.'.$message) }}@enderror</small>
-                        </div>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>نام مشتری</label>
-                          <input type="text" name="customer_name" id="customer_name" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="login2 pull-right pull-right-pro">نام کمپنی</label>
-                          <input type="text" name="company_name" id="company_name" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-                      <div class="col-lg-4 col-md-4 col-sm-4 col-12 location_value_div">
-                        <div class="form-group fill">
-                          <label>ادرس کمپنی</label>
-                          <input type="text" name="company_address" id="company_address" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-  
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>نمبر قالین</label>
-                          <input type="text" name="carpet_no" id="carpet_no" class="form-control bg-light" readonly>
-                          <input type="hidden" name="carpet_id" id="carpet_id">
-                        </div>
-                      </div>
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>نوعیت قالین</label>
-                          <input type="text" name="carpet_type" id="carpet_type" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>کوالتی</label>
-                          <input type="text" name="carpet_quality" id="carpet_quality" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-6">
-                        <div class="form-group fill">
-                          <label>طول قالین</label>
-                          <input type="text" name="carpet_height" id="carpet_height" class="form-control">
-                        </div>
-                      </div>
-              
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>عرض قالین</label>
-                          <input type="text" name="carpet_width" id="carpet_width" class="form-control">
-                        </div>
-                      </div>
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label>سایز قالین</label>
-                          <input type="text" name="carpet_area" readonly id="carpet_area" class="form-control bg-light">
-                        </div>
-                      </div>
-              
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (USD)</label>
-                          <input type="text" name="price_per_meter" id="price_per_meter" class="form-control bg-light" readonly>
-                        </div>
-                      </div>
-              
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-muted">قیمت مجموع تمام شد (USD)</label>
-                          <input type="text" name="total_price_cost" id="total_price_cost" class="form-control bg-light font-weight-bold text-danger" readonly>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-success">اسعار فروش (Currency)</label>
-                          <select name="currency_id" id="sale_currency_id" class="form-control font-weight-bold border-success" style="border: 2px solid #28a745;" required>
-                            @foreach($currencies as $curr)
-                              <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" data-code="{{ $curr->code }}" {{ $curr->code == 'USD' ? 'selected' : '' }}>
-                                {{ $curr->code }} ({{ $curr->symbol }}) - Rate: {{ $curr->exchange_rate }}
-                              </option>
-                            @endforeach
-                          </select>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-success">نرخ تبادله (Exchange Rate)</label>
-                          <input type="number" step="any" name="exchange_rate" id="sale_exchange_rate" class="form-control border-success font-weight-bold" style="border: 2px solid #28a745;" value="1.0" required>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-success">قیمت فروش فی متر (به اسعار انتخابی)</label>
-                          <input type="text" required name="sale_cost_per_meter" id="sale_cost_per_meter" class="form-control border-primary font-weight-bold">
-                          <small class="text-danger">@error('sale_cost_per_meter') {{ __('message.'.$message) }} @enderror</small>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-primary">قیمت مجموع فروش (به اسعار انتخابی)</label>
-                          <input type="text" name="sale_cost_total" id="sale_cost_total" class="form-control bg-light font-weight-bold text-primary" readonly>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-danger">مجموع فروش به دالر (Total Sale USD)</label>
-                          <input type="text" name="sale_cost_total_usd" id="sale_cost_total_usd" class="form-control bg-light font-weight-bold text-danger" readonly>
-                          <div id="margin-warning" class="text-danger font-weight-bold mt-1" style="display:none; font-size: 0.82rem;">
-                            <i class="fa fa-exclamation-triangle"></i> هشدار: قیمت فروش کمتر از قیمت تمام‌شد است! (Negative Margin)
-                          </div>
-                        </div>
-                      </div>
- 
-                      <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
-                        <div class="form-group fill">
-                          <label class="font-weight-bold text-dark">کود مشتری</label>
-                          <input type="text" name="customer_code" required="" id="customer_code" class="form-control border-primary">
-                        </div>
-                      </div>
-            
-                    </div>
- 
-                    <!-- ACCOUNT OVERRIDES -->
-                    <div class="row mt-4" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e9ecef;">
-                        <div class="col-lg-12 mb-3">
-                            <h6 class="font-weight-bold text-dark border-bottom pb-2">
-                                <i class="fa fa-university text-primary mr-2"></i> تنظیمات حسابی (Accounting Overrides)
-                            </h6>
-                            <p class="small text-muted mb-0">در این بخش می‌توانید حساب‌های پیش‌فرض را برای این فروش تغییر دهید.</p>
-                        </div>
-                        
-                        <!-- Revenue Mapping Overrides -->
-                        <div class="col-lg-6 col-md-6 col-sm-12">
-                            <div class="form-group fill">
-                                <label class="text-info font-weight-bold small">حساب دریافتنی/نقد (Revenue Debit)</label>
-                                <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2-modal">
-                                    @foreach($allowedRevenueDebit as $acc)
-                                        <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->debit_account_id == $acc->id) ? 'selected' : '' }}>
-                                            {{ $acc->account_code }} - {{ $acc->account_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-12">
-                            <div class="form-group fill">
-                                <label class="text-info font-weight-bold small">حساب فروش/عاید (Revenue Credit)</label>
-                                <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2-modal">
-                                    @foreach($allowedRevenueCredit as $acc)
-                                        <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->credit_account_id == $acc->id) ? 'selected' : '' }}>
-                                            {{ $acc->account_code }} - {{ $acc->account_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
- 
-                        <!-- COGS Mapping Overrides (Optional/Advanced) -->
-                        <div class="col-lg-6 col-md-6 col-sm-12 mt-2">
-                            <div class="form-group fill">
-                                <label class="text-warning font-weight-bold small">حساب هزینه تمام شد (COGS Debit)</label>
-                                <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2-modal">
-                                    @foreach($allowedCogsDebit as $acc)
-                                        <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->debit_account_id == $acc->id) ? 'selected' : '' }}>
-                                            {{ $acc->account_code }} - {{ $acc->account_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-12 mt-2">
-                            <div class="form-group fill">
-                                <label class="text-warning font-weight-bold small">حساب موجودی گدام (Inventory Credit)</label>
-                                <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2-modal">
-                                    @foreach($allowedCogsCredit as $acc)
-                                        <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->credit_account_id == $acc->id) ? 'selected' : '' }}>
-                                            {{ $acc->account_code }} - {{ $acc->account_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
- 
-                        <div class="col-lg-12">
-                            <div class="alert alert-warning border-0 bg-soft-warning mt-3 py-2" style="font-size: 0.85rem;">
-                                <i class="fa fa-exclamation-triangle"></i> <strong>توجه:</strong> هرگونه تغییر در این بخش مستقیماً بر بیلانس مالی و گزارشات عایدات تاثیر می‌گذارد.
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-                  <div class="modal-footer bg-light">
-                    <button type="submit" class="btn btn-primary shadow-sm" id="sale_submit_btn">
-                      <i class="fa fa-check-circle mr-1"></i> تایید و ثبت فروش
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">انصراف</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-          
           <div class="static-table-list table-responsive">
             <table class="table modern-table text-center" id="dataTable">
               <thead>
@@ -726,6 +471,241 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SALES REGISTER MODAL -->
+<div class="modal fade" id="sale_modal" role="dialog" aria-labelledby="myLargeModalLabel" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title h4 text-white" id="roomEditModalLabel">ثبت فروش قالین</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+      </div>
+      <form action="/dashboard/sales" method="post" id="sale_form">
+        <div class="modal-body">
+          @csrf
+          <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class=""> نمبر انوایس</label>
+                <select name="invoice_id" id="invoice_id" required class="form-control select2-modal">
+                  <option value="">~~~</option>
+                  @foreach($invoices as $invoice)
+                    <option {{ (Request::old('invoice_id') == $invoice->id ? 'selected' : '') }} value="{{$invoice->id}}"
+                            customer_name="{{$invoice->customer->name}}"
+                            customer_code="{{$invoice->customer->customer_code}}"
+                            customer_company="{{$invoice->customer->company_name}}"
+                            customer_address="{{$invoice->customer->company_address}}"
+                    >{{$invoice->invoice_no}}</option>
+                  @endforeach
+                </select>
+                <small class="text-danger">@error('invoice_id') {{ __('message.'.$message) }}@enderror</small>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>نام مشتری</label>
+                <input type="text" name="customer_name" id="customer_name" class="form-control bg-light" readonly>
+              </div>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>کود مشتری</label>
+                <input type="text" name="customer_code" id="customer_code" class="form-control bg-light" readonly>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+              <div class="form-group fill">
+                <label class="login2 pull-right pull-right-pro">نام کمپنی</label>
+                <input type="text" name="company_name" id="company_name" class="form-control bg-light" readonly>
+              </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-12 location_value_div">
+              <div class="form-group fill">
+                <label>ادرس کمپنی</label>
+                <input type="text" name="company_address" id="company_address" class="form-control bg-light" readonly>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>نمبر قالین</label>
+                <input type="text" name="carpet_no" id="carpet_no" class="form-control bg-light" readonly>
+                <input type="hidden" name="carpet_id" id="carpet_id">
+              </div>
+            </div>
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>نوعیت قالین</label>
+                <input type="text" name="carpet_type" id="carpet_type" class="form-control bg-light" readonly>
+              </div>
+            </div>
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>کوالتی</label>
+                <input type="text" name="carpet_quality" id="carpet_quality" class="form-control bg-light" readonly>
+              </div>
+            </div>
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-6">
+              <div class="form-group fill">
+                <label>طول قالین</label>
+                <input type="text" name="carpet_height" id="carpet_height" class="form-control">
+              </div>
+            </div>
+    
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>عرض قالین</label>
+                <input type="text" name="carpet_width" id="carpet_width" class="form-control">
+              </div>
+            </div>
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label>سایز قالین</label>
+                <input type="text" name="carpet_area" readonly id="carpet_area" class="form-control bg-light">
+              </div>
+            </div>
+    
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (USD)</label>
+                <input type="text" name="price_per_meter" id="price_per_meter" class="form-control bg-light" readonly>
+              </div>
+            </div>
+    
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-muted">قیمت مجموع تمام شد (USD)</label>
+                <input type="text" name="total_price_cost" id="total_price_cost" class="form-control bg-light font-weight-bold text-danger" readonly>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-success">اسعار فروش (Currency)</label>
+                <select name="currency_id" id="sale_currency_id" class="form-control font-weight-bold border-success" style="border: 2px solid #28a745;" required>
+                  @foreach($currencies as $curr)
+                    <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" data-code="{{ $curr->code }}" {{ $curr->code == 'USD' ? 'selected' : '' }}>
+                      {{ $curr->code }} ({{ $curr->symbol }}) - Rate: {{ $curr->exchange_rate }}
+                    </option>
+                  @endforeach
+                </select>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-success">نرخ تبادله (Exchange Rate)</label>
+                <input type="number" step="any" name="exchange_rate" id="sale_exchange_rate" class="form-control border-success font-weight-bold" style="border: 2px solid #28a745;" value="1.0" required>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-success">قیمت فروش فی متر (به اسعار انتخابی)</label>
+                <input type="text" required name="sale_cost_per_meter" id="sale_cost_per_meter" class="form-control border-primary font-weight-bold">
+                <small class="text-danger">@error('sale_cost_per_meter') {{ __('message.'.$message) }} @enderror</small>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-primary">قیمت مجموع فروش (به اسعار انتخابی)</label>
+                <input type="text" name="sale_cost_total" id="sale_cost_total" class="form-control bg-light font-weight-bold text-primary" readonly>
+              </div>
+            </div>
+
+            <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+              <div class="form-group fill">
+                <label class="font-weight-bold text-danger">مجموع فروش به دالر (Total Sale USD)</label>
+                <input type="text" name="sale_cost_total_usd" id="sale_cost_total_usd" class="form-control bg-light font-weight-bold text-danger" readonly>
+                <div id="margin-warning" class="text-danger font-weight-bold mt-1" style="display:none; font-size: 0.82rem;">
+                  <i class="fa fa-exclamation-triangle"></i> هشدار: قیمت فروش کمتر از قیمت تمام‌شد است! (Negative Margin)
+                </div>
+              </div>
+            </div>
+
+
+  
+          </div>
+
+          <!-- ACCOUNT OVERRIDES -->
+          <div class="row mt-4" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e9ecef;">
+              <div class="col-lg-12 mb-3">
+                  <h6 class="font-weight-bold text-dark border-bottom pb-2">
+                      <i class="fa fa-university text-primary mr-2"></i> تنظیمات حسابی (Accounting Overrides)
+                  </h6>
+                  <p class="small text-muted mb-0">در این بخش می‌توانید حساب‌های پیش‌فرض را برای این فروش تغییر دهید.</p>
+              </div>
+              
+              <!-- Revenue Mapping Overrides -->
+              <div class="col-lg-6 col-md-6 col-sm-12">
+                  <div class="form-group fill">
+                      <label class="text-info font-weight-bold small">حساب دریافتنی/نقد (Revenue Debit)</label>
+                      <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2-modal">
+                          @foreach($allowedRevenueDebit as $acc)
+                              <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                              </option>
+                          @endforeach
+                      </select>
+                  </div>
+              </div>
+              <div class="col-lg-6 col-md-6 col-sm-12">
+                  <div class="form-group fill">
+                      <label class="text-info font-weight-bold small">حساب فروش/عاید (Revenue Credit)</label>
+                      <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2-modal">
+                          @foreach($allowedRevenueCredit as $acc)
+                              <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                              </option>
+                          @endforeach
+                      </select>
+                  </div>
+              </div>
+
+              <!-- COGS Mapping Overrides (Optional/Advanced) -->
+              <div class="col-lg-6 col-md-6 col-sm-12 mt-2">
+                  <div class="form-group fill">
+                      <label class="text-warning font-weight-bold small">حساب هزینه تمام شد (COGS Debit)</label>
+                      <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2-modal">
+                          @foreach($allowedCogsDebit as $acc)
+                              <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                              </option>
+                          @endforeach
+                      </select>
+                  </div>
+              </div>
+              <div class="col-lg-6 col-md-6 col-sm-12 mt-2">
+                  <div class="form-group fill">
+                      <label class="text-warning font-weight-bold small">حساب موجودی گدام (Inventory Credit)</label>
+                      <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2-modal">
+                          @foreach($allowedCogsCredit as $acc)
+                              <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                                  {{ $acc->account_code }} - {{ $acc->account_name }}
+                              </option>
+                          @endforeach
+                      </select>
+                  </div>
+              </div>
+
+              <div class="col-lg-12">
+                  <div class="alert alert-warning border-0 bg-soft-warning mt-3 py-2" style="font-size: 0.85rem;">
+                      <i class="fa fa-exclamation-triangle"></i> <strong>توجه:</strong> هرگونه تغییر در این بخش مستقیماً بر بیلانس مالی و گزارشات عایدات تاثیر می‌گذارد.
+                  </div>
+              </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="submit" class="btn btn-primary shadow-sm" id="sale_submit_btn">
+            <i class="fa fa-check-circle mr-1"></i> تایید و ثبت فروش
+          </button>
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">انصراف</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -843,22 +823,14 @@
               var customer_name = $('#invoice_id option:selected').attr('customer_name');
               $('#customer_name').val(customer_name);
 
+              var customer_code = $('#invoice_id option:selected').attr('customer_code');
+              $('#customer_code').val(customer_code);
+
               var customer_company = $('#invoice_id option:selected').attr('customer_company');
               $('#company_name').val(customer_company);
 
               var company_address = $('#invoice_id option:selected').attr('customer_address');
               $('#company_address').val(company_address);
-          });
-      });
-  </script>
-  <script type="text/javascript">
-      $("#packing_id").change(function () {
-          $.ajax({
-               url: "{{ route('dashboard.package_list.get_by_packing') }}?packing_id=" + $(this).val(),
-              method: 'GET',
-              success: function (data) {
-                  $('#package_id').html(data.html);
-              }
           });
       });
   </script>
