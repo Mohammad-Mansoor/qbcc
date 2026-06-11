@@ -25,22 +25,32 @@ class WashingTeam extends Model
 
     public function getNormalizedBalanceAttribute()
     {
-        $receipts = $this->payment()->where('type', 'رسید')->sum('base_amount');
-        $payouts = $this->payment()->where('type', 'گرفت')->sum('base_amount');
-        return $receipts - $payouts;
+        return \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $this->id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
     }
 
     public function getUsdBalanceAttribute()
     {
-        $receipts = $this->payment()->where('type', 'رسید')->sum('amount');
-        $payouts = $this->payment()->where('type', 'گرفت')->sum('amount');
-        return $receipts - $payouts;
+        return \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $this->id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
     }
 
     public function getAfBalanceAttribute()
     {
-        $receipts = $this->payment()->where('type', 'رسید')->sum('amount_af');
-        $payouts = $this->payment()->where('type', 'گرفت')->sum('amount_af');
-        return $receipts - $payouts;
+        return \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $this->id)
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
     }
 }

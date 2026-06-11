@@ -164,10 +164,11 @@ class WashingPaymentController extends Controller
             return redirect('/dashboard/washing-team')->with('error', 'تیم شست‌وشو یافت نشد (Team not found).');
         }
 
-        $payments = WashingPayment::where('team_id',$team_id)->orderBy('date','DESC')->paginate(30);
+        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -178,8 +179,8 @@ class WashingPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
@@ -188,11 +189,69 @@ class WashingPaymentController extends Controller
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        // Fetch Completed Washes & Match with Specific Payments
+        $washes = \App\CarpetWash::where('team_id', $team_id)
+            ->with('carpet')
+            ->where('total_price', '>', 0)
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('wash_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('wash_number')
+            ->get()
+            ->keyBy('wash_number');
+
+        foreach ($washes as $w) {
+            $refPayments = $paymentsByRef->get($w->wash_number_sh);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_paid = (float)$totalPaid;
+            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
+            
+            if ($w->total_paid == 0) {
+                $w->payment_status = 'unpaid';
+            } elseif ($w->remaining_balance <= 0) {
+                $w->payment_status = 'paid';
+            } else {
+                $w->payment_status = 'partial';
+            }
+        }
+
+        $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
+
+        // Unified Ledger Audit Statement
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $team_id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
 
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
-            'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
+            'washes', 'totalBaseWashes', 'ledgerStatement'
         ));
     }
 
@@ -203,10 +262,11 @@ class WashingPaymentController extends Controller
             return redirect('/dashboard/washing-team')->with('error', 'تیم شست‌وشو یافت نشد (Team not found).');
         }
 
-        $payments = WashingPayment::where('team_id',$team_id)->orderBy('date','DESC')->get();
+        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -217,8 +277,8 @@ class WashingPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
@@ -227,20 +287,83 @@ class WashingPaymentController extends Controller
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
         $all = 'true';
 
-        return view('washing.washing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','wash_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        // Fetch Completed Washes & Match with Specific Payments
+        $washes = \App\CarpetWash::where('team_id', $team_id)
+            ->with('carpet')
+            ->where('total_price', '>', 0)
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('wash_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('wash_number')
+            ->get()
+            ->keyBy('wash_number');
+
+        foreach ($washes as $w) {
+            $refPayments = $paymentsByRef->get($w->wash_number_sh);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_paid = (float)$totalPaid;
+            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
+            
+            if ($w->total_paid == 0) {
+                $w->payment_status = 'unpaid';
+            } elseif ($w->remaining_balance <= 0) {
+                $w->payment_status = 'paid';
+            } else {
+                $w->payment_status = 'partial';
+            }
+        }
+
+        $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
+
+        // Unified Ledger Audit Statement
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $team_id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
+
+        return view('washing.washing-payment',compact(
+            'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
+            'wash_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
+            'washes', 'totalBaseWashes', 'ledgerStatement'
+        ));
     }
 
     public function edit($payment_id)
     {
         $paymentEdit = WashingPayment::find($payment_id);
         $team = WashingTeam::find($paymentEdit->team_id);
-        $payments = WashingPayment::where('team_id',$paymentEdit->team_id)->orderBy('date','DESC')->paginate(30);
+        $team_id = $paymentEdit->team_id;
+        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
-        $currencyTotals = WashingPayment::where('team_id', $paymentEdit->team_id)
+        $currencyTotals = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -251,18 +374,79 @@ class WashingPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
-        $wash_numbers = CarpetWash::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['wash_number_sh']);
+        $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('washing.washing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        // Fetch Completed Washes & Match with Specific Payments
+        $washes = \App\CarpetWash::where('team_id', $team_id)
+            ->with('carpet')
+            ->where('total_price', '>', 0)
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('wash_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('wash_number')
+            ->get()
+            ->keyBy('wash_number');
+
+        foreach ($washes as $w) {
+            $refPayments = $paymentsByRef->get($w->wash_number_sh);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_paid = (float)$totalPaid;
+            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
+            
+            if ($w->total_paid == 0) {
+                $w->payment_status = 'unpaid';
+            } elseif ($w->remaining_balance <= 0) {
+                $w->payment_status = 'paid';
+            } else {
+                $w->payment_status = 'partial';
+            }
+        }
+
+        $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
+
+        // Unified Ledger Audit Statement
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('party_id', $team_id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
+
+        return view('washing.washing-payment',compact(
+            'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
+            'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
+            'washes', 'totalBaseWashes', 'ledgerStatement'
+        ));
     }
 
     public function update(Request $request, $payment_id)

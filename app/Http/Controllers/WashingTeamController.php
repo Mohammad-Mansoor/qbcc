@@ -31,24 +31,51 @@ class WashingTeamController extends Controller
     public function index()
     {
         $teams = WashingTeam::all();
-        $credit_us = WashingPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = WashingPayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = WashingPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = WashingPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         $team = '';
         return view('washing.index', compact('teams', 'credit_us', 'debit_us', 'credit_af', 'debit_af', 'team'));
-
     }
 
     public function accounts()
     {
         $teams = WashingTeam::all();
-        $credit_us = WashingPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = WashingPayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = WashingPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = WashingPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         $accounts = '';
         $team = '';
         return view('washing.index', compact('teams', 'credit_us', 'debit_us', 'credit_af', 'debit_af', 'accounts', 'team'));
@@ -58,21 +85,32 @@ class WashingTeamController extends Controller
     {
         $search = $request->search;
 
-
         $teams = WashingTeam::where('name', 'like', '%' . $search . '%')
             ->orWhere('last_name', 'like', '%' . $search . '%')
             ->orWhere('address', 'like', '%' . $search . '%')
             ->orWhere('contact_no', 'like', '%' . $search . '%')
             ->get();
-        $credit_us = WashingPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = WashingPayment::where('type', '=', 'رسید')->sum('amount_af');
+            
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = WashingPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = WashingPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         $team = '';
         return view('washing.index', compact('teams', 'credit_us', 'debit_us', 'credit_af', 'debit_af', 'search', 'team'));
-
-
     }
 
     // SENDING CARPET FOR WASHING
@@ -274,13 +312,26 @@ class WashingTeamController extends Controller
      */
     public function edit(WashingTeam $team)
     {
-
         $teams = WashingTeam::all();
-        $credit_us = WashingPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = WashingPayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = WashingPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = WashingPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\WashingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         return view('washing.index', compact('teams', 'credit_us', 'debit_us', 'credit_af', 'debit_af', 'team'));
     }
 
