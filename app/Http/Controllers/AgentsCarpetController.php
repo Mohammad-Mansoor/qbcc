@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\AgentEmployee;
 use App\CarpetCheckBook;
 use App\CarpetOrder;
+use App\CustomerOrder;
 use App\CarpetType;
 use App\MaterialCategory;
 use App\MaterialType;
@@ -116,7 +117,7 @@ class AgentsCarpetController extends Controller
         } else {
             $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $currencies = \App\Currency::all();
@@ -159,7 +160,7 @@ class AgentsCarpetController extends Controller
         } else {
             $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $qualities = Quality::all();
@@ -213,7 +214,7 @@ class AgentsCarpetController extends Controller
             ->orWhere('map_number', 'like', '%' . $search . '%')
             ->orWhere('date', 'like', '%' . $search . '%')
             ->WhereHas('carpet_order', function ($query) use ($search) {
-                $query->where('order_number', 'like', '%' . $search . '%');
+                $query->where('order_name', 'like', '%' . $search . '%');
             })
             ->WhereHas('type', function ($query) use ($search) {
                 $query->where('carpet_type', 'like', '%' . $search . '%');
@@ -242,7 +243,7 @@ class AgentsCarpetController extends Controller
         } else {
             $AccountNo = 'QB-' . sprintf('%05d', '10101');
         }
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $editCarpet = '';

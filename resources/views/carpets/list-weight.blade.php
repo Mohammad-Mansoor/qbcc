@@ -265,7 +265,7 @@
                                     <select name="order_id" class="form-control select2">
                                         <option value="">انتخاب...</option>
                                         @foreach($orders as $ord)
-                                            <option value="{{$ord->id}}" {{ ($editCarpet && $editCarpet->order_id == $ord->id) ? 'selected' : '' }}>{{$ord->order_number}}</option>
+                                            <option value="{{$ord->co_id}}" {{ ($editCarpet && $editCarpet->order_id == $ord->co_id) ? 'selected' : '' }}>{{$ord->order_name}}</option>
                                         @endforeach
                                     </select>
                                 </div>

@@ -13,6 +13,7 @@ use App\Invoice;
 use App\MaterialCategory;
 use App\CarpetType;
 use App\CarpetOrder;
+use App\CustomerOrder;
 use App\Agents;
 
 use App\CarpetCheckBook;
@@ -68,9 +69,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('contract_type', 'contractional')
@@ -102,7 +104,7 @@ class CarpetsController extends Controller
             $AccountNo = 'PN' . sprintf('%05d', '10001');
         }
         $agents = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $editCarpet = '';
@@ -120,9 +122,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('contract_type', 'contractional')
@@ -158,7 +161,7 @@ class CarpetsController extends Controller
 
 
         $agents_contract_carpet = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $all = '';
@@ -178,14 +181,15 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('carpets.parcha_number', 'like', '%' . $search . '%')
             ->orWhere('carpets.map_number', 'like', '%' . $search . '%')
             ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%')
-            ->orWhere('carpet_orders.order_number', 'like', '%' . $search . '%')
+            ->orWhere('customer_orders.order_name', 'like', '%' . $search . '%')
             ->orWhere('qualities.quality', 'like', '%' . $search . '%')
 
 
@@ -220,7 +224,7 @@ class CarpetsController extends Controller
         }
 
         $agents_contract_carpet = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $all = '';
@@ -242,9 +246,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('carpets.status', 0)
             ->where('carpets.agent_id', $agent_id)
@@ -310,7 +315,7 @@ class CarpetsController extends Controller
         }
 
         $agents_contract_carpet = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $all = '';
@@ -546,7 +551,7 @@ class CarpetsController extends Controller
 
 
         $agents = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         return view('carpets.create-contract-carpet', compact('AccountNo', 'agents', 'orders', 'types', 'employees'));
@@ -563,9 +568,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->leftJoin('agents', 'carpets.agent_id', 'agents.agent_id')
             ->leftJoin('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('agents.contract_type', 'weight')
@@ -599,7 +605,7 @@ class CarpetsController extends Controller
 
 
         $agents = Agents::with('user')->where('contract_type', 'weight')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $warehouses = Warehouse::all();
@@ -621,9 +627,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->leftJoin('agents', 'carpets.agent_id', 'agents.agent_id')
             ->leftJoin('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('agents.contract_type', 'weight')
@@ -659,7 +666,7 @@ class CarpetsController extends Controller
 
 
         $agents_contract_carpet = Agents::with('user')->whereIn('contract_type', ['weight', 'contractional'])->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $all = '';
@@ -683,14 +690,15 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->leftJoin('agents', 'carpets.agent_id', 'agents.agent_id')
             ->leftJoin('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('carpets.parcha_number', 'like', '%' . $search . '%')
             ->orWhere('carpets.map_number', 'like', '%' . $search . '%')
             ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%')
-            ->orWhere('carpet_orders.order_number', 'like', '%' . $search . '%')
+            ->orWhere('customer_orders.order_name', 'like', '%' . $search . '%')
             ->orWhere('qualities.quality', 'like', '%' . $search . '%')
 
 
@@ -720,7 +728,7 @@ class CarpetsController extends Controller
         }
 
         $agents = Agents::where('contract_type', 'weight')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $editCarpet = '';
@@ -743,9 +751,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->leftJoin('agents', 'carpets.agent_id', 'agents.agent_id')
             ->leftJoin('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('carpets.status', 0)
             ->where('carpets.agent_id', $agent_id)
@@ -811,7 +820,7 @@ class CarpetsController extends Controller
         }
 
         $agents = Agents::where('contract_type', 'weight')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $editCarpet = '';
@@ -925,9 +934,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->leftJoin('agents', 'carpets.agent_id', 'agents.agent_id')
             ->leftJoin('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('agents.contract_type', 'weight')
@@ -959,7 +969,7 @@ class CarpetsController extends Controller
 
 
         $agents = Agents::where('contract_type', 'weight')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $qualities = Quality::all();
@@ -1109,7 +1119,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $qualities = \App\Quality::all();
         $currencies = \App\Currency::all();
@@ -1142,7 +1152,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
@@ -1200,7 +1210,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
@@ -1353,7 +1363,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $qualities = Quality::all();
         $currencies = \App\Currency::all();
@@ -1601,9 +1611,10 @@ class CarpetsController extends Controller
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
-            ->leftJoin('carpet_orders', 'carpets.order_id', 'carpet_orders.id')
+            ->leftJoin('customer_orders', 'carpets.order_id', 'customer_orders.co_id')
             ->leftJoin('carpet_types', 'carpets.type_id', 'carpet_types.carpet_type_id')
             ->leftJoin('qualities', 'carpets.quality_id', 'qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name', 'agents.account_no', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status', 0)
             ->where('contract_type', 'contractional')
@@ -1635,7 +1646,7 @@ class CarpetsController extends Controller
 
 
         $agents = Agents::where('contract_type', 'contractional')->get();
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $employees = AgentEmployee::all();
         $qualities = Quality::all();

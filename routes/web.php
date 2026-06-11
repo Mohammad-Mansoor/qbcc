@@ -481,10 +481,14 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     /** Route For Office Employee Salary */
     Route::resource('/employee-salary', 'EmployeeSalaryController');
-    /** Route For Employee Payment  */
+    /** Route For Employee Payment (Cash Ledger: Loans / Advances) */
     Route::resource('employee-payments', 'EmployeePaymentController');
     Route::get('/employee-payments-all/{employee_id}', 'EmployeePaymentController@show_all_payment');
     Route::post('/employee-payments-list-contract', 'EmployeePaymentController@show_contract_payment');
+
+    /** Route For Monthly Payroll (Salary Run) */
+    Route::resource('/payroll', 'PayrollController')->names('payroll');
+    Route::get('/payroll/{run}/slip/{item}', 'PayrollController@slip')->name('payroll.slip');
 
 
     /** Route For Employee Payment */
@@ -501,6 +505,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::resource('/new-monthly-expense-payments','NewMonthlyExpenseBalanceController');
     
     Route::resource('/customer-account-for-orders','CustomerAccountOrderController');
+    Route::get('/customer-orders-next-number', 'CustomerOrderController@getNextOrderNumber');
     Route::resource('/customer-orders','CustomerOrderController');
     Route::resource('/customer-order-details','CustomerOrderDetailsController');
     Route::post('/customer-order-details/{id}/receive', 'CustomerOrderDetailsController@receiveIntoStock');

@@ -105,7 +105,7 @@
                  $total_carpet  = DB::table('carpets')
             ->join('agents','carpets.agent_id','agents.agent_id')
             ->join('users','agents.user_id','users.id')
-            ->join('carpet_orders','carpets.order_id','carpet_orders.id')
+            ->join('customer_orders','carpets.order_id','customer_orders.co_id')
             ->join('carpet_types','carpets.type_id','carpet_types.carpet_type_id')
             ->join('qualities','carpets.quality_id','qualities.id')
 

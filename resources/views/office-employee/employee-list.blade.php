@@ -214,6 +214,9 @@
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 hideOnPrint">
               <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
+                <a href="{{ route('payroll.index') }}" class="btn btn-sm btn-success" style="float: left; margin-left: 8px;">
+                  <i class="fa fa-money"></i> لیست و اجرای معاشات
+                </a>
                 <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('employees')"><i
                     class="fa fa-print"></i> چاپ
                 </div>

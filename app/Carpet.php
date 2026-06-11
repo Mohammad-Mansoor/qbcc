@@ -12,7 +12,7 @@ class Carpet extends Model
         return $this->belongsTo(Agents::class , 'agent_id' , 'agent_id');
     }
     public function carpet_order() {
-        return $this->belongsTo(CarpetOrder::class , 'order_id' , 'id');
+        return $this->belongsTo(CustomerOrder::class , 'order_id' , 'co_id');
     }
     public function type() {
         return $this->belongsTo(CarpetType::class , 'type_id' , 'carpet_type_id');

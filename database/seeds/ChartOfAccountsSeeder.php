@@ -23,6 +23,7 @@ class ChartOfAccountsSeeder extends Seeder
             // LIABILITIES (2000)
             ['account_code' => '2100', 'account_name' => 'Accounts Payable', 'account_type' => 'Liability', 'report_group' => 'Current Liability', 'normal_balance' => 'credit', 'is_cash_account' => false],
             ['account_code' => '2200', 'account_name' => 'Accrued Expenses', 'account_type' => 'Liability', 'report_group' => 'Current Liability', 'normal_balance' => 'credit', 'is_cash_account' => false],
+            ['account_code' => '2300', 'account_name' => 'Salary Payable', 'account_type' => 'Liability', 'report_group' => 'Current Liability', 'normal_balance' => 'credit', 'is_cash_account' => false],
 
             // EQUITY (3000)
             ['account_code' => '3100', 'account_name' => 'Capital', 'account_type' => 'Equity', 'report_group' => 'Equity', 'normal_balance' => 'credit', 'is_cash_account' => false],

@@ -280,6 +280,7 @@
                   class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
+                <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
                 @if(auth()->user()->role == 'SP')
                   <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
                 @endif

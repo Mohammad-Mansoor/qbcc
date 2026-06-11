@@ -396,7 +396,28 @@ class MappingRulesSeeder extends Seeder
 
         // --- DYNAMIC PAYROLL & EMPLOYEE PAYMENT RULES ---
         $salaryExpense = ChartOfAccount::where('account_name', 'like', '%Salary Expense%')->first();
+        if (!$salaryExpense) {
+            $salaryExpense = ChartOfAccount::create([
+                'account_code' => '6200',
+                'account_name' => 'Salary Expense',
+                'account_type' => 'Expense',
+                'report_group' => 'Operating Expense',
+                'normal_balance' => 'debit',
+                'is_cash_account' => false
+            ]);
+        }
+
         $salaryPayable = ChartOfAccount::where('account_name', 'like', '%Salary Payable%')->first();
+        if (!$salaryPayable) {
+            $salaryPayable = ChartOfAccount::create([
+                'account_code' => '2300',
+                'account_name' => 'Salary Payable',
+                'account_type' => 'Liability',
+                'report_group' => 'Current Liability',
+                'normal_balance' => 'credit',
+                'is_cash_account' => false
+            ]);
+        }
 
         if ($salaryExpense && $salaryPayable) {
             MappingRule::updateOrCreate(

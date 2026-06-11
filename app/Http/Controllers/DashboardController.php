@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\AgentPayment;
 use App\Agents;
 use App\CarpetOrder;
+use App\CustomerOrder;
 use App\CarpetType;
 use App\CustomerPayment;
 use App\DifferentAccountPayment;
@@ -198,9 +199,10 @@ class DashboardController extends Controller
          $existing_carpets  = DB::table('carpets')
             ->join('agents','carpets.agent_id','agents.agent_id')
             ->join('users','agents.user_id','users.id')
-            ->join('carpet_orders','carpets.order_id','carpet_orders.id')
+            ->join('customer_orders','carpets.order_id','customer_orders.co_id')
             ->join('carpet_types','carpets.type_id','carpet_types.carpet_type_id')
             ->join('qualities','carpets.quality_id','qualities.id')
+            ->select('carpets.*', 'customer_orders.order_name as order_number', 'users.name as agent_name', 'carpet_types.carpet_type', 'qualities.quality')
 
             ->where('status','!=', 6)
             
@@ -552,7 +554,7 @@ class DashboardController extends Controller
 
     /** function all carpet edit in dashboard */
     public function all_carpet_edit_dashboard($id){
-        $orders = CarpetOrder::all();
+        $orders = CustomerOrder::all();
         $types = CarpetType::all();
         $carpet = Carpet::find($id);
 
@@ -739,7 +741,7 @@ class DashboardController extends Controller
                 });
             })
             ->orWhereHas('carpet_order', function ($query) use ($search) {
-                $query->where('order_number', 'like', '%'.$search.'%');
+                $query->where('order_name', 'like', '%'.$search.'%');
             })
 
             ->orWhereHas('type', function ($query) use ($search) {

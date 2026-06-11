@@ -265,6 +265,53 @@
         </div>
     </div>
 
+    <!-- Search and Filter Bar -->
+    <div class="card glass-card mb-4 hideOnPrint" style="direction: rtl; text-align: right;">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <!-- Search Box -->
+                <div class="col-lg-4 col-md-6 mb-2 mb-lg-0">
+                    <label class="small font-weight-bold text-dark"><i class="fa fa-search ml-1 text-primary"></i> جستجو بر اساس نمبر فرمایش یا نام مشتری</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-left-0" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
+                        </div>
+                        <input type="text" id="tableSearchInput" class="form-control form-control-premium" style="border-radius: 10px 0 0 10px;" placeholder="نام مشتری یا نمبر فرمایش را بنویسید...">
+                    </div>
+                </div>
+
+                <!-- Customer Filter -->
+                <div class="col-lg-4 col-md-3 mb-2 mb-lg-0">
+                    <label class="small font-weight-bold text-dark"><i class="fa fa-user ml-1 text-primary"></i> فیلتر بر اساس مشتری</label>
+                    <select id="filterCustomer" class="form-control select2">
+                        <option value="">همه مشتریان</option>
+                        @foreach($main_customers as $mc)
+                            <option value="{{ $mc->id }}">{{ $mc->name }}{{ $mc->country ? " ($mc->country)" : '' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="col-lg-3 col-md-3 mb-2 mb-lg-0">
+                    <label class="small font-weight-bold text-dark"><i class="fa fa-filter ml-1 text-primary"></i> وضعیت فرمایش</label>
+                    <select id="filterStatus" class="form-control select2">
+                        <option value="">همه وضعیت‌ها</option>
+                        <option value="pending">معلق (Pending)</option>
+                        <option value="in_progress">در حال اجرا (In Progress)</option>
+                        <option value="completed">تکمیل شده (Completed)</option>
+                    </select>
+                </div>
+
+                <!-- Clear Filters Button -->
+                <div class="col-lg-1 col-md-12 text-left mt-md-4 mt-lg-0">
+                    <button type="button" id="btnClearFilters" class="btn btn-light btn-premium-secondary btn-block font-weight-bold" style="height: calc(1.5em + 1.25rem + 2px); border-radius: 10px;" title="پاک کردن فیلترها">
+                        <i class="fa fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Table Grid -->
     <div class="row">
         <div class="col-lg-12">
@@ -294,14 +341,19 @@
                                         $completedCarpets = $co->details->where('current_status', 'completed')->count();
                                         $progressPercentage = $totalCarpets > 0 ? round(($completedCarpets / $totalCarpets) * 100) : 0;
                                     @endphp
-                                    <tr style="direction: rtl; text-align: right;">
+                                    <tr class="order-row" 
+                                        data-order-name="{{ strtolower($co->order_name) }}" 
+                                        data-customer-id="{{ $co->main_customer_id }}" 
+                                        data-customer-name="{{ strtolower(optional($co->customer)->name ?? '') }}" 
+                                        data-status="{{ $co->status }}" 
+                                        style="direction: rtl; text-align: right;">
                                         <td class="pr-4 font-weight-bold text-dark">
                                             <i class="fa fa-folder-open text-muted ml-2"></i> {{ $co->order_name }}
                                         </td>
                                         <td class="text-muted">{{ $co->order_date }}</td>
                                         <td>
                                             @if($co->customer)
-                                                <span class="badge-premium badge-premium-progress">{{ $co->customer->name }} ({{ $co->customer->country }})</span>
+                                                <span class="badge-premium badge-premium-progress">{{ $co->customer->name }}{{ $co->customer->country ? " ({$co->customer->country})" : "" }}</span>
                                             @else
                                                 <span class="badge-premium badge-premium-pending">تایید نشده (Unlinked)</span>
                                             @endif
@@ -371,13 +423,13 @@
                 <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold">نمبر/نام فرمایش <span class="text-danger">*</span></label>
-                            <input type="text" name="order_name" class="form-control form-control-premium" value="{{ optional($orderEdit)->order_name ?? '' }}" required placeholder="مثال: فرمایش شماره 45">
-                            <small class="text-muted d-block mt-1">یک عنوان یا شناسه برای فرمایش بنویسید.</small>
+                            <label class="small font-weight-bold">نمبر/نام فرمایش</label>
+                            <input type="text" name="order_name" id="order_name" class="form-control form-control-premium bg-light" value="{{ $nextOrderNumber }}" readonly>
+                            <small class="text-muted d-block mt-1">این شناسه به صورت خودکار و منحصر به فرد در سیستم ایجاد می‌شود.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="small font-weight-bold">تاریخ فرمایش <span class="text-danger">*</span></label>
-                            <input type="date" name="order_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->order_date ?? date('Y-m-d') }}" required>
+                            <input type="date" name="order_date" id="order_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->order_date ?? date('Y-m-d') }}" required>
                             <small class="text-muted d-block mt-1">تاریخ رسمی ثبت سفارش.</small>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -386,7 +438,7 @@
                                 <option value="">انتخاب حساب مشتری</option>
                                 @foreach($main_customers as $mc)
                                     <option value="{{$mc->id}}" {{ (is_object($orderEdit) && $orderEdit->main_customer_id == $mc->id) ? 'selected' : '' }}>
-                                        {{$mc->name}} ({{$mc->country}})
+                                        {{$mc->name}}{{ $mc->country ? " ($mc->country)" : '' }}
                                     </option>
                                 @endforeach
                             </select>
@@ -461,6 +513,65 @@
     $('.select2-modal').select2({
         dropdownParent: $('#orderModal'),
         width: '100%'
+    });
+
+    // AJAX to get next order number when order date changes (only if not editing)
+    @if(!$orderEdit)
+    $('#order_date').on('change', function() {
+        let selectedDate = $(this).val();
+        if (selectedDate) {
+            $.ajax({
+                url: '/dashboard/customer-orders-next-number',
+                data: { date: selectedDate },
+                success: function(res) {
+                    $('#order_name').val(res.next_number);
+                }
+            });
+        }
+    });
+    @endif
+
+    // Real-time client-side filter function
+    function filterOrdersTable() {
+        let searchQuery = $('#tableSearchInput').val().toLowerCase().trim();
+        let customerId = $('#filterCustomer').val();
+        let status = $('#filterStatus').val();
+
+        $('.order-row').each(function() {
+            let row = $(this);
+            let rowOrderName = row.attr('data-order-name') || '';
+            let rowCustomerName = row.attr('data-customer-name') || '';
+            let rowCustomerId = row.attr('data-customer-id') || '';
+            let rowStatus = row.attr('data-status') || '';
+
+            // Check if matches search string (order number or customer name)
+            let matchesSearch = !searchQuery || 
+                                rowOrderName.indexOf(searchQuery) !== -1 || 
+                                rowCustomerName.indexOf(searchQuery) !== -1;
+
+            // Check if matches customer dropdown selection
+            let matchesCustomer = !customerId || rowCustomerId === customerId;
+
+            // Check if matches status dropdown selection
+            let matchesStatus = !status || rowStatus === status;
+
+            if (matchesSearch && matchesCustomer && matchesStatus) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+    }
+
+    // Attach real-time keyup/change listeners
+    $('#tableSearchInput').on('keyup change input', filterOrdersTable);
+    $('#filterCustomer, #filterStatus').on('change', filterOrdersTable);
+
+    // Reset button
+    $('#btnClearFilters').on('click', function() {
+        $('#tableSearchInput').val('');
+        $('#filterCustomer').val('').trigger('change');
+        $('#filterStatus').val('').trigger('change');
     });
 </script>
 @endsection

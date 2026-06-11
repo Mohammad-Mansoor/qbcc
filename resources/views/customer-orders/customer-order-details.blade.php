@@ -340,7 +340,6 @@
                                 <tr style="direction: rtl; text-align: right;">
                                     <th class="pr-4">مشخصات تخنیکی قالین</th>
                                     <th>وضعیت کار</th>
-                                    <th>قیمت و مبلغ</th>
                                     <th>زمان‌بندی</th>
                                     <th class="text-left pl-4">عملیات</th>
                                 </tr>
@@ -371,10 +370,6 @@
                                         </form>
                                     </td>
                                     <td>
-                                        <span class="d-block font-weight-bold text-dark">${{ number_format($co->total_amount, 2) }}</span>
-                                        <small class="text-muted d-block">فی متر: ${{ number_format($co->unit_price, 2) }}</small>
-                                    </td>
-                                    <td>
                                         <small class="d-block text-success font-weight-bold"><i class="fa fa-calendar-alt ml-1"></i>شروع: {{ $co->start_date }}</small>
                                         <small class="d-block text-danger font-weight-bold"><i class="fa fa-calendar-times ml-1"></i>تحویل: {{ $co->end_date ?: 'نامشخص' }}</small>
                                     </td>
@@ -391,7 +386,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted font-weight-bold">هیچ قالینی برای این فرمایش ثبت نشده است. برای ثبت قالین دکمه بالا را کلیک کنید.</td>
+                                    <td colspan="4" class="text-center py-5 text-muted font-weight-bold">هیچ قالینی برای این فرمایش ثبت نشده است. برای ثبت قالین دکمه بالا را کلیک کنید.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -424,81 +419,106 @@
                 <input type="hidden" name="customer_order_id" value="{{ $customer_order->co_id }}">
                 <input type="hidden" name="currency_id" value="1">
                 <input type="hidden" name="exchange_rate" value="1">
+                <input type="hidden" name="unit_price" id="unit_price" value="{{ optional($orderEdit)->unit_price ?? 0 }}">
+                <input type="hidden" name="total_amount" id="total_amount" value="{{ optional($orderEdit)->total_amount ?? 0 }}">
 
                 <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
-                    <div class="row">
-                        <!-- Technical Specs -->
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">کیفیت (Quality) <span class="text-danger">*</span></label>
-                            <input type="text" name="quality" class="form-control form-control-premium" value="{{ optional($orderEdit)->quality ?? '' }}" required placeholder="مثال: چوب‌رنگ 60 رجه">
-                            <small class="text-muted small">نوع گره، رج یا صنف قالین.</small>
+                    <!-- Section 1: Physical Specs & Dimensions -->
+                    <div class="border-bottom pb-3 mb-4">
+                        <h6 class="font-weight-bold text-primary mb-3">
+                            <i class="fa fa-ruler-combined ml-2"></i> مشخصات فزیکی و ابعاد قالین
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="small font-weight-bold text-dark">کیفیت (Quality) <span class="text-danger">*</span></label>
+                                <input type="text" name="quality" class="form-control form-control-premium" value="{{ optional($orderEdit)->quality ?? '' }}" required placeholder="مثال: چوب‌رنگ 60 رجه">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">نوع گره، رج یا صنف قالین.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">طول (متر) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" name="height" id="height" class="form-control form-control-premium" value="{{ optional($orderEdit)->height ?? '' }}" required placeholder="طول">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">طول قالین به متر.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">عرض (متر) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" name="width" id="width" class="form-control form-control-premium" value="{{ optional($orderEdit)->width ?? '' }}" required placeholder="عرض">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">عرض قالین به متر.</small>
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">طول (متر) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="height" id="height" class="form-control form-control-premium" value="{{ optional($orderEdit)->height ?? '' }}" required placeholder="طول">
-                            <small class="text-muted small">طول قالین به متر.</small>
+                        <div class="row mt-2">
+                            <div class="col-md-4 mb-3">
+                                <label class="small font-weight-bold text-dark">مساحت محاسبه شده (m²)</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-light border-left-0" style="border-radius: 0 10px 10px 0;"><i class="fa fa-calculator text-muted"></i></span>
+                                    </div>
+                                    <input type="text" name="area" id="area" class="form-control form-control-premium bg-light font-weight-bold" style="border-radius: 10px 0 0 10px;" value="{{ optional($orderEdit)->area ?? '' }}" readonly>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">محاسبه خودکار مساحت قالین.</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="small font-weight-bold text-dark">تار (Warp)</label>
+                                <input type="text" name="warp" class="form-control form-control-premium" value="{{ optional($orderEdit)->warp ?? '' }}" placeholder="جنس تار">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">جنس تار مورد استفاده.</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="small font-weight-bold text-dark">پود (Weft)</label>
+                                <input type="text" name="weft" class="form-control form-control-premium" value="{{ optional($orderEdit)->weft ?? '' }}" placeholder="جنس پود">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">جنس پود مورد استفاده.</small>
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">عرض (متر) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="width" id="width" class="form-control form-control-premium" value="{{ optional($orderEdit)->width ?? '' }}" required placeholder="عرض">
-                            <small class="text-muted small">عرض قالین به متر.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">مساحت (m²)</label>
-                            <input type="text" name="area" id="area" class="form-control form-control-premium bg-light" value="{{ optional($orderEdit)->area ?? '' }}" readonly>
-                            <small class="text-muted small">محاسبه خودکار مساحت.</small>
-                        </div>
+                    </div>
 
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">قیمت فی متر مربع (USD)</label>
-                            <input type="number" step="0.01" name="unit_price" id="unit_price" class="form-control form-control-premium" value="{{ optional($orderEdit)->unit_price ?? '' }}" placeholder="قیمت فی متر مربع">
-                            <small class="text-muted small">قیمت فروش فی متر مربع.</small>
+                    <!-- Section 2: Production Status & Timelines -->
+                    <div class="border-bottom pb-3 mb-4">
+                        <h6 class="font-weight-bold text-primary mb-3">
+                            <i class="fa fa-cogs ml-2"></i> مشخصات تولید و زمان‌بندی بافت
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">نمبر/کد بافنده</label>
+                                <input type="text" name="weaver_code" class="form-control form-control-premium" value="{{ optional($orderEdit)->weaver_code ?? '' }}" placeholder="کد بافنده">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">کد شناسایی بافنده.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">وضعیت تولید <span class="text-danger">*</span></label>
+                                <select name="current_status" class="form-control select2-modal">
+                                    @foreach(['pending' => 'معلق (Pending)', 'in_progress' => 'در حال کار (In Progress)', 'completed' => 'تکمیل شده (Completed)'] as $val => $label)
+                                        <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">وضعیت کار قالین.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">تاریخ شروع بافت <span class="text-danger">*</span></label>
+                                <input type="date" name="start_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->start_date ?? date('Y-m-d') }}" required>
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">شروع بافت قالین.</small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="small font-weight-bold text-dark">تاریخ ختم (تخمینی)</label>
+                                <input type="date" name="end_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->end_date ?? '' }}">
+                                <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">تاریخ تسلیمی احتمالی.</small>
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">مجموع مبلغ (USD)</label>
-                            <input type="number" step="0.01" name="total_amount" id="total_amount" class="form-control form-control-premium bg-light font-weight-bold" value="{{ optional($orderEdit)->total_amount ?? '' }}" readonly>
-                            <small class="text-muted small">محاسبه خودکار کل مبلغ.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">تار (Warp)</label>
-                            <input type="text" name="warp" class="form-control form-control-premium" value="{{ optional($orderEdit)->warp ?? '' }}" placeholder="جنس تار">
-                            <small class="text-muted small">جنس تار مورد استفاده.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">پود (Weft)</label>
-                            <input type="text" name="weft" class="form-control form-control-premium" value="{{ optional($orderEdit)->weft ?? '' }}" placeholder="جنس پود">
-                            <small class="text-muted small">جنس پود مورد استفاده.</small>
-                        </div>
+                    </div>
 
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">نمبر بافنده</label>
-                            <input type="text" name="weaver_code" class="form-control form-control-premium" value="{{ optional($orderEdit)->weaver_code ?? '' }}" placeholder="کد بافنده">
-                            <small class="text-muted small">کد شناسایی بافنده.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">وضعیت فعلی تولید <span class="text-danger">*</span></label>
-                            <select name="current_status" class="form-control select2-modal">
-                                @foreach(['pending' => 'معلق (Pending)', 'in_progress' => 'در حال کار (In Progress)', 'completed' => 'تکمیل شده (Completed)'] as $val => $label)
-                                    <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted small">وضعیت کار قالین.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">تاریخ شروع بافت <span class="text-danger">*</span></label>
-                            <input type="date" name="start_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->start_date ?? date('Y-m-d') }}" required>
-                            <small class="text-muted small">شروع بافت.</small>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="small font-weight-bold">تاریخ ختم (تخمینی)</label>
-                            <input type="date" name="end_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->end_date ?? '' }}">
-                            <small class="text-muted small">تاریخ تسلیمی احتمالی.</small>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold">عکس یا نقشه قالین</label>
-                            <input type="file" name="photo" class="form-control form-control-premium">
-                            <small class="text-muted small">نقشه یا عکس نمونه طراحی.</small>
+                    <!-- Section 3: Design File / Image Upload -->
+                    <div>
+                        <h6 class="font-weight-bold text-primary mb-3">
+                            <i class="fa fa-image ml-2"></i> فایل‌ها و پیوست‌های نقشه
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <label class="small font-weight-bold text-dark">عکس یا نقشه قالین</label>
+                                <div class="custom-file-premium border rounded p-3 bg-light d-flex align-items-center justify-content-between">
+                                    <input type="file" name="photo" id="photo" class="d-none">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('photo').click()">
+                                        <i class="fa fa-upload ml-1"></i> انتخاب فایل عکس / نقشه
+                                    </button>
+                                    <span id="file-chosen-text" class="text-muted small">هیچ فایلی انتخاب نشده است</span>
+                                </div>
+                                <small class="text-muted d-block mt-2" style="font-size: 0.72rem;">نقشه یا عکس نمونه طراحی قالین.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -596,6 +616,12 @@
     $('.select2-modal').select2({
         dropdownParent: $('#carpetModal'),
         width: '100%'
+    });
+
+    // File name text change
+    $('#photo').on('change', function() {
+        let fileName = this.files[0] ? this.files[0].name : "هیچ فایلی انتخاب نشده است";
+        $('#file-chosen-text').text(fileName);
     });
 </script>
 @endsection
