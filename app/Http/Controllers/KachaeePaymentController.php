@@ -101,6 +101,34 @@ class KachaeePaymentController extends Controller
                 'team_id' => 'required',
             ]);
 
+            // Overpayment check
+            if ($request->kachaee_number !== 'نقد' && $request->type === 'گرفت') {
+                $repairCost = \App\CarpetRepair::where('team_id', $request->team_id)
+                    ->where('kachaee_number', $request->kachaee_number)
+                    ->first();
+                    
+                if ($repairCost) {
+                    $totalCost = (float)($repairCost->total_price ?: $repairCost->af_total_price);
+                    
+                    $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
+                        ->where('kachaee_number', $request->kachaee_number)
+                        ->where('status', 1)
+                        ->select(
+                            \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                            \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                        )->first();
+                    
+                    $netPaid = $otherPayments ? ($otherPayments->total_sent - $otherPayments->total_received) : 0;
+                    $maxAllowed = $totalCost - $netPaid;
+                    
+                    if ($request->amount > $maxAllowed) {
+                        return redirect()->back()->withErrors([
+                            'amount' => "مبلغ پرداختی بیشتر از باقی‌مانده انوایس است. حداکثر مبلغ مجاز: " . number_format($maxAllowed, 2)
+                        ])->withInput();
+                    }
+                }
+            }
+
             $currency = \App\Currency::find($request->currency_id);
             $rate = $request->exchange_rate ?: $currency->exchange_rate;
 
@@ -170,10 +198,11 @@ class KachaeePaymentController extends Controller
             return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
         }
 
-        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('date','DESC')->get();
+        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -184,8 +213,8 @@ class KachaeePaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
@@ -202,7 +231,65 @@ class KachaeePaymentController extends Controller
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
         $all = 'true';
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'all'));
+        // Fetch all repairs completed by this team
+        $repairs = \App\CarpetRepair::where('team_id', $team_id)
+            ->with('carpet')
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
+        $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('kachaee_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('kachaee_number')
+            ->get()
+            ->keyBy('kachaee_number');
+
+        // Map each repair with its paid/remaining metrics
+        foreach ($repairs as $rep) {
+            $refPayments = $paymentsByRef->get($rep->kachaee_number);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_paid = (float)$totalPaid;
+            $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
+            
+            if ($rep->total_paid == 0) {
+                $rep->payment_status = 'unpaid';
+            } elseif ($rep->remaining_balance <= 0) {
+                $rep->payment_status = 'paid';
+            } else {
+                $rep->payment_status = 'partial';
+            }
+        }
+
+        // Calculate Repair Cost Totals
+        $totalBaseRepairs = \App\CarpetRepair::where('team_id', $team_id)->sum('base_currency_amount');
+
+        // Fetch Unified Ledger Statement (Double-Entry Log)
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('party_id', $team_id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'all', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
     }
 
     public function show($team_id)
@@ -212,10 +299,11 @@ class KachaeePaymentController extends Controller
             return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
         }
 
-        $payments = KachaeePayment::where('team_id',$team_id)->orderBy('date','DESC')->paginate(30);
+        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -226,8 +314,8 @@ class KachaeePaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
@@ -243,7 +331,65 @@ class KachaeePaymentController extends Controller
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies'));
+        // Fetch all repairs completed by this team
+        $repairs = \App\CarpetRepair::where('team_id', $team_id)
+            ->with('carpet')
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
+        $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
+            ->where('status', 1)
+            ->select('kachaee_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('kachaee_number')
+            ->get()
+            ->keyBy('kachaee_number');
+
+        // Map each repair with its paid/remaining metrics
+        foreach ($repairs as $rep) {
+            $refPayments = $paymentsByRef->get($rep->kachaee_number);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_paid = (float)$totalPaid;
+            $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
+            
+            if ($rep->total_paid == 0) {
+                $rep->payment_status = 'unpaid';
+            } elseif ($rep->remaining_balance <= 0) {
+                $rep->payment_status = 'paid';
+            } else {
+                $rep->payment_status = 'partial';
+            }
+        }
+
+        // Calculate Repair Cost Totals
+        $totalBaseRepairs = \App\CarpetRepair::where('team_id', $team_id)->sum('base_currency_amount');
+
+        // Fetch Unified Ledger Statement (Double-Entry Log)
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('party_id', $team_id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
     }
 
     /**
@@ -256,10 +402,11 @@ class KachaeePaymentController extends Controller
     {
         $paymentEdit = KachaeePayment::find($payment_id);
         $team = Kachaee::find($paymentEdit->team_id);
-        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->orderBy('date','DESC')->paginate(30);
+        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $paymentEdit->team_id)
+            ->where('kachaee_number', 'نقد')
             ->where('status', 1)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -270,8 +417,8 @@ class KachaeePaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
 
         $kachaee_numbers = CarpetRepair::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['kachaee_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -302,7 +449,65 @@ class KachaeePaymentController extends Controller
             }
         }
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'currentDebitAccountId', 'currentCreditAccountId'));
+        // Fetch all repairs completed by this team
+        $repairs = \App\CarpetRepair::where('team_id', $team->id)
+            ->with('carpet')
+            ->orderBy('date', 'DESC')
+            ->get();
+
+        // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
+        $paymentsByRef = \App\KachaeePayment::where('team_id', $team->id)
+            ->where('status', 1)
+            ->select('kachaee_number', 
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+            )
+            ->groupBy('kachaee_number')
+            ->get()
+            ->keyBy('kachaee_number');
+
+        // Map each repair with its paid/remaining metrics
+        foreach ($repairs as $rep) {
+            $refPayments = $paymentsByRef->get($rep->kachaee_number);
+            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            
+            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_paid = (float)$totalPaid;
+            $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
+            
+            if ($rep->total_paid == 0) {
+                $rep->payment_status = 'unpaid';
+            } elseif ($rep->remaining_balance <= 0) {
+                $rep->payment_status = 'paid';
+            } else {
+                $rep->payment_status = 'partial';
+            }
+        }
+
+        // Calculate Repair Cost Totals
+        $totalBaseRepairs = \App\CarpetRepair::where('team_id', $team->id)->sum('base_currency_amount');
+
+        // Fetch Unified Ledger Statement (Double-Entry Log)
+        $ledgerStatement = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('party_id', $team->id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(
+                'ledger_transactions.date',
+                'ledger_transactions.description',
+                'ledger_transactions.reference',
+                'ledger_entries.debit',
+                'ledger_entries.credit',
+                'ledger_entries.currency_code',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit'
+            )
+            ->orderBy('ledger_transactions.date', 'ASC')
+            ->orderBy('ledger_transactions.id', 'ASC')
+            ->get();
+
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'currentDebitAccountId', 'currentCreditAccountId', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
     }
 
     /**
@@ -323,6 +528,35 @@ class KachaeePaymentController extends Controller
                 'type' => 'required',
                 'team_id' => 'required',
             ]);
+
+            // Overpayment check
+            if ($request->kachaee_number !== 'نقد' && $request->type === 'گرفت') {
+                $repairCost = \App\CarpetRepair::where('team_id', $request->team_id)
+                    ->where('kachaee_number', $request->kachaee_number)
+                    ->first();
+                    
+                if ($repairCost) {
+                    $totalCost = (float)($repairCost->total_price ?: $repairCost->af_total_price);
+                    
+                    $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
+                        ->where('kachaee_number', $request->kachaee_number)
+                        ->where('id', '!=', $payment_id)
+                        ->where('status', 1)
+                        ->select(
+                            \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
+                            \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                        )->first();
+                    
+                    $netPaid = $otherPayments ? ($otherPayments->total_sent - $otherPayments->total_received) : 0;
+                    $maxAllowed = $totalCost - $netPaid;
+                    
+                    if ($request->amount > $maxAllowed) {
+                        return redirect()->back()->withErrors([
+                            'amount' => "مبلغ پرداختی بیشتر از باقی‌مانده انوایس است. حداکثر مبلغ مجاز: " . number_format($maxAllowed, 2)
+                        ])->withInput();
+                    }
+                }
+            }
 
             $payed = KachaeePayment::find($payment_id);
 

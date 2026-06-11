@@ -21,15 +21,26 @@ class Kachaee extends Model
 
     public function getTotalUsdBalanceAttribute()
     {
-        $received = $this->payment()->where('type', 'رسید')->sum('amount');
-        $sent = $this->payment()->where('type', 'گرفت')->sum('amount');
-        return $received - $sent;
+        $ledger = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('party_id', $this->id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->select(\DB::raw('SUM(base_credit - base_debit) as balance'))
+            ->first();
+        return (float)($ledger ? $ledger->balance : 0);
     }
 
     public function getTotalAfBalanceAttribute()
     {
-        $received = $this->payment()->where('type', 'رسید')->sum('amount_af');
-        $sent = $this->payment()->where('type', 'گرفت')->sum('amount_af');
-        return $received - $sent;
+        $ledger = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('party_id', $this->id)
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->select(\DB::raw('SUM(credit - debit) as balance'))
+            ->first();
+        return (float)($ledger ? $ledger->balance : 0);
     }
 }

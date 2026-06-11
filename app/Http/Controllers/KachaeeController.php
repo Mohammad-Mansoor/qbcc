@@ -22,21 +22,48 @@ class KachaeeController extends Controller
     public function index()
     {
         $team = Kachaee::orderBy('id','DESC')->get();
-        $credit_us = KachaeePayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = KachaeePayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = KachaeePayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = KachaeePayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+
         $teamEdit = '';
         return view('kachaee.index',compact('team','credit_af','credit_us','debit_us','debit_af','teamEdit'));
     }
     public function accounts(){
         $team = Kachaee::orderBy('id','DESC')->get();
-        $credit_us = KachaeePayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = KachaeePayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = KachaeePayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = KachaeePayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
 
         $accounts = '';
         $teamEdit = '';
@@ -47,7 +74,6 @@ class KachaeeController extends Controller
     {
         $search = $request->search;
 
-
         $team = Kachaee::where('name', 'like','%'.$search.'%')
             ->orWhere('father_name', 'like', '%' .$search.'%')
             ->orWhere('grand_father_name', 'like', '%'.$search.'%')
@@ -56,17 +82,28 @@ class KachaeeController extends Controller
             ->orWhere('national_id', 'like', '%'.$search.'%')
             ->orWhere('contact_no', 'like', '%'.$search.'%')
             ->get();
-        $credit_us = KachaeePayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = KachaeePayment::where('type', '=', 'رسید')->sum('amount_af');
+            
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = KachaeePayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = KachaeePayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         $teamEdit = '';
         return view('kachaee.index',compact('team','credit_af','credit_us','debit_us','debit_af','search','teamEdit'));
-
-
     }
-
 
     /**
      * Show the form for creating a new resource.
@@ -79,7 +116,6 @@ class KachaeeController extends Controller
     }
 
     // SAVING RECEIVED OF KACHAEE WORKER
-
 
     /**
      * Store a newly created resource in storage.
@@ -113,16 +149,12 @@ class KachaeeController extends Controller
      */
     public function show(Kachaee $team)
     {
-
         $quantity = Carpet::where('kachaee_id', $team->id)->where('status','!=',2)->count();
-
         $paymentEdit = '';
         return view('kachaee.kachaee-payment',compact('total','paid','remaining','team','quantity','resived','paymentEdit'));
     }
 
     // EDITING RECEIVED OF KACHAEE
-
-
 
     /**
      * Show the form for editing the specified resource.
@@ -134,13 +166,26 @@ class KachaeeController extends Controller
     {
         $teamEdit = Kachaee::find($id);
         $team = Kachaee::orderBy('id','DESC')->get();
-        $credit_us = KachaeePayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = KachaeePayment::where('type', '=', 'رسید')->sum('amount_af');
+        
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = KachaeePayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = KachaeePayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\Kachaee')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
+        
         return view('kachaee.index',compact('team','credit_af','credit_us','debit_us','debit_af','teamEdit'));
-
     }
 
     /**
