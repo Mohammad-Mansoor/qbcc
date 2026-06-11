@@ -3,9 +3,19 @@
 @section('content')
 
 @php
-  // Fetch unified USD stats using the normalized base_amount (USD Truth)
-  $total_received_usd = \App\FinishingTeamPayment::where('status', 1)->where('type', 'رسید')->sum('base_amount');
-  $total_sent_usd = \App\FinishingTeamPayment::where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+  // Fetch unified USD stats using the General Ledger (USD Truth)
+  $total_received_usd = \DB::table('ledger_entries')
+      ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+      ->where('ledger_transactions.status', 'posted')
+      ->where('ledger_entries.party_type', 'App\FinishingTeam')
+      ->sum('base_credit');
+      
+  $total_sent_usd = \DB::table('ledger_entries')
+      ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+      ->where('ledger_transactions.status', 'posted')
+      ->where('ledger_entries.party_type', 'App\FinishingTeam')
+      ->sum('base_debit');
+      
   $net_balance_usd = $total_received_usd - $total_sent_usd;
 @endphp
 
@@ -245,10 +255,7 @@
               @if(!isset($accounts))
                 @foreach($teams as $t)
                   @php
-                    $total_balance_usd = \Illuminate\Support\Facades\DB::table('finishing_team_payments')
-                        ->where('team_id', $t->id)
-                        ->where('status', 1)
-                        ->sum(\DB::raw("CASE WHEN type = 'رسید' THEN base_amount ELSE -base_amount END"));
+                    $total_balance_usd = $t->normalized_balance;
                   @endphp
                   <tr>
                     <td class="px-4 font-weight-bold text-muted">{{ $t->id }}</td>
@@ -282,10 +289,7 @@
               @else
                 @foreach($teams as $t)
                   @php
-                    $total_balance_usd = \Illuminate\Support\Facades\DB::table('finishing_team_payments')
-                        ->where('team_id', $t->id)
-                        ->where('status', 1)
-                        ->sum(\DB::raw("CASE WHEN type = 'رسید' THEN base_amount ELSE -base_amount END"));
+                    $total_balance_usd = $t->normalized_balance;
                   @endphp
                   @if($t->payment->count() > 0 && $total_balance_usd != 0)
                     <tr>
@@ -322,8 +326,11 @@
 
               @if(!isset($search))
                 @php
-                  $grand_total_balance = \App\FinishingTeamPayment::where('status', 1)
-                      ->sum(\DB::raw("CASE WHEN type = 'رسید' THEN base_amount ELSE -base_amount END"));
+                  $grand_total_balance = \DB::table('ledger_entries')
+                      ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                      ->where('ledger_transactions.status', 'posted')
+                      ->where('ledger_entries.party_type', 'App\FinishingTeam')
+                      ->sum(\DB::raw('base_credit - base_debit'));
                 @endphp
                 <tr style="background: #f8fafc; font-weight: bold;">
                   <td class="px-4"></td>

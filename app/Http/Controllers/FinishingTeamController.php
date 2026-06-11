@@ -23,11 +23,23 @@ class FinishingTeamController extends Controller
         $fteamEdit = "";
         $teams = FinishingTeam::orderBy('id', 'desc')->get();
 
-        $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
         return view('finish-team.index', compact('teams', 'fteamEdit','credit_us','credit_af','debit_us','debit_af'));
     }
         public function search(Request $request)
@@ -38,11 +50,23 @@ class FinishingTeamController extends Controller
             $teams = FinishingTeam::where('name', 'like','%'.$search.'%')
                 ->orderBy('id', 'desc')
                 ->get();
-            $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
-            $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
+            $netUsd = \DB::table('ledger_entries')
+                ->where('party_type', 'App\FinishingTeam')
+                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                ->where('ledger_transactions.status', 'posted')
+                ->sum(\DB::raw('base_credit - base_debit'));
 
-            $debit_us = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount');
-            $debit_af = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount_af');
+            $netAf = \DB::table('ledger_entries')
+                ->where('party_type', 'App\FinishingTeam')
+                ->where('ledger_entries.currency_code', 'AFN')
+                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                ->where('ledger_transactions.status', 'posted')
+                ->sum(\DB::raw('credit - debit'));
+
+            $credit_us = $netUsd;
+            $debit_us = 0;
+            $credit_af = $netAf;
+            $debit_af = 0;
             return view('finish-team.index', compact('teams', 'fteamEdit','credit_us','credit_af','debit_us','debit_af','search'));
 
 
@@ -51,11 +75,23 @@ class FinishingTeamController extends Controller
         $fteamEdit = "";
         $teams = FinishingTeam::orderBy('id', 'desc')->get();
 
-        $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
         $accounts = '';
         return view('finish-team.index', compact('teams', 'fteamEdit','credit_us','credit_af','debit_us','debit_af','accounts'));
     }
@@ -121,11 +157,23 @@ class FinishingTeamController extends Controller
     {
         $fteamEdit = FinishingTeam::find($id);
         $teams = FinishingTeam::orderBy('id', 'desc')->paginate(6);
-        $credit_us = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = FinishingTeamPayment::where('type', '=', 'رسید')->sum('amount_af');
+        $netUsd = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('base_credit - base_debit'));
 
-        $debit_us = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = FinishingTeamPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $netAf = \DB::table('ledger_entries')
+            ->where('party_type', 'App\FinishingTeam')
+            ->where('ledger_entries.currency_code', 'AFN')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_transactions.status', 'posted')
+            ->sum(\DB::raw('credit - debit'));
+
+        $credit_us = $netUsd;
+        $debit_us = 0;
+        $credit_af = $netAf;
+        $debit_af = 0;
         return view('finish-team.index', compact('teams', 'fteamEdit','credit_us','credit_af','debit_us','debit_af'));
     }
 

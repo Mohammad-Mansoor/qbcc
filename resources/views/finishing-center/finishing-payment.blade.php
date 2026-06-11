@@ -12,19 +12,20 @@
         --soft-amber: #fff8e1;
         --dark-amber: #e65100;
     }
+    
     .premium-card {
         border: none;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border-radius: 16px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.06);
         background: #ffffff;
         margin-bottom: 30px;
         overflow: hidden;
-        transition: all 0.3s ease;
     }
     .card-header-premium {
         background: linear-gradient(135deg, var(--secondary-amber) 0%, var(--accent-gold) 100%);
-        padding: 20px 25px;
+        padding: 22px 28px;
         border: none;
+        color: white;
     }
     .card-header-premium h5 {
         color: #ffffff;
@@ -91,16 +92,72 @@
         padding: 12px 15px;
         vertical-align: middle;
     }
-    
-    .grand-total-banner {
-        background: linear-gradient(135deg, var(--dark-amber) 0%, var(--secondary-amber) 100%);
-        border-radius: 15px;
-        color: white;
-        padding: 25px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 20px rgba(230, 81, 0, 0.2);
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
     }
-    .badge-soft-amber { background: var(--soft-amber); color: var(--secondary-amber); }
+
+    .nav-tabs-premium {
+        border-bottom: 2px solid var(--soft-amber);
+        margin-bottom: 25px;
+    }
+    .nav-tabs-premium .nav-link {
+        border: none;
+        color: #607d8b;
+        padding: 14px 20px;
+        font-size: 0.95rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+    }
+    .nav-tabs-premium .nav-link:hover {
+        color: var(--primary-amber);
+        border-bottom-color: var(--soft-amber);
+    }
+    .nav-tabs-premium .nav-link.active {
+        color: var(--primary-amber) !important;
+        border-bottom-color: var(--primary-amber) !important;
+        background: transparent;
+    }
+
+    .accounting-override-box {
+        background: #fafafa;
+        border: 1px dashed #cfd8dc;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    @media print {
+        .pcoded-navbar, .header-chat, .pcoded-header, .nav-tabs, 
+        .hideOnPrint, #forensicFinishingForm, .btn, .card-header-premium button,
+        .btn-group, #exportButton, #finishingTabs, .container-fluid > .row:first-child,
+        .profile-card-parent, .form-card-parent {
+            display: none !important;
+        }
+        
+        .pcoded-main-container, .card, .card-body, #print-area {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            box-shadow: none !important;
+        }
+        
+        .print-header {
+            display: block !important;
+        }
+        
+        table {
+            width: 100% !important;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            font-size: 10pt !important;
+        }
+    }
 </style>
 
 <div class="container-fluid mt-4" id="finishing-payment-dashboard">
@@ -109,9 +166,9 @@
         <div class="col-md-7 text-right">
             <h3 class="font-weight-bold text-dark">
                 <i class="fa fa-magic" style="color:var(--primary-amber)"></i> 
-                پرداخت به تیم تیاری: {{ $team->name }}
+                پرداخت به تیم آماده‌سازی (تیاری): {{ $team->name }}
             </h3>
-            <p class="text-muted">مدیریت مالی و تصفیه حسابات نهایی بخش تیاری و پرداخت‌های تیم (Finishing Labor)</p>
+            <p class="text-muted">مدیریت مالی و تصفیه حسابات بخش آماده‌سازی فرشی (Labor Payments)</p>
         </div>
         <div class="col-md-5 text-left">
             <div class="btn-group">
@@ -171,7 +228,7 @@
                 <div class="stat-icon" style="background-color: #fff9c4; color: var(--accent-gold);">
                     <i class="fa fa-shield fa-lg"></i>
                 </div>
-                <h6 class="font-weight-bold text-dark mb-1">مجموع کل (USD Truth)</h6>
+                <h6 class="font-weight-bold text-dark mb-1">تصفیه کل لجر (Base USD)</h6>
                 <div class="mt-2">
                     <div class="d-flex justify-content-between small mb-1">
                         <span class="text-muted">کل پرداختی:</span>
@@ -182,9 +239,10 @@
                         <span class="font-weight-bold text-success">$ {{ number_format($totalBaseReceived, 2) }}</span>
                     </div>
                     <hr class="my-2">
+                    @php $netBalance = $totalBaseReceived - $totalBaseSent; @endphp
                     <div class="d-flex justify-content-between font-weight-bold" style="color:var(--secondary-amber)">
-                        <span>تصفیه نهایی:</span>
-                        <span>$ {{ number_format($totalBaseReceived - $totalBaseSent, 2) }}</span>
+                        <span>بیلانس جاری:</span>
+                        <span class="{{ $netBalance >= 0 ? 'text-success' : 'text-danger' }}">$ {{ number_format(abs($netBalance), 2) }} {{ $netBalance >= 0 ? '(Cr)' : '(Dr)' }}</span>
                     </div>
                 </div>
             </div>
@@ -193,7 +251,7 @@
 
     <!-- Entry Form Section -->
     @if(!isset($all))
-    <div class="premium-card">
+    <div class="premium-card form-card-parent">
         <div class="card-header-premium">
             <h5><i class="fa fa-plus-circle mr-2"></i> {{ $paymentEdit ? 'ویرایش سند پرداخت (Edit Payment)' : 'ثبت تراکنش جدید (New Entry)' }}</h5>
         </div>
@@ -206,7 +264,7 @@
                 <div class="row">
                     <div class="col-lg-3 col-md-6 form-group mb-4">
                         <label class="field-label">نوع تراکنش (Type)</label>
-                        <select name="type" class="form-control custom-input font-weight-bold" required>
+                        <select name="type" id="payment_type" class="form-control custom-input font-weight-bold" required>
                             <option value="گرفت" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت (پرداخت به تیم)</option>
                             <option value="رسید" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید (برگشتی از تیم)</option>
                         </select>
@@ -250,7 +308,7 @@
 
                     <div class="col-lg-3 col-md-6 form-group mb-4">
                         <label class="field-label">نمبر تیاری (Finish #)</label>
-                        <select name="finish_number" class="form-control custom-input select2">
+                        <select name="finish_number" id="finish_number" class="form-control custom-input select2">
                             <option value="General">General (نقد)</option>
                             @foreach($finish_numbers as $fn)
                                 <option value="{{$fn->finish_number}}" {{ ($paymentEdit && $paymentEdit->finish_number == $fn->finish_number) ? 'selected' : '' }}>
@@ -271,31 +329,33 @@
                             <i class="fa fa-cog"></i> تنظیمات پیشرفته حسابداری (Accounting Overrides)
                         </button>
                         <div class="collapse mt-3" id="advancedAccounting">
-                            <div class="row">
-                                <div class="col-md-6 form-group">
-                                    <label class="small font-weight-bold">حساب بدهکار (Debit Account Override)</label>
-                                    <select name="override_debit_account_id" class="form-control custom-input select2">
-                                        <option value="">Default: {{ $mapping->debit_account->account_name ?? 'System' }}</option>
-                                        @foreach($allowedDebitAccounts as $acc)
-                                            <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-6 form-group">
-                                    <label class="small font-weight-bold">حساب بستانکار (Credit Account Override)</label>
-                                    <select name="override_credit_account_id" class="form-control custom-input select2">
-                                        <option value="">Default: {{ $mapping->credit_account->account_name ?? 'System' }}</option>
-                                        @foreach($allowedCreditAccounts as $acc)
-                                            <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
-                                        @endforeach
-                                    </select>
+                            <div class="accounting-override-box">
+                                <div class="row">
+                                    <div class="col-md-6 form-group">
+                                        <label class="small font-weight-bold">حساب بدهکار (Debit Account Override)</label>
+                                        <select name="override_debit_account_id" id="override_debit_account_id" class="form-control custom-input select2">
+                                            <option value="">Default: {{ $mappingOut->debit_account->account_name ?? 'System' }}</option>
+                                            @foreach($allowedDebitAccounts as $acc)
+                                                <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 form-group">
+                                        <label class="small font-weight-bold">حساب بستانکار (Credit Account Override)</label>
+                                        <select name="override_credit_account_id" id="override_credit_account_id" class="form-control custom-input select2">
+                                            <option value="">Default: {{ $mappingOut->credit_account->account_name ?? 'System' }}</option>
+                                            @foreach($allowedCreditAccounts as $acc)
+                                                <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-3 col-md-12 text-left">
-                        <button class="btn btn-primary btn-block rounded-pill py-3 font-weight-bold shadow-lg" type="submit" style="background:var(--primary-amber); border:none;">
+                        <button id="submit-payment-btn" class="btn btn-primary btn-block rounded-pill py-3 font-weight-bold shadow-lg" type="submit" style="background:var(--primary-amber); border:none;">
                             <i class="fa fa-save"></i> {{ $paymentEdit ? 'بروزرسانی تراکنش' : 'ثبت نهایی تراکنش' }}
                         </button>
                     </div>
@@ -305,80 +365,257 @@
     </div>
     @endif
 
-    <!-- Ledger Table -->
-    <div class="premium-card">
-        <div class="card-header-premium d-flex justify-content-between align-items-center" style="background: var(--dark-amber);">
-            <h5><i class="fa fa-list-alt mr-2"></i> لجر محاسباتی تیم تیاری (Forensic Audit Ledger)</h5>
-            <div id="exportButton">
-                @if(!isset($all))
-                    <a href="/dashboard/finishing-payments-all/{{$team->id}}" class="btn btn-sm btn-light rounded-pill px-3">
-                        <i class="fa fa-eye"></i> نمایش همه
-                    </a>
-                @endif
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table premium-table table-hover mb-0 text-right" id="finishing_ledger_table">
-                    <thead>
-                        <tr>
-                            <th class="px-4">تاریخ</th>
-                            <th>نوع</th>
-                            <th>نمبر تیاری</th>
-                            <th>شرح</th>
-                            <th>ارز</th>
-                            <th>نرخ</th>
-                            <th>مقدار اصلی</th>
-                            <th>معادل دالر</th>
-                            <th class="hideOnPrint text-center">عملیات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($payments as $p)
-                        <tr>
-                            <td class="px-4 font-weight-bold text-muted">{{ $p->date }}</td>
-                            <td>
-                                <span class="badge {{ $p->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2 rounded-pill font-weight-bold">
-                                    {{ $p->type }}
-                                </span>
-                            </td>
-                            <td class="text-warning font-weight-bold">{{ $p->finish_number ?: 'N/A' }}</td>
-                            <td class="small">{{ $p->description }}</td>
-                            <td class="font-weight-bold text-warning">{{ $p->currency_code ?: 'USD' }}</td>
-                            <td class="small" style="direction: ltr;">{{ number_format($p->exchange_rate, 8) }}</td>
-                            <td class="font-weight-bold" style="direction: ltr;">{{ number_format($p->original_amount ?: ($p->amount ?: $p->amount_af), 2) }}</td>
-                            <td class="font-weight-bold text-dark" style="direction: ltr;">$ {{ number_format($p->base_amount ?: ($p->amount ?: $p->amount_af), 2) }}</td>
-                            <td class="hideOnPrint text-center">
-                                <div class="btn-group">
-                                    <a href="/dashboard/finishing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-warning border-0">
-                                        <i class="fa fa-edit"></i>
-                                    </a>
-                                    
-                                    @php
-                                        $transaction = \App\LedgerTransaction::where('source_type', 'payment')->where('source_id', $p->id)->first();
-                                    @endphp
-                                    @if($transaction)
-                                        <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-success border-0" title="View Journal">
-                                            <i class="fa fa-book"></i>
-                                        </a>
-                                    @endif
+    <!-- 3-TABBED FORENSIC MODULE -->
+    <div class="row profile-card-parent">
+        <div class="col-12">
+            <ul class="nav nav-tabs nav-tabs-premium border-0" id="finishingTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active font-weight-bold" id="payments-tab" data-toggle="tab" href="#payments" role="tab"><i class="fa fa-money mr-1"></i> ریز معاملات و دستمزدها (Wage Ledger)</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link font-weight-bold" id="finishes-tab" data-toggle="tab" href="#finishing_works" role="tab"><i class="fa fa-magic mr-1"></i> مصارف و کارهای آماده‌سازی (Finishing & Costs)</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
+                </li>
+            </ul>
 
-                                    <button onclick="deletePayment({{$p->id}})" class="btn btn-sm btn-outline-danger border-0">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
+            <div class="tab-content" id="finishingTabContent">
+                <!-- Tab 1: Payments List (Wage Ledger) -->
+                <div class="tab-pane fade show active" id="payments" role="tabpanel">
+                    <div class="premium-card">
+                        <div class="card-header-premium d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--secondary-amber) 0%, var(--accent-gold) 100%);">
+                            <h5><i class="fa fa-list-alt mr-2"></i> ریز معاملات و دستمزدها (Wage Ledger)</h5>
+                            <div id="exportButton">
+                                @if(!isset($all))
+                                    <a href="/dashboard/finishing-payments-all/{{$team->id}}" class="btn btn-sm btn-light rounded-pill px-3">
+                                        <i class="fa fa-eye"></i> نمایش همه
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table premium-table table-hover mb-0 text-right" id="finishing_ledger_table">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-4">تاریخ (Date)</th>
+                                            <th>نوع (Type)</th>
+                                            <th>نمبر تیاری (Finish #)</th>
+                                            <th>شرح (Description)</th>
+                                            <th>ارز (CCY)</th>
+                                            <th>نرخ (Rate)</th>
+                                            <th>مقدار اصلی (Amount)</th>
+                                            <th>معادل دالر (USD)</th>
+                                            <th>حالت (Status)</th>
+                                            <th class="hideOnPrint text-center">عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($payments as $p)
+                                        <tr>
+                                            <td class="px-4 font-weight-bold text-muted">{{ $p->date }}</td>
+                                            <td>
+                                                <span class="badge {{ $p->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2 rounded-pill font-weight-bold">
+                                                    {{ $p->type }}
+                                                </span>
+                                            </td>
+                                            <td class="text-warning font-weight-bold">{{ $p->finish_number ?: 'N/A' }}</td>
+                                            <td class="small">{{ $p->description }}</td>
+                                            <td class="font-weight-bold text-warning">{{ $p->currency_code ?: 'USD' }}</td>
+                                            <td class="small" style="direction: ltr;">{{ number_format($p->exchange_rate, 8) }}</td>
+                                            <td class="font-weight-bold" style="direction: ltr;">{{ number_format($p->original_amount ?: ($p->amount ?: $p->amount_af), 2) }}</td>
+                                            <td class="font-weight-bold text-dark" style="direction: ltr;">$ {{ number_format($p->base_amount ?: ($p->amount ?: $p->amount_af), 2) }}</td>
+                                            <td>
+                                                @if($p->status == 0)
+                                                    <span class="status-badge bg-warning text-dark">انتظار تایید</span>
+                                                @else
+                                                    <span class="status-badge bg-success text-white">تایید شده</span>
+                                                @endif
+                                            </td>
+                                            <td class="hideOnPrint text-center">
+                                                @if($p->status == 0 || auth()->user()->role == 'SP')
+                                                    <div class="btn-group">
+                                                        <a href="/dashboard/finishing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-warning">
+                                                            <i class="fa fa-edit"></i>
+                                                        </a>
+                                                        <button type="button" onclick="deletePayment({{$p->id}}, {{$p->team_id}})" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot class="bg-light">
+                                        @foreach($currencyTotals as $code => $totals)
+                                        <tr>
+                                            <th colspan="3" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
+                                            <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
+                                            <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
+                                            @php $balance = $totals->total_received - $totals->total_sent; @endphp
+                                            <td colspan="3" class="text-center font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
+                                                بیلانس: {{ number_format(abs($balance), 2) }} {{ $code }}
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                        <tr style="background: #fff8e1;">
+                                            <th colspan="3" class="text-right text-warning"><b>مجموع کل بیلانس لجر (Base USD)</b></th>
+                                            <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
+                                            <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
+                                            @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp
+                                            <td colspan="3" class="text-center font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
+                                                $ {{ number_format(abs($baseBalance), 2) }}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        @if(!isset($all))
+                        <div class="card-footer bg-white border-0 py-3 text-left">
+                            {{ $payments->links() }}
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Tab 2: Finishes List -->
+                <div class="tab-pane fade" id="finishing_works" role="tabpanel">
+                    <div class="premium-card">
+                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center">
+                            <h5><i class="fa fa-list mr-2"></i> جزئیات کارهای آماده‌سازی (تیاری) انجام شده</h5>
+                            <span class="badge badge-light p-2 font-weight-bold text-warning" style="font-size: 0.9rem;">
+                                مجموع مصارف: $ {{ number_format($totalBaseFinishes, 2) }}
+                            </span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table premium-table table-hover text-right">
+                                    <thead>
+                                        <tr>
+                                            <th>تاریخ completion</th>
+                                            <th>نمبر آماده‌سازی (Finish #)</th>
+                                            <th>هزینه کل (Total Cost)</th>
+                                            <th>پرداخت شده (Paid)</th>
+                                            <th>باقی‌مانده (Remaining)</th>
+                                            <th>وضعیت (Status)</th>
+                                            <th>واحد پولی</th>
+                                            <th>عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($finishingWorks as $w)
+                                        <tr>
+                                            <td>{{ $w->date }}</td>
+                                            <td><span class="badge badge-light border">{{ $w->finish_number }}</span></td>
+                                            <td class="font-weight-bold">$ {{ number_format($w->total_cost, 2) }}</td>
+                                            <td class="text-success">$ {{ number_format($w->total_paid, 2) }}</td>
+                                            <td class="text-danger font-weight-bold">$ {{ number_format($w->remaining_balance, 2) }}</td>
+                                            <td>
+                                                @if($w->payment_status === 'paid')
+                                                    <span class="badge badge-success">تصفیه کامل</span>
+                                                @elseif($w->payment_status === 'partial')
+                                                    <span class="badge badge-warning">تصفیه قسمی</span>
+                                                @else
+                                                    <span class="badge badge-danger">پرداخت نشده</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-muted small">USD</td>
+                                            <td>
+                                                @if($w->remaining_balance > 0)
+                                                <button type="button" class="btn btn-sm btn-warning pay-finish-btn text-white" 
+                                                        data-ref="{{ $w->finish_number }}" 
+                                                        data-remaining="{{ $w->remaining_balance }}" 
+                                                        data-currency="USD">
+                                                    <i class="fa fa-credit-card"></i> پرداخت
+                                                </button>
+                                                @else
+                                                <span class="text-success"><i class="fa fa-check-circle"></i> پرداخت کامل</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">هیچ کار آماده‌سازی برای این تیم ثبت نشده است.</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Unified Ledger Statement -->
+                <div class="tab-pane fade" id="statement" role="tabpanel">
+                    <div class="premium-card">
+                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #e65100 0%, #ff8f00 100%);">
+                            <h5><i class="fa fa-book mr-2"></i> صورت حساب مالی تفصیلی (GL Statement)</h5>
+                            <button type="button" class="btn btn-light btn-sm font-weight-bold text-dark" onclick="printStatement()">
+                                <i class="fa fa-print"></i> چاپ صورت حساب
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" id="print-area">
+                                <!-- Print-only Header (Hidden on Screen) -->
+                                <div class="d-none print-header text-center mb-4 mt-3">
+                                    <h3 class="font-weight-bold">صورت حساب مالی آماده‌سازی (تیاری): {{ $team->name }}</h3>
+                                    <p>تاریخ گزارش: {{ date('Y-m-d') }} | اکونت نمبر: {{ $team->id }}</p>
                                 </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                <table class="table premium-table table-hover text-right">
+                                    <thead>
+                                        <tr>
+                                            <th>تاریخ</th>
+                                            <th>شرح معامله</th>
+                                            <th>مرجع (Ref)</th>
+                                            <th>بدهکار (Debit/Paid)</th>
+                                            <th>طلبکار (Credit/Cost)</th>
+                                            <th>بیلانس (Outstanding)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php $runningBalance = 0; @endphp
+                                        @forelse($ledgerStatement as $entry)
+                                            @php 
+                                                $debit = (float)$entry->base_debit;
+                                                $credit = (float)$entry->base_credit;
+                                                $runningBalance += ($credit - $debit);
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $entry->date }}</td>
+                                                <td>{{ $entry->description }}</td>
+                                                <td><span class="badge badge-light border">{{ $entry->reference }}</span></td>
+                                                <td class="text-danger font-weight-bold">{{ $debit > 0 ? '$ ' . number_format($debit, 2) : '-' }}</td>
+                                                <td class="text-success font-weight-bold">{{ $credit > 0 ? '$ ' . number_format($credit, 2) : '-' }}</td>
+                                                <td class="font-weight-bold {{ $runningBalance >= 0 ? 'text-success' : 'text-danger' }}">
+                                                    $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? '(Cr)' : '(Dr)' }}
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">هیچ تراکنش حسابی یافت نشد.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                    <tfoot class="bg-light">
+                                        <tr>
+                                            <th colspan="3" class="text-right">بیلانس نهایی طلبات (Base USD)</th>
+                                            <th class="text-danger">$ {{ number_format($ledgerStatement->sum('base_debit'), 2) }}</th>
+                                            <th class="text-success">$ {{ number_format($ledgerStatement->sum('base_credit'), 2) }}</th>
+                                            <th class="font-weight-bold text-primary" style="font-size: 1.1rem;">
+                                                $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? 'باقی مانده (طلبکار)' : 'طلبکار (بدهکار)' }}
+                                            </th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        @if(!isset($all))
-        <div class="card-footer bg-white border-0 py-3 text-left">
-            {{ $payments->links() }}
-        </div>
-        @endif
     </div>
 </div>
 
@@ -386,15 +623,72 @@
 
 @section('scripts')
 <script>
-    $(document).ready(function () {
-        $('.select2').select2({ width: '100%' });
+    // Map of unpaid balances per reference to check on inputs
+    const unpaidBalances = {};
+    @foreach($finishingWorks as $w)
+        unpaidBalances["{{ $w->finish_number }}"] = parseFloat("{{ $w->remaining_balance }}");
+    @endforeach
 
+    $(document).ready(function () {
+        $('#finish_number').select2();
+        $('#currency_id').select2();
+        $('#override_debit_account_id').select2();
+        $('#override_credit_account_id').select2();
+
+        // Dynamic account selection based on payment type (رسید vs گرفت)
+        const mappingInDebit = "{{ $mappingIn->debit_account_id ?? '' }}";
+        const mappingInCredit = "{{ $mappingIn->credit_account_id ?? '' }}";
+        const mappingOutDebit = "{{ $mappingOut->debit_account_id ?? '' }}";
+        const mappingOutCredit = "{{ $mappingOut->credit_account_id ?? '' }}";
+
+        $('#payment_type').on('change', function () {
+            const type = $(this).val();
+            if (type === 'رسید') {
+                $('#override_debit_account_id').val(mappingInDebit).trigger('change');
+                $('#override_credit_account_id').val(mappingInCredit).trigger('change');
+            } else {
+                $('#override_debit_account_id').val(mappingOutDebit).trigger('change');
+                $('#override_credit_account_id').val(mappingOutCredit).trigger('change');
+            }
+        });
+
+        // LIVE TRUTH PREVIEW & VALIDATION LOGIC
         function updateUsdPreview() {
             const amount = parseFloat($('#original_amount').val()) || 0;
             const rate = parseFloat($('#exchange_rate').val()) || 0;
             const baseAmount = (amount * rate).toFixed(4);
             
             $('#usd_truth_preview').text('$ ' + parseFloat(baseAmount).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}));
+            
+            // Validate remaining balance
+            const ref = $('#finish_number').val();
+            const type = $('#payment_type').val();
+            
+            $('#overpayment-warning').remove();
+            $('#submit-payment-btn').prop('disabled', false);
+
+            if (ref !== 'General' && type === 'گرفت' && unpaidBalances[ref] !== undefined) {
+                // Determine if we are editing an existing payment to exclude it from the client-side validation logic
+                const isEditing = "{{ $paymentEdit ? 'true' : 'false' }}";
+                let maxAllowed = unpaidBalances[ref];
+                
+                if (isEditing === 'true') {
+                    const originalEditVal = parseFloat("{{ $paymentEdit ? $paymentEdit->original_amount : 0 }}");
+                    const originalEditRef = "{{ $paymentEdit ? $paymentEdit->finish_number : '' }}";
+                    if (ref === originalEditRef) {
+                        maxAllowed += originalEditVal;
+                    }
+                }
+
+                if (amount > maxAllowed) {
+                    $('#original_amount').after(
+                        `<small id="overpayment-warning" class="text-danger d-block mt-1 font-weight-bold">
+                            هشدار: مبلغ پرداختی از باقی‌مانده کار بیشتر است. حداکثر مجاز: ${maxAllowed.toFixed(2)}
+                        </small>`
+                    );
+                    $('#submit-payment-btn').prop('disabled', true);
+                }
+            }
         }
 
         $('#currency_id').on('change', function() {
@@ -403,16 +697,54 @@
             updateUsdPreview();
         });
 
-        $('#original_amount, #exchange_rate').on('input', updateUsdPreview);
+        $('#original_amount, #exchange_rate, #finish_number, #payment_type').on('input change', updateUsdPreview);
         updateUsdPreview();
+
+        // Pay Button Click Handler
+        $('.pay-finish-btn').on('click', function() {
+            const refNumber = $(this).data('ref');
+            const remaining = $(this).data('remaining');
+            const currency = $(this).data('currency');
+            
+            // 1. Switch to Payments Tab
+            $('#payments-tab').tab('show');
+            
+            // 2. Pre-fill Form Fields
+            $('#original_amount').val(remaining).trigger('input');
+            $('#payment_type').val('گرفت').trigger('change');
+            
+            if ($('#finish_number option[value="' + refNumber + '"]').length > 0) {
+                $('#finish_number').val(refNumber).trigger('change');
+            } else {
+                const newOption = new Option(refNumber, refNumber, true, true);
+                $('#finish_number').append(newOption).trigger('change');
+            }
+            
+            $('#currency_id option').each(function() {
+                if ($(this).text().indexOf(currency) !== -1) {
+                    $('#currency_id').val($(this).val()).trigger('change');
+                }
+            });
+
+            $('html, body').animate({
+                scrollTop: $("#forensicFinishingForm").offset().top - 100
+            }, 500);
+        });
     });
 
-    function deletePayment(id) {
+    function printStatement() {
+        window.print();
+    }
+
+    function deletePayment(id, team_id) {
         swal({
             title: "آیا مطمئن هستید؟",
-            text: "این سند مالی و تمام آثار حسابداری آن حذف خواهد شد!",
+            text: "این سند و تراکنش مالی آن حذف خواهد شد!",
             icon: "warning",
-            buttons: ["نخیر", "بلی، حذف شود"],
+            buttons: {
+                cancel: "نخیر",
+                confirm: { text: "بلی، حذف شود", className: "btn-danger" }
+            },
             dangerMode: true,
         }).then((willDelete) => {
             if (willDelete) {
@@ -422,7 +754,8 @@
                     data: { '_token': '{{csrf_token()}}' },
                     success: function (res) {
                         if (res.status == 'success') {
-                            swal("موفقانه حذف شد!", { icon: "success" }).then(() => location.reload());
+                            swal("موفقانه حذف شد!", { icon: "success" });
+                            setTimeout(() => window.location = '/dashboard/finishing-payments/' + team_id, 1000);
                         } else {
                             swal("خطا در حذف!", { icon: "error" });
                         }
