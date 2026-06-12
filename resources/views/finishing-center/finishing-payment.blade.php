@@ -175,6 +175,9 @@
                 <a href="/dashboard/finishing-team" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                     <i class="fa fa-arrow-right"></i> بازگشت
                 </a>
+                <a href="/dashboard/finishing-center?team_id={{$team->id}}" class="btn btn-warning btn-sm rounded-pill px-3 ml-2" style="background:var(--primary-amber); border:none; color:white;">
+                    <i class="fa fa-scissors"></i> ثبت کار تیاری جدید
+                </a>
                 <button class="btn btn-outline-warning btn-sm rounded-pill px-3 ml-2" onclick="window.print()" style="border-color:var(--primary-amber); color:var(--primary-amber)">
                     <i class="fa fa-print"></i> چاپ صورت حساب
                 </button>

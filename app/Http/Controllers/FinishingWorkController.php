@@ -28,15 +28,20 @@ class FinishingWorkController extends Controller
         $this->inventoryManager = $inventoryManager;
     }
 
-    public function saving_the_work(Carpet $carpet)
+    public function saving_the_work(Carpet $carpet, Request $request)
     {
         $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
         $lastId = FinishingWork::latest()->first();
-        $FinishNo = $lastId ? 'TA-' . (substr($lastId->finish_number, -1) + 1) : 'TA-1';
+        if ($lastId && preg_match('/TA-(\d+)/', $lastId->finish_number, $matches)) {
+            $FinishNo = 'TA-' . ($matches[1] + 1);
+        } else {
+            $FinishNo = 'TA-1';
+        }
 
         $done = FinishingWork::where('carpetId', $carpet->carpet_id)->pluck('category_id')->toArray();
         $teams = FinishingTeam::all();
         $team_categories = FinishingTeamCategory::whereNotIn('id', $done)->get();
+        $selected_team_id = $request->query('team_id');
         
         $qaitan_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 1)->first();
         $rofo_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 2)->first();
@@ -63,7 +68,7 @@ class FinishingWorkController extends Controller
             'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency', 'currencies',
             'qaitan_check', 'rofo_check', 'cheet_check', 'labaki_check', 
             'popak_check', 'kash_check', 'rang_check', 'shiraza_check',
-            'warehouses'
+            'warehouses', 'selected_team_id'
         ));
     }
 
@@ -219,14 +224,19 @@ class FinishingWorkController extends Controller
 
 
 
-    public function re_saving_the_work(Carpet $carpet)
+    public function re_saving_the_work(Carpet $carpet, Request $request)
     {
         $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
         $lastId = FinishingWork::latest()->first();
-        $FinishNo = $lastId ? 'TA-' . (substr($lastId->finish_number, -1) + 1) : 'TA-1';
+        if ($lastId && preg_match('/TA-(\d+)/', $lastId->finish_number, $matches)) {
+            $FinishNo = 'TA-' . ($matches[1] + 1);
+        } else {
+            $FinishNo = 'TA-1';
+        }
 
         $teams = FinishingTeam::all();
         $team_categories = FinishingTeamCategory::all();
+        $selected_team_id = $request->query('team_id');
         
         $checks = [];
         for($i=1; $i<=8; $i++) {
@@ -242,7 +252,7 @@ class FinishingWorkController extends Controller
         $currencyObj = \App\Currency::where('code', 'AFN')->first();
         $currency = ($currencyObj && $currencyObj->exchange_rate > 0) ? (1 / $currencyObj->exchange_rate) : 70.0;
 
-        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'currency'), $checks));
+        return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'FinishNo', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'currency', 'selected_team_id'), $checks));
     }
 
     private function processWorkCategory($request, $carpet, $newCarpet, $category_id, $field_suffix)

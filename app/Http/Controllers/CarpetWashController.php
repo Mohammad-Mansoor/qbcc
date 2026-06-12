@@ -750,6 +750,26 @@ class CarpetWashController extends Controller
 
     public function sent_to_finishing_center(Request $request, Carpet $carpet)
     {
+        if ($request->isMethod('get')) {
+            $finishing_teams = \App\FinishingTeam::all();
+            $warehouses = DB::table('warehouses')
+                ->where('is_active', 1)
+                ->where('subtype', 'carpet')
+                ->get();
+            $mapping = DB::table('mapping_rules')->where('mapping_key', 'finishing_transfer')->first();
+            $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
+
+            $teamStats = DB::table('carpets')
+                ->select('finishing_id', DB::raw('count(*) as qty'), DB::raw('sum(area) as total_area'))
+                ->where('status', 4)
+                ->whereNotNull('finishing_id')
+                ->groupBy('finishing_id')
+                ->get()
+                ->keyBy('finishing_id');
+
+            return view('finishing-center.sending-to-finishing', compact('finishing_teams', 'carpet', 'warehouses', 'defaultWarehouse', 'teamStats'));
+        }
+
         $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',
             'finishing_id' => 'required|exists:finishing_teams,id'
@@ -759,9 +779,10 @@ class CarpetWashController extends Controller
             // Concurrency protection via pessimistic write-lock
             $carpet = Carpet::where('carpet_id', $carpet->carpet_id)->lockForUpdate()->firstOrFail();
 
-            if ($carpet->status != 13) {
-                return redirect('/dashboard/carpet-wash')->with('error', 'قالین مذکور شسته شده نیست یا قبلا تعیین وضعیت شده است.');
-            }
+            // Status check restriction removed to allow direct sending to Tayaari from any step
+            // if ($carpet->status != 13) {
+            //     return redirect('/dashboard/carpet-wash')->with('error', 'قالین مذکور شسته شده نیست یا قبلا تعیین وضعیت شده است.');
+            // }
 
             $sourceWarehouseId = $carpet->warehouse_id ?? 1;
             $targetWarehouseId = $request->warehouse_id;
@@ -821,7 +842,8 @@ class CarpetWashController extends Controller
                 ]);
             }
 
-            return redirect('/dashboard/carpet-wash')->with('status', 'قالین موفقانه به بخش تیاری فرستاده شد');
+            $redirectTo = $request->input('redirect_to', '/dashboard/carpet-wash');
+            return redirect($redirectTo)->with('status', 'قالین موفقانه به بخش تیاری فرستاده شد');
         });
     }
 

@@ -68,6 +68,23 @@
                       </div>
                   </div>
               </div>
+              <div class="row mb-4 p-3" style="background: #fdfdfe; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 25px;">
+                  <div class="col-lg-12">
+                      <h6 class="text-primary mb-3"><i class="fa fa-users"></i> انتخاب همزمان تیم کاری (Bulk Team Selector)</h6>
+                  </div>
+                  <div class="col-lg-4">
+                      <div class="form-group">
+                          <label class="pull-right" style="font-weight: 600;">تغییر تیم کاری برای تمامی بخش‌ها</label>
+                          <select id="master_team_select" class="form-control">
+                              <option value="">-- انتخاب تیم --</option>
+                              @foreach($teams as $t)
+                                  <option value="{{ $t->id }}" {{ (isset($selected_team_id) && $selected_team_id == $t->id) ? 'selected' : '' }}>{{ $t->name }}</option>
+                              @endforeach
+                          </select>
+                          <small class="text-muted">با تغییر این گزینه، تیم کاری تمام بخش‌های این قالین به صورت همزمان به تیم انتخابی تغییر خواهد کرد.</small>
+                      </div>
+                  </div>
+              </div>
 
                 <div class="row">
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
@@ -100,9 +117,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_qaitan" id="team_id" class="form-control">
+                      <select name="team_id_qaitan" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_qaitan', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id_qaitan') {{ __('message.'.$message) }}@enderror
@@ -195,9 +212,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_rofo" id="team_id" class="form-control">
+                      <select name="team_id_rofo" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_rofo', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -290,9 +307,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_cheet" id="team_id" class="form-control">
+                      <select name="team_id_cheet" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_cheet', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -383,9 +400,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_labaki" id="team_id" class="form-control">
+                      <select name="team_id_labaki" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_labaki', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -476,9 +493,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_popak" id="team_id" class="form-control">
+                      <select name="team_id_popak" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_popak', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -565,9 +582,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_kash" id="team_id" class="form-control">
+                      <select name="team_id_kash" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_kash', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -654,9 +671,9 @@
                   <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                     <div class="form-group fill">
                       <label class="pull-right">تیم تیاری</label>
-                      <select name="team_id_rang" id="team_id" class="form-control">
+                      <select name="team_id_rang" class="form-control">
                         @foreach($teams as $team)
-                          <option {{ (Request::old('team_id'))}} value="{{$team->id}}">{{$team->name}}</option>
+                          <option value="{{$team->id}}" {{ (old('team_id_rang', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
                         @endforeach
                       </select>
                       <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
@@ -744,6 +761,13 @@
           $('#override_credit_account_id').select2({ width: '100%' });
           $('#currency_code').select2({ width: '100%' });
           $('select').select2({ width: '100%' });
+
+          $('#master_team_select').change(function() {
+              let val = $(this).val();
+              if (val) {
+                  $('select[name^="team_id_"]').val(val).trigger('change');
+              }
+          });
 
           function updateCurrencyUI() {
               let selectedOption = $('#currency_code').find('option:selected');

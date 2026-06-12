@@ -445,32 +445,20 @@
                       @if($nonfinish->carpet_wash)
                         <td>{{$nonfinish->carpet_wash->wash_number ?? ''}}</td>
                       @else
-                        <td></td>
+                        <td>---</td>
                       @endif
-                      @if($nonfinish->carpet_wash)
-                        <td>{{$nonfinish->carpet_wash->height ?? ''}}</td>
-                      @else
-                        <td></td>
-                      @endif
-                      @if($nonfinish->carpet_wash)
-                        <td>{{$nonfinish->carpet_wash->width ?? ''}}</td>
-                      @else
-                        <td></td>
-                      @endif
-                      @if($nonfinish->carpet_wash)
-                        <td>{{$nonfinish->carpet_wash->area ?? ''}}</td>
-                      @else
-                        <td></td>
-                      @endif
+                      <td>{{$nonfinish->carpet_wash ? $nonfinish->carpet_wash->height : ($nonfinish->height ?? '')}}</td>
+                      <td>{{$nonfinish->carpet_wash ? $nonfinish->carpet_wash->width : ($nonfinish->width ?? '')}}</td>
+                      <td>{{$nonfinish->carpet_wash ? $nonfinish->carpet_wash->area : ($nonfinish->area ?? '')}}</td>
                       @if($nonfinish->carpet_wash)
                         <td>{{$nonfinish->carpet_wash->date ?? ''}}</td>
                       @else
-                        <td></td>
+                        <td>---</td>
                       @endif
                       
                       
                       <td class="hideOnPrint"><a
-                                href="/dashboard/finishing-center/finish-work/{{$nonfinish->carpet_id ?? ''}}"
+                                href="/dashboard/finishing-center/finish-work/{{$nonfinish->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
                                 class="btn-modern-action btn-tiari printBTN"><i
                                   class="fa fa-scissors"></i>&nbsp; تیاری</a></td>
   
@@ -594,7 +582,7 @@
                       @endif
   
                       <td class="hideOnPrint"><a
-                                href="/dashboard/finishing-center/re-finish-work/{{$finish->carpet->carpet_id ?? ''}}"
+                                href="/dashboard/finishing-center/re-finish-work/{{$finish->carpet->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
                                 class="btn-modern-action btn-re-tiari printBTN"><i
                                   class="fa fa-refresh"></i>&nbsp; دوباره تیاری</a></td>
                       <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn-modern-action btn-edit printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
@@ -605,8 +593,8 @@
                     </tr>
                     
                     <span style="display: none">
-                      @if($finish->carpet->carpet_wash)
-                        {{$total_area += $finish->carpet->carpet_wash->area}}
+                      @if($finish->carpet)
+                        {{$total_area += ($finish->carpet->carpet_wash ? $finish->carpet->carpet_wash->area : ($finish->carpet->area ?? 0))}}
                       @endif
                     </span>
                   
