@@ -361,16 +361,8 @@ class CarpetWashController extends Controller
     public function create_carpet_wash($id)
     {
         $carpet_wash = CarpetWash::find($id);
-        $lastId = CarpetWash::where('team_id',$carpet_wash->team_id)->latest()->first();
-        // Safely extract and increment the numeric part of the legacy SH-X format
-        $WashNo = 'SH-1';
-        if ($lastId && $lastId->wash_number_sh) {
-            $num = 0;
-            if (preg_match('/(\d+)/', $lastId->wash_number_sh, $matches)) {
-                $num = (int)$matches[1];
-            }
-            $WashNo = 'SH-' . ($num + 1);
-        }
+        
+        $openBatches = \App\ProductionBatch::where('type', 'wash')->where('status', 'open')->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');
@@ -383,7 +375,7 @@ class CarpetWashController extends Controller
 
         $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
 
-        return view('carpet-wash.create', compact('carpet_wash','WashNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies', 'warehouses'));
+        return view('carpet-wash.create', compact('carpet_wash', 'openBatches', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies', 'warehouses'));
     }
 
     /**

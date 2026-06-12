@@ -173,7 +173,19 @@
             <div class="col-md-3 col-sm-6 mb-3">
               <div class="form-group">
                 <label class="pull-right">نمبر شست جدید فروشات (New Sales Wash#)</label>
-                <input type="text" name="wash_number_sh" required placeholder="نمبر شست فروشات" class="form-control" value="{{$WashNo}}">
+                <div class="input-group">
+                  <select name="wash_number_sh" id="wash_number_sh" required class="form-control select2">
+                    <option value="">-- انتخاب نمبر شست --</option>
+                    @foreach($openBatches as $batch)
+                      <option value="{{ $batch->reference_number }}">{{ $batch->reference_number }}</option>
+                    @endforeach
+                  </select>
+                  <div class="input-group-append">
+                    <button type="button" class="btn btn-success" id="btn_generate_wash_number" title="ایجاد نمبر جدید">
+                      <i class="fa fa-plus"></i> ایجاد
+                    </button>
+                  </div>
+                </div>
                 @error('wash_number_sh') <p class="text-danger mt-1">{{trans('message.'.$message)}}</p> @enderror
               </div>
             </div>
@@ -369,6 +381,40 @@
 
         // Trigger change once on load to populate initial exchange rate
         $('#currency_code').trigger('change');
+
+        // AJAX Generate Wash Number
+        $('#btn_generate_wash_number').on('click', function() {
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            
+            $.ajax({
+                url: '/dashboard/batches/wash',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success && response.batch) {
+                        var newRef = response.batch.reference_number;
+                        if ($('#wash_number_sh option[value="' + newRef + '"]').length === 0) {
+                            var newOption = new Option(newRef, newRef, true, true);
+                            $('#wash_number_sh').append(newOption).trigger('change');
+                        } else {
+                            $('#wash_number_sh').val(newRef).trigger('change');
+                        }
+                        swal("موفقیت", "نمبر شست جدید با موفقیت ایجاد و انتخاب گردید: " + newRef, "success");
+                    } else {
+                        swal("خطا", "ایجاد نمبر با خطا مواجه شد.", "error");
+                    }
+                },
+                error: function() {
+                    swal("خطا", "ارتباط با سرور برقرار نشد.", "error");
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> ایجاد');
+                }
+            });
+        });
     });
 </script>
 @endsection

@@ -69,11 +69,9 @@
                   </div>
               </div>
               <div class="row mb-4 p-3" style="background: #fdfdfe; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 25px;">
-                  <div class="col-lg-12">
-                      <h6 class="text-primary mb-3"><i class="fa fa-users"></i> انتخاب همزمان تیم کاری (Bulk Team Selector)</h6>
-                  </div>
-                  <div class="col-lg-4">
+                  <div class="col-lg-6">
                       <div class="form-group">
+                          <h6 class="text-primary mb-3"><i class="fa fa-users"></i> انتخاب همزمان تیم کاری (Bulk Team Selector)</h6>
                           <label class="pull-right" style="font-weight: 600;">تغییر تیم کاری برای تمامی بخش‌ها</label>
                           <select id="master_team_select" class="form-control">
                               <option value="">-- انتخاب تیم --</option>
@@ -82,6 +80,26 @@
                               @endforeach
                           </select>
                           <small class="text-muted">با تغییر این گزینه، تیم کاری تمام بخش‌های این قالین به صورت همزمان به تیم انتخابی تغییر خواهد کرد.</small>
+                      </div>
+                  </div>
+                  <div class="col-lg-6">
+                      <div class="form-group">
+                          <h6 class="text-primary mb-3"><i class="fa fa-list"></i> انتخاب همزمان نمبر آماده سازی (Tayaari Batch Selector)</h6>
+                          <label class="pull-right" style="font-weight: 600;">نمبر آماده سازی برای همه بخش ها</label>
+                          <div class="input-group">
+                              <select id="global_finish_number" class="form-control select2" required>
+                                  <option value="">-- انتخاب نمبر تیاری --</option>
+                                  @foreach($openBatches as $batch)
+                                      <option value="{{ $batch->reference_number }}">{{ $batch->reference_number }}</option>
+                                  @endforeach
+                              </select>
+                              <div class="input-group-append">
+                                  <button type="button" class="btn btn-success" id="btn_generate_finish_number" title="ایجاد نمبر جدید">
+                                      <i class="fa fa-plus"></i> ایجاد
+                                  </button>
+                              </div>
+                          </div>
+                          <small class="text-muted">با انتخاب یا ایجاد نمبر جدید، تمامی بخش‌های تیاری فعال این قالین با این نمبر مسلسل ثبت خواهند شد.</small>
                       </div>
                   </div>
               </div>
@@ -106,8 +124,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_qaitan" id="finish_number_qaitan" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_qaitan" id="finish_number_qaitan" value="" readonly
+                             class="form-control class_finish_number_input">
                       @if(session("finish_number_qaitan"))
                         <small class="text-danger">{{session("finish_number_qaitan")}}
                         </small>
@@ -201,8 +219,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_rofo" id="finish_number_rofo" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_rofo" id="finish_number_rofo" value="" readonly
+                             class="form-control class_finish_number_input">
                       @if(session("finish_number_rofo"))
                         <small class="text-danger">{{session("finish_number_rofo")}}
                         </small>
@@ -295,8 +313,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_cheet" id="finish_number_cheet" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_cheet" id="finish_number_cheet" value="" readonly
+                             class="form-control class_finish_number_input">
 
                       @if(session("finish_number_cheet"))
                         <small class="text-danger">{{session("finish_number_cheet")}}
@@ -388,8 +406,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_labaki" id="finish_number_labaki" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_labaki" id="finish_number_labaki" value="" readonly
+                             class="form-control class_finish_number_input">
 
                       @if(session("finish_number_labaki"))
                         <small class="text-danger">{{session("finish_number_labaki")}}
@@ -481,8 +499,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_popak" id="finish_number_popak" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_popak" id="finish_number_popak" value="" readonly
+                             class="form-control class_finish_number_input">
 
                       @if(session("finish_number_popak"))
                         <small class="text-danger">{{session("finish_number_popak")}}
@@ -573,8 +591,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_kash" id="finish_number_kash" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_kash" id="finish_number_kash" value="" readonly
+                             class="form-control class_finish_number_input">
 
                       <small class="text-danger">@error('finish_number') {{ __('message.'.$message) }} @enderror</small>
                     </div>
@@ -659,8 +677,8 @@
                   <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
                     <div class="form-group fill">
                       <label class="pull-right">تیاری نمبر</label>
-                      <input type="text" name="finish_number_rang" id="finish_number_rang" value="{{$FinishNo}}"
-                             class="form-control">
+                      <input type="text" name="finish_number_rang" id="finish_number_rang" value="" readonly
+                             class="form-control class_finish_number_input">
 
                       @if(session("finish_number_rang"))
                         <small class="text-danger">{{session("finish_number_rang")}}
@@ -761,6 +779,44 @@
           $('#override_credit_account_id').select2({ width: '100%' });
           $('#currency_code').select2({ width: '100%' });
           $('select').select2({ width: '100%' });
+
+          $('#global_finish_number').on('change', function() {
+              let val = $(this).val();
+              $('.class_finish_number_input').val(val);
+          });
+
+          $('#btn_generate_finish_number').on('click', function() {
+              var $btn = $(this);
+              $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+              
+              $.ajax({
+                  url: '/dashboard/batches/finish',
+                  type: 'POST',
+                  data: {
+                      _token: '{{ csrf_token() }}'
+                  },
+                  success: function(response) {
+                      if (response.success && response.batch) {
+                          var newRef = response.batch.reference_number;
+                          if ($('#global_finish_number option[value="' + newRef + '"]').length === 0) {
+                              var newOption = new Option(newRef, newRef, true, true);
+                              $('#global_finish_number').append(newOption).trigger('change');
+                          } else {
+                              $('#global_finish_number').val(newRef).trigger('change');
+                          }
+                          swal("موفقیت", "نمبر تیاری جدید با موفقیت ایجاد و انتخاب گردید: " + newRef, "success");
+                      } else {
+                          swal("خطا", "ایجاد نمبر با خطا مواجه شد.", "error");
+                      }
+                  },
+                  error: function() {
+                      swal("خطا", "ارتباط با سرور برقرار نشد.", "error");
+                  },
+                  complete: function() {
+                      $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> ایجاد');
+                  }
+              });
+          });
 
           $('#master_team_select').change(function() {
               let val = $(this).val();

@@ -320,16 +320,7 @@ class CarpetRepairController extends Controller
      */
     public function createRepair(Carpet $id)
     {
-        $lastId = CarpetRepair::where('team_id',$id->kachaee_id)->latest()->first();
-        $KachaeeNo = '';
-        if($lastId) {
-            $lastId = $lastId->kachaee_number;
-            $lastId = substr($lastId,-1);
-            $lastId++;
-            $KachaeeNo = 'KCH-'.sprintf('%01d' , $lastId);
-        } else {
-            $KachaeeNo = 'KCH-'.sprintf('%01d'  , '1');
-        }
+        $openBatches = \App\ProductionBatch::where('type', 'kachaee')->where('status', 'open')->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'debit');
@@ -339,7 +330,7 @@ class CarpetRepairController extends Controller
         $currency = \App\Currency::getLegacyAFNRate();
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('carpet-repair.create',compact('id','KachaeeNo', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
+        return view('carpet-repair.create',compact('id','openBatches', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
     }
 
     /**

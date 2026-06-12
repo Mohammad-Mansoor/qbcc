@@ -103,12 +103,14 @@ class KachaeePaymentController extends Controller
 
             // Overpayment check
             if ($request->kachaee_number !== 'نقد' && $request->type === 'گرفت') {
-                $repairCost = \App\CarpetRepair::where('team_id', $request->team_id)
+                $repairCosts = \App\CarpetRepair::where('team_id', $request->team_id)
                     ->where('kachaee_number', $request->kachaee_number)
-                    ->first();
+                    ->get();
                     
-                if ($repairCost) {
-                    $totalCost = (float)($repairCost->total_price ?: $repairCost->af_total_price);
+                if ($repairCosts->count() > 0) {
+                    $totalCost = $repairCosts->sum(function($item) {
+                        return (float)($item->total_price ?: $item->af_total_price);
+                    });
                     
                     $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
                         ->where('kachaee_number', $request->kachaee_number)
@@ -119,7 +121,7 @@ class KachaeePaymentController extends Controller
                         )->first();
                     
                     $netPaid = $otherPayments ? ($otherPayments->total_sent - $otherPayments->total_received) : 0;
-                    $maxAllowed = $totalCost - $netPaid;
+                    $maxAllowed = max(0.0, $totalCost - $netPaid);
                     
                     if ($request->amount > $maxAllowed) {
                         return redirect()->back()->withErrors([
@@ -349,6 +351,7 @@ class KachaeePaymentController extends Controller
             ->keyBy('kachaee_number');
 
         // Map each repair with its paid/remaining metrics
+        $groupedRepairs = [];
         foreach ($repairs as $rep) {
             $refPayments = $paymentsByRef->get($rep->kachaee_number);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
@@ -364,7 +367,34 @@ class KachaeePaymentController extends Controller
             } else {
                 $rep->payment_status = 'partial';
             }
+
+            $ref = $rep->kachaee_number ?: 'نقد';
+            if (!isset($groupedRepairs[$ref])) {
+                $groupedRepairs[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $rep->date,
+                ];
+            }
+            $groupedRepairs[$ref]['total_carpets']++;
+            $groupedRepairs[$ref]['total_cost'] += $rep->total_cost;
         }
+
+        foreach ($groupedRepairs as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
+            } else {
+                $group['payment_status'] = 'partial';
+            }
+        }
+        unset($group);
 
         // Calculate Repair Cost Totals
         $totalBaseRepairs = \App\CarpetRepair::where('team_id', $team_id)->sum('base_currency_amount');
@@ -389,7 +419,7 @@ class KachaeePaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'repairs', 'groupedRepairs', 'totalBaseRepairs', 'ledgerStatement'));
     }
 
     /**
@@ -531,12 +561,14 @@ class KachaeePaymentController extends Controller
 
             // Overpayment check
             if ($request->kachaee_number !== 'نقد' && $request->type === 'گرفت') {
-                $repairCost = \App\CarpetRepair::where('team_id', $request->team_id)
+                $repairCosts = \App\CarpetRepair::where('team_id', $request->team_id)
                     ->where('kachaee_number', $request->kachaee_number)
-                    ->first();
+                    ->get();
                     
-                if ($repairCost) {
-                    $totalCost = (float)($repairCost->total_price ?: $repairCost->af_total_price);
+                if ($repairCosts->count() > 0) {
+                    $totalCost = $repairCosts->sum(function($item) {
+                        return (float)($item->total_price ?: $item->af_total_price);
+                    });
                     
                     $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
                         ->where('kachaee_number', $request->kachaee_number)
@@ -548,7 +580,7 @@ class KachaeePaymentController extends Controller
                         )->first();
                     
                     $netPaid = $otherPayments ? ($otherPayments->total_sent - $otherPayments->total_received) : 0;
-                    $maxAllowed = $totalCost - $netPaid;
+                    $maxAllowed = max(0.0, $totalCost - $netPaid);
                     
                     if ($request->amount > $maxAllowed) {
                         return redirect()->back()->withErrors([

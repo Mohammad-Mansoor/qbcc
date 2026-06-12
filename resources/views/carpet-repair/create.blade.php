@@ -96,10 +96,22 @@
                   @error('area') <small class="text-danger">{{trans('message.'.$message)}}</small> @enderror
                 </div>
               </div>
-              <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+              <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
                 <div class="form-group">
                   <label class="font-weight-bold text-muted small">کچایی نمبر</label>
-                  <input type="text" name="kachaee_number" placeholder="نمبر کچایی" class="form-control custom-input" value="{{$KachaeeNo}}">
+                  <div class="input-group">
+                    <select name="kachaee_number" id="kachaee_number" required class="form-control select2 custom-input">
+                      <option value="">-- انتخاب نمبر کچایی --</option>
+                      @foreach($openBatches as $batch)
+                        <option value="{{ $batch->reference_number }}">{{ $batch->reference_number }}</option>
+                      @endforeach
+                    </select>
+                    <div class="input-group-append">
+                      <button type="button" class="btn btn-success" id="btn_generate_kachaee_number" title="ایجاد نمبر جدید">
+                        <i class="fa fa-plus"></i> ایجاد
+                      </button>
+                    </div>
+                  </div>
                   @error('kachaee_number') <small class="text-danger">{{trans('message.'.$message)}}</small> @enderror
                 </div>
               </div>
@@ -289,6 +301,40 @@
         } else {
              calculatePrices();
         }
+
+        // AJAX Generate Kachaee Number
+        $('#btn_generate_kachaee_number').on('click', function() {
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            
+            $.ajax({
+                url: '/dashboard/batches/kachaee',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success && response.batch) {
+                        var newRef = response.batch.reference_number;
+                        if ($('#kachaee_number option[value="' + newRef + '"]').length === 0) {
+                            var newOption = new Option(newRef, newRef, true, true);
+                            $('#kachaee_number').append(newOption).trigger('change');
+                        } else {
+                            $('#kachaee_number').val(newRef).trigger('change');
+                        }
+                        swal("موفقیت", "نمبر کچایی جدید با موفقیت ایجاد و انتخاب گردید: " + newRef, "success");
+                    } else {
+                        swal("خطا", "ایجاد نمبر با خطا مواجه شد.", "error");
+                    }
+                },
+                error: function() {
+                    swal("خطا", "ارتباط با سرور برقرار نشد.", "error");
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> ایجاد');
+                }
+            });
+        });
     });
 </script>
 @endsection

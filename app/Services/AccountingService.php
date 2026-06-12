@@ -67,6 +67,18 @@ class AccountingService
         $debitAcc = ChartOfAccount::find($debitAccountId);
         $creditAcc = ChartOfAccount::find($creditAccountId);
 
+        $shouldTagDebit = ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability')
+            && !$debitAcc->is_cash_account
+            && !in_array($debitAcc->account_type, ['Expense', 'Revenue', 'Equity'])
+            && $debitAcc->report_group != 'Inventory'
+            && !in_array(strtolower($debitAcc->account_name), ['inventory', 'work in progress', 'wip', 'finished goods']);
+
+        $shouldTagCredit = ($creditAcc->account_type == 'Asset' || $creditAcc->account_type == 'Liability')
+            && !$creditAcc->is_cash_account
+            && !in_array($creditAcc->account_type, ['Expense', 'Revenue', 'Equity'])
+            && $creditAcc->report_group != 'Inventory'
+            && !in_array(strtolower($creditAcc->account_name), ['inventory', 'work in progress', 'wip', 'finished goods']);
+
         $entries = [
             [
                 'account_id' => $debitAccountId,
@@ -74,8 +86,8 @@ class AccountingService
                 'credit' => 0,
                 'currency_code' => $params['currency_code'] ?? 'USD',
                 'exchange_rate' => $params['exchange_rate'] ?? null,
-                'party_type' => ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability') ? ($params['party_type'] ?? null) : null,
-                'party_id' => ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability') ? ($params['party_id'] ?? null) : null,
+                'party_type' => $shouldTagDebit ? ($params['party_type'] ?? null) : null,
+                'party_id' => $shouldTagDebit ? ($params['party_id'] ?? null) : null,
             ],
             [
                 'account_id' => $creditAccountId,
@@ -83,8 +95,8 @@ class AccountingService
                 'credit' => $params['amount'],
                 'currency_code' => $params['currency_code'] ?? 'USD',
                 'exchange_rate' => $params['exchange_rate'] ?? null,
-                'party_type' => ($creditAcc->account_type == 'Asset' || $creditAcc->account_type == 'Liability') ? ($params['party_type'] ?? null) : null,
-                'party_id' => ($creditAcc->account_type == 'Asset' || $creditAcc->account_type == 'Liability') ? ($params['party_id'] ?? null) : null,
+                'party_type' => $shouldTagCredit ? ($params['party_type'] ?? null) : null,
+                'party_id' => $shouldTagCredit ? ($params['party_id'] ?? null) : null,
             ]
         ];
 
@@ -100,6 +112,7 @@ class AccountingService
             'expense' => 'payment',
             'agent_payment' => 'payment',
             'payroll' => 'payment',
+            'kachaee_payment' => 'payment',
         ];
 
         $journalType = $journalTypeMap[$type] ?? 'journal';

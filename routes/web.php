@@ -706,6 +706,12 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,CO
     Route::get('check-book/search-check-number-payment/{check_number},{agent_id}', 'CarpetCheckBookController@search_check_number_payment');
 });
 
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
+    Route::get('/batches/{type}', 'ProductionBatchController@index')->name('batches.index');
+    Route::post('/batches/{type}', 'ProductionBatchController@store')->name('batches.store');
+    Route::post('/batches/{id}/toggle-status', 'ProductionBatchController@toggleStatus')->name('batches.toggle-status');
+    Route::get('/batches/{id}/details', 'ProductionBatchController@details')->name('batches.details');
+});
 
 Auth::routes();
 Route::redirect('/', '/login');

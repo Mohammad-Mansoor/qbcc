@@ -26,12 +26,24 @@ class AccountSelectionService
             'credit' => ['report_group' => 'Inventory']
         ],
         'PYMT_IN' => [
-            'debit' => [],
-            'credit' => []
+            'debit' => ['account_type' => 'Asset'],
+            'credit' => ['account_type' => ['Asset', 'Liability']]
         ],
         'PYMT_OUT' => [
-            'debit' => [],
-            'credit' => []
+            'debit' => ['account_type' => ['Asset', 'Liability']],
+            'credit' => ['account_type' => 'Asset']
+        ],
+        'kachaee_payment' => [
+            'debit' => ['account_type' => ['Asset', 'Liability']],
+            'credit' => ['account_type' => ['Asset', 'Liability']]
+        ],
+        'washing_payment' => [
+            'debit' => ['account_type' => ['Asset', 'Liability']],
+            'credit' => ['account_type' => ['Asset', 'Liability']]
+        ],
+        'finishing_payment' => [
+            'debit' => ['account_type' => ['Asset', 'Liability']],
+            'credit' => ['account_type' => ['Asset', 'Liability']]
         ],
         'CASH_OUT' => [
             'debit' => ['account_type' => 'Expense'],

@@ -192,12 +192,10 @@ class FinishingTeamPaymentController extends Controller
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        // Fetch Approved Finishing Jobs Grouped by finish_number
+        // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $team_id)
+            ->with(['carpet', 'category'])
             ->where('status', 1)
-            ->select('finish_number', 'date')
-            ->selectRaw('SUM(price) as total_cost')
-            ->groupBy('finish_number', 'date')
             ->orderBy('date', 'DESC')
             ->get();
 
@@ -211,22 +209,41 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
             
-            $w->total_cost = (float)$w->total_cost;
+            $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
-            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             
-            if ($w->total_paid == 0) {
-                $w->payment_status = 'unpaid';
-            } elseif ($w->remaining_balance <= 0) {
-                $w->payment_status = 'paid';
+            $ref = $w->finish_number ?: 'General';
+            if (!isset($groupedFinishingWorks[$ref])) {
+                $groupedFinishingWorks[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedFinishingWorks[$ref]['total_carpets']++;
+            $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
+        }
+
+        foreach ($groupedFinishingWorks as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
             } else {
-                $w->payment_status = 'partial';
+                $group['payment_status'] = 'partial';
             }
         }
+        unset($group);
 
         $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', 1)->sum('price');
 
@@ -253,7 +270,7 @@ class FinishingTeamPaymentController extends Controller
         return view('finishing-center.finishing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'finishingWorks', 'totalBaseFinishes', 'ledgerStatement'
+            'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'
         ));
     }
 
@@ -293,12 +310,10 @@ class FinishingTeamPaymentController extends Controller
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
         $all = 'true';
 
-        // Fetch Approved Finishing Jobs Grouped by finish_number
+        // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $team_id)
+            ->with(['carpet', 'category'])
             ->where('status', 1)
-            ->select('finish_number', 'date')
-            ->selectRaw('SUM(price) as total_cost')
-            ->groupBy('finish_number', 'date')
             ->orderBy('date', 'DESC')
             ->get();
 
@@ -312,22 +327,41 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
             
-            $w->total_cost = (float)$w->total_cost;
+            $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
-            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             
-            if ($w->total_paid == 0) {
-                $w->payment_status = 'unpaid';
-            } elseif ($w->remaining_balance <= 0) {
-                $w->payment_status = 'paid';
+            $ref = $w->finish_number ?: 'General';
+            if (!isset($groupedFinishingWorks[$ref])) {
+                $groupedFinishingWorks[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedFinishingWorks[$ref]['total_carpets']++;
+            $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
+        }
+
+        foreach ($groupedFinishingWorks as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
             } else {
-                $w->payment_status = 'partial';
+                $group['payment_status'] = 'partial';
             }
         }
+        unset($group);
 
         $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', 1)->sum('price');
 
@@ -351,7 +385,7 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
     }
 
     public function edit($payment_id)
@@ -385,12 +419,10 @@ class FinishingTeamPaymentController extends Controller
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        // Fetch Approved Finishing Jobs Grouped by finish_number
+        // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $paymentEdit->team_id)
+            ->with(['carpet', 'category'])
             ->where('status', 1)
-            ->select('finish_number', 'date')
-            ->selectRaw('SUM(price) as total_cost')
-            ->groupBy('finish_number', 'date')
             ->orderBy('date', 'DESC')
             ->get();
 
@@ -404,22 +436,41 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
             
-            $w->total_cost = (float)$w->total_cost;
+            $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
-            $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             
-            if ($w->total_paid == 0) {
-                $w->payment_status = 'unpaid';
-            } elseif ($w->remaining_balance <= 0) {
-                $w->payment_status = 'paid';
+            $ref = $w->finish_number ?: 'General';
+            if (!isset($groupedFinishingWorks[$ref])) {
+                $groupedFinishingWorks[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedFinishingWorks[$ref]['total_carpets']++;
+            $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
+        }
+
+        foreach ($groupedFinishingWorks as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
             } else {
-                $w->payment_status = 'partial';
+                $group['payment_status'] = 'partial';
             }
         }
+        unset($group);
 
         $totalBaseFinishes = \App\FinishingWork::where('team_id', $paymentEdit->team_id)->where('status', 1)->sum('price');
 
@@ -443,7 +494,7 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
     }
 
     public function update(Request $request, $payment_id)

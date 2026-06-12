@@ -541,7 +541,7 @@
                                     @forelse($purchaseBills as $bill)
                                     <tr class="text-right">
                                         <td>{{ $bill->date }}</td>
-                                        <td><strong>{{ $bill->invoice_number }}</strong></td>
+                                        <td><a href="/dashboard/check-book/{{ $bill->id }}" target="_blank" title="مشاهده بل خرید"><strong>{{ $bill->invoice_number }}</strong></a></td>
                                         <td>{{ $bill->carpets->count() }} تخته</td>
                                         <td>{{ number_format($bill->carpets->sum('area'), 2) }} m²</td>
                                         <td>$ {{ number_format($bill->total_amount, 2) }}</td>
@@ -603,7 +603,7 @@
                                     @forelse($salesInvoices as $inv)
                                     <tr class="text-right">
                                         <td>{{ $inv->invoice_date }}</td>
-                                        <td><strong>{{ $inv->invoice_no }}</strong></td>
+                                        <td><a href="/dashboard/invoices/{{ $inv->id }}" target="_blank" title="مشاهده انوایس فروش"><strong>{{ $inv->invoice_no }}</strong></a></td>
                                         <td class="text-capitalize">{{ $inv->type }}</td>
                                         <td>{{ number_format($inv->material_sales->sum('amount'), 2) }} kg</td>
                                         <td>$ {{ number_format($inv->total_amount, 2) }}</td>

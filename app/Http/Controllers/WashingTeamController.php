@@ -127,6 +127,7 @@ class WashingTeamController extends Controller
         } else {
             $WashNo = 'WSH-' . 1;
         }
+        $openBatches = \App\ProductionBatch::where('type', 'wash')->where('status', 'open')->get();
         $mapping = \App\MappingRule::where('mapping_key', 'washing_transfer')->first();
         $defaultWarehouse = $mapping ? $mapping->warehouse_id : 1;
         
@@ -145,7 +146,7 @@ class WashingTeamController extends Controller
             ->get()
             ->keyBy('washing_id');
 
-        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo', 'warehouses', 'defaultWarehouse', 'teamStats'));
+        return view('washing.sending-to-washing', compact('washing_team', 'carpetId', 'WashNo', 'warehouses', 'defaultWarehouse', 'teamStats', 'openBatches'));
     }
 
     // WASHING GETTING DONE

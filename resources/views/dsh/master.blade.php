@@ -143,6 +143,7 @@
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/carpet-repair">کچای قالین ها</a></li>
                 <li><a href="/dashboard/kachaee-team">تیم کچایی</a></li>
+                <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
                 @if(auth()->user()->role == 'SP')
                   <li><a href="/dashboard/kachaee-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
@@ -159,6 +160,7 @@
                 <li><a href="/dashboard/carpet-wash">شست قالین ها</a></li>
 
                 <li><a href="/dashboard/washing-team"> تیم شست</a></li>
+                <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
                 @if(auth()->user()->role == 'SP')
                   <li><a href="/dashboard/washing-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
@@ -173,6 +175,7 @@
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/finishing-center">بخش های تیاری</a></li>
                 <li><a href="/dashboard/finish-team"> تیم تیاری</a></li>
+                <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
 
                 @if(auth()->user()->role == 'SP')
                   <li><a href="/dashboard/refinish-request-list"> لیست درخواست های دوباره تیاری</a></li>

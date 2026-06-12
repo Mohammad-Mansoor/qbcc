@@ -249,7 +249,19 @@
                                 <label class="form-label-modern">
                                     <i class="feather icon-file-text text-teal"></i> نمبر شستشو
                                 </label>
-                                <input type="text" name="wash_number" value="{{$WashNo}}" class="form-control form-control-modern font-weight-bold text-teal" required>
+                                <div class="input-group">
+                                    <select name="wash_number" id="wash_number" required class="form-control form-control-modern select2 w-100">
+                                        <option value="">-- انتخاب نمبر شستشو --</option>
+                                        @foreach($openBatches as $batch)
+                                            <option value="{{ $batch->reference_number }}">{{ $batch->reference_number }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-success font-weight-bold" id="btn_generate_wash_number" title="ایجاد نمبر جدید" style="border-top-left-radius: var(--radius-md); border-bottom-left-radius: var(--radius-md); height: 50px;">
+                                            <i class="feather icon-plus"></i> ایجاد
+                                        </button>
+                                    </div>
+                                </div>
                                 @error('wash_number')
                                     <p class="text-danger small mt-1"><i class="feather icon-info"></i> {{$message}}</p>
                                 @enderror
@@ -372,6 +384,52 @@
                 dir: "rtl"
             });
         }
+
+        // AJAX Generate Wash Number
+        $('#btn_generate_wash_number').on('click', function() {
+            var $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="feather icon-loader fa-spin"></i>');
+            
+            $.ajax({
+                url: '/dashboard/batches/wash',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success && response.batch) {
+                        var newRef = response.batch.reference_number;
+                        if ($('#wash_number option[value="' + newRef + '"]').length === 0) {
+                            var newOption = new Option(newRef, newRef, true, true);
+                            $('#wash_number').append(newOption).trigger('change');
+                        } else {
+                            $('#wash_number').val(newRef).trigger('change');
+                        }
+                        if (typeof swal === 'function') {
+                            swal("موفقیت", "نمبر شستشو جدید با موفقیت ایجاد و انتخاب گردید: " + newRef, "success");
+                        } else {
+                            alert("نمبر شستشو جدید با موفقیت ایجاد و انتخاب گردید: " + newRef);
+                        }
+                    } else {
+                        if (typeof swal === 'function') {
+                            swal("خطا", "ایجاد نمبر با خطا مواجه شد.", "error");
+                        } else {
+                            alert("ایجاد نمبر با خطا مواجه شد.");
+                        }
+                    }
+                },
+                error: function() {
+                    if (typeof swal === 'function') {
+                        swal("خطا", "ارتباط با سرور برقرار نشد.", "error");
+                    } else {
+                        alert("ارتباط با سرور برقرار نشد.");
+                    }
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="feather icon-plus"></i> ایجاد');
+                }
+            });
+        });
     });
 </script>
 @endsection

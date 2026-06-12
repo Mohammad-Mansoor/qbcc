@@ -209,6 +209,8 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
+        // Map each repair with its paid/remaining metrics
+        $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
@@ -224,7 +226,34 @@ class WashingPaymentController extends Controller
             } else {
                 $w->payment_status = 'partial';
             }
+
+            $ref = $w->wash_number_sh ?: 'General';
+            if (!isset($groupedWashes[$ref])) {
+                $groupedWashes[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedWashes[$ref]['total_carpets']++;
+            $groupedWashes[$ref]['total_cost'] += $w->total_cost;
         }
+
+        foreach ($groupedWashes as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
+            } else {
+                $group['payment_status'] = 'partial';
+            }
+        }
+        unset($group);
 
         $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
 
@@ -251,7 +280,7 @@ class WashingPaymentController extends Controller
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'washes', 'totalBaseWashes', 'ledgerStatement'
+            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement'
         ));
     }
 
@@ -308,6 +337,8 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
+        // Map each repair with its paid/remaining metrics
+        $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
@@ -323,7 +354,34 @@ class WashingPaymentController extends Controller
             } else {
                 $w->payment_status = 'partial';
             }
+
+            $ref = $w->wash_number_sh ?: 'General';
+            if (!isset($groupedWashes[$ref])) {
+                $groupedWashes[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedWashes[$ref]['total_carpets']++;
+            $groupedWashes[$ref]['total_cost'] += $w->total_cost;
         }
+
+        foreach ($groupedWashes as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
+            } else {
+                $group['payment_status'] = 'partial';
+            }
+        }
+        unset($group);
 
         $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
 
@@ -350,7 +408,7 @@ class WashingPaymentController extends Controller
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'wash_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'washes', 'totalBaseWashes', 'ledgerStatement'
+            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement'
         ));
     }
 
@@ -403,6 +461,8 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
+        // Map each repair with its paid/remaining metrics
+        $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
@@ -418,7 +478,34 @@ class WashingPaymentController extends Controller
             } else {
                 $w->payment_status = 'partial';
             }
+
+            $ref = $w->wash_number_sh ?: 'General';
+            if (!isset($groupedWashes[$ref])) {
+                $groupedWashes[$ref] = [
+                    'reference' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0.0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0.0,
+                    'payment_status' => 'unpaid',
+                    'date' => $w->date,
+                ];
+            }
+            $groupedWashes[$ref]['total_carpets']++;
+            $groupedWashes[$ref]['total_cost'] += $w->total_cost;
         }
+
+        foreach ($groupedWashes as $ref => &$group) {
+            $group['remaining_balance'] = max(0.0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] == 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
+            } else {
+                $group['payment_status'] = 'partial';
+            }
+        }
+        unset($group);
 
         $totalBaseWashes = \App\CarpetWash::where('team_id', $team_id)->sum('base_currency_amount');
 
@@ -445,7 +532,7 @@ class WashingPaymentController extends Controller
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'washes', 'totalBaseWashes', 'ledgerStatement'
+            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement'
         ));
     }
 

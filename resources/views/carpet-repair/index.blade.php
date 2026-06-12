@@ -522,6 +522,10 @@
                                           <i class="feather icon-send"></i>
                                           ارسال به شست (Send to Wash)
                                       </a>
+                                      <a class="dropdown-item text-right text-info font-weight-bold" href="/dashboard/carpet-wash/sent-to-finish/{{$repaired->carpet->carpet_id}}?redirect_to=/dashboard/carpet-repair">
+                                          <i class="feather icon-check-circle"></i>
+                                          ارسال به تیاری (Send to Finish)
+                                      </a>
                                       <a class="dropdown-item text-right text-danger btn-return-to-center" 
                                          href="javascript:void(0)" 
                                          data-carpet-id="{{$repaired->carpetId}}" 

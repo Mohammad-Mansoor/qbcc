@@ -373,7 +373,7 @@
                     <a class="nav-link active font-weight-bold" id="payments-tab" data-toggle="tab" href="#payments" role="tab"><i class="fa fa-money mr-1"></i> ریز معاملات و دستمزدها (Wage Ledger)</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="washes-tab" data-toggle="tab" href="#washes" role="tab"><i class="fa fa-tint mr-1"></i> مصارف و کارهای شست‌وشو (Washes & Costs)</a>
+                    <a class="nav-link font-weight-bold" id="grouped-batches-tab" data-toggle="tab" href="#grouped_batches" role="tab"><i class="fa fa-folder-open mr-1"></i> بل‌های دستمزد گروپ شده (Grouped Batches)</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
@@ -475,13 +475,13 @@
                     </div>
                 </div>
 
-                <!-- Tab 2: Washes List -->
-                <div class="tab-pane fade" id="washes" role="tabpanel">
+                <!-- Tab 2: Grouped Batches -->
+                <div class="tab-pane fade" id="grouped_batches" role="tabpanel">
                     <div class="premium-card">
-                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center">
-                            <h5><i class="fa fa-list mr-2"></i> جزئیات کارهای شست‌وشو انجام شده</h5>
-                            <span class="badge badge-light p-2 font-weight-bold text-success" style="font-size: 0.9rem;">
-                                مجموع مصارف: $ {{ number_format($totalBaseWashes, 2) }}
+                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);">
+                            <h5><i class="fa fa-folder-open mr-2"></i> بل‌های دستمزد گروپ شده (Grouped Batches)</h5>
+                            <span class="badge badge-light p-2 font-weight-bold text-primary" style="font-size: 0.9rem;">
+                                مجموع بل‌ها: {{ count($groupedWashes) }} عدد
                             </span>
                         </div>
                         <div class="card-body p-0">
@@ -489,43 +489,51 @@
                                 <table class="table premium-table table-hover text-right">
                                     <thead>
                                         <tr>
-                                            <th>تاریخ completion</th>
-                                            <th>نمبر شست</th>
-                                            <th>نمبر قالین</th>
-                                            <th>هزینه کل</th>
-                                            <th>پرداخت شده</th>
-                                            <th>باقی‌مانده</th>
-                                            <th>وضعیت</th>
-                                            <th>واحد پولی</th>
-                                            <th>عملیات</th>
+                                            <th>تاریخ اولین ثبت (First Record)</th>
+                                            <th>شست‌وشو نمبر (Batch Ref)</th>
+                                            <th>تعداد قالین (Carpets)</th>
+                                            <th>هزینه کل (Total Cost)</th>
+                                            <th>پرداخت شده (Paid)</th>
+                                            <th>باقی‌مانده (Remaining)</th>
+                                            <th>وضعیت پرداخت (Status)</th>
+                                            <th>عملیات (Action)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($washes as $w)
+                                        @forelse($groupedWashes as $group)
                                         <tr>
-                                            <td>{{ $w->date }}</td>
-                                            <td><span class="badge badge-light border">{{ $w->wash_number_sh }}</span></td>
-                                            <td>{{ $w->carpet->carpet_no ?? 'N/A' }}</td>
-                                            <td class="font-weight-bold">$ {{ number_format($w->total_cost, 2) }}</td>
-                                            <td class="text-success">$ {{ number_format($w->total_paid, 2) }}</td>
-                                            <td class="text-danger font-weight-bold">$ {{ number_format($w->remaining_balance, 2) }}</td>
+                                            <td>{{ $group['date'] }}</td>
                                             <td>
-                                                @if($w->payment_status === 'paid')
+                                                @if($group['reference'] !== 'General')
+                                                    <a href="/dashboard/batches/{{ $group['reference'] }}/details" target="_blank" title="مشاهده صورتحساب">
+                                                        <span class="badge badge-info p-2 font-weight-bold" style="cursor: pointer;">
+                                                            <i class="fa fa-external-link mr-1"></i> {{ $group['reference'] }}
+                                                        </span>
+                                                    </a>
+                                                @else
+                                                    <span class="badge badge-secondary p-2 font-weight-bold">{{ $group['reference'] }}</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ $group['total_carpets'] }} تخته</td>
+                                            <td class="font-weight-bold">$ {{ number_format($group['total_cost'], 2) }}</td>
+                                            <td class="text-success">$ {{ number_format($group['total_paid'], 2) }}</td>
+                                            <td class="text-danger font-weight-bold">$ {{ number_format($group['remaining_balance'], 2) }}</td>
+                                            <td>
+                                                @if($group['payment_status'] === 'paid')
                                                     <span class="badge badge-success">تصفیه کامل</span>
-                                                @elseif($w->payment_status === 'partial')
+                                                @elseif($group['payment_status'] === 'partial')
                                                     <span class="badge badge-warning">تصفیه قسمی</span>
                                                 @else
                                                     <span class="badge badge-danger">پرداخت نشده</span>
                                                 @endif
                                             </td>
-                                            <td class="text-muted small">USD</td>
                                             <td>
-                                                @if($w->remaining_balance > 0)
+                                                @if($group['remaining_balance'] > 0)
                                                 <button type="button" class="btn btn-sm btn-success pay-wash-btn" 
-                                                        data-ref="{{ $w->wash_number_sh }}" 
-                                                        data-remaining="{{ $w->remaining_balance }}" 
+                                                        data-ref="{{ $group['reference'] }}" 
+                                                        data-remaining="{{ $group['remaining_balance'] }}" 
                                                         data-currency="USD">
-                                                    <i class="fa fa-credit-card"></i> پرداخت
+                                                    <i class="fa fa-credit-card"></i> تصفیه گروپ
                                                 </button>
                                                 @else
                                                 <span class="text-success"><i class="fa fa-check-circle"></i> پرداخت کامل</span>
@@ -534,7 +542,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="9" class="text-center text-muted py-4">هیچ کار شست‌وشو برای این تیم ثبت نشده است.</td>
+                                            <td colspan="8" class="text-center text-muted py-4">هیچ کار شست‌وشویی برای این تیم ثبت نشده است.</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -543,6 +551,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <!-- Tab 3: Unified Ledger Statement -->
                 <div class="tab-pane fade" id="statement" role="tabpanel">
@@ -621,8 +630,8 @@
 <script>
     // Map of unpaid balances per reference to check on inputs
     const unpaidBalances = {};
-    @foreach($washes as $w)
-        unpaidBalances["{{ $w->wash_number_sh }}"] = parseFloat("{{ $w->remaining_balance }}");
+    @foreach($groupedWashes as $ref => $group)
+        unpaidBalances["{{ $ref }}"] = parseFloat("{{ $group['remaining_balance'] }}");
     @endforeach
 
     $(document).ready(function () {
