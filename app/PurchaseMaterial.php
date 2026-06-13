@@ -23,4 +23,8 @@ class PurchaseMaterial extends Model
     public function warehouse() {
         return $this->belongsTo(\App\Warehouse::class, 'warehouse_id', 'id');
     }
+
+    public function purchaseBill() {
+        return $this->belongsTo(\App\RawMaterialPurchaseBill::class, 'raw_material_purchase_bill_id', 'id');
+    }
 }

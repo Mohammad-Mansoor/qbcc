@@ -124,7 +124,7 @@ if (!function_exists('formatAccounting')) {
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #e3f2fd;">
-                                    <td class="py-3 px-4">مجموع عواید خالص (Total Net Revenue)</td>
+                                    <td class="py-3 px-4">مجموع عواید (Total Revenue)</td>
                                     <td class="py-3 text-right px-4 text-primary" style="font-size: 1.2rem;">
                                         {{ formatAccounting($revenue->sum('balance'), $rate, $currencyCode) }}
                                     </td>
@@ -167,7 +167,7 @@ if (!function_exists('formatAccounting')) {
                                 </tr>
                                 @endforeach
                                 <tr class="font-weight-bold" style="background: #ffebee;">
-                                    <td class="py-3 px-4 text-danger">مجموع هزینه‌های خالص (Total Net Expenses)</td>
+                                    <td class="py-3 px-4 text-danger">مجموع هزینه‌ها (Total Expenses)</td>
                                     <td class="py-3 text-right px-4 text-danger" style="font-size: 1.2rem;">
                                         {{ formatAccounting($expenses->sum('balance'), $rate, $currencyCode) }}
                                     </td>
@@ -201,15 +201,15 @@ if (!function_exists('formatAccounting')) {
                             <div style="direction: rtl; text-align: right; line-height: 1.8; font-size: 0.95rem; color: #4e5e6a;">
                                 <p><strong>فارمول عمومی محاسبه سود و ضرر:</strong></p>
                                 <div class="bg-white p-3 rounded text-center font-weight-bold mb-3 border" style="font-size: 1.1rem; direction: ltr;">
-                                    Net Profit/Loss = Total Net Revenue - Total Net Expenses
+                                    Net Profit/Loss = Total Revenue - Total Expenses
                                 </div>
                                 <div class="bg-white p-3 rounded text-center font-weight-bold mb-3 border" style="font-size: 1.1rem; direction: rtl;">
-                                    سود (ضرر) خالص = مجموع عواید خالص - مجموع هزینه‌های عملیاتی خالص
+                                    سود (ضرر) خالص = مجموع عواید - مجموع هزینه‌ها
                                 </div>
                                 <p><strong>تعاریف و اجزای فارمول:</strong></p>
                                 <ul>
-                                    <li><strong>مجموع عواید خالص (Total Net Revenue):</strong> عبارت است از کل عواید فروشات ناخالص (Gross Sales) منهای اصلاحات، تخفیفات و تراکنش‌های برگشتی (Less Reversals).</li>
-                                    <li><strong>مجموع هزینه‌های عملیاتی خالص (Total Net Expenses):</strong> عبارت است از قیمت تمام‌شده کالای فروخته‌شده (COGS) و مصارف عمومی (Operational Expenses) منهای تراکنش‌های اصلاحی و برگشت مصارف.</li>
+                                    <li><strong>مجموع عواید (Total Revenue):</strong> عبارت است از کل عواید فروشات ناخالص (Gross Sales) منهای اصلاحات، تخفیفات و تراکنش‌های برگشتی (Less Reversals).</li>
+                                    <li><strong>مجموع هزینه‌ها (Total Expenses):</strong> عبارت است از قیمت تمام‌شده کالای فروخته‌شده (COGS) و مصارف عمومی (Operational Expenses) منهای تراکنش‌های اصلاحی و برگشت مصارف.</li>
                                 </ul>
                                 <p><strong>نحوه عملکرد سیستم برگشت‌ها (Reversals) در گزارش:</strong></p>
                                 <p>

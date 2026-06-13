@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Activity;
 use App\OfficeDebit;
 use App\PurchaseMaterial;
+use App\RawMaterialPurchaseBill;
 use App\MaterialType;
 use App\MaterialCategory;
 use App\StringSeller;
@@ -80,10 +81,13 @@ class PurchaseMaterialController extends Controller
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
         $currencies = Currency::where('is_active', true)->get();
 
+        $purchaseBills = RawMaterialPurchaseBill::orderBy('date','desc')->get();
+
         return view('mpurchase.index', compact(
             'purchase', 'material_type', 'material_category', 'sellers', 
             'purchaseMaterial', 'PurchaseNo', 'warehouses',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies',
+            'purchaseBills'
         ));
     }
 
@@ -153,8 +157,9 @@ class PurchaseMaterialController extends Controller
         $material_category = MaterialCategory::all();
         $sellers = StringSeller::all();
         $warehouses = \App\Warehouse::all();
-        $currencies = Currency::where('is_active', true)->get();
-        return view('mpurchase.create', compact('material_type', 'material_category', 'sellers', 'warehouses', 'currencies'));
+        $currencies    = Currency::where('is_active', true)->get();
+        $purchaseBills = RawMaterialPurchaseBill::orderBy('date','desc')->get();
+        return view('mpurchase.create', compact('material_type', 'material_category', 'sellers', 'warehouses', 'currencies', 'purchaseBills'));
     }
 
     /**
@@ -259,11 +264,12 @@ class PurchaseMaterialController extends Controller
         $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
-        $currencies = Currency::where('is_active', true)->get();
+        $currencies    = Currency::where('is_active', true)->get();
+        $purchaseBills = RawMaterialPurchaseBill::orderBy('date','desc')->get();
 
         return view('mpurchase.index', compact(
             'purchase', 'material_type', 'material_category', 'sellers', 'purchaseMaterial', 'warehouses',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'purchaseBills'
         ));
     }
 
@@ -384,7 +390,8 @@ class PurchaseMaterialController extends Controller
             'override_debit_account_id' => '',
             'override_credit_account_id' => '',
             'status' => '',
-            'purchase_bill' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
+            'purchase_bill' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'raw_material_purchase_bill_id' => 'nullable|exists:raw_material_purchase_bills,id'
         ]);
     }
 }

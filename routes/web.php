@@ -297,6 +297,19 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     Route::resource('/material-purchase', 'PurchaseMaterialController')->parameters(['material-purchase' => 'purchaseMaterial']);
     Route::get('/material-purchase/search-purchase-number/{purchase_number},{seller_id}', 'PurchaseMaterialController@search_purchase_number');
 
+    /** Route for Raw Material Purchase Bills */
+    Route::resource('/raw-material-purchase-bills', 'RawMaterialPurchaseBillController')->names([
+        'index'   => 'raw-material-purchase-bills.index',
+        'create'  => 'raw-material-purchase-bills.create',
+        'store'   => 'raw-material-purchase-bills.store',
+        'edit'    => 'raw-material-purchase-bills.edit',
+        'update'  => 'raw-material-purchase-bills.update',
+        'destroy' => 'raw-material-purchase-bills.destroy',
+    ]);
+    Route::get('/raw-material-purchase-bills/by-seller/{seller_id}', 'RawMaterialPurchaseBillController@getBySeller')->name('raw-material-purchase-bills.by-seller');
+    Route::post('/raw-material-purchase-bills/{id}/close', 'RawMaterialPurchaseBillController@closeBill')->name('raw-material-purchase-bills.close');
+
+
     /** Route for Material stock */
     Route::resource('/material-stock', 'MaterialStockController');
     Route::get('/material-stock/history/{cat}/{type}', 'MaterialStockController@history')->name('material-stock.history');

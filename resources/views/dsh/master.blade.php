@@ -253,6 +253,7 @@
                   class="pcoded-mtext"><b>مواد خام</b></span></a>
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/material-purchase">خرید مواد خام</a></li>
+                <li><a href="/dashboard/raw-material-purchase-bills">بل‌های خرید مواد خام</a></li>
                 @if(auth()->user()->role == 'SP')
                   <li><a href="/dashboard/purchase-material-request-list"> لیست درخواست خرید مواد خام</a></li>
                 @endif

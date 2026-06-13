@@ -351,6 +351,31 @@
                 </div>
               </div>
 
+              {{-- Purchase Bill row (create) --}}
+              <div class="row mt-3">
+                <div class="col-lg-12">
+                  <div class="form-group fill">
+                    <label><i class="fa fa-file-text-o" style="color:#3b82f6;"></i> بل خرید مواد خام (Purchase Bill)
+                      <a href="{{ route('raw-material-purchase-bills.create') }}" target="_blank"
+                         style="font-size:.78rem; font-weight:600; margin-right:8px; color:#059669;">
+                        <i class="fa fa-plus-circle"></i> ثبت بل جدید
+                      </a>
+                    </label>
+                    <select name="raw_material_purchase_bill_id" id="purchase_bill_id_create" class="form-control select2" style="width: 100%;">
+                      <option value="">— بدون بل / انتخاب بعد —</option>
+                      @foreach($purchaseBills as $pb)
+                        <option value="{{ $pb->id }}"
+                                data-seller="{{ $pb->seller_id }}"
+                                {{ old('raw_material_purchase_bill_id') == $pb->id ? 'selected' : '' }}>
+                          {{ $pb->bill_number }} — {{ optional($pb->seller)->name }} ({{ $pb->date }})
+                        </option>
+                      @endforeach
+                    </select>
+                    <span class="form-helper">پس از انتخاب فروشنده، فقط بل‌های مرتبط با آن فروشنده نمایش می‌یابند.</span>
+                  </div>
+                </div>
+              </div>
+
               <div class="row mt-3">
                 <div class="col-lg-4 col-md-6 col-sm-12">
                   <div class="form-group fill">
@@ -557,6 +582,31 @@
                       @endforeach
                     </select>
                     <span class="form-helper">فروشنده فاکتور ویرایش شونده.</span>
+                  </div>
+                </div>
+              </div>
+
+              {{-- Purchase Bill row (edit) --}}
+              <div class="row mt-3">
+                <div class="col-lg-12">
+                  <div class="form-group fill">
+                    <label><i class="fa fa-file-text-o" style="color:#3b82f6;"></i> بل خرید مواد خام (Purchase Bill)
+                      <a href="{{ route('raw-material-purchase-bills.create') }}" target="_blank"
+                         style="font-size:.78rem; font-weight:600; margin-right:8px; color:#059669;">
+                        <i class="fa fa-plus-circle"></i> ثبت بل جدید
+                      </a>
+                    </label>
+                    <select name="raw_material_purchase_bill_id" id="purchase_bill_id_edit" class="form-control select2" style="width: 100%;">
+                      <option value="">— بدون بل —</option>
+                      @foreach($purchaseBills as $pb)
+                        <option value="{{ $pb->id }}"
+                                data-seller="{{ $pb->seller_id }}"
+                                {{ $purchaseMaterial->raw_material_purchase_bill_id == $pb->id ? 'selected' : '' }}>
+                          {{ $pb->bill_number }} — {{ optional($pb->seller)->name }} ({{ $pb->date }})
+                        </option>
+                      @endforeach
+                    </select>
+                    <span class="form-helper">بل خرید مرتبط با این فاکتور (اختیاری).</span>
                   </div>
                 </div>
               </div>
@@ -820,6 +870,35 @@
     $('#seller_id, #material_category, #material_type, #override_debit_account_id, #override_credit_account_id, #warehouse_id').select2({
       dropdownParent: $('#purchaseModal')
     });
+    $('#purchase_bill_id_create, #purchase_bill_id_edit').select2({
+      dropdownParent: $('#purchaseModal')
+    });
+
+    // Filter purchase bills by selected seller (CREATE form)
+    function filterBillsBySeller(sellerId, selectId) {
+      const $sel = $(selectId);
+      const currentVal = $sel.val();
+      $sel.find('option[value!=""]').each(function() {
+        const optSeller = $(this).data('seller');
+        if (!sellerId || String(optSeller) === String(sellerId)) {
+          $(this).show();
+        } else {
+          $(this).hide();
+          if ($(this).val() === currentVal) { $sel.val(''); }
+        }
+      });
+      $sel.trigger('change.select2');
+    }
+
+    $('#seller_id').on('change', function() {
+      const sellerId = $(this).val();
+      filterBillsBySeller(sellerId, '#purchase_bill_id_create');
+      filterBillsBySeller(sellerId, '#purchase_bill_id_edit');
+    });
+
+    // Run once on load to set initial filter state
+    filterBillsBySeller($('#seller_id').val(), '#purchase_bill_id_create');
+    filterBillsBySeller($('#seller_id').val(), '#purchase_bill_id_edit');
 
     // Flash status message
     $('.status').show();

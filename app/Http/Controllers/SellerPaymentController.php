@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Activity;
 use App\PurchaseMaterial;
+use App\RawMaterialPurchaseBill;
 use App\SellerPayment;
 use App\StringSeller;
 use App\Services\AccountingService;
@@ -57,6 +58,41 @@ class SellerPaymentController extends Controller
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Vendor Payment #" . $payment->id . ": " . $e->getMessage());
         }
+    }
+
+    /**
+     * Build RM Purchase Bill data for a given seller.
+     */
+    private function buildRmPurchaseBillData(int $sellerId): array
+    {
+        $rmPurchaseBills = RawMaterialPurchaseBill::where('seller_id', $sellerId)
+            ->with(['purchases', 'allocations'])
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($bill) {
+                $purchases = $bill->purchases;
+                $bill->total_qty      = $purchases->sum('quantity');
+                $bill->total_amount   = $bill->total_amount; // using model accessor
+                $bill->paid_amount    = $bill->paid_amount;  // using model accessor
+                $bill->remaining_balance = $bill->remaining_balance; // using model accessor
+                $bill->purchase_count = $purchases->count();
+                return $bill;
+            });
+
+        $totalPurchased = $rmPurchaseBills->sum('total_amount');     // total USD cost of all RM
+
+        $totalPaidPurchases = \DB::table('seller_payment_allocations')
+            ->join('raw_material_purchase_bills', 'seller_payment_allocations.raw_material_purchase_bill_id', '=', 'raw_material_purchase_bills.id')
+            ->where('raw_material_purchase_bills.seller_id', $sellerId)
+            ->sum('base_allocated_amount');
+
+        // General cash totals (without allocations)
+        $totalBaseReceived = SellerPayment::where('seller_id', $sellerId)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $sellerId)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+
+        $netBalance = ($totalPurchased - $totalPaidPurchases) + $totalBaseReceived - $totalBaseSent;
+
+        return compact('rmPurchaseBills', 'totalPurchased', 'totalPaidPurchases', 'totalBaseReceived', 'totalBaseSent', 'netBalance');
     }
 
     public function request_list()
@@ -116,6 +152,27 @@ class SellerPaymentController extends Controller
 
     public function delete_request($id){
         $payment = SellerPayment::find($id);
+
+        // Remove allocations and update document statuses
+        $allocations = \App\SellerPaymentAllocation::where('seller_payment_id', $payment->id)->get();
+        foreach ($allocations as $alloc) {
+            $doc = $alloc->purchase_bill;
+            if ($doc) {
+                $alloc->delete(); // Delete first
+                $docPaid = \App\SellerPaymentAllocation::where('raw_material_purchase_bill_id', $doc->id)
+                    ->sum('base_allocated_amount') ?? 0;
+                $docRemaining = $doc->total_amount - $docPaid;
+                if ($docRemaining >= $doc->total_amount - 0.01) {
+                    $doc->payment_status = 'unpaid';
+                } else if ($docRemaining <= 0.01) {
+                    $doc->payment_status = 'paid';
+                } else {
+                    $doc->payment_status = 'partially_paid';
+                }
+                $doc->save();
+            }
+        }
+
         $payment->delete();
         return response()->json(['status' => 'success']);
     }
@@ -129,6 +186,7 @@ class SellerPaymentController extends Controller
                 'description' => 'required',
                 'date' => 'required|date',
                 'seller_id' => 'required',
+                'raw_material_purchase_bill_id' => 'nullable|integer|exists:raw_material_purchase_bills,id',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -136,6 +194,26 @@ class SellerPaymentController extends Controller
 
             // FORENSIC RULE: BCMath Calculation
             $baseAmount = bcmul($request->amount, $rate, 4);
+
+            // --- OVERPAYMENT PREVENTION & ALLOCATION VALIDATION ---
+            $document = null;
+            if ($request->raw_material_purchase_bill_id) {
+                $document = \App\RawMaterialPurchaseBill::where('id', $request->raw_material_purchase_bill_id)->lockForUpdate()->first();
+                
+                if (!$document) {
+                    return redirect()->back()->with('error', 'بل مورد نظر پیدا نشد (Bill not found).')->withInput();
+                }
+
+                if ($document->payment_status === 'paid' || $document->remaining_balance <= 0.01) {
+                    return redirect()->back()->with('error', 'این بل قبلاً تصفیه شده است و نیاز به پرداخت ندارد.')->withInput();
+                }
+
+                if ($baseAmount > ($document->remaining_balance + 0.01)) {
+                    return redirect()->back()->withErrors([
+                        'amount' => "مبلغ پرداختی ($" . number_format($baseAmount, 2) . ") بزرگتر از باقیمانده بل ($" . number_format($document->remaining_balance, 2) . ") است."
+                    ])->withInput();
+                }
+            }
 
             $payed = new SellerPayment();
             $payed->seller_id = $request->seller_id;
@@ -169,6 +247,26 @@ class SellerPaymentController extends Controller
             $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->save();
 
+            // Store allocation if linked
+            if ($document) {
+                \App\SellerPaymentAllocation::create([
+                    'seller_payment_id' => $payed->id,
+                    'raw_material_purchase_bill_id' => $request->raw_material_purchase_bill_id,
+                    'allocated_amount' => $request->amount,
+                    'exchange_rate' => $rate,
+                    'base_allocated_amount' => $baseAmount,
+                ]);
+
+                // Recalculate document status
+                $remaining = $document->remaining_balance;
+                if ($remaining <= 0.01) {
+                    $document->payment_status = 'paid';
+                } else {
+                    $document->payment_status = 'partially_paid';
+                }
+                $document->save();
+            }
+
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
             }
@@ -191,11 +289,12 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('date','DESC')->paginate(30);
+        $payments = SellerPayment::where('seller_id',$seller_id)->doesntHave('allocations')->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $seller_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -205,8 +304,8 @@ class SellerPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
@@ -217,7 +316,13 @@ class SellerPaymentController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
+
+        return view('string-seller.seller-payment', compact(
+            'seller', 'payments', 'paymentEdit', 'currencyTotals',
+            'totalBaseReceived', 'totalBaseSent', 'purchase_numbers',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+        ) + $rmData);
     }
     public function show_all_payment($seller_id){
         $seller = StringSeller::find($seller_id);
@@ -225,11 +330,12 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id',$seller_id)->orderBy('date','DESC')->get();
+        $payments = SellerPayment::where('seller_id',$seller_id)->doesntHave('allocations')->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $seller_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -239,8 +345,8 @@ class SellerPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
@@ -251,18 +357,25 @@ class SellerPaymentController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
+        $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
         $all = 'true';
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+
+        return view('string-seller.seller-payment', compact(
+            'seller', 'payments', 'paymentEdit', 'currencyTotals',
+            'totalBaseReceived', 'totalBaseSent', 'purchase_numbers', 'all',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+        ) + $rmData);
     }
     public function edit($payment_id)
     {
         $paymentEdit = SellerPayment::find($payment_id);
         $seller = StringSeller::find($paymentEdit->seller_id);
-        $payments = SellerPayment::where('seller_id',$paymentEdit->seller_id)->orderBy('date','DESC')->paginate(30);
+        $payments = SellerPayment::where('seller_id',$paymentEdit->seller_id)->doesntHave('allocations')->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $paymentEdit->seller_id)
             ->where('status', 1)
+            ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -272,8 +385,8 @@ class SellerPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
 
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$paymentEdit->seller_id)->distinct()->get(['purchase_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -284,7 +397,13 @@ class SellerPaymentController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
         $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
 
-        return view('string-seller.seller-payment',compact('seller','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','purchase_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'));
+        $rmData = $this->buildRmPurchaseBillData((int) $paymentEdit->seller_id);
+
+        return view('string-seller.seller-payment', compact(
+            'seller', 'payments', 'paymentEdit', 'currencyTotals',
+            'totalBaseReceived', 'totalBaseSent', 'purchase_numbers',
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+        ) + $rmData);
     }
 
     public function update(Request $request, $payment_id)
@@ -295,6 +414,7 @@ class SellerPaymentController extends Controller
                 'currency_id' => 'required|exists:currencies,id',
                 'description' => 'required',
                 'date' => 'required|date',
+                'raw_material_purchase_bill_id' => 'nullable|integer|exists:raw_material_purchase_bills,id',
             ]);
 
             $payed = SellerPayment::find($payment_id);
@@ -305,9 +425,49 @@ class SellerPaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payed->id, 'Vendor Payment Edited');
             }
 
+            // Fetch and remove old allocations, updating document statuses first
+            $oldAllocations = \App\SellerPaymentAllocation::where('seller_payment_id', $payed->id)->get();
+            foreach ($oldAllocations as $alloc) {
+                $doc = $alloc->purchase_bill;
+                if ($doc) {
+                    $alloc->delete(); // Delete first
+                    $docPaid = \App\SellerPaymentAllocation::where('raw_material_purchase_bill_id', $doc->id)
+                        ->sum('base_allocated_amount') ?? 0;
+                    $docRemaining = $doc->total_amount - $docPaid;
+                    if ($docRemaining >= $doc->total_amount - 0.01) {
+                        $doc->payment_status = 'unpaid';
+                    } else if ($docRemaining <= 0.01) {
+                        $doc->payment_status = 'paid';
+                    } else {
+                        $doc->payment_status = 'partially_paid';
+                    }
+                    $doc->save();
+                }
+            }
+
             $currency = \App\Currency::find($request->currency_id);
             $rate = $currency->exchange_rate;
             $baseAmount = bcmul($request->amount, $rate, 4);
+
+            // --- OVERPAYMENT PREVENTION & ALLOCATION VALIDATION ---
+            $document = null;
+            if ($request->raw_material_purchase_bill_id) {
+                $document = \App\RawMaterialPurchaseBill::where('id', $request->raw_material_purchase_bill_id)->lockForUpdate()->first();
+                
+                if (!$document) {
+                    return redirect()->back()->with('error', 'بل مورد نظر پیدا نشد (Bill not found).')->withInput();
+                }
+
+                if ($document->payment_status === 'paid' || $document->remaining_balance <= 0.01) {
+                    return redirect()->back()->with('error', 'این بل قبلاً تصفیه شده است و نیاز به پرداخت ندارد.')->withInput();
+                }
+
+                if ($baseAmount > ($document->remaining_balance + 0.01)) {
+                    return redirect()->back()->withErrors([
+                        'amount' => "مبلغ پرداختی ($" . number_format($baseAmount, 2) . ") بزرگتر از باقیمانده بل ($" . number_format($document->remaining_balance, 2) . ") است."
+                    ])->withInput();
+                }
+            }
 
             // Update record
             $payed->seller_id = $request->seller_id;
@@ -340,6 +500,26 @@ class SellerPaymentController extends Controller
             $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->update();
 
+            // Store allocation if linked
+            if ($document) {
+                \App\SellerPaymentAllocation::create([
+                    'seller_payment_id' => $payed->id,
+                    'raw_material_purchase_bill_id' => $request->raw_material_purchase_bill_id,
+                    'allocated_amount' => $request->amount,
+                    'exchange_rate' => $rate,
+                    'base_allocated_amount' => $baseAmount,
+                ]);
+
+                // Recalculate document status
+                $remaining = $document->remaining_balance;
+                if ($remaining <= 0.01) {
+                    $document->payment_status = 'paid';
+                } else {
+                    $document->payment_status = 'partially_paid';
+                }
+                $document->save();
+            }
+
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
@@ -370,6 +550,26 @@ class SellerPaymentController extends Controller
             // Reverse Accounting Entry (Only if approved)
             if ($payment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Vendor Payment Deleted');
+            }
+
+            // Remove allocations and update document statuses
+            $allocations = \App\SellerPaymentAllocation::where('seller_payment_id', $payment->id)->get();
+            foreach ($allocations as $alloc) {
+                $doc = $alloc->purchase_bill;
+                if ($doc) {
+                    $alloc->delete(); // Delete first
+                    $docPaid = \App\SellerPaymentAllocation::where('raw_material_purchase_bill_id', $doc->id)
+                        ->sum('base_allocated_amount') ?? 0;
+                    $docRemaining = $doc->total_amount - $docPaid;
+                    if ($docRemaining >= $doc->total_amount - 0.01) {
+                        $doc->payment_status = 'unpaid';
+                    } else if ($docRemaining <= 0.01) {
+                        $doc->payment_status = 'paid';
+                    } else {
+                        $doc->payment_status = 'partially_paid';
+                    }
+                    $doc->save();
+                }
             }
 
             $activity = new Activity();
