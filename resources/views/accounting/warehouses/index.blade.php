@@ -93,6 +93,9 @@
                                 <a class="dropdown-item py-2" href="#!" data-toggle="modal" data-target="#editWarehouseModal{{ $warehouse->id }}">
                                     <i class="fa fa-edit mr-2 text-info"></i> ویرایش اطلاعات
                                 </a>
+                                <a class="dropdown-item py-2" href="{{ route('accounting.warehouses.movements', ['warehouse_id' => $warehouse->id]) }}">
+                                    <i class="feather icon-activity mr-2 text-primary"></i> گزارش ورودی و خروجی
+                                </a>
                                 @if($warehouse->id != 1)
                                 <div class="dropdown-divider"></div>
                                 <form action="{{ route('accounting.warehouses.destroy', $warehouse->id) }}" method="POST" class="d-inline" onsubmit="return confirm('آیا از حذف این گدام اطمینان دارید؟');">

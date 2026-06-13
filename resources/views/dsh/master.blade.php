@@ -350,7 +350,7 @@
 
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
             <li
-              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
+              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*')) ? 'active pcoded-trigger' : '' }}">
               <a href="#" class="nav-link">
                 <span class="pcoded-micon"><i class="feather icon-package"></i></span>
                 <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
@@ -358,6 +358,7 @@
               <ul class="pcoded-submenu">
                 <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
                 <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
+                <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
               </ul>
             </li>
           @endif

@@ -622,6 +622,9 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
     Route::post('/transfers/{id}/reverse', 'Accounting\InventoryTransferController@reverse')->name('accounting.transfers.reverse');
     Route::get('/transfers/api/items', 'Accounting\InventoryTransferController@getWarehouseItems')->name('accounting.transfers.api.items');
 
+    /** Warehouse Movements (IN/OUT) */
+    Route::get('/warehouse-movements', 'Accounting\WarehouseMovementController@index')->name('accounting.warehouses.movements');
+
     /** Financial Reports */
     Route::get('/reports/trial-balance', 'Accounting\ReportController@trialBalance')->name('accounting.reports.trial_balance');
     Route::get('/reports/profit-loss', 'Accounting\ReportController@profitLoss')->name('accounting.reports.profit_loss');
