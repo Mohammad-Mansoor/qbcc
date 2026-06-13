@@ -308,7 +308,7 @@
           @endif
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
             <li
-              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/accounting*') ? 'active pcoded-trigger' : '' }}">
+              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
               <a href="{{ route('accounting.dashboard') }}" class="nav-link">
                 <span class="pcoded-micon"><i class="feather icon-book"></i></span>
                 <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
@@ -316,8 +316,6 @@
               <ul class="pcoded-submenu">
                 <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
                 <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
-                <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
-                <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
                 <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
                 <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
 
@@ -346,6 +344,20 @@
                     <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
                   </ul>
                 </li>
+              </ul>
+            </li>
+          @endif
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+            <li
+              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link">
+                <span class="pcoded-micon"><i class="feather icon-package"></i></span>
+                <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
+              </a>
+              <ul class="pcoded-submenu">
+                <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
+                <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
               </ul>
             </li>
           @endif
