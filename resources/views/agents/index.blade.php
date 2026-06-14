@@ -257,6 +257,7 @@
                                             <a href="/dashboard/agents/{{ $d->agent_id }}" class="btn-action-round bg-light-warning text-warning" title="جزییات"><i class="feather icon-user"></i></a>
                                             <a href="/dashboard/agent-carpet/{{$d->agent_id}}" class="btn-action-round bg-light-primary text-primary" title="قالین ها"><i class="feather icon-package"></i></a>
                                             <a href="/dashboard/agent-payments/{{$d->agent_id}}" class="btn btn-sm btn-primary rounded-pill px-3 ml-1" title="صورت حساب">حساب</a>
+                                            <a href="{{ route('accounting.statements.show', ['entity' => 'agents', 'id' => $d->agent_id]) }}" class="btn btn-sm btn-info rounded-pill px-3 ml-1" title="صورت حساب مالی">صورت حساب</a>
                                         </div>
                                     </td>
                                 </tr>

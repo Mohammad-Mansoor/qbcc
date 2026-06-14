@@ -169,6 +169,7 @@
                   <th class="hideOnPrint">حذف</th>
                 @endif
                 <th class="hideOnPrint">حسابات</th>
+                <th class="hideOnPrint">صورت حساب</th>
               
               </tr>
               </thead>
@@ -204,6 +205,9 @@
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn-sm btn-warning">
                         حسابات</a></td>
+                    <td class="hideOnPrint"><a href="{{ route('accounting.statements.show', ['entity' => 'different-account', 'id' => $account->id]) }}"
+                                               class="btn-sm btn-info">
+                        صورت حساب</a></td>
                   
                   </tr>
                 @endforeach
@@ -259,6 +263,9 @@
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn-sm btn-warning">&nbsp;
                         حسابات</a></td>
+                    <td class="hideOnPrint"><a href="{{ route('accounting.statements.show', ['entity' => 'different-account', 'id' => $account->id]) }}"
+                                               class="btn-sm btn-info">&nbsp;
+                        صورت حساب</a></td>
                   
                   </tr>
                 @endforeach
@@ -308,6 +315,9 @@
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn-sm btn-warning">
                         حسابات</a></td>
+                    <td class="hideOnPrint"><a href="{{ route('accounting.statements.show', ['entity' => 'different-account', 'id' => $account->id]) }}"
+                                               class="btn-sm btn-info">
+                        صورت حساب</a></td>
                   
                   </tr>
                 @endforeach
@@ -388,6 +398,9 @@
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn btn-sm btn-warning">
                         حسابات</a></td>
+                    <td class="hideOnPrint"><a href="{{ route('accounting.statements.show', ['entity' => 'different-account', 'id' => $account->id]) }}"
+                                               class="btn btn-sm btn-info">
+                        صورت حساب</a></td>
                   
                   </tr>
                 

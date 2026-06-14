@@ -271,6 +271,7 @@
                   <th>قرار داد</th>
 
                   <th>حساب</th>
+                  <th>صورت حساب</th>
 
 
                   <!-- <th>حذف</th> -->
@@ -309,6 +310,8 @@
 
                         <td><a href="/dashboard/employee-payments/{{$employee->id}}" class="btn btn-sm btn-warning"><i
                               class="fa fa-money"></i>&nbsp;حساب </a></td>
+                        <td><a href="{{ route('accounting.statements.show', ['entity' => 'employee', 'id' => $employee->id]) }}" class="btn btn-sm btn-info"><i
+                              class="fa fa-file-text"></i>&nbsp;صورت حساب </a></td>
 
                       </tr>
                     @endif

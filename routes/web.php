@@ -637,6 +637,7 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
     Route::get('/reports/cash-flow', 'Accounting\ReportController@cashFlow')->name('accounting.reports.cash_flow');
     Route::get('/reports/account-ledger', 'Accounting\ReportController@accountLedger')->name('accounting.reports.account_ledger');
     Route::get('/reports/customer-statement', 'Accounting\ReportController@customerStatement')->name('accounting.reports.customer_statement');
+    Route::get('/reports/agent-statement', 'Accounting\ReportController@agentStatement')->name('accounting.reports.agent_statement');
 
 
     Route::get('/api/allowed-accounts', 'Accounting\AccountController@getAllowedAccounts')->name('accounting.api.allowed_accounts');
@@ -723,6 +724,14 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,CO
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
+    Route::get('/statements/{entity}/{id}', 'Accounting\EntityStatementController@show')->name('accounting.statements.show');
+    Route::get('/reports/statements/{entity}', 'Accounting\EntityStatementController@reportStatement')->name('accounting.reports.entity_statement');
+    Route::get('/accounting/reports/different-account-statement', 'Accounting\ReportController@differentAccountStatement')->name('accounting.reports.different_account_statement');
+    Route::get('/accounting/reports/repair-team-statement', 'Accounting\ReportController@repairTeamStatement')->name('accounting.reports.repair_team_statement');
+    Route::get('/accounting/reports/washing-team-statement', 'Accounting\ReportController@washingTeamStatement')->name('accounting.reports.washing_team_statement');
+    Route::get('/accounting/reports/finishing-team-statement', 'Accounting\ReportController@finishingTeamStatement')->name('accounting.reports.finishing_team_statement');
+    Route::get('/accounting/reports/string-seller-statement', 'Accounting\ReportController@stringSellerStatement')->name('accounting.reports.string_seller_statement');
+    Route::get('/accounting/reports/employee-statement', 'Accounting\ReportController@employeeStatement')->name('accounting.reports.employee_statement');
     Route::get('/batches/{type}', 'ProductionBatchController@index')->name('batches.index');
     Route::post('/batches/{type}', 'ProductionBatchController@store')->name('batches.store');
     Route::post('/batches/{id}/toggle-status', 'ProductionBatchController@toggleStatus')->name('batches.toggle-status');

@@ -763,7 +763,8 @@
                                             name="allocations[${inv.id}]" 
                                             class="form-control form-control-sm allocation-input text-center" 
                                             max="${inv.remaining_balance}" 
-                                            placeholder="0.00">
+                                            data-invoiceno="${inv.invoice_no}" 
+                                            placeholder="0.00" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
                                     </td>
                                 </tr>
                             `;
@@ -778,6 +779,9 @@
                                 allocationInput.val(window.pendingAllocation.balance.toFixed(2)).trigger('input');
                             }
                         }
+                        
+                        // Auto-fill allocations now that inputs are loaded
+                        updateNormalizationPreview();
                     } else {
                         $('#invoice_allocation_section').hide();
                     }
@@ -839,6 +843,7 @@
 
             if (amount <= 0) {
                 previewContainer.hide();
+                $('.allocation-input').val('');
                 return;
             }
 
@@ -851,10 +856,49 @@
 
             finalUsdSpan.text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(finalUsd));
             previewContainer.fadeIn(200);
+            
+            autoFillAllocations(finalUsd);
+        }
+
+        function autoFillAllocations(totalUsd) {
+            $('.allocation-input').val(''); // Clear all first
+            let remainingToAllocate = totalUsd;
+
+            // 1. Check if an invoice is explicitly selected from the dropdown
+            const selectedInvoiceNo = $('#invoice_number_select').val();
+            
+            if (selectedInvoiceNo && selectedInvoiceNo !== 'نقد') {
+                const specificInput = $(`.allocation-input[data-invoiceno="${selectedInvoiceNo}"]`);
+                if (specificInput.length > 0) {
+                    const maxBalance = parseFloat(specificInput.attr('max')) || 0;
+                    const allocateToThis = Math.min(remainingToAllocate, maxBalance);
+                    if (allocateToThis > 0) {
+                        specificInput.val(allocateToThis.toFixed(2));
+                        remainingToAllocate -= allocateToThis;
+                    }
+                }
+            }
+
+            // 2. Distribute any remaining amount top-down (FIFO) to other invoices
+            $('.allocation-input').each(function() {
+                if (remainingToAllocate <= 0.001) return;
+                
+                // Skip if already filled
+                if ($(this).val() !== '') return; 
+
+                const maxBalance = parseFloat($(this).attr('max')) || 0;
+                const allocateToThis = Math.min(remainingToAllocate, maxBalance);
+                
+                if (allocateToThis > 0) {
+                    $(this).val(allocateToThis.toFixed(2));
+                    remainingToAllocate -= allocateToThis;
+                }
+            });
         }
 
         amountInput.on('input', updateNormalizationPreview);
         $('#exchange_rate, #exchange_rate_edit').on('input', updateNormalizationPreview);
+        $('#invoice_number_select').on('change', updateNormalizationPreview);
         
         // Trigger initially
         initExchangeRateField();

@@ -249,6 +249,7 @@
                 <th>باقیات (USD Normalized)</th>
                 <th class="hideOnPrint text-center">ویرایش</th>
                 <th class="hideOnPrint text-center">حساب</th>
+                <th class="hideOnPrint text-center">صورت حساب</th>
               </tr>
             </thead>
             <tbody>
@@ -284,6 +285,11 @@
                         <i class="fa fa-calculator"></i>
                       </a>
                     </td>
+                    <td class="hideOnPrint text-center">
+                      <a href="{{ route('accounting.statements.show', ['entity' => 'tayaari-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info text-white" data-toggle="tooltip" title="صورت حساب مالی">
+                        <i class="fa fa-file-text"></i>
+                      </a>
+                    </td>
                   </tr>
                 @endforeach
               @else
@@ -317,6 +323,11 @@
                       <td class="hideOnPrint text-center">
                         <a href="/dashboard/finishing-payments/{{$t->id}}" class="btn btn-sm btn-primary text-white" data-toggle="tooltip" title="حسابات و پرداخت‌ها">
                           <i class="fa fa-calculator"></i>
+                        </a>
+                      </td>
+                      <td class="hideOnPrint text-center">
+                        <a href="{{ route('accounting.statements.show', ['entity' => 'tayaari-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info text-white" data-toggle="tooltip" title="صورت حساب مالی">
+                          <i class="fa fa-file-text"></i>
                         </a>
                       </td>
                     </tr>

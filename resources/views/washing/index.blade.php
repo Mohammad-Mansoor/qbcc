@@ -166,6 +166,7 @@
               <th>باقیات بر اساس اسعار</th>
               <th class="hideOnPrint">ویرایش</th>
               <th class="hideOnPrint">حساب</th>
+              <th class="hideOnPrint">صورت حساب</th>
             </tr>
             </thead>
             <tbody>
@@ -211,6 +212,9 @@
                   
                   <td class="hideOnPrint">
                     <a href="/dashboard/washing-payments/{{$t->id}}" class="btn btn-sm btn-primary hideOnPrint">حساب</a>
+                  </td>
+                  <td class="hideOnPrint">
+                    <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info hideOnPrint">صورت حساب</a>
                   </td>
                 
                 </tr>
@@ -259,6 +263,10 @@
                     <td class="hideOnPrint">
                       <a href="/dashboard/washing-payments/{{$t->id}}"
                          class="btn btn-xs btn-primary hideOnPrint">حساب</a>
+                    </td>
+                    <td class="hideOnPrint">
+                      <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}"
+                         class="btn btn-xs btn-info hideOnPrint">صورت حساب</a>
                     </td>
                   
                   </tr>

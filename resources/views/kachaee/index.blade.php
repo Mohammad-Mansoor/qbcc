@@ -394,6 +394,9 @@
                         <a href="/dashboard/kachaee-payments/{{$t->id}}" class="btn btn-sm btn-light-success border-0 shadow-none p-2 mx-1" title="حسابات مالی (Ledger)">
                             <i class="feather icon-dollar-sign"></i> حساب
                         </a>
+                        <a href="{{ route('accounting.statements.show', ['entity' => 'kachayee-team', 'id' => $t->id]) }}" class="btn btn-sm btn-light-info border-0 shadow-none p-2 mx-1" title="صورت حساب مالی">
+                            <i class="feather icon-file-text"></i> صورت حساب
+                        </a>
                     </div>
                   </td>
                 </tr>

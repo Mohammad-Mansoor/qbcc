@@ -268,6 +268,11 @@
                                                 style="border-radius: 6px;">
                                                 <i class="feather icon-credit-card"></i>
                                             </a>
+                                            <a href="{{ route('accounting.statements.show', ['entity' => 'customer', 'id' => $cust->id]) }}"
+                                                class="btn btn-sm btn-outline-primary p-1 px-2 ml-1" title="صورت حساب مالی"
+                                                style="border-radius: 6px;">
+                                                <i class="feather icon-file-text"></i>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

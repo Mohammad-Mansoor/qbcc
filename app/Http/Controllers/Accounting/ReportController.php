@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\AccountingAnalyticsService;
 
 use App\Customer;
+use App\Agents;
 
 class ReportController extends Controller
 {
@@ -59,7 +60,106 @@ class ReportController extends Controller
                 ->get();
         }
 
-        return view('accounting.reports.customer_statement', compact('entries', 'customer', 'customers', 'openingBalance', 'startDate', 'endDate'));
+        $logoPath = public_path('images/logo.png');
+        $topHeaderPath = public_path('images/header.png');
+        $bottomFooterPath = public_path('images/footer.png');
+
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        $topHeaderBase64 = '';
+        if (file_exists($topHeaderPath)) {
+            $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+        }
+
+        $bottomFooterBase64 = '';
+        if (file_exists($bottomFooterPath)) {
+            $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+        }
+
+        if ($customerId && $request->get('export') === 'excel') {
+            return $this->exportCustomerExcel($entries, $customer, $openingBalance, $startDate, $endDate, $logoBase64, $topHeaderBase64);
+        }
+
+        if ($customerId && $request->get('export') === 'pdf') {
+            return view('accounting.reports.customer_pdf', compact('entries', 'customer', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'));
+        }
+
+        return view('accounting.reports.customer_statement', compact('entries', 'customer', 'customers', 'openingBalance', 'startDate', 'endDate', 'logoBase64'));
+    }
+
+    protected function exportCustomerExcel($entries, $customer, $openingBalance, $startDate, $endDate, $logoBase64, $headerBase64)
+    {
+        $filename = 'customer_statement_' . date('Y_m_d_His') . '.xls';
+        
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+
+        echo view('accounting.reports.customer_excel', compact(
+            'entries',
+            'customer',
+            'openingBalance',
+            'startDate',
+            'endDate',
+            'logoBase64',
+            'headerBase64'
+        ))->render();
+        exit;
+    }
+
+    public function agentStatement(Request $request)
+    {
+        $agentId = $request->agent_id;
+        $startDate = $request->start_date ?? date('Y-m-01');
+        $endDate = $request->end_date ?? date('Y-m-d');
+
+        $agent = Agents::find($agentId);
+        if ($agent) {
+            $user = \App\User::find($agent->user_id);
+            $agent->display_name = $user ? ($user->name . ' ' . $user->last_name) : 'Agent ID: ' . $agent->agent_id;
+        }
+
+        $agents = Agents::all()->map(function($a) {
+            $user = \App\User::find($a->user_id);
+            $a->display_name = $user ? ($user->name . ' ' . $user->last_name) : 'Agent ID: ' . $a->agent_id;
+            return $a;
+        })->sortBy('display_name');
+
+        $entries = [];
+        $openingBalance = 0;
+
+        if ($agentId) {
+            // 1. Calculate Opening Balance for this agent (credit - debit)
+            $opening = DB::table('ledger_entries as le')
+                ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                ->select(DB::raw('SUM(le.base_credit - le.base_debit) as balance'))
+                ->where('le.party_type', 'App\Agents')
+                ->where('le.party_id', $agentId)
+                ->where('lt.date', '<', $startDate)
+                ->whereIn('lt.status', ['posted', 'reversed'])
+                ->first();
+            
+            $openingBalance = $opening->balance ?? 0;
+
+            // 2. Get Transactions for the period
+            $entries = DB::table('ledger_entries as le')
+                ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.base_debit as debit', 'le.base_credit as credit', 'le.currency_code', 'le.original_amount')
+                ->where('le.party_type', 'App\Agents')
+                ->where('le.party_id', $agentId)
+                ->whereBetween('lt.date', [$startDate, $endDate])
+                ->whereIn('lt.status', ['posted', 'reversed'])
+                ->orderBy('lt.date')
+                ->orderBy('lt.id')
+                ->get();
+        }
+
+        return view('accounting.reports.agent_statement', compact('entries', 'agent', 'agents', 'openingBalance', 'startDate', 'endDate'));
     }
 
 
@@ -515,5 +615,35 @@ class ReportController extends Controller
         }
 
         return $query->groupBy('coa.id', 'coa.account_code', 'coa.account_name', 'coa.normal_balance')->get();
+    }
+
+    public function differentAccountStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'different-account');
+    }
+
+    public function repairTeamStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'kachayee-team');
+    }
+
+    public function washingTeamStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'washing-team');
+    }
+
+    public function finishingTeamStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'tayaari-team');
+    }
+
+    public function stringSellerStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'string-seller');
+    }
+
+    public function employeeStatement(Request $request)
+    {
+        return app(EntityStatementController::class)->reportStatement($request, 'employee');
     }
 }

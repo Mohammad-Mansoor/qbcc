@@ -319,6 +319,10 @@
                            class="btn btn-icon-only text-success" data-toggle="tooltip" data-placement="top" title="دفتر کل مالی">
                            <i class="fa fa-calculator"></i>
                         </a>
+                        <a href="{{ route('accounting.statements.show', ['entity' => 'string-seller', 'id' => $seller->id]) }}" 
+                           class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="صورت حساب مالی">
+                           <i class="fa fa-file-text"></i>
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -363,6 +367,10 @@
                           <a href="{{ route('accounting.reports.account_ledger', ['account_id' => 1]) }}?party_type=App\StringSeller&party_id={{$seller->id}}" 
                              class="btn btn-icon-only text-success" data-toggle="tooltip" data-placement="top" title="دفتر کل مالی">
                              <i class="fa fa-calculator"></i>
+                          </a>
+                          <a href="{{ route('accounting.statements.show', ['entity' => 'string-seller', 'id' => $seller->id]) }}" 
+                             class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="صورت حساب مالی">
+                             <i class="fa fa-file-text"></i>
                           </a>
                         </div>
                       </td>
