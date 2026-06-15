@@ -100,7 +100,12 @@
     <!-- Header -->
     <div class="dashboard-header">
         <div>
-            <h3 class="mb-1 text-white" style="font-weight: 800;"><i class="fa fa-shopping-bag mr-2"></i> گزارش جامع قالین های خرید شده</h3>
+            @php
+                $statusFilter = request('status') != '' && isset($statuses[request('status')]) 
+                    ? $statuses[request('status')] 
+                    : 'تمامی حالت‌ها (All Statuses)';
+            @endphp
+            <h3 class="mb-1 text-white" style="font-weight: 800;"><i class="fa fa-shopping-bag mr-2"></i> گزارش قالین های خرید شده - {{ $statusFilter }}</h3>
             <p class="mb-0 text-white-50">رهگیری و تحلیل تمام قالین‌های وارد شده به سیستم</p>
         </div>
         <div class="d-flex gap-2">

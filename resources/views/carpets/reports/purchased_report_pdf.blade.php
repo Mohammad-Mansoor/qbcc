@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>گزارش قالین های خرید شده</title>
     <style>
-        @page { size: A4 portrait; margin: 0; }
+        @page { size: A4 landscape; margin: 0; }
         body { font-family: 'Tahoma', Arial, sans-serif; background-color: #fff; color: #1e293b; font-size: 10pt; line-height: 1.5; margin: 0; padding: 0; }
         
         .fixed-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; }
@@ -13,8 +13,8 @@
         .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; }
         .fixed-footer img { width: 100%; display: block; }
 
-        .header-space { height: 100px; }
-        .footer-space { height: 120px; }
+        .header-space { height: 135px; }
+        .footer-space { height: 150px; }
 
         .content-wrapper { padding-left: 3mm; padding-right: 3mm; }
         
@@ -73,7 +73,12 @@
                     <div class="content-wrapper">
                         
                         <div class="header">
-                            <h1>گزارش جامع قالین های خرید شده (Purchased Carpets Report)</h1>
+                            @php
+                                $statusFilter = request('status') != '' && isset($statuses[request('status')]) 
+                                    ? $statuses[request('status')] 
+                                    : 'تمامی حالت‌ها (All Statuses)';
+                            @endphp
+                            <h1>گزارش قالین های خرید شده - {{ $statusFilter }}</h1>
                             <p>سیستم مدیریت یکپارچه - بخش گزارشات گدام</p>
                         </div>
 
@@ -103,33 +108,60 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th class="text-center" style="width: 5%;">ردیف</th>
-                                    <th style="width: 12%;">شماره پارچه</th>
-                                    <th style="width: 12%;">تاریخ خرید</th>
-                                    <th style="width: 15%;">نماینده</th>
-                                    <th style="width: 12%;">نوعیت</th>
-                                    <th style="width: 12%;">کوالیتی</th>
-                                    <th class="text-center" style="width: 8%;">مساحت (m2)</th>
-                                    <th class="text-center" style="width: 12%;">قیمت کل ($)</th>
-                                    <th style="width: 12%;">حالت فعلی</th>
+                                    <th class="text-center" style="width: 4%;">ردیف</th>
+                                    <th style="width: 8%;">شماره پارچه</th>
+                                    <th style="width: 9%;">نوعیت</th>
+                                    <th style="width: 9%;">کوالیتی</th>
+                                    <th class="text-center" style="width: 6%;">طول</th>
+                                    <th class="text-center" style="width: 6%;">عرض</th>
+                                    <th class="text-center" style="width: 7%;">مساحت</th>
+                                    <th class="text-center" style="width: 8%;">قیمت خرید</th>
+                                    <th class="text-center" style="width: 8%;">مصارف ترمیم</th>
+                                    <th class="text-center" style="width: 8%;">مصارف شست</th>
+                                    <th class="text-center" style="width: 8%;">مصارف تکمیلی</th>
+                                    <th class="text-center" style="width: 8%;">مبلغ فروش</th>
+                                    <th style="width: 11%;">حالت فعلی</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $sum_purchase = 0;
+                                    $sum_repair = 0;
+                                    $sum_wash = 0;
+                                    $sum_finish = 0;
+                                    $sum_sold = 0;
+                                @endphp
                                 @forelse($carpets as $index => $carpet)
+                                @php
+                                    $repair_cost = $carpet->repair ? $carpet->repair->sum('total_price') : 0;
+                                    $wash_cost = $carpet->carpet_wash ? $carpet->carpet_wash->total_price : 0;
+                                    $finish_cost = $carpet->finishing_works ? $carpet->finishing_works->sum('price') : 0;
+                                    $sold_amount = $carpet->sale ? $carpet->sale->sale_cost_total : 0;
+
+                                    $sum_purchase += $carpet->total_price;
+                                    $sum_repair += $repair_cost;
+                                    $sum_wash += $wash_cost;
+                                    $sum_finish += $finish_cost;
+                                    $sum_sold += $sold_amount;
+                                @endphp
                                 <tr>
                                     <td class="text-center">{{ $index + 1 }}</td>
                                     <td><strong>{{ $carpet->carpet_no }}</strong></td>
-                                    <td>{{ \Carbon\Carbon::parse($carpet->date)->format('Y-m-d') }}</td>
-                                    <td>{{ $carpet->agent->user->name ?? 'نامشخص' }} {{ $carpet->agent->user->last_name ?? '' }}</td>
                                     <td>{{ $carpet->type->carpet_type ?? '-' }}</td>
                                     <td>{{ $carpet->quality->quality ?? '-' }}</td>
+                                    <td class="text-center" style="direction: ltr;">{{ $carpet->height }}</td>
+                                    <td class="text-center" style="direction: ltr;">{{ $carpet->width }}</td>
                                     <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($carpet->area, 2) }}</td>
                                     <td class="text-center" style="direction: ltr; font-weight: bold;">${{ number_format($carpet->total_price, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">{{ $repair_cost > 0 ? '$'.number_format($repair_cost, 2) : '-' }}</td>
+                                    <td class="text-center" style="direction: ltr;">{{ $wash_cost > 0 ? '$'.number_format($wash_cost, 2) : '-' }}</td>
+                                    <td class="text-center" style="direction: ltr;">{{ $finish_cost > 0 ? '$'.number_format($finish_cost, 2) : '-' }}</td>
+                                    <td class="text-center" style="direction: ltr; font-weight: bold; color: #059669;">{{ $sold_amount > 0 ? '$'.number_format($sold_amount, 2) : '-' }}</td>
                                     <td>{{ $statuses[$carpet->status] ?? '-' }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="9" class="text-center" style="padding: 20px;">هیچ قالینی مطابق با فیلترهای اعمال شده یافت نشد.</td>
+                                    <td colspan="13" class="text-center" style="padding: 20px;">هیچ قالینی مطابق با فیلترهای اعمال شده یافت نشد.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -138,7 +170,11 @@
                                 <tr class="total-row">
                                     <td colspan="6" class="text-center">مجموع کلی (Grand Total)</td>
                                     <td class="text-center" style="direction: ltr;">{{ number_format($carpets->sum('area'), 2) }}</td>
-                                    <td class="text-center" style="direction: ltr;">${{ number_format($carpets->sum('total_price'), 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($sum_purchase, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($sum_repair, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($sum_wash, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($sum_finish, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr; color: #059669;">${{ number_format($sum_sold, 2) }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>

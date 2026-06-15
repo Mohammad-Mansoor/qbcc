@@ -47,6 +47,10 @@ class Carpet extends Model
         return $this->hasOne(CarpetWash::class,'carpetId','carpet_id');
     }
 
+    public function finishing_works(){
+        return $this->hasMany(FinishingWork::class,'carpetId','carpet_id');
+    }
+
     public function sale(){
         return $this->HasOne(Sale::class,'carpet_id','carpet_id');
     }

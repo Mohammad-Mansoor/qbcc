@@ -41,7 +41,7 @@ class PurchasedCarpetReportController extends Controller
 
     private function generateReport(Request $request, $type)
     {
-        $query = Carpet::with(['agent.user', 'type', 'quality', 'warehouse'])
+        $query = Carpet::with(['agent.user', 'type', 'quality', 'warehouse', 'sale', 'repair', 'carpet_wash', 'finishing_works'])
             ->whereHas('agent', function($q) {
                 $q->where('contract_type', 'carpet seller');
             });
