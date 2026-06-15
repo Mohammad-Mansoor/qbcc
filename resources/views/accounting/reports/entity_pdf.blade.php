@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Customer Statement - {{ $customer->name }}</title>
+    <title>{{ $config['title'] }} - {{ $selectedEntity->display_name }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -169,17 +169,17 @@
                 
                 <div class="content-wrapper">
                     <div class="title-block">
-                        <h2 class="title-main">صورت حساب تفصیلی مشتری</h2>
-                        <p class="title-sub">Detailed Customer Statement</p>
+                        <h2 class="title-main">صورت حساب تفصیلی {{ trim(explode('(', $config['title'])[0]) }}</h2>
+                        <p class="title-sub">Detailed {{ isset(explode('(', $config['title'])[1]) ? trim(str_replace(')', '', explode('(', $config['title'])[1])) . ' ' : '' }}Statement</p>
                     </div>
 
                     <table class="meta-table">
                         <tr>
                             <td style="width: 50%;">
-                                <span class="meta-label">حساب مشتری (Account):</span>
-                                <p class="meta-val-primary">{{ $customer->name }}</p>
-                                <p class="meta-val-secondary">کد حساب (Account Code): {{ $customer->customer_code }}</p>
-                                <p class="meta-val-secondary">آدرس (Address): {{ $customer->address ?? 'ثبت نشده' }}</p>
+                                <span class="meta-label">حساب (Account Party):</span>
+                                <p class="meta-val-primary">{{ $selectedEntity->display_name }}</p>
+                                <p class="meta-val-secondary">کد حساب (Account Code): {{ $selectedEntity->id }}</p>
+                                <p class="meta-val-secondary">آدرس (Address): {{ $selectedEntity->address ?? 'ثبت نشده' }}</p>
                             </td>
                             <td style="width: 50%; text-align: left; direction: ltr;">
                                 <span class="meta-label" style="text-align: right;">دوره گزارش (Period):</span>
@@ -204,7 +204,14 @@
                             <div class="small-title text-success">کریدیت / رسید (Credit)</div>
                             <p class="card-val text-success">${{ number_format($entries->sum('credit'), 2) }}</p>
                         </div>
-                        @php $closing = $openingBalance + $entries->sum('debit') - $entries->sum('credit'); @endphp
+                        @php 
+                            $isCustomer = ($entityKey === 'customer');
+                            if ($isCustomer) {
+                                $closing = $openingBalance + $entries->sum('debit') - $entries->sum('credit'); 
+                            } else {
+                                $closing = $openingBalance + $entries->sum('credit') - $entries->sum('debit'); 
+                            }
+                        @endphp
                         <div class="dashboard-col card-blue">
                             <div class="small-title" style="color: #2563eb;">بیلانس نهایی (Closing)</div>
                             <p class="card-val" style="color: #2563eb;">${{ number_format($closing, 2) }}</p>
@@ -229,8 +236,15 @@
                                 <td class="text-left font-bold" style="direction: ltr;">${{ number_format($openingBalance, 2) }}</td>
                             </tr>
 
+                            @php $isCustomer = ($entityKey === 'customer'); @endphp
                             @foreach($entries as $entry)
-                                @php $currentRunning += ($entry->debit - $entry->credit); @endphp
+                                @php 
+                                    if ($isCustomer) {
+                                        $currentRunning += ($entry->debit - $entry->credit);
+                                    } else {
+                                        $currentRunning += ($entry->credit - $entry->debit);
+                                    }
+                                @endphp
                             <tr>
                                 <td class="text-center">{{ $entry->date }}</td>
                                 <td class="text-center font-bold">{{ $entry->reference ?: '-' }}</td>
@@ -248,8 +262,8 @@
                                 <td class="text-left text-success" style="direction: ltr;">
                                     {{ $entry->credit > 0 ? '$' . number_format($entry->credit, 2) : '-' }}
                                 </td>
-                                <td class="text-left font-bold" style="direction: ltr; {{ $currentRunning < 0 ? 'color: #dc2626;' : 'color: #0f172a;' }}">
-                                    ${{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? '(Dr)' : '(Cr)' }}
+                                <td class="text-center font-bold" dir="ltr" style="{{ $currentRunning < 0 ? 'color: #e53935;' : '' }}">
+                                    {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? ($isCustomer ? '(Dr)' : '(Cr)') : ($isCustomer ? '(Cr)' : '(Dr)') }}
                                 </td>
                             </tr>
                             @endforeach
@@ -259,7 +273,9 @@
                                 <td colspan="3" class="text-center">خلاصه این دوره (Period Totals):</td>
                                 <td class="text-left text-danger" style="direction: ltr;">${{ number_format($entries->sum('debit'), 2) }}</td>
                                 <td class="text-left text-success" style="direction: ltr;">${{ number_format($entries->sum('credit'), 2) }}</td>
-                                <td class="text-left font-bold" style="direction: ltr; font-size: 11pt; color: #1e3a8a;">${{ number_format($currentRunning, 2) }}</td>
+                                <td class="text-left font-bold" style="direction: ltr; font-size: 11pt; color: #1e3a8a;">
+                                    {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? ($isCustomer ? '(Dr)' : '(Cr)') : ($isCustomer ? '(Cr)' : '(Dr)') }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>

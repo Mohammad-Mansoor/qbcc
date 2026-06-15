@@ -124,7 +124,17 @@
                     <!-- Web Export Tools -->
                     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                         <div class="text-muted">تاریخچه تراکنش‌های <span class="badge badge-indigo text-white px-3" style="background: #3f51b5;">{{ $selectedEntity->display_name }}</span></div>
-                        <div id="export-buttons"></div>
+                        <div id="export-buttons">
+                            <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                <i class="feather icon-file-text"></i> EXCEL
+                            </a>
+                            <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                <i class="feather icon-file"></i> PDF
+                            </a>
+                            <button onclick="window.print()" class="btn btn-dark rounded-pill px-4">
+                                <i class="feather icon-printer"></i> PRINT
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -259,30 +269,9 @@
         $('.select2').select2();
         
         var table = $('#statement-table').DataTable({
-            dom: 'B',
             paging: false,
-            searching: true,
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="feather icon-file-text"></i> EXCEL',
-                    className: 'btn btn-success rounded-pill px-4 mr-2',
-                    title: 'Statement - {{ isset($selectedEntity) ? $selectedEntity->display_name : "" }}'
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="feather icon-file"></i> PDF',
-                    className: 'btn btn-danger rounded-pill px-4 mr-2',
-                    title: 'Statement - {{ isset($selectedEntity) ? $selectedEntity->display_name : "" }}'
-                },
-                {
-                    text: '<i class="feather icon-printer"></i> PRINT',
-                    className: 'btn btn-dark rounded-pill px-4',
-                    action: function() { window.print(); }
-                }
-            ]
+            searching: true
         });
-        table.buttons().container().appendTo('#export-buttons');
     });
 </script>
 @endsection

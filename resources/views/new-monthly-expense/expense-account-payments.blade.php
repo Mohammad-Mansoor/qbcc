@@ -99,18 +99,18 @@
     <!-- Header Section -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-7 text-right">
-            <h3 class="font-weight-bold text-dark">
-                <i class="fa fa-credit-card text-purple" style="color:#4a148c"></i> 
+            <h3 class="font-weight-bold text-white">
+                <i class="fa fa-credit-card text-white"></i> 
                 مصارف ماه: {{ $month_obj->month_name }} {{ $month_obj->year_name }}
             </h3>
-            <p class="text-muted">مدیریت و تصفیه مصارف اداری و عملیاتی (Admin & OpEx)</p>
+            <p class="text-white">مدیریت و تصفیه مصارف اداری و عملیاتی (Admin & OpEx)</p>
         </div>
         <div class="col-md-5 text-left">
             <div class="btn-group">
-                <a href="/dashboard/monthly-expense-accounts" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <a href="/dashboard/monthly-expense-accounts" class="btn btn-outline-light btn-sm rounded-pill px-3 text-white" style="border-color: white;">
                     <i class="fa fa-arrow-right"></i> لست حسابات
                 </a>
-                <button class="btn btn-outline-purple btn-sm rounded-pill px-3 ml-2" onclick="window.print()" style="border-color:#4a148c; color:#4a148c">
+                <button class="btn btn-outline-light btn-sm rounded-pill px-3 ml-2 text-white" onclick="window.print()" style="border-color: white;">
                     <i class="fa fa-print"></i> چاپ گزارش
                 </button>
             </div>
@@ -181,18 +181,18 @@
     <div class="grand-total-banner text-center">
         <div class="row align-items-center">
             <div class="col-md-4 border-left border-white-50">
-                <h5 class="mb-0 opacity-75">تعداد تراکنش‌ها</h5>
-                <h2 class="font-weight-bold mb-0">{{ $expenses->total() }}</h2>
+                <h5 class="mb-0 text-white">تعداد تراکنش‌ها</h5>
+                <h2 class="font-weight-bold mb-0 text-white">{{ $expenses->total() }}</h2>
             </div>
             <div class="col-md-4">
                 <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2 shadow" style="width: 50px; height: 50px;">
                     <i class="fa fa-university text-purple fa-lg" style="color:#4a148c"></i>
                 </div>
-                <h4 class="font-weight-bold mb-0">مجموع کل مصارف ماه</h4>
+                <h4 class="font-weight-bold mb-0 text-white">مجموع کل مصارف ماه</h4>
             </div>
             <div class="col-md-4 border-right border-white-50">
-                <h5 class="mb-0 opacity-75">مجموع نهایی (USD Truth)</h5>
-                <h2 class="font-weight-bold mb-0">$ {{ number_format($grandTotalBase, 2) }}</h2>
+                <h5 class="mb-0 text-white">مجموع نهایی (USD Truth)</h5>
+                <h2 class="font-weight-bold mb-0 text-white">$ {{ number_format($grandTotalBase, 2) }}</h2>
             </div>
         </div>
     </div>

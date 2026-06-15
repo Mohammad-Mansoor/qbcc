@@ -28,6 +28,66 @@
 
   <link rel="stylesheet" href="{{asset('dsh/assets/select2/css/select2.min.css')}}">
 
+  <!-- Added for New Dashboards -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --navy-blue: #0A192F;
+      --emerald-green: #10B981;
+      --gold-accent: #F59E0B;
+    }
+
+    .row-gap {
+      margin-bottom: 20px;
+    }
+
+    .col-gap {
+      padding-bottom: 20px;
+    }
+
+    .glass-card {
+      background: #ffffff;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .kpi-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6c757d;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #0A192F;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+
+    .kpi-icon {
+      font-size: 2.5rem;
+      opacity: 0.8;
+    }
+
+    .pipeline-step {
+      flex: 1;
+    }
+
+    .pipeline-divider {
+      align-self: center;
+      padding: 0 10px;
+    }
+  </style>
 
 </head>
 
@@ -80,22 +140,87 @@
 
         <ul class="nav pcoded-inner-navbar ">
 
-          <li class="nav-item pcoded-hasmenu">
-            <a href="/dashboard" class="nav-link"><span class="pcoded-micon"><i
-                  class="feather icon-home"></i></span><span class="pcoded-mtext"><b>داشبورد</b></span></a>
+          <li
+            class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/finance*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
+            <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                class="pcoded-mtext"><b>داشبورد</b></span></a>
+            <ul class="pcoded-submenu">
+              <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li>
+              <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
+              <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
+              <li><a href="/dashboard/finance">داشبورد مالی (Finance)</a></li>
+              <li><a href="/dashboard/sales">داشبورد فروشات (Sales)</a></li>
+              <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>
+              <li><a href="/dashboard/cost-analytics">تحلیل مصارف (Cost Analytics)</a></li>
+            </ul>
           </li>
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+            <li
+              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
+              <a href="{{ route('accounting.dashboard') }}" class="nav-link">
+                <span class="pcoded-micon"><i class="feather icon-book"></i></span>
+                <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
+              </a>
+              <ul class="pcoded-submenu">
+                <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
+                <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
+                <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
+                <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
+
+                <!-- Advanced Financial Reports (Dari Afghanistan) -->
+                <li class="nav-item pcoded-hasmenu">
+                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و
+                      تحلیلی</span></a>
+                  <ul class="pcoded-submenu">
+                    <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
+                    <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
+                    <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی
+                        (Trial
+                        Balance)</a></li>
+                    <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
+                    <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
+                    <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
+                  </ul>
+                </li>
+
+                <!-- Operational & Audit Reports -->
+                <li class="nav-item pcoded-hasmenu">
+                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و
+                      تفتیش</span></a>
+                  <ul class="pcoded-submenu">
+                    <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
+                    <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
+                    <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
+                    <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
+                    <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
+                    <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده</a></li>
+                    <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
+                    <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب تیم کچایی</a></li>
+                    <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب تیم شست</a></li>
+                    <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیم تیاری</a></li>
+                    <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشندگان مواد
+                        خام</a></li>
+                    <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          @endif
 
           @if(auth()->user()->role != 'AO')
             @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'FI')
 
 
-              <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/agents*') || request()->is('dashboard/accounting/reports/agent-statement*') ? 'active' : '' }}">
+              <li
+                class="nav-item pcoded-hasmenu {{ request()->is('dashboard/agents*') || request()->is('dashboard/accounting/reports/agent-statement*') ? 'active' : '' }}">
                 <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                     class="pcoded-mtext"><b>نماینده</b></span></a>
                 <ul class="pcoded-submenu">
                   <li><a href="/dashboard/agents">لیست نماینده ها</a></li>
                   <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده (حسابداری)</a></li>
-                  <li><a href="{{ route('accounting.reports.entity_statement', ['entity' => 'agents']) }}">صورت حساب نمایندگان</a></li>
+                  <li><a href="{{ route('accounting.reports.entity_statement', ['entity' => 'agents']) }}">صورت حساب
+                      نمایندگان</a></li>
                   @if(auth()->user()->role == 'SP')
                     <li><a href="/dashboard/agent-money-request-list"> لیست درخواست های پول</a></li>
                   @endif
@@ -107,26 +232,6 @@
 
           @endif
 
-
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/different-account*', 'dashboard/accounting/reports/different-account-statement*') ? 'active' : '' }}">
-              <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
-                  class="pcoded-mtext"><b>حساب متفرقه</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/different-account">حساب متفرقه</a></li>
-                <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/different-account-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-
-              </ul>
-
-            </li>
-
-          @endif
-
-
-
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
             <li
               class="nav-item pcoded-hasmenu {{ request()->is(['dashboard/contract-carpet*', 'dashboard/list-weight', 'list-buy-carpet', 'check-book']) ? 'active' : '' }}">
@@ -137,118 +242,12 @@
                 <!-- <li><a href="/dashboard/list-weight">قالین های وزنی</a></li> -->
                 <li><a href="/dashboard/list-buy-carpet">قالین های خرید شده</a></li>
                 <li><a href="/dashboard/check-book">بل‌های خرید (Purchase Bills)</a></li>
+                <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
+                <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
 
               </ul>
             </li>
-            <li class="nav-item pcoded-hasmenu {{ request()->is('carpet-repair*', 'kachaee-team', 'dashboard/accounting/reports/repair-team-statement*') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>کچایی</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/carpet-repair">کچای قالین ها</a></li>
-                <li><a href="/dashboard/kachaee-team">تیم کچایی</a></li>
-                <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب کچایی</a></li>
-                <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/kachaee-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-              </ul>
-            </li>
           @endif
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
-
-            <li class="nav-item pcoded-hasmenu {{ request()->is('carpet-wash*', 'washing-team', 'dashboard/accounting/reports/washing-team-statement*') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>شست</b></span></a>
-              <ul class="pcoded-submenu">
-
-                <li><a href="/dashboard/carpet-wash">شست قالین ها</a></li>
-
-                <li><a href="/dashboard/washing-team"> تیم شست</a></li>
-                <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب شست</a></li>
-                <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/washing-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-              </ul>
-            </li>
-          @endif
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
-            <li
-              class="nav-item pcoded-hasmenu {{ request()->is('finishing-center*', 'finish-team', 'finish-team-category', 'dashboard/accounting/reports/finishing-team-statement*') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>تیاری</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/finishing-center">بخش های تیاری</a></li>
-                <li><a href="/dashboard/finish-team"> تیم تیاری</a></li>
-                <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیاری</a></li>
-                <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
-
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/refinish-request-list"> لیست درخواست های دوباره تیاری</a></li>
-                  <li><a href="/dashboard/finishing-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-                {{--<li><a href="/dashboard/finish-team-category"> دسته بندی تیاری</a></li>--}}
-              </ul>
-            </li>
-          @endif
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu {{ request()->is('carpet-stock*') ? 'active' : '' }}">
-              <a href="/dashboard/carpet-stock" class="nav-link "><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b> قالین آماده به
-                    فروش</b></span></a>
-
-            </li>
-          @endif
-          @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>فروشات</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/sales"> لیست فروشات</a></li>
-                <!-- <li><a href="/dashboard/packing-list">پکینگ لیست</a></li> -->
-                <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
-              </ul>
-            </li>
-
-          @endif
-
-          <!-- @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO')
-            <li
-              class="nav-item pcoded-hasmenu {{ request()->is('add-office-credit*', 'money-request-list', 'office-cash-book') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>دخل و خرچ پول</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/add-office-credit">اضافه کردن پول به دخل</a></li>
-
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-                <li><a href="/dashboard/office-cash-book">مصارف</a></li>
-
-              </ul>
-            </li>
-          @endif -->
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
-            <li
-              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*') ? 'active' : '' }}">
-              <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
-            </li>
-          @endif
-
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu">
-              <a href="/dashboard/customer-orders" class="nav-link"><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>سفارشات</b></span></a>
-            </li>
-
-
-            <li class="nav-item pcoded-hasmenu">
-              <a href="/dashboard/assets-accounts" class="nav-link"><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
-            </li>
-          @endif
-
 
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'FI')
 
@@ -285,167 +284,259 @@
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*') ? 'active' : '' }}">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
-                <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
-                <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
-                @endif
-                <li><a href="/dashboard/employee-department">دیپارتمنت کارمندان</a></li>
-              </ul>
-            </li>
-          @endif
-          @if(auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
-                  class="pcoded-mtext"><b>مشتری ها</b></span></a>
-              <ul class="pcoded-submenu">
-                <li><a href="/dashboard/customers">لیست مشتریان</a></li>
-                <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/customer-request-list"> لیست درخواست پول مشتریان</a></li>
-                @endif
-
-              </ul>
-
-            </li>
-          @endif
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
-            <li
-              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
-              <a href="{{ route('accounting.dashboard') }}" class="nav-link">
-                <span class="pcoded-micon"><i class="feather icon-book"></i></span>
-                <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
-              </a>
-              <ul class="pcoded-submenu">
-                <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
-                <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
-                <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
-                <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
-
-                <!-- Advanced Financial Reports (Dari Afghanistan) -->
-                <li class="nav-item pcoded-hasmenu">
-                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و
-                      تحلیلی</span></a>
-                  <ul class="pcoded-submenu">
-                    <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
-                    <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
-                    <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
-                    <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
-                    <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
-                  </ul>
-                </li>
-
-                <!-- Operational & Audit Reports -->
-                <li class="nav-item pcoded-hasmenu">
-                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و
-                      تفتیش</span></a>
-                  <ul class="pcoded-submenu">
-                    <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
-                    <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
-                    <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
-                    <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
-                    <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
-                    <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده</a></li>
-                    <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
-                    <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب تیم کچایی</a></li>
-                    <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب تیم شست</a></li>
-                    <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیم تیاری</a></li>
-                    <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشندگان مواد خام</a></li>
-                    <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-          @endif
-
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
-            <li
-              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*')) ? 'active pcoded-trigger' : '' }}">
-              <a href="#" class="nav-link">
-                <span class="pcoded-micon"><i class="feather icon-package"></i></span>
-                <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
-              </a>
-              <ul class="pcoded-submenu">
-                <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
-                <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
-                <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
-              </ul>
-            </li>
-          @endif
-
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu">
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/different-account*', 'dashboard/accounting/reports/different-account-statement*') ? 'active' : '' }}">
+              <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                  class="pcoded-mtext"><b>حساب متفرقه</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/different-account">حساب متفرقه</a></li>
+                <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
+                @if(auth()->user()->role == 'SP')
+                  <li><a href="/dashboard/different-account-money-request-list"> لیست درخواست های پول</a></li>
+                @endif
+
+              </ul>
+
+            </li>
+
+          @endif
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('carpet-repair*', 'kachaee-team', 'dashboard/accounting/reports/repair-team-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>گزارشات</b></span></a>
+                  class="pcoded-mtext"><b>کچایی</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/carpet-repair">کچای قالین ها</a></li>
+                <li><a href="/dashboard/kachaee-team">تیم کچایی</a></li>
+                <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب کچایی</a></li>
+                <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
+                @if(auth()->user()->role == 'SP')
+                  <li><a href="/dashboard/kachaee-money-request-list"> لیست درخواست های پول</a></li>
+                @endif
+              </ul>
+            </li>
+          @endif
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('carpet-wash*', 'washing-team', 'dashboard/accounting/reports/washing-team-statement*') ? 'active' : '' }}">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>شست</b></span></a>
               <ul class="pcoded-submenu">
 
-                <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
-                <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
-                <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
-                <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
-                <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
-                <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
-                <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
-                <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
-                <li><a href="/dashboard/sales_report">گزارش فروشات</a></li>
-                <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
-                <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
-                    Balance)</a></li>
-                <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان
-                    (P&L)</a></li>
-                <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
-                    (Aging)</a></li>
-                <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
-                <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a>
-                </li>
-                <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
-                    (WIP)</a></li>
-                <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
+                <li><a href="/dashboard/carpet-wash">شست قالین ها</a></li>
 
+                <li><a href="/dashboard/washing-team"> تیم شست</a></li>
+                <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب شست</a></li>
+                <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
+                @if(auth()->user()->role == 'SP')
+                  <li><a href="/dashboard/washing-money-request-list"> لیست درخواست های پول</a></li>
+                @endif
+              </ul>
+            </li>
+          @endif
 
-                <!--<li><a href="/admin/customer_demand">طلبات مردم</a></li>-->
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('finishing-center*', 'finish-team', 'finish-team-category', 'dashboard/accounting/reports/finishing-team-statement*') ? 'active' : '' }}">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>تیاری</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/finishing-center">بخش های تیاری</a></li>
+                <li><a href="/dashboard/finish-team"> تیم تیاری</a></li>
+                <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیاری</a></li>
+                <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
 
-                <!--<li><a href="/admin/customer_debtor">باقیات مردم</a></li>-->
+                @if(auth()->user()->role == 'SP')
+                  <li><a href="/dashboard/refinish-request-list"> لیست درخواست های دوباره تیاری</a></li>
+                  <li><a href="/dashboard/finishing-money-request-list"> لیست درخواست های پول</a></li>
+                @endif
+                {{--<li><a href="/dashboard/finish-team-category"> دسته بندی تیاری</a></li>--}}
+              </ul>
+            </li>
+          @endif
 
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+            <li class="nav-item pcoded-hasmenu {{ request()->is('carpet-stock*') ? 'active' : '' }}">
+              <a href="/dashboard/carpet-stock" class="nav-link "><span class="pcoded-micon"><i
+                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b> قالین آماده به
+                    فروش</b></span></a>
+
+            </li>
+          @endif
+
+          @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+            <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') ? 'active' : '' }}">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>فروشات</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/sales"> لیست فروشات</a></li>
+                <!-- <li><a href="/dashboard/packing-list">پکینگ لیست</a></li> -->
+                <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
               </ul>
             </li>
 
           @endif
-          @if(auth()->user()->role != 'MO' && auth()->user()->role != 'PH' && auth()->user()->role != 'AO' && auth()->user()->role != 'OM' && auth()->user()->role != 'DE')
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
             <li class="nav-item pcoded-hasmenu">
-              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                  class="pcoded-mtext"><b>تنظیمات</b></span></a>
-              <ul class="pcoded-submenu">
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/users">کاربران سیستم</a></li>
-                @endif
-
-                @if(auth()->user()->role != 'AO')
-                  <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
-                  <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
-                  <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
-                  <li><a href="/dashboard/provinces">ولایات</a></li>
-                @endif
-                @if(auth()->user()->role == 'AO' || auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/agent-employees">کارگرها</a></li>
-                @endif
-                <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
-                @if(auth()->user()->role == 'SP')
-                  <li><a href="/dashboard/activities">نمایش فعالیت ها</a></li>
-                @endif
-
-              </ul>
+              <a href="/dashboard/customer-orders" class="nav-link"><span class="pcoded-micon"><i
+                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>سفارشات</b></span></a>
             </li>
 
 
+            <li class="nav-item pcoded-hasmenu">
+              <a href="/dashboard/assets-accounts" class="nav-link"><span class="pcoded-micon"><i
+                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
+            </li>
           @endif
+
+          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+              <li
+                class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*')) ? 'active pcoded-trigger' : '' }}">
+                <a href="#" class="nav-link">
+                  <span class="pcoded-micon"><i class="feather icon-package"></i></span>
+                  <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
+                </a>
+                <ul class="pcoded-submenu">
+                  <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a>
+                  <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
+                  <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
+                  <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
+              </li>
+            </ul>
+            </li>
+          @endif
+
+        @if(auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+          <li class="nav-item pcoded-hasmenu">
+            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                class="pcoded-mtext"><b>مشتری ها</b></span></a>
+            <ul class="pcoded-submenu">
+              <li><a href="/dashboard/customers">لیست مشتریان</a></li>
+              <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
+              @if(auth()->user()->role == 'SP')
+                <li><a href="/dashboard/customer-request-list"> لیست درخواست پول مشتریان</a></li>
+              @endif
+              <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
+                  (Aging)</a></li>
+
+            </ul>
+
+          </li>
+        @endif
+
+        <!-- @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO')
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('add-office-credit*', 'money-request-list', 'office-cash-book') ? 'active' : '' }}">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>دخل و خرچ پول</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/add-office-credit">اضافه کردن پول به دخل</a></li>
+
+                @if(auth()->user()->role == 'SP')
+                  <li><a href="/dashboard/money-request-list"> لیست درخواست های پول</a></li>
+                @endif
+                <li><a href="/dashboard/office-cash-book">مصارف</a></li>
+
+              </ul>
+            </li>
+          @endif -->
+
+        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
+          <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*') ? 'active' : '' }}">
+            <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
+                  class="feather icon-home"></i></span><span class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
+          </li>
+        @endif
+
+        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
+          <li
+            class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*') ? 'active' : '' }}">
+            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
+            <ul class="pcoded-submenu">
+              <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
+              <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+              <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
+              @if(auth()->user()->role == 'SP')
+                <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
+              @endif
+              <li><a href="/dashboard/employee-department">دیپارتمنت کارمندان</a></li>
+            </ul>
+          </li>
+        @endif
+
+        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
+          <li class="nav-item pcoded-hasmenu">
+            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                class="pcoded-mtext"><b>گزارشات</b></span></a>
+            <ul class="pcoded-submenu">
+
+              <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
+                              <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
+                              <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
+                              <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
+                              <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
+                              <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
+                              <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
+                              <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
+                              <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
+                              <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
+              <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+              <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
+                  Balance)</a></li>
+              <!-- <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان
+                                  (P&L)</a></li> -->
+              <!-- <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
+                          (Aging)</a></li> -->
+              <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+
+              <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
+                  (WIP)</a></li>
+              <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
+
+
+              <!--<li><a href="/admin/customer_demand">طلبات مردم</a></li>-->
+
+              <!--<li><a href="/admin/customer_debtor">باقیات مردم</a></li>-->
+
+            </ul>
+          </li>
+
+        @endif
+
+        @if(auth()->user()->role != 'MO' && auth()->user()->role != 'PH' && auth()->user()->role != 'AO' && auth()->user()->role != 'OM' && auth()->user()->role != 'DE')
+          <li class="nav-item pcoded-hasmenu">
+            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                class="pcoded-mtext"><b>تنظیمات</b></span></a>
+            <ul class="pcoded-submenu">
+              @if(auth()->user()->role == 'SP')
+                <li><a href="/dashboard/users">کاربران سیستم</a></li>
+              @endif
+
+              @if(auth()->user()->role != 'AO')
+                <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
+                <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
+                <!-- <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
+                                      <li><a href="/dashboard/provinces">ولایات</a></li> -->
+              @endif
+              @if(auth()->user()->role == 'AO' || auth()->user()->role == 'SP')
+                <li><a href="/dashboard/agent-employees">کارگرها</a></li>
+              @endif
+              <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
+              @if(auth()->user()->role == 'SP')
+                <li><a href="/dashboard/activities">نمایش فعالیت ها</a></li>
+              @endif
+
+            </ul>
+          </li>
+
+
+        @endif
 
         </ul>
 
@@ -656,7 +747,8 @@ $ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('e
   <script src="/dsh/swal/swal.min.js"></script>
   <script src="/dsh/parsleyjs/dist/parsley.min.js"></script>
 
-
+  <!-- Added for New Dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
   <!--sabeqa-->
   <script src="{{asset('dsh/assets/select2/js/select2.js')}}"></script>

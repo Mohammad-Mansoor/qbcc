@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Customer Statement - {{ $customer->name }}</title>
+    <title>Agent Statement - {{ $agent->display_name }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -169,17 +169,17 @@
                 
                 <div class="content-wrapper">
                     <div class="title-block">
-                        <h2 class="title-main">صورت حساب تفصیلی مشتری</h2>
-                        <p class="title-sub">Detailed Customer Statement</p>
+                        <h2 class="title-main">صورت حساب تفصیلی نماینده</h2>
+                        <p class="title-sub">Detailed Agent Statement</p>
                     </div>
 
                     <table class="meta-table">
                         <tr>
                             <td style="width: 50%;">
-                                <span class="meta-label">حساب مشتری (Account):</span>
-                                <p class="meta-val-primary">{{ $customer->name }}</p>
-                                <p class="meta-val-secondary">کد حساب (Account Code): {{ $customer->customer_code }}</p>
-                                <p class="meta-val-secondary">آدرس (Address): {{ $customer->address ?? 'ثبت نشده' }}</p>
+                                <span class="meta-label">حساب نماینده (Agent Account):</span>
+                                <p class="meta-val-primary">{{ $agent->display_name }}</p>
+                                <p class="meta-val-secondary">کد حساب (Account Code): {{ $agent->account_no }}</p>
+                                <p class="meta-val-secondary">آدرس (Address): {{ $agent->agent_address ?? 'ثبت نشده' }}</p>
                             </td>
                             <td style="width: 50%; text-align: left; direction: ltr;">
                                 <span class="meta-label" style="text-align: right;">دوره گزارش (Period):</span>

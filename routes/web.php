@@ -670,7 +670,13 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
 
 });
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SCO,SP,MO,SO,CO,PH,OM,DE,FI']], function () {
-    Route::get('/', 'DashboardController@Index');
+    Route::get('/', 'EnterpriseDashboardController@index');
+    Route::get('/production', 'EnterpriseDashboardController@production');
+    Route::get('/inventory', 'EnterpriseDashboardController@inventory');
+    Route::get('/sales', 'EnterpriseDashboardController@sales');
+    Route::get('/purchases', 'EnterpriseDashboardController@purchases');
+    Route::get('/finance', 'EnterpriseDashboardController@finance');
+    Route::get('/cost-analytics', 'EnterpriseDashboardController@costAnalytics');
     Route::get('/all-carpet-dashboard-show-all', 'DashboardController@show_all');
     Route::post('/all-carpet-dashboard/search', 'DashboardController@search_all_carpet_dashboard');
       Route::any('/search-this-month-carpet','DashboardController@search_this_month_carpet');

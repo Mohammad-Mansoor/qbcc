@@ -26,11 +26,11 @@ class EntityStatementController extends Controller
             'parent_title' => 'مدیریت عاملیت‌ها',
         ],
         'different-account' => [
-            'class' => NewDifferentAccount::class,
-            'party_type' => 'App\NewDifferentAccount',
+            'class' => \App\DifferentAccount::class,
+            'party_type' => 'App\DifferentAccount',
             'title' => 'حساب متفرقه (Different Account)',
             'name_field' => 'name',
-            'parent_route' => 'new-different-account.index',
+            'parent_route' => 'different-account.index',
             'parent_title' => 'حساب‌های متفرقه',
         ],
         'customer' => [
@@ -52,7 +52,7 @@ class EntityStatementController extends Controller
         'string-seller' => [
             'class' => StringSeller::class,
             'party_type' => 'App\StringSeller',
-            'title' => 'فروشنده مواد خام (String Seller)',
+            'title' => 'فروشنده مواد خام (Raw Material Seller)',
             'name_field' => 'name',
             'parent_route' => 'string-seller.index',
             'parent_title' => 'فروشندگان مواد خام',
@@ -68,15 +68,15 @@ class EntityStatementController extends Controller
         'kachayee-team' => [
             'class' => Kachaee::class,
             'party_type' => 'App\Kachaee',
-            'title' => 'تیم قیچی (Kachaee Team)',
+            'title' => 'تیم کچایی (Repair Team)',
             'name_field' => 'name',
             'parent_route' => 'kachaee-team.index',
-            'parent_title' => 'تیم‌های قیچی',
+            'parent_title' => 'تیم‌های کچایی',
         ],
         'tayaari-team' => [
             'class' => FinishingTeam::class,
             'party_type' => 'App\FinishingTeam',
-            'title' => 'تیم پرداخت (Tayaari/Finishing Team)',
+            'title' => 'تیم تیاری (Finishing Team)',
             'name_field' => 'name',
             'parent_route' => 'finish-team.index',
             'parent_title' => 'تیم‌های پرداخت قالین',
@@ -181,7 +181,7 @@ class EntityStatementController extends Controller
 
     protected function exportToExcel($entries, $entityName, $openingBalance, $config, $entityKey, Request $request)
     {
-        $filename = str_slug($entityKey) . '_statement_' . date('Y_m_d_His') . '.xls';
+        $filename = \Illuminate\Support\Str::slug($entityKey) . '_statement_' . date('Y_m_d_His') . '.xls';
         
         header('Content-Type: application/vnd.ms-excel; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -232,6 +232,13 @@ class EntityStatementController extends Controller
         $openingBalance = 0;
 
         if ($selectedId && $selectedEntity) {
+            if ($entityKey === 'agents') {
+                $user = \App\User::find($selectedEntity->user_id);
+                $selectedEntity->display_name = $user ? ($user->name . ' ' . $user->last_name) : 'Agent ID: ' . $selectedEntity->id;
+            } else {
+                $selectedEntity->display_name = $selectedEntity->{$config['name_field']};
+            }
+
             $openingBalanceQuery = DB::table('ledger_entries')
                 ->where('party_type', $config['party_type'])
                 ->where('party_id', $selectedId)
@@ -274,16 +281,63 @@ class EntityStatementController extends Controller
             )->orderBy('ledger_transactions.date', 'ASC')
              ->orderBy('ledger_transactions.id', 'ASC');
 
+            $logoPath = public_path('images/logo.png');
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+            }
+
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
             if ($request->get('export') === 'excel') {
                 $entries = $query->get();
-                $entityName = '';
-                if ($entityKey === 'agents') {
-                    $user = \App\User::find($selectedEntity->user_id);
-                    $entityName = $user ? ($user->name . ' ' . $user->last_name) : 'Agent ID: ' . $selectedEntity->id;
-                } else {
-                    $entityName = $selectedEntity->display_name ?? $selectedEntity->name;
-                }
-                return $this->exportToExcel($entries, $entityName, $openingBalance, $config, $entityKey, $request);
+                $filename = \Illuminate\Support\Str::slug($entityKey) . '_statement_' . date('Y_m_d_His') . '.xls';
+                
+                header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                header('Pragma: public');
+
+                echo view('accounting.reports.entity_excel', compact(
+                    'entries',
+                    'selectedEntity',
+                    'openingBalance',
+                    'config',
+                    'entityKey',
+                    'startDate',
+                    'endDate',
+                    'logoBase64',
+                    'topHeaderBase64'
+                ))->render();
+                exit;
+            }
+
+            if ($request->get('export') === 'pdf') {
+                $entries = $query->get();
+                return view('accounting.reports.entity_pdf', compact(
+                    'entries',
+                    'selectedEntity',
+                    'openingBalance',
+                    'config',
+                    'entityKey',
+                    'startDate',
+                    'endDate',
+                    'logoBase64',
+                    'topHeaderBase64',
+                    'bottomFooterBase64'
+                ));
             }
 
             $entries = $query->get();

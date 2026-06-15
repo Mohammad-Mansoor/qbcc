@@ -159,7 +159,56 @@ class ReportController extends Controller
                 ->get();
         }
 
-        return view('accounting.reports.agent_statement', compact('entries', 'agent', 'agents', 'openingBalance', 'startDate', 'endDate'));
+        $logoPath = public_path('images/logo.png');
+        $topHeaderPath = public_path('images/header.png');
+        $bottomFooterPath = public_path('images/footer.png');
+
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        $topHeaderBase64 = '';
+        if (file_exists($topHeaderPath)) {
+            $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+        }
+
+        $bottomFooterBase64 = '';
+        if (file_exists($bottomFooterPath)) {
+            $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+        }
+
+        if ($agentId && $request->get('export') === 'excel') {
+            return $this->exportAgentExcel($entries, $agent, $openingBalance, $startDate, $endDate, $logoBase64, $topHeaderBase64);
+        }
+
+        if ($agentId && $request->get('export') === 'pdf') {
+            return view('accounting.reports.agent_pdf', compact('entries', 'agent', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'));
+        }
+
+        return view('accounting.reports.agent_statement', compact('entries', 'agent', 'agents', 'openingBalance', 'startDate', 'endDate', 'logoBase64'));
+    }
+
+    protected function exportAgentExcel($entries, $agent, $openingBalance, $startDate, $endDate, $logoBase64, $headerBase64)
+    {
+        $filename = 'agent_statement_' . date('Y_m_d_His') . '.xls';
+        
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+
+        echo view('accounting.reports.agent_excel', compact(
+            'entries',
+            'agent',
+            'openingBalance',
+            'startDate',
+            'endDate',
+            'logoBase64',
+            'headerBase64'
+        ))->render();
+        exit;
     }
 
 
