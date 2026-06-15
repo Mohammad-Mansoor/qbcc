@@ -382,6 +382,11 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
 
     /** route for buy carpet */
     Route::get('/create-buy-carpet', 'CarpetsController@createBuyCarpet');
+    // Purchased Carpets Report
+    Route::get('/purchased-carpets-report', 'PurchasedCarpetReportController@index')->name('purchased.carpets.index');
+    Route::get('/purchased-carpets-report/excel', 'PurchasedCarpetReportController@exportExcel')->name('purchased.carpets.excel');
+    Route::get('/purchased-carpets-report/pdf', 'PurchasedCarpetReportController@exportPdf')->name('purchased.carpets.pdf');
+
     Route::get('/list-buy-carpet', 'CarpetsController@listBuyCarpet');
     Route::get('/list-buy-carpet/show-all', 'CarpetsController@show_all_buy_carpet');
     Route::post('/list-buy-carpet/search', 'CarpetsController@search_buy_carpet');

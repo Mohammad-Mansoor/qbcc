@@ -238,9 +238,11 @@
               <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>قالین</b></span></a>
               <ul class="pcoded-submenu">
+                <li><a href="{{ route('purchased.carpets.index') }}" style="color: #00acc1; font-weight: bold;">گزارش
+                    قالین های خرید شده</a></li>
                 <!-- <li><a href="/dashboard/contract-carpet">قالین های قراردادی</a></li> -->
                 <!-- <li><a href="/dashboard/list-weight">قالین های وزنی</a></li> -->
-                <li><a href="/dashboard/list-buy-carpet">قالین های خرید شده</a></li>
+                <li><a href="/dashboard/list-buy-carpet">لیست قالین های خرید شده</a></li>
                 <li><a href="/dashboard/check-book">بل‌های خرید (Purchase Bills)</a></li>
                 <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
                 <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
@@ -477,22 +479,22 @@
             <ul class="pcoded-submenu">
 
               <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
-                              <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
-                              <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
-                              <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
-                              <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                              <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
-                              <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
-                              <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
-                              <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
-                              <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
+                                <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
+                                <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
+                                <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
+                                <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
+                                <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
+                                <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
+                                <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
+                                <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
+                                <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
               <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
               <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
                   Balance)</a></li>
               <!-- <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان
-                                  (P&L)</a></li> -->
+                                    (P&L)</a></li> -->
               <!-- <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
-                          (Aging)</a></li> -->
+                            (Aging)</a></li> -->
               <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
 
               <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
@@ -520,9 +522,9 @@
 
               @if(auth()->user()->role != 'AO')
                 <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
-                <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
-                <!-- <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
-                                      <li><a href="/dashboard/provinces">ولایات</a></li> -->
+                <!-- <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li> -->
+                <!-- <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li> -->
+                <li><a href="/dashboard/provinces">ولایات</a></li>
               @endif
               @if(auth()->user()->role == 'AO' || auth()->user()->role == 'SP')
                 <li><a href="/dashboard/agent-employees">کارگرها</a></li>

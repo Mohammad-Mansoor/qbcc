@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Carpet;
+use App\CarpetType;
+use App\Quality;
+use Carbon\Carbon;
+use DB;
+
+class PurchasedCarpetReportController extends Controller
+{
+    private $statuses = [
+        '' => 'همه حالت‌ها (All)',
+        0 => 'در نزد نماینده (With agent)',
+        1 => 'در گدام مرکزی (Central Warehouse)',
+        2 => 'کچایی نشده (Not Kachayee)',
+        12 => 'کچایی شده (Kachayee Done)',
+        3 => 'شست نشده (Not Washed)',
+        13 => 'شست شده (Washed)',
+        4 => 'بخش تیاری (Finishing)',
+        5 => 'آماده فروش (Ready for Sale)',
+        6 => 'فروخته شده (Sold)',
+    ];
+
+    public function index(Request $request)
+    {
+        return $this->generateReport($request, 'view');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        return $this->generateReport($request, 'excel');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        return $this->generateReport($request, 'pdf');
+    }
+
+    private function generateReport(Request $request, $type)
+    {
+        $query = Carpet::with(['agent.user', 'type', 'quality', 'warehouse'])
+            ->whereHas('agent', function($q) {
+                $q->where('contract_type', 'carpet seller');
+            });
+
+        // Date Filter
+        if ($request->filled('from_date')) {
+            $query->whereDate('date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('date', '<=', $request->to_date);
+        }
+
+        // System ID Filter
+        if ($request->filled('from_id') && $request->filled('to_id')) {
+            $query->whereBetween('carpet_no', [$request->from_id, $request->to_id]);
+        } elseif ($request->filled('from_id')) {
+            $query->where('carpet_no', 'like', '%' . $request->from_id . '%');
+        }
+
+        // Status Filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Type Filter
+        if ($request->filled('type_id')) {
+            $query->where('type_id', $request->type_id);
+        }
+
+        // Quality Filter
+        if ($request->filled('quality_id')) {
+            $query->where('quality_id', $request->quality_id);
+        }
+
+        $types = CarpetType::all();
+        $qualities = Quality::all();
+
+        // Generate KPIs based on filtered data (without pagination)
+        $cloneQuery = clone $query;
+        $kpiData = $cloneQuery->select(
+            DB::raw('COUNT(*) as total_qty'),
+            DB::raw('SUM(area) as total_area'),
+            DB::raw('SUM(CASE WHEN status = 5 THEN 1 ELSE 0 END) as ready_qty'),
+            DB::raw('SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) as sold_qty'),
+            DB::raw('SUM(CASE WHEN status IN (2,12,3,13,4) THEN 1 ELSE 0 END) as wip_qty')
+        )->first();
+
+        $kpis = [
+            'total_qty' => $kpiData->total_qty ?? 0,
+            'total_area' => $kpiData->total_area ?? 0,
+            'ready_qty' => $kpiData->ready_qty ?? 0,
+            'sold_qty' => $kpiData->sold_qty ?? 0,
+            'wip_qty' => $kpiData->wip_qty ?? 0,
+        ];
+
+        // Execute query
+        if ($type === 'view') {
+            $carpets = $query->orderBy('carpet_id', 'desc')->paginate(30);
+            $carpets->appends($request->all());
+            
+            return view('carpets.reports.purchased_report', [
+                'carpets' => $carpets,
+                'kpis' => $kpis,
+                'statuses' => $this->statuses,
+                'types' => $types,
+                'qualities' => $qualities,
+                'request' => $request
+            ]);
+        } else {
+            $carpets = $query->orderBy('carpet_id', 'desc')->get();
+            $issueDate = Carbon::now()->format('Y-m-d H:i');
+
+            if ($type === 'excel') {
+                return view('carpets.reports.purchased_report_excel', [
+                    'carpets' => $carpets,
+                    'statuses' => $this->statuses,
+                    'types' => $types,
+                    'qualities' => $qualities,
+                    'issueDate' => $issueDate,
+                    'request' => $request
+                ]);
+            } else {
+                $headerPath = public_path('images/header.png');
+                $footerPath = public_path('images/footer.png');
+                
+                $headerBase64 = '';
+                if (file_exists($headerPath)) {
+                    $headerBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath));
+                }
+
+                $footerBase64 = '';
+                if (file_exists($footerPath)) {
+                    $footerBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath));
+                }
+
+                return view('carpets.reports.purchased_report_pdf', [
+                    'carpets' => $carpets,
+                    'statuses' => $this->statuses,
+                    'types' => $types,
+                    'qualities' => $qualities,
+                    'issueDate' => $issueDate,
+                    'request' => $request,
+                    'headerBase64' => $headerBase64,
+                    'footerBase64' => $footerBase64
+                ]);
+            }
+        }
+    }
+}
