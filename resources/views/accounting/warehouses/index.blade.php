@@ -96,6 +96,9 @@
                                 <a class="dropdown-item py-2" href="{{ route('accounting.warehouses.movements', ['warehouse_id' => $warehouse->id]) }}">
                                     <i class="feather icon-activity mr-2 text-primary"></i> گزارش ورودی و خروجی
                                 </a>
+                                <a class="dropdown-item py-2" href="{{ route('accounting.warehouses.stock_report', $warehouse->id) }}">
+                                    <i class="feather icon-box mr-2 text-success"></i> گزارش موجودی (Stock)
+                                </a>
                                 @if($warehouse->id != 1)
                                 <div class="dropdown-divider"></div>
                                 <form action="{{ route('accounting.warehouses.destroy', $warehouse->id) }}" method="POST" class="d-inline" onsubmit="return confirm('آیا از حذف این گدام اطمینان دارید؟');">

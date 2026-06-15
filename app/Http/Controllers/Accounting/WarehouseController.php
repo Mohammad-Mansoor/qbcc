@@ -110,4 +110,79 @@ class WarehouseController extends Controller
         $warehouse->delete();
         return redirect()->back()->with('status', 'گدام حذف شد.');
     }
+
+    public function stockReport(Request $request, $id)
+    {
+        return $this->generateStockReport($request, $id, 'view');
+    }
+
+    public function stockReportPdf(Request $request, $id)
+    {
+        return $this->generateStockReport($request, $id, 'pdf');
+    }
+
+    public function stockReportExcel(Request $request, $id)
+    {
+        return $this->generateStockReport($request, $id, 'excel');
+    }
+
+    private function generateStockReport(Request $request, $id, $exportType)
+    {
+        $warehouse = Warehouse::findOrFail($id);
+        $issueDate = Carbon::now()->format('Y-m-d H:i');
+
+        if ($warehouse->subtype === 'carpet') {
+            $items = \App\Carpet::with(['type', 'quality', 'agent.user'])
+                ->where('warehouse_id', $id)
+                ->where('status', '!=', 6)
+                ->get();
+        } else {
+            $items = \DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+                ->leftJoin('material_categories', 'inventory_transactions.category_id', '=', 'material_categories.material_category_id')
+                ->where('inventory_transactions.warehouse_id', $id)
+                ->where('inventory_transactions.status', 1)
+                ->where('items.type', 'App\MaterialType')
+                ->where('material_types.subtype', $warehouse->subtype)
+                ->select(
+                    'material_types.material_type_id',
+                    'material_types.material_type',
+                    'material_categories.material_category',
+                    \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as available_qty"),
+                    \DB::raw("MAX(items.current_cost) as current_cost")
+                )
+                ->groupBy('material_types.material_type_id', 'material_types.material_type', 'material_categories.material_category_id', 'material_categories.material_category')
+                ->havingRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) > 0")
+                ->get();
+        }
+
+        $headerPath = public_path('images/header.png');
+        $footerPath = public_path('images/footer.png');
+        $logoPath = public_path('images/logo.png');
+        
+        $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : '';
+        $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : '';
+        $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+
+        $statuses = [
+            '0' => 'شست و شو (Washing)',
+            '1' => 'ترمیم (Repairing)',
+            '2' => 'تکمیلی (Finishing)',
+            '3' => 'آماده فروش (Ready)',
+            '4' => 'کچه‌ای (Raw)',
+            '5' => 'انتقال شده (Transfer)',
+            '6' => 'فروخته شده (Sold)'
+        ];
+
+        $data = compact('warehouse', 'items', 'issueDate', 'headerBase64', 'footerBase64', 'logoBase64', 'statuses');
+
+        if ($exportType === 'pdf') {
+            return view('accounting.warehouses.stock_report_pdf', $data);
+        } elseif ($exportType === 'excel') {
+            return view('accounting.warehouses.stock_report_excel', $data);
+        }
+
+        return view('accounting.warehouses.stock_report', $data);
+    }
 }

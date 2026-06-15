@@ -8,13 +8,13 @@
         body { font-family: 'Tahoma', Arial, sans-serif; background-color: #fff; color: #1e293b; font-size: 10pt; line-height: 1.5; margin: 0; padding: 0; }
         
         .fixed-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; }
-        .fixed-header img { width: 100%; display: block; }
+        .fixed-header img { width: 100%; height: 110px; object-fit: cover; object-position: center top; display: block; }
         
         .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; }
-        .fixed-footer img { width: 100%; display: block; }
+        .fixed-footer img { width: 100%; height: 110px; object-fit: cover; object-position: center bottom; display: block; }
 
-        .header-space { height: 135px; }
-        .footer-space { height: 150px; }
+        .header-space { height: 120px; }
+        .footer-space { height: 120px; }
 
         .content-wrapper { padding-left: 3mm; padding-right: 3mm; }
         

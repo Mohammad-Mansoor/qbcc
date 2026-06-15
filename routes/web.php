@@ -623,6 +623,10 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'user
         'update' => 'accounting.warehouses.update',
         'destroy' => 'accounting.warehouses.destroy',
     ]);
+    
+    Route::get('/warehouses/{id}/stock-report', 'Accounting\WarehouseController@stockReport')->name('accounting.warehouses.stock_report');
+    Route::get('/warehouses/{id}/stock-report/pdf', 'Accounting\WarehouseController@stockReportPdf')->name('accounting.warehouses.stock_report_pdf');
+    Route::get('/warehouses/{id}/stock-report/excel', 'Accounting\WarehouseController@stockReportExcel')->name('accounting.warehouses.stock_report_excel');
 
     /** Warehouse Transfers */
     Route::get('/transfers', 'Accounting\InventoryTransferController@index')->name('accounting.transfers.index');
