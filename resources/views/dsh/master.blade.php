@@ -390,9 +390,13 @@
             </li>
 
 
-            <li class="nav-item pcoded-hasmenu">
-              <a href="/dashboard/assets-accounts" class="nav-link"><span class="pcoded-micon"><i
+            <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/assets-accounts*') || request()->is('dashboard/assets-report*') ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link"><span class="pcoded-micon"><i
                     class="feather icon-home"></i></span><span class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/assets-accounts">حسابات اجناس</a></li>
+                <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a></li>
+              </ul>
             </li>
           @endif
 

@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>گزارش قالین های خرید شده</title>
+    <title>گزارش اجناس ثابت شرکت</title>
     <style>
         @page { size: A4 portrait; margin: 0; }
         body { font-family: 'Tahoma', Arial, sans-serif; background-color: #fff; color: #1e293b; font-size: 10pt; line-height: 1.5; margin: 0; padding: 0; }
@@ -73,8 +73,8 @@
                     <div class="content-wrapper">
                         
                         <div class="header">
-                            <h1>گزارش جامع قالین های خرید شده (Purchased Carpets Report)</h1>
-                            <p>سیستم مدیریت یکپارچه - بخش گزارشات گدام</p>
+                            <h1>گزارش جامع اجناس ثابت (Fixed Assets Report)</h1>
+                            <p>سیستم مدیریت یکپارچه - بخش مدیریت دارایی‌ها</p>
                         </div>
 
                         <table class="meta-table">
@@ -83,18 +83,16 @@
                                     <span class="meta-label">پارامترهای فیلتر (Filters):</span>
                                     <div class="meta-val">
                                         از تاریخ: <strong>{{ request('from_date') ?: 'همه' }}</strong> | تا تاریخ: <strong>{{ request('to_date') ?: 'همه' }}</strong><br>
-                                        از نمبر پارچه: <strong>{{ request('from_id') ?: 'همه' }}</strong> | تا نمبر پارچه: <strong>{{ request('to_id') ?: 'همه' }}</strong><br>
-                                        نوعیت: <strong>{{ request('type_id') ? ($types->where('carpet_type_id', request('type_id'))->first()->carpet_type ?? 'همه') : 'همه' }}</strong> | 
-                                        کوالیتی: <strong>{{ request('quality_id') ? ($qualities->where('id', request('quality_id'))->first()->quality ?? 'همه') : 'همه' }}</strong><br>
-                                        حالت فعلی: <strong>{{ request('status') != '' ? ($statuses[request('status')] ?? 'همه') : 'همه حالت‌ها' }}</strong>
+                                        کتگوری/حساب: <strong>{{ request('account_id') ? ($accounts->where('aa_id', request('account_id'))->first()->aa_name ?? 'همه') : 'همه' }}</strong><br>
+                                        کلاس جنس: <strong>{{ request('asset_class') ?: 'همه' }}</strong> | نمبر جنس: <strong>{{ request('asset_number') ?: 'همه' }}</strong>
                                     </div>
                                 </td>
                                 <td style="width: 50%; text-align: left; direction: ltr;">
                                     <span class="meta-label" style="text-align: right;">جزئیات گزارش (Report Details):</span>
                                     <div class="meta-val" style="text-align: right;">
                                         تاریخ صدور (Issue Date): <strong>{{ $issueDate }}</strong><br>
-                                        مجموع قالین‌ها (Total Count): <strong>{{ number_format($carpets->count()) }} تخته</strong><br>
-                                        مجموع مساحت (Total Area): <strong>{{ number_format($carpets->sum('area'), 2) }} M<sup>2</sup></strong>
+                                        مجموع اقلام (Total Items): <strong>{{ number_format($assets->count()) }} قلم</strong><br>
+                                        مجموع ارزش اولیه (Total Base Cost): <strong>${{ number_format($assets->sum('acquisition_cost'), 2) }}</strong>
                                     </div>
                                 </td>
                             </tr>
@@ -104,41 +102,40 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 5%;">ردیف</th>
-                                    <th style="width: 12%;">شماره پارچه</th>
+                                    <th style="width: 15%;">اسم جنس</th>
+                                    <th style="width: 10%;">نمبر جنس</th>
+                                    <th style="width: 15%;">حساب / کتگوری</th>
+                                    <th style="width: 12%;">کلاس</th>
                                     <th style="width: 12%;">تاریخ خرید</th>
-                                    <th style="width: 15%;">نماینده</th>
-                                    <th style="width: 12%;">نوعیت</th>
-                                    <th style="width: 12%;">کوالیتی</th>
-                                    <th class="text-center" style="width: 8%;">مساحت (m2)</th>
-                                    <th class="text-center" style="width: 12%;">قیمت کل ($)</th>
-                                    <th style="width: 12%;">حالت فعلی</th>
+                                    <th class="text-center" style="width: 15%;">قیمت خرید</th>
+                                    <th class="text-center" style="width: 16%;">اسقاط / عمر مفید</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($carpets as $index => $carpet)
+                                @forelse($assets as $index => $asset)
                                 <tr>
                                     <td class="text-center">{{ $index + 1 }}</td>
-                                    <td><strong>{{ $carpet->carpet_no }}</strong></td>
-                                    <td>{{ \Carbon\Carbon::parse($carpet->date)->format('Y-m-d') }}</td>
-                                    <td>{{ $carpet->agent->user->name ?? 'نامشخص' }} {{ $carpet->agent->user->last_name ?? '' }}</td>
-                                    <td>{{ $carpet->type->carpet_type ?? '-' }}</td>
-                                    <td>{{ $carpet->quality->quality ?? '-' }}</td>
-                                    <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($carpet->area, 2) }}</td>
-                                    <td class="text-center" style="direction: ltr; font-weight: bold;">${{ number_format($carpet->total_price, 2) }}</td>
-                                    <td>{{ $statuses[$carpet->status] ?? '-' }}</td>
+                                    <td><strong>{{ $asset->asset_name }}</strong></td>
+                                    <td>{{ $asset->asset_number }}</td>
+                                    <td>{{ $asset->aa_name }}</td>
+                                    <td>{{ $asset->asset_class }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($asset->acquisition_date)->format('Y-m-d') }}</td>
+                                    <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($asset->acquisition_cost, 2) }} {{ $asset->currency_code ?? '$' }}</td>
+                                    <td class="text-center">
+                                        {{ number_format($asset->estimated_salvage_value, 2) }} / {{ $asset->estimated_useful_life }} سال
+                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="9" class="text-center" style="padding: 20px;">هیچ قالینی مطابق با فیلترهای اعمال شده یافت نشد.</td>
+                                    <td colspan="8" class="text-center" style="padding: 20px;">هیچ جنسی مطابق با فیلترهای اعمال شده یافت نشد.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
-                            @if($carpets->count() > 0)
+                            @if($assets->count() > 0)
                             <tfoot>
                                 <tr class="total-row">
                                     <td colspan="6" class="text-center">مجموع کلی (Grand Total)</td>
-                                    <td class="text-center" style="direction: ltr;">{{ number_format($carpets->sum('area'), 2) }}</td>
-                                    <td class="text-center" style="direction: ltr;">${{ number_format($carpets->sum('total_price'), 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($assets->sum('acquisition_cost'), 2) }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>

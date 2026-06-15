@@ -537,6 +537,11 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::resource('/assets-accounts','AjnasAccountController');
     Route::resource('/assets-accounts-details','AjnasAccountDetailsController');
 
+    // Assets Accounts Report
+    Route::get('/assets-report', 'AssetsReportController@index')->name('assets.report');
+    Route::get('/assets-report/excel', 'AssetsReportController@exportExcel')->name('assets.report.excel');
+    Route::get('/assets-report/pdf', 'AssetsReportController@exportPdf')->name('assets.report.pdf');
+
 
 
     /** Route For all expense */
