@@ -102,6 +102,9 @@
                                 <a href="{{ route('accounting.warehouses.movements') }}" class="btn btn-light rounded-pill px-4 mr-2" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
                                     پاک کردن فیلتر
                                 </a>
+                                <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-danger rounded-pill px-4 mr-2 shadow-sm" style="height: 38px;">
+                                    <i class="fa fa-file-pdf-o mr-1"></i> چاپ / PDF
+                                </button>
                                 <button type="submit" name="export" value="excel" class="btn btn-success rounded-pill px-4 shadow-sm" style="height: 38px;">
                                     <i class="fa fa-file-excel-o mr-1"></i> خروجی اکسل
                                 </button>
@@ -130,6 +133,7 @@
                                     <th>نوع تراکنش</th>
                                     <th class="text-center">جهت حرکت</th>
                                     <th class="text-left">مقدار/تعداد</th>
+                                    <th class="text-left">ابعاد (m)</th>
                                     <th class="text-left">مساحت (م²)</th>
                                     <th class="text-left">قیمت واحد (USD)</th>
                                     <th class="text-left">مجموع (USD)</th>
@@ -199,6 +203,20 @@
                                             {{ number_format($tx->quantity) }} تخته
                                         @else
                                             {{ number_format($tx->quantity, 2) }} KG
+                                        @endif
+                                    </td>
+                                    <td class="text-left text-muted font-mono" style="direction: ltr;">
+                                        @if($tx->item && $tx->item->type === 'App\Carpet')
+                                            @php
+                                                $actualCarpet = \App\Carpet::find($tx->item->ref_id);
+                                            @endphp
+                                            @if($actualCarpet && ($actualCarpet->height || $actualCarpet->width))
+                                                {{ $actualCarpet->height ?? '-' }} x {{ $actualCarpet->width ?? '-' }}
+                                            @else
+                                                -
+                                            @endif
+                                        @else
+                                            -
                                         @endif
                                     </td>
                                     <td class="text-left font-weight-bold text-muted font-mono">

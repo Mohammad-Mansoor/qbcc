@@ -70,6 +70,12 @@ class WarehouseMovementController extends Controller
 
         $query->orderBy('created_at', 'desc');
 
+        // Check if PDF export is requested
+        if ($request->get('export') === 'pdf') {
+            $transactions = $query->get();
+            return $this->exportToPdf($transactions, $request);
+        }
+
         // Check if Excel export is requested
         if ($request->get('export') === 'excel') {
             $transactions = $query->get();
@@ -92,6 +98,46 @@ class WarehouseMovementController extends Controller
             'transactions',
             'warehouses',
             'transactionTypes'
+        ));
+    }
+
+    /**
+     * Export movements to PDF view.
+     */
+    protected function exportToPdf($transactions, Request $request)
+    {
+        $whName = 'همه گدام‌ها';
+        if ($request->filled('warehouse_id')) {
+            $wh = Warehouse::find($request->warehouse_id);
+            if ($wh) $whName = $wh->name;
+        }
+
+        $dirFa = 'همه جهت‌ها';
+        if ($request->filled('direction')) {
+            $dirFa = $request->direction === 'IN' ? 'ورودی (IN)' : 'خروجی (OUT)';
+        }
+
+        $itemTypeFa = 'همه نوعیت‌ها';
+        if ($request->filled('item_type')) {
+            $itemTypeFa = $request->item_type === 'carpet' ? 'قالین' : 'مواد خام';
+        }
+
+        $typeFa = $request->type ?? 'همه تراکنش‌ها';
+
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+        }
+
+        return view('accounting.warehouses.movements_pdf', compact(
+            'transactions',
+            'whName',
+            'dirFa',
+            'itemTypeFa',
+            'typeFa',
+            'request',
+            'logoBase64'
         ));
     }
 

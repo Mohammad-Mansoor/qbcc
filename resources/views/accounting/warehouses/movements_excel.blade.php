@@ -79,10 +79,10 @@
     <table>
         <!-- Company / Report Header -->
         <tr>
-            <td colspan="11" class="header-title">شرکت تولیدی قالین برادران قاسمی</td>
+            <td colspan="12" class="header-title">شرکت تولیدی قالین برادران قاسمی</td>
         </tr>
         <tr>
-            <td colspan="11" class="header-subtitle">گزارش ورودی و خروجی گدام‌ها (Warehouse Movement Ledger)</td>
+            <td colspan="12" class="header-subtitle">گزارش ورودی و خروجی گدام‌ها (Warehouse Movement Ledger)</td>
         </tr>
 
         <!-- Filter Details Metadata -->
@@ -94,7 +94,7 @@
             <td class="meta-label">نوعیت جنس:</td>
             <td colspan="2" class="meta-value">{{ $itemTypeFa }}</td>
             <td class="meta-label">نوع تراکنش:</td>
-            <td colspan="2" class="meta-value">{{ $typeFa }}</td>
+            <td colspan="3" class="meta-value">{{ $typeFa }}</td>
         </tr>
         <tr>
             <td class="meta-label">از تاریخ:</td>
@@ -104,26 +104,27 @@
             <td class="meta-label">تاریخ خروجی:</td>
             <td colspan="2" class="meta-value">{{ date('Y-m-d H:i') }}</td>
             <td class="meta-label">تعداد کل رکوردها:</td>
-            <td colspan="2" class="meta-value font-bold">{{ $transactions->count() }}</td>
+            <td colspan="3" class="meta-value font-bold">{{ $transactions->count() }}</td>
         </tr>
         
         <!-- Empty Row Spacer -->
-        <tr><td colspan="11" style="border: none; height: 15px;"></td></tr>
+        <tr><td colspan="12" style="border: none; height: 15px;"></td></tr>
 
         <!-- Data Headers -->
         <thead>
             <tr>
-                <th style="width: 15%;">تاریخ ثبت</th>
-                <th style="width: 15%;">شماره سند مرجع</th>
-                <th style="width: 15%;">گدام</th>
-                <th style="width: 10%;">نوعیت آیتم</th>
-                <th style="width: 20%;">شرح آیتم</th>
-                <th style="width: 15%;">نوع تراکنش</th>
-                <th style="width: 10%;">جهت حرکت</th>
-                <th style="width: 10%;">مقدار / تعداد</th>
-                <th style="width: 10%;">مساحت (م²)</th>
-                <th style="width: 12%;">قیمت واحد (USD)</th>
-                <th style="width: 13%;">مجموع هزینه (USD)</th>
+                <th style="width: 12%;">تاریخ ثبت</th>
+                <th style="width: 12%;">شماره سند مرجع</th>
+                <th style="width: 12%;">گدام</th>
+                <th style="width: 8%;">نوعیت آیتم</th>
+                <th style="width: 16%;">شرح آیتم</th>
+                <th style="width: 12%;">نوع تراکنش</th>
+                <th style="width: 8%;">جهت حرکت</th>
+                <th style="width: 8%;">مقدار/تعداد</th>
+                <th style="width: 8%;">ابعاد (m)</th>
+                <th style="width: 8%;">مساحت (م²)</th>
+                <th style="width: 8%;">قیمت واحد</th>
+                <th style="width: 10%;">مجموع هزینه</th>
             </tr>
         </thead>
         <tbody>
@@ -147,6 +148,13 @@
                         $totalOutArea += $tx->area;
                         $totalOutCost += $tx->total_cost;
                     }
+                    $carpetDims = '-';
+                    if ($isCarpet) {
+                        $actualCarpet = \App\Carpet::find($tx->item->ref_id);
+                        if ($actualCarpet && ($actualCarpet->height || $actualCarpet->width)) {
+                            $carpetDims = ($actualCarpet->height ?? '-') . ' x ' . ($actualCarpet->width ?? '-');
+                        }
+                    }
                 @endphp
                 <tr>
                     <td class="text-center" style="direction: ltr;">{{ \Carbon\Carbon::parse($tx->created_at)->format('Y-m-d H:i') }}</td>
@@ -161,6 +169,7 @@
                     <td class="text-left font-bold">
                         {{ number_format($tx->quantity, 2) }} {{ $isCarpet ? 'تخته' : 'KG' }}
                     </td>
+                    <td class="text-left" style="direction: ltr;">{{ $carpetDims }}</td>
                     <td class="text-left">{{ $tx->area > 0 ? number_format($tx->area, 2) : '-' }}</td>
                     <td class="text-left">${{ number_format($tx->unit_cost, 2) }}</td>
                     <td class="text-left font-bold">${{ number_format($tx->total_cost, 2) }}</td>
@@ -174,6 +183,7 @@
             <tr class="total-row">
                 <td colspan="7" class="text-center">خلاصه کل ورودی‌ها (Total IN)</td>
                 <td class="text-left">{{ number_format($totalInQty, 2) }}</td>
+                <td>-</td>
                 <td class="text-left">{{ number_format($totalInArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalInCost, 2) }}</td>
@@ -181,6 +191,7 @@
             <tr class="total-row">
                 <td colspan="7" class="text-center">خلاصه کل خروجی‌ها (Total OUT)</td>
                 <td class="text-left">{{ number_format($totalOutQty, 2) }}</td>
+                <td>-</td>
                 <td class="text-left">{{ number_format($totalOutArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalOutCost, 2) }}</td>
@@ -188,6 +199,7 @@
             <tr class="total-row" style="background-color: #cbd5e1;">
                 <td colspan="7" class="text-center">صافی کل دوره (Net Balance)</td>
                 <td class="text-left">{{ number_format($totalInQty - $totalOutQty, 2) }}</td>
+                <td>-</td>
                 <td class="text-left">{{ number_format($totalInArea - $totalOutArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalInCost - $totalOutCost, 2) }}</td>
