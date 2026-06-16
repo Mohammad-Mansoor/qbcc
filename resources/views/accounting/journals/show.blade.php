@@ -165,8 +165,8 @@
                                     <i class="feather icon-rotate-ccw mr-1"></i> ابطال سند
                                 </button>
                              @endif
-                             <a href="{{ route('accounting.journals.print', $transaction->id) }}" target="_blank" class="btn btn-dark rounded-pill px-4 shadow">
-                                <i class="feather icon-printer mr-2"></i> چاپ سند (Print)
+                             <a href="{{ route('accounting.journals.print', $transaction->id) }}?export=pdf" target="_blank" class="btn btn-primary rounded-pill px-4 shadow">
+                                <i class="feather icon-printer mr-2"></i> چاپ سند (Print PDF)
                              </a>
                         </div>
                     </div>

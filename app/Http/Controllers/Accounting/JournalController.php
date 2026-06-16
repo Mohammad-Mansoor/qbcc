@@ -279,9 +279,27 @@ class JournalController extends Controller
         return view('accounting.journals.show', compact('transaction'));
     }
 
-    public function print($id)
+    public function print(Request $request, $id)
     {
         $transaction = LedgerTransaction::with('entries.account')->findOrFail($id);
+
+        if ($request->get('export') === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            return view('accounting.journals.pdf', compact('transaction', 'topHeaderBase64', 'bottomFooterBase64'));
+        }
+
         return view('accounting.journals.print', compact('transaction'));
     }
 
