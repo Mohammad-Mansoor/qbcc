@@ -40,62 +40,71 @@
     <!-- Invoice Card -->
     <div class="card border-0 shadow-lg rounded-lg overflow-hidden" id="premiumBatchInvoice">
         <!-- Invoice Header -->
-        <div class="card-header bg-white border-0 p-5">
-            <div class="row align-items-center">
-                <div class="col-6">
-                    <h1 class="font-weight-bold text-primary mb-0" style="letter-spacing: 2px; font-size: 2.2rem;">
-                        @if($batch->type == 'kachaee')
-                            KACHAEE BILL
-                        @elseif($batch->type == 'wash')
-                            WASHING BILL
-                        @elseif($batch->type == 'finish')
-                            FINISHING BILL
-                        @else
-                            PRODUCTION BATCH
-                        @endif
-                    </h1>
-                    <p class="text-muted small">نمبر مسلسل: <span class="text-dark font-weight-bold">{{ $batch->reference_number }}</span></p>
-                </div>
-                <div class="col-6 text-left">
-                    <h3 class="font-weight-bold text-dark mb-0">QBIC ERP SYSTEM</h3>
-                    <p class="text-muted small mb-0">کابل، افغانستان</p>
-                    <p class="text-muted tiny">تاریخ ایجاد: {{ $batch->created_at->format('Y-m-d H:i') }}</p>
-                </div>
-            </div>
+        <div class="card-header bg-white border-bottom p-5 text-center">
+            <h2 class="font-weight-bold text-dark mb-2" style="font-size: 2.2rem; color: #1e3a8a !important;">شرکت صنعتی برادران قاسمی</h2>
+            <p class="text-muted mb-4" style="font-size: 1.1rem;">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت افغانستان</p>
             
-            <div class="row mt-5">
-                <div class="col-6 text-right">
-                    <p class="text-muted small text-uppercase font-weight-bold mb-2">تیم کاری / بخش مربوطه:</p>
-                    @if($team)
-                        <h5 class="font-weight-bold text-dark mb-1">{{ $team->name }}</h5>
-                        @if(isset($team->phone))
-                            <p class="text-muted small mb-0"><i class="fa fa-phone mr-1"></i> {{ $team->phone }}</p>
-                        @endif
+            <div class="d-inline-block px-5 py-2 mt-2 rounded-pill shadow-sm" style="background-color: #eff6ff; border: 1px solid #bfdbfe;">
+                <h4 class="font-weight-bold mb-0" style="color: #1d4ed8;">
+                    @if($batch->type == 'kachaee')
+                        صورتحساب کچایی (Kachaee Payment Bill)
+                    @elseif($batch->type == 'wash')
+                        صورتحساب شستشو (Washing Payment Bill)
+                    @elseif($batch->type == 'finish')
+                        صورتحساب تیاری (Finishing Payment Bill)
                     @else
-                        <h5 class="font-weight-bold text-muted mb-1">--- ثبت نشده ---</h5>
+                        صورتحساب تولید (Production Payment Bill)
                     @endif
-                    <p class="text-muted small mt-2">نوعیت مرحله: 
-                        <span class="badge badge-light-secondary font-weight-bold">
-                            @if($batch->type == 'kachaee')
-                                کچایی (Kachaee)
-                            @elseif($batch->type == 'wash')
-                                شستشو (Washing)
-                            @elseif($batch->type == 'finish')
-                                تیاری (Finishing)
-                            @endif
-                        </span>
-                    </p>
+                </h4>
+            </div>
+        </div>
+        
+        <!-- Meta Details Section -->
+        <div class="card-body px-5 py-4 bg-light border-bottom">
+            <div class="row">
+                <div class="col-md-6 text-right border-left">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle" style="width: 160px;">تیم کاری / بخش مربوطه:</td>
+                            <td class="font-weight-bold text-dark align-middle" style="font-size: 1.1rem;">{{ $team->name ?? '--- ثبت نشده ---' }}</td>
+                        </tr>
+                        @if(isset($team->phone))
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle">شماره تماس:</td>
+                            <td class="align-middle">{{ $team->phone }}</td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle">نوعیت مرحله:</td>
+                            <td class="align-middle">
+                                <span class="badge badge-info px-3 py-1 shadow-sm" style="font-size: 0.95rem;">
+                                    @if($batch->type == 'kachaee') کچایی (Kachaee)
+                                    @elseif($batch->type == 'wash') شستشو (Washing)
+                                    @elseif($batch->type == 'finish') تیاری (Finishing)
+                                    @endif
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-                <div class="col-6 text-left" style="direction: ltr;">
-                    <p class="text-muted small text-uppercase font-weight-bold mb-2">خلاصه وضعیت کارکرد (Summary):</p>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="text-muted small">Total Carpets:</span>
-                        <span class="text-dark font-weight-bold small">{{ $carpets->count() }} Pcs</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="text-muted small">Total Area:</span>
-                        <span class="text-dark font-weight-bold small">{{ number_format($carpets->sum(function($c) { return $c->carpet->area ?? 0; }), 2) }} m²</span>
-                    </div>
+                <div class="col-md-6 text-right">
+                    <table class="table table-borderless table-sm mb-0 pl-md-4">
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle" style="width: 150px;">نمبر مسلسل / بل:</td>
+                            <td class="font-weight-bold text-primary align-middle" style="font-size: 1.4rem; font-family: monospace;">{{ $batch->reference_number }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle">تاریخ ایجاد:</td>
+                            <td class="align-middle" style="direction: ltr; text-align: right; font-weight: 500;">{{ $batch->created_at->format('Y-m-d H:i') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted font-weight-bold align-middle">خلاصه کارکرد:</td>
+                            <td class="align-middle font-weight-bold text-dark">
+                                <span class="mr-3"><i class="fa fa-cubes text-muted mr-1"></i> {{ $carpets->count() }} Pcs</span>
+                                <span><i class="fa fa-map-o text-muted mr-1"></i> {{ number_format($carpets->sum(function($c) { return $c->carpet->area ?? 0; }), 2) }} m²</span>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
