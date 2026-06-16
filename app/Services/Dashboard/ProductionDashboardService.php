@@ -2,66 +2,195 @@
 
 namespace App\Services\Dashboard;
 
-use App\Carpet;
-use App\CarpetWash;
-use App\FinishingWork;
-use App\Kachaee;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ProductionDashboardService
 {
-    /**
-     * Get all Production Analytics
-     */
     public function getAnalytics()
     {
-        $today = Carbon::today()->format('Y-m-d');
+        // 1. Executive KPIs (Database direct aggregations)
         
-        // Pipeline exactly like executive dashboard for consistency
-        $pipeline = [
-            'raw_carpet' => Carpet::whereIn('status', [0, 1])->count(),
-            'kachayee' => Carpet::whereIn('status', [2, 12])->count(),
-            'washing' => Carpet::whereIn('status', [3, 13])->count(),
-            'tayaari' => Carpet::where('status', 4)->count(),
-            'ready_for_sale' => Carpet::where('status', 5)->count(),
+        // Carpet Inventory Available
+        $carpetInventory = DB::table('carpets')
+            ->where('status', '!=', 6)
+            ->selectRaw('COUNT(carpet_id) as total_qty, COALESCE(SUM(area), 0) as total_area, COALESCE(SUM(total_price), 0) as total_value')
+            ->first();
+
+        // Raw Material Stock
+        $rawMaterials = DB::table('material_stocks')
+            ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
+            ->selectRaw("
+                SUM(CASE WHEN material_categories.subtype = 'yarn' THEN material_stocks.quantity ELSE 0 END) as yarn_kg,
+                SUM(CASE WHEN material_categories.subtype = 'dye' THEN material_stocks.quantity ELSE 0 END) as dye_kg
+            ")
+            ->first();
+
+        // 2. Financial Costs & Profitability (From Inventory Ledger)
+        $costs = DB::table('inventory_transactions')
+            ->selectRaw("
+                SUM(CASE WHEN type = 'PURCHASE' AND direction = 'IN' AND reference_type = 'App\\Carpet' THEN total_cost ELSE 0 END) as carpet_purchase_cost,
+                SUM(CASE WHEN type = 'KACHAEE' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as repair_cost,
+                SUM(CASE WHEN type = 'WASHING' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as washing_cost,
+                SUM(CASE WHEN type = 'FINISHING' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as finishing_cost
+            ")
+            ->whereIn('type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
+            ->first();
+
+        $revenueData = DB::table('sales')
+            ->selectRaw('COALESCE(SUM(sale_cost_total), 0) as total_revenue, COALESCE(SUM(profit), 0) as net_profit')
+            ->first();
+
+        // 3. Work In Progress (WIP) Queues
+        $wipRepair = DB::table('carpets')->where('status', 2)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
+        $wipFinish = DB::table('carpets')->where('status', 4)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
+        
+        // 4. Warehouse Carpet Intelligence (Live physical ledger calculation)
+        $warehouseIntelligence = DB::table('inventory_transactions')
+            ->join('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
+            ->selectRaw("
+                warehouses.name as warehouse_name,
+                SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as qty,
+                SUM(CASE WHEN direction = 'IN' THEN area ELSE -area END) as area,
+                SUM(CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) as value
+            ")
+            ->where('inventory_transactions.status', 1)
+            ->where('inventory_transactions.reference_type', 'App\\Carpet')
+            ->groupBy('warehouses.id', 'warehouses.name')
+            ->having('qty', '>', 0)
+            ->get();
+
+        // Warehouse Material Intelligence (Yarn & Dye)
+        $warehouseMaterials = DB::table('inventory_transactions')
+            ->join('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_categories', 'items.ref_id', '=', 'material_categories.material_category_id')
+            ->selectRaw("
+                warehouses.name as warehouse_name,
+                material_categories.subtype,
+                SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as qty,
+                SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.total_cost ELSE -inventory_transactions.total_cost END) as value
+            ")
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\\MaterialType')
+            ->groupBy('warehouses.id', 'warehouses.name', 'material_categories.subtype')
+            ->having('qty', '>', 0)
+            ->get();
+
+        // 5. Lifecycle Funnel (All Time)
+        $funnel = [
+            'Purchased' => DB::table('carpets')->count(),
+            'Repaired' => DB::table('carpet_repairs')->distinct('carpetId')->count('carpetId'),
+            'Washed' => DB::table('carpet_washes')->distinct('carpetId')->count('carpetId'),
+            'Finished' => DB::table('finishing_works')->distinct('carpetId')->count('carpetId'),
+            'Sold' => DB::table('sales')->count()
         ];
 
-        // Team Performance (Kachayee, Washing, Tayaari) completed today or total completed
-        // Let's get completed today for the teams
-        $kachayeeToday = Carpet::where('status', 12)->whereDate('updated_at', $today)->count();
-        $washingToday = Carpet::where('status', 13)->whereDate('updated_at', $today)->count();
-        $tayaariToday = Carpet::where('status', 5)->whereDate('updated_at', $today)->count(); // ready for sale means finished tayaari
+        // 6. Trend Analytics (Last 12 Months)
+        $months = [];
+        $purchasedTrend = [];
+        $repairedTrend = [];
+        $washedTrend = [];
+        $finishedTrend = [];
+        $soldTrend = [];
 
-        $teamPerformance = [
-            'kachayee' => $kachayeeToday,
-            'washing' => $washingToday,
-            'tayaari' => $tayaariToday
-        ];
-
-        // Daily Production Output (Last 7 days for the chart)
-        $dailyOutput = [];
-        $days = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $days[] = $date->format('D');
-            $dailyOutput[] = Carpet::where('status', 5)->whereDate('updated_at', $date->format('Y-m-d'))->count();
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $monthStart = $date->copy()->startOfMonth();
+            $monthEnd = $date->copy()->endOfMonth();
+            
+            $months[] = $date->format('M Y');
+            
+            $purchasedTrend[] = DB::table('carpets')->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+            $repairedTrend[] = DB::table('carpet_repairs')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
+            $washedTrend[] = DB::table('carpet_washes')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
+            $finishedTrend[] = DB::table('finishing_works')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
+            $soldTrend[] = DB::table('sales')->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->count();
         }
 
-        // Efficiency (example gauge)
-        $totalWip = Carpet::whereIn('status', [2, 12, 3, 13, 4])->count();
-        $completedThisMonth = Carpet::where('status', 5)->whereMonth('updated_at', Carbon::now()->month)->count();
-        $efficiency = $totalWip > 0 ? min(100, round(($completedThisMonth / ($totalWip + $completedThisMonth)) * 100)) : 100;
+        // 7. Throughput Analytics
+        $now = Carbon::now();
+        $last7Days = $now->copy()->subDays(7);
+        $last30Days = $now->copy()->subDays(30);
+
+        $throughput = [
+            '7_days' => DB::table('inventory_transactions')
+                ->whereIn('type', ['KACHAEE', 'WASHING', 'FINISHING'])
+                ->where('is_value_adjustment', 1)
+                ->where('created_at', '>=', $last7Days)
+                ->count(),
+            '30_days' => DB::table('inventory_transactions')
+                ->whereIn('type', ['KACHAEE', 'WASHING', 'FINISHING'])
+                ->where('is_value_adjustment', 1)
+                ->where('created_at', '>=', $last30Days)
+                ->count(),
+        ];
+
+        // 8. Profitability Top Performers
+        $topCarpetTypes = DB::table('sales')
+            ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+            ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
+            ->selectRaw('carpet_types.carpet_type as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')
+            ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
+            ->orderByDesc('profit')
+            ->limit(5)
+            ->get();
+
+        // Top Qualities
+        $topQualities = DB::table('sales')
+            ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+            ->join('qualities', 'carpets.quality_id', '=', 'qualities.id')
+            ->selectRaw('qualities.quality as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')
+            ->groupBy('qualities.id', 'qualities.quality')
+            ->orderByDesc('profit')
+            ->limit(5)
+            ->get();
+
+        // Top Raw Materials (Yarn and Dye Revenue)
+        $topMaterials = DB::table('material_sales')
+            ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+            ->selectRaw("
+                material_categories.material_category as name,
+                material_categories.subtype,
+                SUM(material_sales.amount) as sold_qty,
+                SUM(material_sales.total_price) as revenue
+            ")
+            ->groupBy('material_categories.material_category_id', 'material_categories.material_category', 'material_categories.subtype')
+            ->orderByDesc('revenue')
+            ->limit(10)
+            ->get();
+
+        // 9. Operational Activity Feed (Unified Timeline)
+        $activities = DB::table('activities')
+            ->leftJoin('users', 'activities.user_id', '=', 'users.id')
+            ->select('activities.description', 'activities.created_at', 'users.name as user_name')
+            ->orderByDesc('activities.created_at')
+            ->limit(10)
+            ->get();
 
         return [
-            'pipeline' => $pipeline,
-            'team_performance' => $teamPerformance,
-            'daily_output' => [
-                'days' => $days,
-                'data' => $dailyOutput
+            'carpetInventory' => $carpetInventory,
+            'rawMaterials' => $rawMaterials,
+            'costs' => $costs,
+            'revenueData' => $revenueData,
+            'warehouseIntelligence' => $warehouseIntelligence,
+            'funnel' => $funnel,
+            'trends' => [
+                'months' => $months,
+                'purchased' => $purchasedTrend,
+                'repaired' => $repairedTrend,
+                'washed' => $washedTrend,
+                'finished' => $finishedTrend,
+                'sold' => $soldTrend
             ],
-            'efficiency' => $efficiency,
-            'wip_total' => $totalWip,
-            'delayed_orders' => 0 // Placeholder until delay logic is defined
+            'throughput' => $throughput,
+            'topCarpetTypes' => $topCarpetTypes,
+            'topQualities' => $topQualities,
+            'topMaterials' => $topMaterials,
+            'activities' => $activities,
+            'wipRepair' => $wipRepair,
+            'wipFinish' => $wipFinish,
+            'warehouseMaterials' => $warehouseMaterials,
         ];
     }
 }
