@@ -176,7 +176,7 @@
                 </div>
             </div>
             
-            <div class="row align-items-end">
+            <div class="row align-items-end mb-3">
                 <div class="col-md-3">
                     <label class="font-weight-bold text-muted small mb-1">نوعیت قالین:</label>
                     <select name="type_id" class="form-control form-select bg-light">
@@ -204,10 +204,16 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <div class="d-flex" style="gap: 10px;">
+                    <label class="font-weight-bold text-muted small mb-1">شماره نقشه (Map No):</label>
+                    <input type="text" name="map_number" class="form-control bg-light" placeholder="جستجوی شماره نقشه..." value="{{ request('map_number') }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 d-flex justify-content-end">
+                    <div class="d-flex" style="gap: 10px; width: 25%;">
                         <button type="submit" class="btn w-100" style="background-color: var(--primary-blue); color: white; border-radius: 10px; padding: 10px;"><i class="fa fa-search"></i> جستجو / فیلتر</button>
                         @php
-                            $hasFilters = request()->filled('from_date') || request()->filled('to_date') || request()->filled('from_id') || request()->filled('to_id') || request()->filled('status') || request()->filled('type_id') || request()->filled('quality_id');
+                            $hasFilters = request()->filled('from_date') || request()->filled('to_date') || request()->filled('from_id') || request()->filled('to_id') || request()->filled('status') || request()->filled('type_id') || request()->filled('quality_id') || request()->filled('map_number');
                         @endphp
                         @if($hasFilters)
                             <a href="{{ route('purchased.carpets.index') }}" class="btn btn-outline-danger" style="border-radius: 10px; padding: 10px; white-space: nowrap;"><i class="fa fa-times"></i> پاکسازی</a>
@@ -228,6 +234,7 @@
                         <th>تاریخ</th>
                         <th>نماینده فروشنده</th>
                         <th>نوعیت و کوالیتی</th>
+                        <th>شماره نقشه (Map No)</th>
                         <th>ابعاد (متر)</th>
                         <th>مساحت (M<sup>2</sup>)</th>
                         <th>قیمت فی متر / کل</th>
@@ -244,6 +251,7 @@
                             <div><strong style="color: var(--accent-blue);">{{ $carpet->type->carpet_type ?? 'نامشخص' }}</strong></div>
                             <div class="text-muted" style="font-size: 0.85rem;">{{ $carpet->quality->quality ?? 'نامشخص' }}</div>
                         </td>
+                        <td class="font-weight-bold text-secondary">{{ $carpet->map_number ?? '---' }}</td>
                         <td dir="ltr" class="text-right">{{ $carpet->width }} × {{ $carpet->height }}</td>
                         <td class="font-weight-bold text-success">{{ number_format($carpet->area, 2) }}</td>
                         <td>
@@ -264,7 +272,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">هیچ قالینی با این مشخصات یافت نشد.</td>
+                        <td colspan="9" class="text-center text-muted py-4">هیچ قالینی با این مشخصات یافت نشد.</td>
                     </tr>
                     @endforelse
                 </tbody>

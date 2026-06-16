@@ -61,6 +61,11 @@ class PurchasedCarpetReportController extends Controller
             $query->where('carpet_no', 'like', '%' . $request->from_id . '%');
         }
 
+        // Map Number Filter
+        if ($request->filled('map_number')) {
+            $query->where('map_number', 'like', '%' . $request->map_number . '%');
+        }
+
         // Status Filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);

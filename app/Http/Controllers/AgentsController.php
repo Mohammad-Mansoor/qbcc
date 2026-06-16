@@ -83,7 +83,7 @@ class AgentsController extends Controller
 
 
     public function accounts(){
-        $data = Agents::where('account_status',1)->orderBy('agent_id', 'desc')->paginate(30);
+        $data = Agents::orderBy('agent_id', 'desc')->paginate(30);
 
 
         $accounts = '';
@@ -136,6 +136,8 @@ class AgentsController extends Controller
             ->orwhereHas('phone', function ($query) use ($search) {
                 $query->where('phone_no', 'like', '%'.$search.'%');
             })->paginate(30);
+
+        $data->appends(['search' => $search]);
 
         $agent= '';
         $lastId = Agents::latest()->first();

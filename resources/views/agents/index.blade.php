@@ -192,13 +192,20 @@
                 <div class="table-controls hideOnPrint">
                     <!-- RIGHT SIDE -->
                     <div class="controls-right">
-                        <form action="/dashboard/agents/search" method="post" style="width: 200px;">
-                            @csrf
-                            <input type="text" name="search" required value="{{ $search ?? '' }}" placeholder="جستجو..." class="form-control-modern w-100">
+                        <form action="/dashboard/agents/search" method="GET" style="width: 320px; margin-left: 15px;">
+                            <div class="input-group shadow-sm" style="border-radius: 10px; overflow: hidden; border: 1px solid #cbd5e1; background: white; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 .125rem .25rem rgba(0,0,0,.075)';">
+                                <input type="text" name="search" required value="{{ $search ?? '' }}" placeholder="جستجو (نام، تذکره، شماره)..." class="form-control border-0 shadow-none px-3" style="height: 42px; font-size: 13px; font-weight: 600; background: transparent;">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary m-0 px-4 d-flex align-items-center justify-content-center" type="submit" style="height: 42px; border-radius: 10px 0 0 10px; font-weight: 700; gap: 8px;">
+                                        <i class="feather icon-search"></i> جستجو
+                                    </button>
+                                </div>
+                            </div>
                         </form>
                         <div class="d-flex gap-2">
+                            <a href="/dashboard/agents" class="btn btn-light-primary btn-filter">فعال</a>
                             <a href="/dashboard/agent-deactive" class="btn btn-light-warning btn-filter">غیر فعال</a>
-                            <a href="/dashboard/agent-accounts" class="btn btn-light-info btn-filter">حساب دار</a>
+                            <a href="/dashboard/agent-accounts" class="btn btn-light-info btn-filter">همه نمایندگان</a>
                         </div>
                     </div>
 
@@ -256,8 +263,8 @@
                                             <a href="/dashboard/agents/{{ $d->agent_id }}/edit" class="btn-action-round bg-light-info text-info" title="ویرایش"><i class="feather icon-edit-2"></i></a>
                                             <a href="/dashboard/agents/{{ $d->agent_id }}" class="btn-action-round bg-light-warning text-warning" title="جزییات"><i class="feather icon-user"></i></a>
                                             <a href="/dashboard/agent-carpet/{{$d->agent_id}}" class="btn-action-round bg-light-primary text-primary" title="قالین ها"><i class="feather icon-package"></i></a>
-                                            <a href="/dashboard/agent-payments/{{$d->agent_id}}" class="btn btn-sm btn-primary rounded-pill px-3 ml-1" title="صورت حساب">حساب</a>
-                                            <a href="{{ route('accounting.statements.show', ['entity' => 'agents', 'id' => $d->agent_id]) }}" class="btn btn-sm btn-info rounded-pill px-3 ml-1" title="صورت حساب مالی">صورت حساب</a>
+                                            <a href="/dashboard/agent-payments/{{$d->agent_id}}" class="btn-action-round bg-light-success text-success" data-toggle="tooltip" title="ثبت رسید و پرداخت (Account)"><i class="feather icon-credit-card"></i></a>
+                                            <a href="{{ route('accounting.reports.agent_statement', ['agent_id' => $d->agent_id]) }}" class="btn-action-round bg-light-info text-info" data-toggle="tooltip" title="صورت حساب مالی (Statement)"><i class="feather icon-file-text"></i></a>
                                         </div>
                                     </td>
                                 </tr>

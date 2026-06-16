@@ -170,11 +170,11 @@ header("Cache-Control: private",false);
             <td colspan="3" class="meta-value font-bold" style="height: 24pt;">{{ request('type_id') ? ($types->where('carpet_type_id', request('type_id'))->first()->carpet_type ?? 'همه') : 'همه' }}</td>
             <td colspan="2" class="meta-label" style="height: 24pt;">کوالیتی:</td>
             <td colspan="3" class="meta-value font-bold" style="height: 24pt;">{{ request('quality_id') ? ($qualities->where('id', request('quality_id'))->first()->quality ?? 'همه') : 'همه' }}</td>
-            <td colspan="2" class="meta-label" style="height: 24pt;">تعداد کل قالین‌ها:</td>
+            <td colspan="4" class="meta-label" style="height: 24pt;">تعداد کل قالین‌ها:</td>
             <td colspan="3" class="meta-value font-bold" style="height: 24pt;">{{ number_format($carpets->count()) }} تخته</td>
         </tr>
         
-        <tr style="height: 15pt;"><td colspan="15" style="border: none; background-color: #ffffff;"></td></tr>
+        <tr style="height: 15pt;"><td colspan="17" style="border: none; background-color: #ffffff;"></td></tr>
 
         <!-- Main Table -->
         <thead>
@@ -184,6 +184,7 @@ header("Cache-Control: private",false);
                 <th style="height: 32pt;">نماینده</th>
                 <th style="height: 32pt;">نوعیت</th>
                 <th style="height: 32pt;">کوالیتی</th>
+                <th style="height: 32pt;">شماره نقشه</th>
                 <th style="height: 32pt;">طول</th>
                 <th style="height: 32pt;">عرض</th>
                 <th style="height: 32pt;">مساحت (M2)</th>
@@ -210,6 +211,7 @@ header("Cache-Control: private",false);
                 <td class="text-right" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->agent->user->name ?? 'نامشخص' }} {{ $carpet->agent->user->last_name ?? '' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->type->carpet_type ?? '-' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->quality->quality ?? '-' }}</td>
+                <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->map_number ?? '-' }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->height }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->width }}</td>
                 <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($carpet->area, 2) }}</td>
@@ -230,7 +232,7 @@ header("Cache-Control: private",false);
 
             @if($carpets->count() > 0)
             <tr class="total-row">
-                <td colspan="7" class="text-center" style="height: 32pt;">مجموع کلی (Grand Total)</td>
+                <td colspan="8" class="text-center" style="height: 32pt;">مجموع کلی (Grand Total)</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">{{ number_format($carpets->sum('area'), 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_purchase, 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_repair, 2) }}</td>

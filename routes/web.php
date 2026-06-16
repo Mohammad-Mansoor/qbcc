@@ -413,10 +413,10 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::get('washing-team/sending-to-washing/{carpetId}', 'WashingTeamController@sending_to_washing');
     Route::post('washing-team/sent-to-washing/{carpetId}', 'WashingTeamController@washing_team_selected');
     /** Route For Agents**/
+    Route::any('/agents/search', 'AgentsController@search');
     Route::resource('/agents', 'AgentsController');
     Route::post('/agent/phone/{id}', 'AgentsController@StorePhone');
     Route::get('/agent/phone/{id}', 'AgentsController@DeletePhone');
-    Route::post('/agents/search', 'AgentsController@search');
     Route::get('/agent-accounts', 'AgentsController@accounts');
     Route::get('/agent-deactive', 'AgentsController@deactive_accounts');
     Route::get('/agent-status-change/{agent_id}', 'AgentsController@change_status');

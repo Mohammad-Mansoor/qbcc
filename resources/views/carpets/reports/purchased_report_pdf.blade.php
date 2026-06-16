@@ -110,17 +110,18 @@
                                 <tr>
                                     <th class="text-center" style="width: 4%;">ردیف</th>
                                     <th style="width: 8%;">شماره پارچه</th>
-                                    <th style="width: 9%;">نوعیت</th>
-                                    <th style="width: 9%;">کوالیتی</th>
-                                    <th class="text-center" style="width: 6%;">طول</th>
-                                    <th class="text-center" style="width: 6%;">عرض</th>
-                                    <th class="text-center" style="width: 7%;">مساحت</th>
+                                    <th style="width: 8%;">نوعیت</th>
+                                    <th style="width: 8%;">کوالیتی</th>
+                                    <th style="width: 8%;">شماره نقشه</th>
+                                    <th class="text-center" style="width: 5%;">طول</th>
+                                    <th class="text-center" style="width: 5%;">عرض</th>
+                                    <th class="text-center" style="width: 6%;">مساحت</th>
                                     <th class="text-center" style="width: 8%;">قیمت خرید</th>
                                     <th class="text-center" style="width: 8%;">مصارف ترمیم</th>
                                     <th class="text-center" style="width: 8%;">مصارف شست</th>
                                     <th class="text-center" style="width: 8%;">مصارف تکمیلی</th>
                                     <th class="text-center" style="width: 8%;">مبلغ فروش</th>
-                                    <th style="width: 11%;">حالت فعلی</th>
+                                    <th style="width: 8%;">حالت فعلی</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -149,6 +150,7 @@
                                     <td><strong>{{ $carpet->carpet_no }}</strong></td>
                                     <td>{{ $carpet->type->carpet_type ?? '-' }}</td>
                                     <td>{{ $carpet->quality->quality ?? '-' }}</td>
+                                    <td>{{ $carpet->map_number ?? '-' }}</td>
                                     <td class="text-center" style="direction: ltr;">{{ $carpet->height }}</td>
                                     <td class="text-center" style="direction: ltr;">{{ $carpet->width }}</td>
                                     <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($carpet->area, 2) }}</td>
@@ -161,14 +163,14 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="13" class="text-center" style="padding: 20px;">هیچ قالینی مطابق با فیلترهای اعمال شده یافت نشد.</td>
+                                    <td colspan="14" class="text-center" style="padding: 20px;">هیچ قالینی مطابق با فیلترهای اعمال شده یافت نشد.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             @if($carpets->count() > 0)
                             <tfoot>
                                 <tr class="total-row">
-                                    <td colspan="6" class="text-center">مجموع کلی (Grand Total)</td>
+                                    <td colspan="7" class="text-center">مجموع کلی (Grand Total)</td>
                                     <td class="text-center" style="direction: ltr;">{{ number_format($carpets->sum('area'), 2) }}</td>
                                     <td class="text-center" style="direction: ltr;">${{ number_format($sum_purchase, 2) }}</td>
                                     <td class="text-center" style="direction: ltr;">${{ number_format($sum_repair, 2) }}</td>
