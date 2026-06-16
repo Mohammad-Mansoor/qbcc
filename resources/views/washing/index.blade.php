@@ -108,216 +108,157 @@
     </div>
   </div>
   <div class="row" id="washing-team">
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="card">
-        <div class="card-header">
-          <h4>لیست کارمندان شست</h4>
-          @if(session("status"))
-            <div class="alert alert-success status text-center" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('status')}}
-            </div>
-          
-          @endif
-          @if(session("error"))
-            
-            <div class="alert alert-success status text-center" style="display:none;" role="alert">
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
-                        aria-hidden="true">&times;</span></button>
-              {{session('error')}}
-            </div>
-          @endif
-          <div class="row hideOnPrint">
-            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-              <form action="/dashboard/washing-team/search" method="post">
-                @csrf
-                <input type="text" name="search" required
-                       placeholder="جستجو" class="form-control">
-              </form>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"></div>
-            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
-            
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 hideOnPrint">
-              <div class="btn-group hideOnPrint" id="exportButton" style="float: left; ">
-                <div class="btn btn-sm btn-primary" style="float: left" onclick="printPage('washing-team')"><i
-                          class="fa fa-print"></i> چاپ
+    <div class="col-lg-12">
+      <div class="card border-0 shadow-lg rounded-lg overflow-hidden">
+        
+        <!-- Modern Header Section -->
+        <div class="card-header bg-white border-bottom p-4">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h4 class="font-weight-bold text-dark mb-0" style="letter-spacing: 0.5px;">
+                        <i class="fa fa-users text-primary mr-2"></i> لیست کارمندان شست
+                    </h4>
+                    @if(session("status"))
+                        <div class="text-success small font-weight-bold mt-2"><i class="fa fa-check-circle mr-1"></i> {{ session('status') }}</div>
+                    @endif
+                    @if(session("error"))
+                        <div class="text-danger small font-weight-bold mt-2"><i class="fa fa-exclamation-circle mr-1"></i> {{ session('error') }}</div>
+                    @endif
                 </div>
-              
-              </div>
-              <a href="/dashboard/washing-accounts" style="float: left; margin-left: 5px;" class="btn btn-sm btn-info hideOnPrint">کارمندان حسابدار</a>
-              <button type="button" class="btn btn-sm btn-success hideOnPrint" data-toggle="modal" data-target="#washingTeamModal" style="float: left;">
-                <i class="fa fa-plus"></i> ایجاد عضو جدید
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <table class="table table-sm table-hover" id="washing_team">
-            <thead>
-            <tr>
-              <th>نام</th>
-              <th>تخلص</th>
-              <th>شماره تماس</th>
-              <th>آدرس</th>
-              <th>باقیات (USD - معادل)</th>
-              <th>باقیات بر اساس اسعار</th>
-              <th class="hideOnPrint">ویرایش</th>
-              <th class="hideOnPrint">حساب</th>
-              <th class="hideOnPrint">صورت حساب</th>
-            </tr>
-            </thead>
-            <tbody>
-            @if(!isset($accounts))
-              @foreach($teams as $t)
                 
-                <tr>
-                  <td>{{ $t->name}}</td>
-                  <td>{{ $t->last_name}}</td>
-                  <td style="direction: ltr">{{ $t->contact_no }}</td>
-                  <td>{{ $t->address }}</td>
-                  
-                  <!-- Normalized USD Balance -->
-                  @php($norm_bal = $t->normalized_balance)
-                  @if($norm_bal > 0)
-                    <td style="direction: ltr;color: green; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
-                  @elseif($norm_bal < 0)
-                    <td style="direction: ltr;color: red; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
-                  @else
-                    <td style="direction: ltr;">0.00 $</td>
-                  @endif
+                <div class="col-md-8 text-left d-flex justify-content-end align-items-center hideOnPrint flex-wrap">
+                    <!-- Search Bar -->
+                    <form action="/dashboard/washing-team/search" method="post" class="mr-3 mb-0" style="width: {{ isset($search) ? '300px' : '250px' }};">
+                        @csrf
+                        <div class="input-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                            <input type="text" name="search" required placeholder="جستجوی کارمند..." class="form-control border-0 bg-light" value="{{ $search ?? '' }}">
+                            <div class="input-group-append">
+                                @if(isset($search) && $search != '')
+                                    <a href="/dashboard/washing-team" class="btn btn-danger border-0 px-3" title="پاک کردن جستجو"><i class="fa fa-times"></i></a>
+                                @endif
+                                <button type="submit" class="btn btn-primary border-0 px-3"><i class="fa fa-search"></i></button>
+                            </div>
+                        </div>
+                    </form>
 
-                  <!-- Selected Currencies Breakdown -->
-                  @php($usd_bal = $t->usd_balance)
-                  @php($af_bal = $t->af_balance)
-                  <td style="font-size: 0.9rem; direction: ltr;">
-                    @if($usd_bal != 0)
-                      <span style="color: {{ $usd_bal > 0 ? 'green' : 'red' }};">{{ number_format($usd_bal, 2) }} USD</span>
-                    @endif
-                    @if($af_bal != 0)
-                      @if($usd_bal != 0) <br> @endif
-                      <span style="color: {{ $af_bal > 0 ? 'green' : 'red' }};">{{ number_format($af_bal, 2) }} AFN</span>
-                    @endif
-                    @if($usd_bal == 0 && $af_bal == 0)
-                      <span class="text-muted">تصفیه</span>
-                    @endif
-                  </td>
-                  
-                  <td class="hideOnPrint">
-                    <a href="/dashboard/washing-team/{{$t->id}}/edit"
-                       class="btn btn-sm btn-primary hideOnPrint">ویرایش</a>
-                  </td>
-                  
-                  <td class="hideOnPrint">
-                    <a href="/dashboard/washing-payments/{{$t->id}}" class="btn btn-sm btn-primary hideOnPrint">حساب</a>
-                  </td>
-                  <td class="hideOnPrint">
-                    <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info hideOnPrint">صورت حساب</a>
-                  </td>
-                
+                    <!-- Export Dropdown Area (Used by TableExport JS) -->
+                    <div class="btn-group mr-2 shadow-sm rounded-lg" id="exportButton">
+                        <button class="btn btn-light border-0 font-weight-bold text-dark" onclick="printPage('washing-team')">
+                            <i class="fa fa-print text-primary mr-1"></i> چاپ
+                        </button>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <a href="/dashboard/washing-accounts" class="btn btn-info shadow-sm mr-2 rounded-lg font-weight-bold px-3 border-0" style="background-color: #06b6d4;">
+                        <i class="fa fa-calculator mr-1"></i> کارمندان حسابدار
+                    </a>
+                    
+                    <button type="button" class="btn btn-success shadow-sm rounded-lg font-weight-bold px-3 border-0" data-toggle="modal" data-target="#washingTeamModal" style="background-color: #10b981;">
+                        <i class="fa fa-plus-circle mr-1"></i> ایجاد عضو جدید
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle text-center mb-0" id="washing_team" style="font-size: 0.95rem;">
+              <thead class="bg-light text-dark font-weight-bold">
+                <tr>
+                  <th class="border-0 py-3">نام</th>
+                  <th class="border-0 py-3">تخلص</th>
+                  <th class="border-0 py-3">شماره تماس</th>
+                  <th class="border-0 py-3">آدرس</th>
+                  <th class="border-0 py-3">باقیات (USD - معادل)</th>
+                  <th class="border-0 py-3">باقیات بر اساس اسعار</th>
+                  <th class="border-0 py-3 hideOnPrint">عملیات سیستم</th>
                 </tr>
-              @endforeach
-            @else
-              @foreach($teams as $t)
-                
-                @php($norm_bal = $t->normalized_balance)
-                @php($usd_bal = $t->usd_balance)
-                @php($af_bal = $t->af_balance)
-                
-                @if($norm_bal != 0 || $usd_bal != 0 || $af_bal != 0)
-                  <tr>
-                    <td>{{ $t->name}}</td>
-                    <td>{{ $t->last_name}}</td>
-                    <td style="direction: ltr">{{ $t->contact_no }}</td>
-                    <td>{{ $t->address }}</td>
-  
+              </thead>
+              <tbody>
+                @php $items = isset($search) && !isset($accounts) ? $teams : (isset($accounts) ? $teams : $teams); @endphp
+                @foreach($items as $t)
+                  @php
+                      $norm_bal = $t->normalized_balance;
+                      $usd_bal = $t->usd_balance;
+                      $af_bal = $t->af_balance;
+                      $show_row = !isset($accounts) || ($norm_bal != 0 || $usd_bal != 0 || $af_bal != 0);
+                  @endphp
+                  
+                  @if($show_row)
+                  <tr class="border-bottom">
+                    <td class="font-weight-bold text-dark align-middle">{{ $t->name }}</td>
+                    <td class="align-middle">{{ $t->last_name }}</td>
+                    <td class="align-middle" style="direction: ltr; font-family: monospace;">{{ $t->contact_no }}</td>
+                    <td class="align-middle text-muted">{{ $t->address }}</td>
+                    
                     <!-- Normalized USD Balance -->
-                    @if($norm_bal > 0)
-                      <td style="direction: ltr;color: green; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
-                    @elseif($norm_bal < 0)
-                      <td style="direction: ltr;color: red; font-weight: bold;">{{ number_format($norm_bal, 2) }} $</td>
-                    @else
-                      <td style="direction: ltr;">0.00 $</td>
-                    @endif
+                    <td class="align-middle" style="direction: ltr;">
+                      @if($norm_bal > 0)
+                        <span class="badge badge-light-success px-3 py-2 font-weight-bold rounded-pill text-success shadow-sm"><i class="fa fa-arrow-up mr-1"></i> ${{ number_format($norm_bal, 2) }}</span>
+                      @elseif($norm_bal < 0)
+                        <span class="badge badge-light-danger px-3 py-2 font-weight-bold rounded-pill text-danger shadow-sm"><i class="fa fa-arrow-down mr-1"></i> ${{ number_format(abs($norm_bal), 2) }}</span>
+                      @else
+                        <span class="text-muted font-weight-bold">$0.00</span>
+                      @endif
+                    </td>
 
                     <!-- Selected Currencies Breakdown -->
-                    <td style="font-size: 0.9rem; direction: ltr;">
+                    <td class="align-middle" style="font-size: 0.9rem; direction: ltr;">
                       @if($usd_bal != 0)
-                        <span style="color: {{ $usd_bal > 0 ? 'green' : 'red' }};">{{ number_format($usd_bal, 2) }} USD</span>
+                        <div class="font-weight-bold" style="color: {{ $usd_bal > 0 ? '#10b981' : '#ef4444' }};">{{ number_format($usd_bal, 2) }} USD</div>
                       @endif
                       @if($af_bal != 0)
-                        @if($usd_bal != 0) <br> @endif
-                        <span style="color: {{ $af_bal > 0 ? 'green' : 'red' }};">{{ number_format($af_bal, 2) }} AFN</span>
+                        <div class="font-weight-bold" style="color: {{ $af_bal > 0 ? '#10b981' : '#ef4444' }};">{{ number_format($af_bal, 2) }} AFN</div>
                       @endif
                       @if($usd_bal == 0 && $af_bal == 0)
-                        <span class="text-muted">تصفیه</span>
+                        <span class="badge badge-secondary px-2 py-1 rounded-pill">تصفیه (Cleared)</span>
                       @endif
                     </td>
-  
-                    <td class="hideOnPrint">
-                      <a href="/dashboard/washing-team/{{$t->id}}/edit" class="btn btn-xs btn-primary hideOnPrint">ویرایش</a>
+                    
+                    <!-- Action Buttons -->
+                    <td class="align-middle hideOnPrint">
+                      <div class="btn-group shadow-sm" role="group">
+                        <a href="/dashboard/washing-team/{{$t->id}}/edit" class="btn btn-sm btn-light border" title="ویرایش" style="color: #4b5563;"><i class="fa fa-edit"></i></a>
+                        <a href="/dashboard/washing-payments/{{$t->id}}" class="btn btn-sm btn-light border text-primary font-weight-bold px-3">حساب</a>
+                        <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}" class="btn btn-sm btn-light border text-info" title="صورت حساب"><i class="fa fa-file-pdf-o"></i></a>
+                      </div>
+                    </td>
+                  </tr>
+                  @endif
+                @endforeach
+                
+                @if(!isset($search))
+                  @php
+                      $total_base_rec = \App\WashingPayment::where('type', 'رسید')->sum('base_amount');
+                      $total_base_sent = \App\WashingPayment::where('type', 'گرفت')->sum('base_amount');
+                      $total_normalized_sum = $total_base_rec - $total_base_sent;
+                  @endphp
+                  <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1;">
+                    <td colspan="4" class="text-left font-weight-bold text-dark align-middle" style="font-size: 1.1rem;">مجموعه کل (Grand Total):</td>
+
+                    <!-- Total Normalized USD Balance -->
+                    <td class="align-middle" style="direction: ltr;">
+                      @if($total_normalized_sum > 0)
+                        <span class="text-success font-weight-bold" style="font-size: 1.1rem;">+ ${{ number_format($total_normalized_sum, 2) }}</span>
+                      @elseif($total_normalized_sum < 0)
+                        <span class="text-danger font-weight-bold" style="font-size: 1.1rem;">- ${{ number_format(abs($total_normalized_sum), 2) }}</span>
+                      @else
+                        <span class="text-dark font-weight-bold" style="font-size: 1.1rem;">$0.00</span>
+                      @endif
                     </td>
                     
-                    <td class="hideOnPrint">
-                      <a href="/dashboard/washing-payments/{{$t->id}}"
-                         class="btn btn-xs btn-primary hideOnPrint">حساب</a>
+                    <!-- Total Selected Currencies Breakdown -->
+                    <td class="align-middle" style="direction: ltr; font-size: 1rem;">
+                      <div class="font-weight-bold" style="color: {{ ($credit_us - $debit_us) >= 0 ? '#10b981' : '#ef4444' }};">{{ number_format($credit_us - $debit_us, 2) }} USD</div>
+                      <div class="font-weight-bold" style="color: {{ ($credit_af - $debit_af) >= 0 ? '#10b981' : '#ef4444' }};">{{ number_format($credit_af - $debit_af, 2) }} AFN</div>
                     </td>
-                    <td class="hideOnPrint">
-                      <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}"
-                         class="btn btn-xs btn-info hideOnPrint">صورت حساب</a>
-                    </td>
-                  
+                    
+                    <td class="hideOnPrint"></td>
                   </tr>
                 @endif
-              @endforeach
-            @endif
-            
-            @if(!isset($search))
-              @php($total_base_rec = \App\WashingPayment::where('type', 'رسید')->sum('base_amount'))
-              @php($total_base_sent = \App\WashingPayment::where('type', 'گرفت')->sum('base_amount'))
-              @php($total_normalized_sum = $total_base_rec - $total_base_sent)
-              <tr style="background: gainsboro">
-                
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-
-                <!-- Total Normalized USD Balance -->
-                @if($total_normalized_sum > 0)
-                  <td style="font-size: 11px; direction: ltr; color: green; font-weight: bold;">
-                    {{ number_format($total_normalized_sum, 2) }} $ (معادل)
-                  </td>
-                @elseif($total_normalized_sum < 0)
-                  <td style="font-size: 11px; direction: ltr; color: red; font-weight: bold;">
-                    {{ number_format($total_normalized_sum, 2) }} $ (معادل)
-                  </td>
-                @else
-                  <td style="font-size: 11px; direction: ltr; font-weight: bold;">
-                    0.00 $
-                  </td>
-                @endif
-                
-                <!-- Total Selected Currencies Breakdown -->
-                <td style="font-size: 11px; direction: ltr; font-weight: bold;">
-                  <span style="color: {{ ($credit_us - $debit_us) >= 0 ? 'green' : 'red' }};">
-                    {{ number_format($credit_us - $debit_us, 2) }} USD
-                  </span>
-                  <br>
-                  <span style="color: {{ ($credit_af - $debit_af) >= 0 ? 'green' : 'red' }};">
-                    {{ number_format($credit_af - $debit_af, 2) }} AFN
-                  </span>
-                </td>
-                
-                <td>مجموعه</td>
-                
-                <td class="hideOnPrint"></td>
-              </tr>
-            @endif
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

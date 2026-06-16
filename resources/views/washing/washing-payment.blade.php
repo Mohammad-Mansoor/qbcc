@@ -164,18 +164,18 @@
     <!-- Header Section -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-7 text-right">
-            <h3 class="font-weight-bold text-dark">
-                <i class="fa fa-tint" style="color:var(--primary-blue)"></i> 
+            <h3 class="font-weight-bold text-white">
+                <i class="fa fa-tint" style="color:var(--soft-blue)"></i> 
                 پرداخت به شست‌گر: {{ $team->name }}
             </h3>
-            <p class="text-muted">مدیریت مالی و تصفیه حسابات بخش شست‌وشوی فرشی (Labor Payments)</p>
+            <p class="text-white" style="opacity: 0.9;">مدیریت مالی و تصفیه حسابات بخش شست‌وشوی فرشی (Labor Payments)</p>
         </div>
         <div class="col-md-5 text-left">
             <div class="btn-group">
-                <a href="/dashboard/washing-team" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <a href="/dashboard/washing-team" class="btn btn-outline-light btn-sm rounded-pill px-3 text-white">
                     <i class="fa fa-arrow-right"></i> بازگشت
                 </a>
-                <button class="btn btn-outline-primary btn-sm rounded-pill px-3 ml-2" onclick="window.print()" style="border-color:var(--primary-blue); color:var(--primary-blue)">
+                <button class="btn btn-outline-light btn-sm rounded-pill px-3 ml-2 text-white" onclick="window.print()">
                     <i class="fa fa-print"></i> چاپ صورت حساب
                 </button>
             </div>
