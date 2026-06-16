@@ -20,9 +20,19 @@
             @endif
         </div>
         <div class="col-md-6 text-left d-flex align-items-center justify-content-end">
-            <button class="btn btn-primary shadow-sm px-4 font-weight-bold" onclick="printPage('premiumBatchInvoice')">
-                <i class="fa fa-print mr-2"></i> چاپ صورتحساب
-            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary rounded-lg shadow px-4 dropdown-toggle font-weight-bold" type="button" id="printExportDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-print mr-1"></i> خروجی و چاپ
+                </button>
+                <div class="dropdown-menu dropdown-menu-right shadow-lg border-0" aria-labelledby="printExportDropdown" style="border-radius: 12px; z-index: 10000;">
+                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=pdf" target="_blank">
+                        <i class="fa fa-file-pdf-o mr-2 text-danger"></i> خروجی PDF
+                    </a>
+                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=excel">
+                        <i class="fa fa-file-excel-o mr-2 text-success"></i> خروجی Excel
+                    </a>
+                </div>
+            </div>
             <a href="/dashboard/batches/{{ $batch->type }}" class="btn btn-light shadow-sm px-4 ml-2">بازگشت به لیست</a>
         </div>
     </div>
@@ -33,7 +43,17 @@
         <div class="card-header bg-white border-0 p-5">
             <div class="row align-items-center">
                 <div class="col-6">
-                    <h1 class="font-weight-bold text-primary mb-0" style="letter-spacing: 2px; font-size: 2.2rem;">PRODUCTION BATCH</h1>
+                    <h1 class="font-weight-bold text-primary mb-0" style="letter-spacing: 2px; font-size: 2.2rem;">
+                        @if($batch->type == 'kachaee')
+                            KACHAEE BILL
+                        @elseif($batch->type == 'wash')
+                            WASHING BILL
+                        @elseif($batch->type == 'finish')
+                            FINISHING BILL
+                        @else
+                            PRODUCTION BATCH
+                        @endif
+                    </h1>
                     <p class="text-muted small">نمبر مسلسل: <span class="text-dark font-weight-bold">{{ $batch->reference_number }}</span></p>
                 </div>
                 <div class="col-6 text-left">
@@ -114,10 +134,13 @@
                     <thead class="bg-primary text-white">
                         <tr>
                             <th class="border-0 px-5 py-3">نمبر قالین</th>
-                            <th class="border-0 py-3">ابعاد (m)</th>
+                            <th class="border-0 py-3 text-center">شماره نقشه (Map No)</th>
+                            <th class="border-0 py-3 text-center">نوعیت (Type)</th>
+                            <th class="border-0 py-3 text-center">کیفیت (Quality)</th>
+                            <th class="border-0 py-3 text-center">ابعاد (m)</th>
                             <th class="border-0 py-3 text-center">مساحت (m²)</th>
                             @if($batch->type == 'finish')
-                                <th class="border-0 py-3">کتگوری تیاری</th>
+                                <th class="border-0 py-3 text-center">کتگوری تیاری</th>
                             @endif
                             <th class="border-0 py-3 text-left px-5">قیمت کل ($)</th>
                         </tr>
@@ -128,34 +151,43 @@
                                 <td class="px-5 py-3 font-weight-bold text-primary">
                                     {{ $item->carpet->carpet_no ?? 'N/A' }}
                                 </td>
-                                <td>
+                                <td class="text-center font-weight-bold text-dark">
+                                    {{ $item->carpet->map_number ?? '---' }}
+                                </td>
+                                <td class="text-center">
+                                    {{ $item->carpet->type->carpet_type ?? '---' }}
+                                </td>
+                                <td class="text-center">
+                                    {{ $item->carpet->quality->quality ?? '---' }}
+                                </td>
+                                <td class="text-center" style="direction: ltr;">
                                     {{ $item->carpet->height ?? '---' }} × {{ $item->carpet->width ?? '---' }}
                                 </td>
                                 <td class="text-center font-weight-bold">
                                     {{ number_format($item->carpet->area ?? 0, 2) }}
                                 </td>
                                 @if($batch->type == 'finish')
-                                    <td>
+                                    <td class="text-center">
                                         <span class="badge badge-light font-weight-bold border">
                                             {{ $item->category->category ?? '---' }}
                                         </span>
                                     </td>
-                                    <td class="text-left px-5 font-weight-bold text-dark">
+                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
                                         ${{ number_format($item->price, 2) }}
                                     </td>
                                 @elseif($batch->type == 'kachaee')
-                                    <td class="text-left px-5 font-weight-bold text-dark">
+                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
                                         ${{ number_format($item->total_price, 2) }}
                                     </td>
                                 @elseif($batch->type == 'wash')
-                                    <td class="text-left px-5 font-weight-bold text-dark">
+                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
                                         ${{ number_format($item->total_price ?: $item->af_total_price, 2) }}
                                     </td>
                                 @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $batch->type == 'finish' ? 5 : 4 }}" class="text-center text-muted py-5">
+                                <td colspan="{{ $batch->type == 'finish' ? 8 : 7 }}" class="text-center text-muted py-5">
                                     <i class="fa fa-folder-open-o fa-2x mb-2 d-block"></i>
                                     هیچ قالینی تحت این نمبر مسلسل به ثبت نرسیده است.
                                 </td>

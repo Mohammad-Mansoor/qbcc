@@ -102,7 +102,7 @@ class ProductionBatchController extends Controller
         return redirect()->back()->with('status', "وضعیت نمبر {$batch->reference_number} با موفقیت تغییر کرد و {$message}");
     }
 
-    public function details($id)
+    public function details(Request $request, $id)
     {
         $batch = ProductionBatch::where('id', $id)->orWhere('reference_number', $id)->firstOrFail();
         
@@ -118,7 +118,7 @@ class ProductionBatchController extends Controller
 
         if ($type === 'kachaee') {
             $carpets = \App\CarpetRepair::where('kachaee_number', $ref)
-                ->with(['carpet', 'team'])
+                ->with(['carpet.type', 'carpet.quality', 'team'])
                 ->get();
             
             $payments = \App\KachaeePayment::where('kachaee_number', $ref)
@@ -135,7 +135,7 @@ class ProductionBatchController extends Controller
 
         } elseif ($type === 'wash') {
             $carpets = \App\CarpetWash::where('wash_number', $ref)
-                ->with(['carpet', 'washing_team'])
+                ->with(['carpet.type', 'carpet.quality', 'washing_team'])
                 ->get();
             
             $payments = \App\WashingPayment::where('wash_number', $ref)
@@ -154,7 +154,7 @@ class ProductionBatchController extends Controller
 
         } elseif ($type === 'finish') {
             $carpets = \App\FinishingWork::where('finish_number', $ref)
-                ->with(['carpet', 'team', 'category'])
+                ->with(['carpet.type', 'carpet.quality', 'team', 'category'])
                 ->get();
             
             $payments = \App\FinishingTeamPayment::where('finish_number', $ref)
@@ -171,6 +171,43 @@ class ProductionBatchController extends Controller
         }
         
         $remaining = max(0.0, $totalCost - $totalPaid);
+        
+        if ($request->get('export') === 'pdf' || $request->get('export') === 'excel') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            $logoPath = public_path('images/logo.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+            }
+
+            if ($request->get('export') === 'pdf') {
+                return view('batches.pdf', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
+            }
+
+            if ($request->get('export') === 'excel') {
+                $filename = 'batch_report_' . $batch->reference_number . '_' . date('Y_m_d_His') . '.xls';
+                header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                header('Pragma: public');
+
+                echo view('batches.excel', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'logoBase64'))->render();
+                exit;
+            }
+        }
         
         return view('batches.details', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team'));
     }
