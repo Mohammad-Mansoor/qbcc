@@ -1097,16 +1097,47 @@ class CarpetsController extends Controller
 
 
 
-    public function listBuyCarpet()
+    public function listBuyCarpet(Request $request)
     {
         $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
-        $carpets = Carpet::orderBy('carpet_no', 'DESC')
+        
+        $query = Carpet::orderBy('carpet_no', 'DESC')
             ->whereIn('status', [1, 12])
             ->whereHas('agent', function($q) {
                 $q->where('contract_type', 'carpet seller');
             })
-            ->with('agent')
-            ->paginate(20);
+            ->with('agent');
+
+        // Advanced Filter Logic
+        if ($request->filled('from_date')) {
+            $query->whereDate('date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('date', '<=', $request->to_date);
+        }
+        if ($request->filled('from_id') && $request->filled('to_id')) {
+            $query->whereBetween('carpet_no', [$request->from_id, $request->to_id]);
+        } elseif ($request->filled('from_id')) {
+            $query->where('carpet_no', 'like', '%' . $request->from_id . '%');
+        }
+        if ($request->filled('map_number')) {
+            $query->where('map_number', 'like', '%' . $request->map_number . '%');
+        }
+        if ($request->filled('type_id')) {
+            $query->where('type_id', $request->type_id);
+        }
+        if ($request->filled('quality_id')) {
+            $query->where('quality_id', $request->quality_id);
+        }
+        if ($request->filled('agent_id')) {
+            $query->where('agent_id', $request->agent_id);
+        }
+        if ($request->filled('status_filter')) {
+            $query->where('status', $request->status_filter);
+        }
+
+        $carpets = $query->paginate(20);
+        $carpets->appends($request->all());
 
         $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
 

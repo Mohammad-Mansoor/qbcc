@@ -91,36 +91,77 @@
             <div class="alert alert-danger border-0 shadow-sm mb-4">{{ session('error') }}</div>
         @endif
 
-        <!-- SEARCH & FILTERS -->
+        <!-- ADVANCED SEARCH & FILTERS -->
         <div class="glass-card p-4 mb-4">
-            <div class="row">
-                <div class="col-md-4">
-                    <form action="/dashboard/list-buy-carpet/search" method="post">
-                        @csrf
-                        <div class="input-group">
-                            <input type="text" name="search" class="form-control rounded-left" placeholder="جستجوی نمبر پارچه، نقشه، فروشنده..." required value="{{ $search ?? '' }}">
-                            <div class="input-group-append">
-                                <button class="btn btn-dark" type="submit"><i class="feather icon-search"></i></button>
-                            </div>
-                        </div>
-                    </form>
+            <form method="GET" action="/dashboard/list-buy-carpet">
+                <div class="row align-items-end mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label-premium">از تاریخ:</label>
+                        <input type="date" name="from_date" class="form-control premium-input bg-light" value="{{ request('from_date') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">تا تاریخ:</label>
+                        <input type="date" name="to_date" class="form-control premium-input bg-light" value="{{ request('to_date') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">از نمبر پارچه:</label>
+                        <input type="text" name="from_id" class="form-control premium-input bg-light" placeholder="مثال: QB1000" value="{{ request('from_id') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">تا نمبر پارچه:</label>
+                        <input type="text" name="to_id" class="form-control premium-input bg-light" placeholder="مثال: QB1100" value="{{ request('to_id') }}">
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <form action="/dashboard/search-buy-carpet-by-agent" method="POST">
-                        @csrf
-                        <select name="agent_id" class="form-control select2" onchange="this.form.submit()">
-                            <option value="">جستجو بر اساس فروشنده...</option>
+                
+                <div class="row align-items-end mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label-premium">فروشنده (Vendor):</label>
+                        <select name="agent_id" class="form-control premium-input bg-light select2">
+                            <option value="">همه فروشندگان</option>
                             @foreach($agents as $ag)
-                                <option value="{{$ag->agent_id}}" {{ (isset($agent_id) && $agent_id == $ag->agent_id) ? 'selected' : '' }}>{{$ag->user->name}} ({{$ag->account_no}})</option>
+                                <option value="{{$ag->agent_id}}" {{ request('agent_id') == $ag->agent_id ? 'selected' : '' }}>{{$ag->user->name}} ({{$ag->account_no}})</option>
                             @endforeach
                         </select>
-                    </form>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">نوعیت قالین:</label>
+                        <select name="type_id" class="form-control premium-input bg-light">
+                            <option value="">همه نوعیت‌ها</option>
+                            @foreach($types as $type)
+                                <option value="{{ $type->carpet_type_id }}" {{ request('type_id') == $type->carpet_type_id ? 'selected' : '' }}>{{ $type->carpet_type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">کوالیتی قالین:</label>
+                        <select name="quality_id" class="form-control premium-input bg-light">
+                            <option value="">همه کوالیتی‌ها</option>
+                            @foreach($qualities as $quality)
+                                <option value="{{ $quality->id }}" {{ request('quality_id') == $quality->id ? 'selected' : '' }}>{{ $quality->quality }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label-premium">شماره نقشه (Map No):</label>
+                        <input type="text" name="map_number" class="form-control premium-input bg-light" placeholder="جستجوی نقشه..." value="{{ request('map_number') }}">
+                    </div>
                 </div>
-                <div class="col-md-4 text-left">
-                    <a href="/dashboard/list-buy-carpet/show-all" class="btn btn-outline-secondary rounded-lg">نمایش همه</a>
-                    <button class="btn btn-outline-secondary rounded-lg ml-2" onclick="window.print()"><i class="feather icon-printer"></i></button>
+
+                <div class="row">
+                    <div class="col-md-12 d-flex justify-content-end">
+                        <div class="d-flex" style="gap: 10px; width: auto;">
+                            <button class="btn btn-outline-secondary rounded-lg" type="button" onclick="window.print()"><i class="feather icon-printer"></i></button>
+                            <button type="submit" class="btn btn-primary rounded-lg shadow px-4"><i class="feather icon-search"></i> جستجو / فیلتر</button>
+                            @php
+                                $hasFilters = request()->filled('from_date') || request()->filled('to_date') || request()->filled('from_id') || request()->filled('to_id') || request()->filled('agent_id') || request()->filled('type_id') || request()->filled('quality_id') || request()->filled('map_number');
+                            @endphp
+                            @if($hasFilters)
+                                <a href="/dashboard/list-buy-carpet" class="btn btn-outline-danger rounded-lg px-4"><i class="feather icon-x"></i> پاکسازی</a>
+                            @endif
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
 
         <!-- MAIN TABLE -->
@@ -131,6 +172,7 @@
                         <tr>
                             <th>تصویر</th>
                             <th>نمبر قالین</th>
+                            <th>شماره نقشه</th>
                             <th>فروشنده (Vendor)</th>
                             <th>نوعیت / کوالتی</th>
                             <th>ابعاد (m²)</th>
@@ -154,6 +196,7 @@
                                     @endif
                                 </td>
                                 <td class="font-weight-bold">{{ $carpet->carpet_no }}</td>
+                                <td class="font-weight-bold text-secondary">{{ $carpet->map_number ?? 'N/A' }}</td>
                                 <td>
                                     <div class="font-weight-bold text-dark">{{ $carpet->agent->user->name ?? 'N/A' }}</div>
                                     <small class="text-muted">{{ $carpet->agent->account_no ?? '' }}</small>
@@ -477,8 +520,11 @@
             $('#buyCarpetModal').modal('show');
         @endif
 
+        // Regular Select2 Initialization (for filters outside modal)
+        $('form[action="/dashboard/list-buy-carpet"] .select2').select2();
+
         // Select2 Fix for Modals
-        $('.select2').select2({
+        $('#buyCarpetModal .select2').select2({
             dropdownParent: $('#buyCarpetModal')
         });
 
