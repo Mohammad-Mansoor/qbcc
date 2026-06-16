@@ -151,6 +151,7 @@
                             @if($batch->type == 'finish')
                                 <th class="border-0 py-3 text-center">کتگوری تیاری</th>
                             @endif
+                            <th class="border-0 py-3 text-center">هزینه فی متر ($)</th>
                             <th class="border-0 py-3 text-left px-5">قیمت کل ($)</th>
                         </tr>
                     </thead>
@@ -175,28 +176,30 @@
                                 <td class="text-center font-weight-bold">
                                     {{ number_format($item->carpet->area ?? 0, 2) }}
                                 </td>
+                                @php
+                                    $area = isset($item->carpet->area) && $item->carpet->area > 0 ? $item->carpet->area : 1;
+                                    $price = 0;
+                                    if($batch->type == 'finish') $price = $item->price;
+                                    elseif($batch->type == 'kachaee') $price = $item->total_price;
+                                    elseif($batch->type == 'wash') $price = $item->total_price ?: $item->af_total_price;
+                                @endphp
                                 @if($batch->type == 'finish')
                                     <td class="text-center">
                                         <span class="badge badge-light font-weight-bold border">
                                             {{ $item->category->category ?? '---' }}
                                         </span>
                                     </td>
-                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
-                                        ${{ number_format($item->price, 2) }}
-                                    </td>
-                                @elseif($batch->type == 'kachaee')
-                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
-                                        ${{ number_format($item->total_price, 2) }}
-                                    </td>
-                                @elseif($batch->type == 'wash')
-                                    <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
-                                        ${{ number_format($item->total_price ?: $item->af_total_price, 2) }}
-                                    </td>
                                 @endif
+                                <td class="text-center font-weight-bold text-dark" style="direction: ltr;">
+                                    ${{ number_format($price / $area, 2) }}
+                                </td>
+                                <td class="text-left px-5 font-weight-bold text-dark" style="direction: ltr;">
+                                    ${{ number_format($price, 2) }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $batch->type == 'finish' ? 8 : 7 }}" class="text-center text-muted py-5">
+                                <td colspan="{{ $batch->type == 'finish' ? 9 : 8 }}" class="text-center text-muted py-5">
                                     <i class="fa fa-folder-open-o fa-2x mb-2 d-block"></i>
                                     هیچ قالینی تحت این نمبر مسلسل به ثبت نرسیده است.
                                 </td>

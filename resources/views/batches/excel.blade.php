@@ -96,15 +96,24 @@
                 <th style="height: 32pt;">مساحت (m²)</th>
                 @if($batch->type == 'finish')
                     <th style="height: 32pt;">کتگوری تیاری</th>
+                    <th style="height: 32pt;">هزینه/m² ($)</th>
                     <th style="height: 32pt;">قیمت کل (USD)</th>
                 @else
+                    <th style="height: 32pt;">هزینه/m² ($)</th>
                     <th style="height: 32pt;">قیمت کل (USD)</th>
                 @endif
             </tr>
         </thead>
         <tbody>
             @forelse($carpets as $index => $item)
-                @php $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff'; @endphp
+                @php 
+                    $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff'; 
+                    $area = isset($item->carpet->area) && $item->carpet->area > 0 ? $item->carpet->area : 1;
+                    $price = 0;
+                    if($batch->type == 'finish') $price = $item->price;
+                    elseif($batch->type == 'kachaee') $price = $item->total_price;
+                    elseif($batch->type == 'wash') $price = $item->total_price ?: $item->af_total_price;
+                @endphp
                 <tr style="background-color: {{ $rowBgColor }};">
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $index + 1 }}</td>
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->carpet->carpet_no ?? 'N/A' }}</td>
@@ -115,20 +124,17 @@
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($item->carpet->area ?? 0, 2) }}</td>
                     @if($batch->type == 'finish')
                         <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->category->category ?? '---' }}</td>
-                        <td class="text-left font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($item->price, 2) }}</td>
-                    @elseif($batch->type == 'kachaee')
-                        <td class="text-left font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($item->total_price, 2) }}</td>
-                    @elseif($batch->type == 'wash')
-                        <td class="text-left font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($item->total_price ?: $item->af_total_price, 2) }}</td>
                     @endif
+                    <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($price / $area, 2) }}</td>
+                    <td class="text-left font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($price, 2) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ $batch->type == 'finish' ? 9 : 8 }}" class="text-center" style="height: 26pt;">هیچ قالینی ثبت نشده است.</td>
+                    <td colspan="{{ $batch->type == 'finish' ? 10 : 9 }}" class="text-center" style="height: 26pt;">هیچ قالینی ثبت نشده است.</td>
                 </tr>
             @endforelse
             
-            <tr style="height: 10pt;"><td colspan="{{ $batch->type == 'finish' ? '9' : '8' }}" style="border: none; background-color: #ffffff;"></td></tr>
+            <tr style="height: 10pt;"><td colspan="{{ $batch->type == 'finish' ? '10' : '9' }}" style="border: none; background-color: #ffffff;"></td></tr>
 
             <tr>
                 <td colspan="6" class="meta-label" style="height: 26pt;">مجموع کل مساحت:</td>
