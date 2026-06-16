@@ -7,20 +7,13 @@
         @page { size: A4 landscape; margin: 0; }
         body { font-family: 'Tahoma', Arial, sans-serif; background-color: #fff; color: #1e293b; font-size: 10pt; line-height: 1.5; margin: 0; padding: 0; }
         
-        .fixed-header { position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; }
-        .fixed-header img { width: 100%; height: 110px; object-fit: cover; object-position: center top; display: block; }
+        .content-wrapper { padding-left: 5mm; padding-right: 5mm; padding-top: 5mm; }
         
-        .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; }
-        .fixed-footer img { width: 100%; height: 110px; object-fit: cover; object-position: center bottom; display: block; }
-
-        .header-space { height: 120px; }
-        .footer-space { height: 120px; }
-
-        .content-wrapper { padding-left: 3mm; padding-right: 3mm; }
-        
-        .header { text-align: center; border-bottom: 2px solid #00acc1; padding-bottom: 10px; margin-top: 10px; margin-bottom: 20px; }
-        .header h1 { font-size: 18pt; color: #0A192F; margin: 0 0 5px 0; }
-        .header p { font-size: 10pt; color: #64748b; margin: 0; }
+        .header { text-align: center; border-bottom: 2px solid #00acc1; padding-bottom: 15px; margin-bottom: 25px; }
+        .header img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 5px; }
+        .header h1.company-name { font-size: 20pt; color: #1e3a8a; margin: 0 0 5px 0; font-weight: bold; }
+        .header p.company-slogan { font-size: 10.5pt; color: #475569; margin: 0 0 15px 0; }
+        .header h2.report-title { font-size: 15pt; color: #0f172a; margin: 0; background-color: #f8fafc; padding: 8px 20px; border-radius: 8px; display: inline-block; border: 1px solid #e2e8f0; }
         
         .meta-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
         .meta-table td { padding: 5px; vertical-align: top; }
@@ -47,40 +40,22 @@
 </head>
 <body onload="window.print()">
 
-    @if($headerBase64)
-    <div class="fixed-header">
-        <img src="{{ $headerBase64 }}" alt="Header">
-    </div>
-    @endif
-    
-    @if($footerBase64)
-    <div class="fixed-footer">
-        <img src="{{ $footerBase64 }}" alt="Footer">
-    </div>
-    @endif
+    <div class="content-wrapper">
+        
+        <div class="header">
+            @if(isset($logoBase64) && $logoBase64)
+                <img src="{{ $logoBase64 }}" alt="Logo">
+            @endif
+            <h1 class="company-name">شرکت صنعتی برادران قاسمی</h1>
+            <p class="company-slogan">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت افغانستان</p>
 
-    <table style="width: 100%; border: none;">
-        <thead>
-            <tr>
-                <td style="border: none; padding: 0;">
-                    <div class="header-space"></div>
-                </td>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td style="border: none; padding: 0;">
-                    <div class="content-wrapper">
-                        
-                        <div class="header">
-                            @php
-                                $statusFilter = request('status') != '' && isset($statuses[request('status')]) 
-                                    ? $statuses[request('status')] 
-                                    : 'تمامی حالت‌ها (All Statuses)';
-                            @endphp
-                            <h1>گزارش قالین های خرید شده - {{ $statusFilter }}</h1>
-                            <p>سیستم مدیریت یکپارچه - بخش گزارشات گدام</p>
-                        </div>
+            @php
+                $statusFilter = request('status') != '' && isset($statuses[request('status')]) 
+                    ? $statuses[request('status')] 
+                    : 'تمامی حالت‌ها (All Statuses)';
+            @endphp
+            <h2 class="report-title">گزارش قالین های خرید شده - {{ $statusFilter }}</h2>
+        </div>
 
                         <table class="meta-table">
                             <tr>
@@ -189,17 +164,6 @@
                         </div>
 
                     </div>
-                </td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr>
-                <td style="border: none; padding: 0;">
-                    <div class="footer-space"></div>
-                </td>
-            </tr>
-        </tfoot>
-    </table>
 
 </body>
 </html>

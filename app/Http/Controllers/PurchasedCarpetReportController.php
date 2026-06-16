@@ -129,17 +129,11 @@ class PurchasedCarpetReportController extends Controller
                     'request' => $request
                 ]);
             } else {
-                $headerPath = public_path('images/header.png');
-                $footerPath = public_path('images/footer.png');
+                $logoPath = public_path('images/logo.png');
                 
-                $headerBase64 = '';
-                if (file_exists($headerPath)) {
-                    $headerBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath));
-                }
-
-                $footerBase64 = '';
-                if (file_exists($footerPath)) {
-                    $footerBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath));
+                $logoBase64 = '';
+                if (file_exists($logoPath)) {
+                    $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
                 }
 
                 return view('carpets.reports.purchased_report_pdf', [
@@ -149,8 +143,7 @@ class PurchasedCarpetReportController extends Controller
                     'qualities' => $qualities,
                     'issueDate' => $issueDate,
                     'request' => $request,
-                    'headerBase64' => $headerBase64,
-                    'footerBase64' => $footerBase64
+                    'logoBase64' => $logoBase64
                 ]);
             }
         }
