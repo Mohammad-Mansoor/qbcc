@@ -193,7 +193,13 @@ class ProductionBatchController extends Controller
             }
 
             if ($request->get('export') === 'pdf') {
-                return view('batches.pdf', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
+                if ($type === 'finish') {
+                    $groupedCarpets = $carpets->groupBy('carpetId');
+                    $batchCategories = \App\FinishingTeamCategory::all();
+                    return view('batches.pdf_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64'));
+                } else {
+                    return view('batches.pdf', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
+                }
             }
 
             if ($request->get('export') === 'excel') {
@@ -204,9 +210,21 @@ class ProductionBatchController extends Controller
                 header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
                 header('Pragma: public');
 
-                echo view('batches.excel', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'logoBase64'))->render();
+                if ($type === 'finish') {
+                    $groupedCarpets = $carpets->groupBy('carpetId');
+                    $batchCategories = \App\FinishingTeamCategory::all();
+                    echo view('batches.excel_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64'))->render();
+                } else {
+                    echo view('batches.excel', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'logoBase64'))->render();
+                }
                 exit;
             }
+        }
+        
+        if ($type === 'finish') {
+            $groupedCarpets = $carpets->groupBy('carpetId');
+            $batchCategories = \App\FinishingTeamCategory::all();
+            return view('batches.details_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team'));
         }
         
         return view('batches.details', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team'));
