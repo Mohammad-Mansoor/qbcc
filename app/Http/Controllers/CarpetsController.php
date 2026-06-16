@@ -444,11 +444,39 @@ class CarpetsController extends Controller
     {
         $query = Carpet::where('status', 5);
 
-        if ($request->has('warehouse_id') && $request->warehouse_id != '') {
+        if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
         }
 
-        $carpets = $query->with(['type', 'warehouse', 'carpet_order'])->orderBy('carpet_no', 'DESC')->paginate(50);
+        if ($request->filled('carpet_type')) {
+            $query->where('type_id', $request->carpet_type);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('carpet_no', 'like', '%' . $search . '%')
+                  ->orWhere('date', 'like', '%' . $search . '%')
+                  ->orWhereHas('carpet_order', function ($query) use ($search) {
+                      $query->where('order_number', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('type', function ($query) use ($search) {
+                      $query->where('carpet_type', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        if ($request->filled('from_date') && $request->filled('to_date')) {
+            $query->whereBetween('date', [$request->from_date, $request->to_date]);
+        }
+
+        $carpetsQuery = $query->with(['type', 'warehouse', 'carpet_order', 'quality'])->orderBy('carpet_no', 'DESC');
+        
+        if ($request->export) {
+            return $this->exportStock($carpetsQuery->get(), $request, $request->export);
+        }
+
+        $carpets = $carpetsQuery->paginate(50);
 
         $data = $this->getStockDependencies();
         $data['carpets'] = $carpets;
@@ -459,7 +487,13 @@ class CarpetsController extends Controller
 
     public function filter_ba_asas_type(Request $request)
     {
-        $carpets = Carpet::where('status', 5)->where('type_id', $request->carpet_type)->paginate(50);
+        $query = Carpet::where('status', 5)->where('type_id', $request->carpet_type);
+        
+        if ($request->export) {
+            return $this->exportStock($query->with(['type', 'warehouse', 'carpet_order', 'quality'])->get(), $request, $request->export);
+        }
+
+        $carpets = $query->paginate(50);
 
         $data = $this->getStockDependencies();
         $data['carpets'] = $carpets;
@@ -488,15 +522,22 @@ class CarpetsController extends Controller
     public function carpet_stock_search(Request $request)
     {
         $search = $request->search;
-        $carpets = Carpet::where('status', '=', 5)->where('carpet_no', 'like', '%' . $search . '%')
-            ->orWhere('date', 'like', '%' . $search . '%')
-            ->orWhereHas('carpet_order', function ($query) use ($search) {
-                $query->where('order_number', 'like', '%' . $search . '%');
-            })
-            ->orWhereHas('type', function ($query) use ($search) {
-                $query->where('carpet_type', 'like', '%' . $search . '%');
-            })
-            ->paginate(50);
+        $query = Carpet::where('status', '=', 5)->where(function($q) use ($search) {
+            $q->where('carpet_no', 'like', '%' . $search . '%')
+              ->orWhere('date', 'like', '%' . $search . '%')
+              ->orWhereHas('carpet_order', function ($query) use ($search) {
+                  $query->where('order_number', 'like', '%' . $search . '%');
+              })
+              ->orWhereHas('type', function ($query) use ($search) {
+                  $query->where('carpet_type', 'like', '%' . $search . '%');
+              });
+        });
+
+        if ($request->export) {
+            return $this->exportStock($query->with(['type', 'warehouse', 'carpet_order', 'quality'])->get(), $request, $request->export);
+        }
+
+        $carpets = $query->paginate(50);
 
         $data = $this->getStockDependencies();
         $data['carpets'] = $carpets;
@@ -510,7 +551,13 @@ class CarpetsController extends Controller
         $from_date = $request->from_date;
         $to_date = $request->to_date;
 
-        $carpets = Carpet::where('status', 5)->whereBetween('date', [$from_date, $to_date])->paginate(50);
+        $query = Carpet::where('status', 5)->whereBetween('date', [$from_date, $to_date]);
+        
+        if ($request->export) {
+            return $this->exportStock($query->with(['type', 'warehouse', 'carpet_order', 'quality'])->get(), $request, $request->export);
+        }
+
+        $carpets = $query->paginate(50);
 
         $data = $this->getStockDependencies();
         $data['carpets'] = $carpets;
@@ -518,6 +565,47 @@ class CarpetsController extends Controller
         $data['to_date'] = $to_date;
 
         return view('carpet-stock.carpet-stock', $data);
+    }
+
+    protected function exportStock($carpets, $request, $format)
+    {
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+        }
+
+        $filter_wh = 'همه گدام‌ها';
+        if ($request->filled('warehouse_id')) {
+            $wh = \App\Warehouse::find($request->warehouse_id);
+            if ($wh) $filter_wh = $wh->name;
+        }
+
+        $filter_type = 'همه نوعیت‌ها';
+        if ($request->filled('carpet_type')) {
+            $ct = \App\CarpetType::where('carpet_type_id', $request->carpet_type)->first();
+            if ($ct) $filter_type = $ct->carpet_type;
+        }
+
+        $filter_search = $request->filled('search') ? $request->search : '---';
+        
+        $from = $request->filled('from_date') ? $request->from_date : '---';
+        $to = $request->filled('to_date') ? $request->to_date : '---';
+        $filter_date = ($from == '---' && $to == '---') ? '---' : ($from . ' الی ' . $to);
+
+        if ($format === 'pdf') {
+            return view('carpet-stock.carpet_stock_pdf', compact('carpets', 'request', 'logoBase64', 'filter_wh', 'filter_type', 'filter_search', 'filter_date'));
+        }
+
+        $filename = 'carpet_stock_' . date('Y_m_d_His') . '.xls';
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+
+        echo view('carpet-stock.carpet_stock_excel', compact('carpets', 'request', 'filter_wh', 'filter_type', 'filter_search', 'filter_date'))->render();
+        exit;
     }
 
     /**

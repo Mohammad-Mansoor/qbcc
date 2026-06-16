@@ -302,77 +302,76 @@
       <div class="card-header modern-header">
         <h3 class="modern-title"><i class="fa fa-cubes"></i> مدیریت موجودی قالین در گدام (Carpet Stock Registry)</h3>
         
-        @if(request()->fullUrl() != url('/dashboard/carpet-stock'))
-          <a href="/dashboard/carpet-stock" class="btn btn-sm btn-danger hideOnPrint font-weight-bold" style="border-radius: 8px;">
-            <i class="fa fa-times-circle"></i> پاک کردن فیلترها
+        <div class="d-flex hideOnPrint">
+          <a href="{{ request()->fullUrlWithQuery(array_merge(request()->except('_token'), ['export' => 'pdf'])) }}" target="_blank" class="btn btn-sm btn-danger font-weight-bold mr-2" style="border-radius: 8px;">
+            <i class="fa fa-file-pdf-o"></i> چاپ / PDF
           </a>
-        @endif
+          <a href="{{ request()->fullUrlWithQuery(array_merge(request()->except('_token'), ['export' => 'excel'])) }}" class="btn btn-sm btn-success font-weight-bold mr-2" style="border-radius: 8px;">
+            <i class="fa fa-file-excel-o"></i> خروجی اکسل
+          </a>
+          @if(request()->fullUrl() != url('/dashboard/carpet-stock'))
+            <a href="/dashboard/carpet-stock" class="btn btn-sm btn-light font-weight-bold" style="border-radius: 8px; color: #dc3545;">
+              <i class="fa fa-times-circle"></i> پاک کردن فیلترها
+            </a>
+          @endif
+        </div>
       </div>
       
       <div class="card-body">
         
         <!-- CONSOLIDATED MODERN FILTERS & SEARCH ROW -->
         <div class="card p-3 mb-4 hideOnPrint" style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
-          <div class="row align-items-end">
-            <!-- 1. Live Instant Search -->
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-              <form action="/dashboard/carpet-stock/search" method="POST" id="searchForm">
-                @csrf
-                <label class="font-weight-bold small text-muted">🔍 جستجوی عمومی و زنده (مکان و نقشه)</label>
-                <input type="text" value="{{ Request::old('search') }}" name="search" id="live-carpet-search"
-                       placeholder="نمبر قالین، نقشه و غیره..." class="form-control modern-search" required autocomplete="off">
-              </form>
-            </div>
-            
-            <!-- 2. Filter by Warehouse -->
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-              <form action="/dashboard/carpet-stock" method="GET" id="warehouseFilterForm">
-                <label class="font-weight-bold small text-muted">🏢 فیلتر بر اساس گدام</label>
-                <select name="warehouse_id" id="warehouse_filter" class="form-control" onchange="this.form.submit();">
+          <form action="/dashboard/carpet-stock" method="GET" id="unifiedSearchForm">
+            <div class="row align-items-end">
+              <!-- 1. Live Instant Search -->
+              <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
+                <label class="font-weight-bold small text-muted">🔍 جستجو (شماره/نقشه)</label>
+                <input type="text" value="{{ request('search') }}" name="search" id="live-carpet-search"
+                       placeholder="نمبر قالین، نقشه..." class="form-control modern-search" style="border-radius: 8px !important;" autocomplete="off">
+              </div>
+              
+              <!-- 2. Filter by Warehouse -->
+              <div class="col-lg-2 col-md-6 mb-3 mb-lg-0">
+                <label class="font-weight-bold small text-muted">🏢 گدام</label>
+                <select name="warehouse_id" id="warehouse_filter" class="form-control">
                   <option value="">همه گدام ها</option>
                   @foreach($warehouses as $wh)
-                    <option value="{{$wh->id}}" {{ (Request::get('warehouse_id') == $wh->id ? 'selected' : '') }}>{{$wh->name}} ({{$wh->location}})</option>
+                    <option value="{{$wh->id}}" {{ (request('warehouse_id') == $wh->id ? 'selected' : '') }}>{{$wh->name}} ({{$wh->location}})</option>
                   @endforeach
                 </select>
-              </form>
-            </div>
+              </div>
 
-            <!-- 3. Filter by Date Range -->
-            <div class="col-lg-4 col-md-8 mb-3 mb-lg-0">
-              <form action="/dashboard/carpet-stock/search-date-range" method="POST" id="dateSearch">
-                @csrf
+              <!-- 4. Filter by Type -->
+              <div class="col-lg-2 col-md-4 mb-3 mb-lg-0">
+                <label class="font-weight-bold small text-muted">🎨 نوعیت قالین</label>
+                <select name="carpet_type" id="type_id" class="form-control">
+                  <option value="">همه نوعیت‌ها</option>
+                  @foreach($carpet_types as $ag)
+                    <option value="{{$ag->carpet_type_id}}" {{ (request('carpet_type') == $ag->carpet_type_id ? 'selected' : '') }}>{{$ag->carpet_type}}</option>
+                  @endforeach
+                </select>
+              </div>
+
+              <!-- 3. Filter by Date Range & Submit -->
+              <div class="col-lg-5 col-md-8 mb-3 mb-lg-0">
                 <div class="row no-gutters">
                   <div class="col-4">
                     <label class="font-weight-bold small text-muted">شروع</label>
-                    <input type="date" @if(isset($from_date)) value="{{$from_date}}" @endif name="from_date" class="form-control" required style="border-radius: 8px 0 0 8px;">
+                    <input type="date" value="{{ request('from_date') ?? (isset($from_date) ? $from_date : '') }}" name="from_date" class="form-control" style="border-radius: 8px 0 0 8px;">
                   </div>
                   <div class="col-4">
                     <label class="font-weight-bold small text-muted">ختم</label>
-                    <input type="date" name="to_date" @if(isset($to_date)) value="{{$to_date}}" @endif class="form-control" required style="border-radius: 0;">
+                    <input type="date" name="to_date" value="{{ request('to_date') ?? (isset($to_date) ? $to_date : '') }}" class="form-control" style="border-radius: 0;">
                   </div>
                   <div class="col-4">
-                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 27px; height: 38px; border-radius: 0 8px 8px 0;">
-                      <i class="fa fa-search"></i> جستجو تاریخ
+                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 27px; height: 38px; border-radius: 0 8px 8px 0; font-weight: bold;">
+                      <i class="fa fa-filter"></i> اعمال فیلترها
                     </button>
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
-
-            <!-- 4. Filter by Type -->
-            <div class="col-lg-2 col-md-4">
-              <form action="/dashboard/filter-ba-asas-type" method="POST" id="typeSearchForm">
-                @csrf
-                <label class="font-weight-bold small text-muted">🎨 نوعیت قالین</label>
-                <select name="carpet_type" id="type_id" class="form-control" required onchange="this.form.submit();">
-                  <option value="">انتخاب نوعیت</option>
-                  @foreach($carpet_types as $ag)
-                    <option value="{{$ag->carpet_type_id}}">{{$ag->carpet_type}}</option>
-                  @endforeach
-                </select>
-              </form>
-            </div>
-          </div>
+          </form>
         </div>
 
         @if(session("status"))

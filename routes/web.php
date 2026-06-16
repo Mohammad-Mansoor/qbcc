@@ -182,12 +182,12 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::get('/carpet-stock', 'CarpetsController@carpet_stock');
 
     /** route for carpet stock filter based on type */
-    Route::post('/filter-ba-asas-type', 'CarpetsController@filter_ba_asas_type');
+    Route::match(['get', 'post'], '/filter-ba-asas-type', 'CarpetsController@filter_ba_asas_type');
 
     /** Route For Carpet Search date range */
-    Route::post('/carpet-stock/search-date-range', 'CarpetsController@stock_search_date_range');
+    Route::match(['get', 'post'], '/carpet-stock/search-date-range', 'CarpetsController@stock_search_date_range');
     /** Route For Carpet Stock Search */
-    Route::post('/carpet-stock/search', 'CarpetsController@carpet_stock_search');
+    Route::match(['get', 'post'], '/carpet-stock/search', 'CarpetsController@carpet_stock_search');
 
     /** Route For Carpet Stock Details  */
     Route::get('/carpet-stock-details/{carpet_id}', 'CarpetsController@carpet_stock_details');
