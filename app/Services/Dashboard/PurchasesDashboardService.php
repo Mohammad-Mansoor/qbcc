@@ -17,98 +17,137 @@ class PurchasesDashboardService
         $thisMonth = Carbon::now()->month;
         $thisYear = Carbon::now()->year;
 
-        // Total Purchases via Carpet's total_price where purchase_invoice_id exists
-        $totalPurchases = Carpet::whereNotNull('purchase_invoice_id')->sum('total_price') ?? 0;
+        // KPI: Carpet
+        $carpetCount = Carpet::whereNotNull('purchase_invoice_id')->where('status', '!=', 6)->count();
+        $carpetArea = Carpet::whereNotNull('purchase_invoice_id')->where('status', '!=', 6)->sum('area');
+        $carpetValue = Carpet::whereNotNull('purchase_invoice_id')->where('status', '!=', 6)->sum('total_price') ?? 0;
+
+        // KPI: Yarn
+        $yarnValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
+            $q->where('subtype', 'yarn');
+        })->sum('total') ?? 0;
+
+        $yarnQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
+            $q->where('subtype', 'yarn');
+        })->sum('quantity') ?? 0;
+
+        // KPI: Dye
+        $dyeValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
+            $q->where('subtype', 'dye');
+        })->sum('total') ?? 0;
+
+        $dyeQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
+            $q->where('subtype', 'dye');
+        })->sum('quantity') ?? 0;
+
+        // Top Carpet Suppliers
+        $carpetSuppliersRaw = PurchaseInvoice::join('carpets', 'purchase_invoices.id', '=', 'carpets.purchase_invoice_id')
+            ->with('agent')
+            ->select('purchase_invoices.agent_id', DB::raw('SUM(carpets.total_price) as total'))
+            ->where('carpets.status', '!=', 6)
+            ->groupBy('purchase_invoices.agent_id')
+            ->orderBy('total', 'desc')
+            ->take(5)
+            ->get();
         
-        $monthlyPurchases = Carpet::join('purchase_invoices', 'carpets.purchase_invoice_id', '=', 'purchase_invoices.id')
-            ->whereYear('purchase_invoices.created_at', $thisYear)
-            ->whereMonth('purchase_invoices.created_at', $thisMonth)
-            ->sum('carpets.total_price') ?? 0;
-
-        $rawMaterialsValue = MaterialStock::selectRaw('SUM(quantity * price_per_kilo) as total')->value('total') ?? 0;
-
-        $topSuppliersData = [
-            'labels' => [],
-            'data' => []
-        ];
-
-        try {
-            // Aggregate actual purchases from PurchaseInvoice grouped by agent/supplier
-            $suppliersRaw = PurchaseInvoice::with('agent')
-                ->select('supplier_id', DB::raw('SUM(total_amount) as total'))
-                ->groupBy('supplier_id')
-                ->orderBy('total', 'desc')
-                ->take(5)
-                ->get();
-            
-            $idx = 0;
-            foreach ($suppliersRaw as $sup) {
-                $name = $sup->agent ? ($sup->agent->name ?? $sup->agent->company_name) : 'Supplier ' . $sup->supplier_id;
-                if ($idx === 0) $topSupplier = $name;
-                $topSuppliersData['labels'][] = $name;
-                $topSuppliersData['data'][] = round($sup->total, 2);
-                $idx++;
-            }
-            if(count($topSuppliersData['labels']) == 0){
-                $topSupplier = "No Data";
-            }
-        } catch (\Exception $e) {
-            $topSupplier = "No Data";
+        $carpetSuppliers = ['labels' => [], 'data' => []];
+        foreach ($carpetSuppliersRaw as $sup) {
+            $name = $sup->agent ? ($sup->agent->name ?? $sup->agent->company_name) : 'Supplier ' . $sup->agent_id;
+            $carpetSuppliers['labels'][] = $name;
+            $carpetSuppliers['data'][] = round($sup->total, 2);
         }
 
-        // Purchase Trends (Last 12 Months)
+        // Top Material Suppliers
+        $materialSuppliersRaw = \App\PurchaseMaterial::with('seller')
+            ->select('seller_id', DB::raw('SUM(total) as total_sum'))
+            ->groupBy('seller_id')
+            ->orderBy('total_sum', 'desc')
+            ->take(5)
+            ->get();
+            
+        $materialSuppliers = ['labels' => [], 'data' => []];
+        foreach ($materialSuppliersRaw as $sup) {
+            $name = $sup->seller ? ($sup->seller->name ?? $sup->seller->company_name) : 'Seller ' . $sup->seller_id;
+            $materialSuppliers['labels'][] = $name;
+            $materialSuppliers['data'][] = round($sup->total_sum, 2);
+        }
+
+        // Purchase Trends (Last 12 Months) - Separated by Area (Sqm) and Materials (Kg)
         $purchaseTrend = [
             'months' => [],
-            'data' => []
+            'carpet_area' => [],
+            'yarn_kilos' => [],
+            'dye_kilos' => []
         ];
         for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $purchaseTrend['months'][] = $date->format('M Y');
-            // Aggregate actual purchases from Carpet
-            $monthly = Carpet::join('purchase_invoices', 'carpets.purchase_invoice_id', '=', 'purchase_invoices.id')
-                ->whereYear('purchase_invoices.created_at', $date->year)
-                ->whereMonth('purchase_invoices.created_at', $date->month)
-                ->sum('carpets.total_price') ?? 0;
-            $purchaseTrend['data'][] = round($monthly, 2);
+            
+            // Carpet Area
+            $carpetM = Carpet::join('purchase_invoices', 'carpets.purchase_invoice_id', '=', 'purchase_invoices.id')
+                ->whereYear('purchase_invoices.date', $date->year)
+                ->whereMonth('purchase_invoices.date', $date->month)
+                ->sum('carpets.area') ?? 0;
+            $purchaseTrend['carpet_area'][] = round($carpetM, 2);
+
+            // Yarn Kilos
+            $yarnK = \App\PurchaseMaterial::whereHas('materialCategory', function($q){$q->where('subtype','yarn');})
+                ->whereYear('purchase_date', $date->year)
+                ->whereMonth('purchase_date', $date->month)
+                ->sum('quantity') ?? 0;
+            $purchaseTrend['yarn_kilos'][] = round($yarnK, 2);
+            
+            // Dye Kilos
+            $dyeK = \App\PurchaseMaterial::whereHas('materialCategory', function($q){$q->where('subtype','dye');})
+                ->whereYear('purchase_date', $date->year)
+                ->whereMonth('purchase_date', $date->month)
+                ->sum('quantity') ?? 0;
+            $purchaseTrend['dye_kilos'][] = round($dyeK, 2);
         }
 
-        // Restock Needs (Items with low quantity)
-        $restockNeeds = [];
-        $lowStocks = MaterialStock::where('quantity', '<', 50)->take(5)->get();
-        foreach ($lowStocks as $ls) {
-            $status = $ls->quantity < 20 ? 'Critical' : 'Low';
-            $restockNeeds[] = [
-                'name' => $ls->category ? ($ls->category->category_name ?? 'Material') : 'Raw Material',
-                'quantity' => $ls->quantity,
-                'status' => $status
-            ];
-        }
-
-
-
-        // Recent Purchases
-        $recentPurchasesRaw = PurchaseInvoice::orderBy('created_at', 'desc')->take(5)->get();
-        $recentPurchases = [];
-        foreach ($recentPurchasesRaw as $inv) {
-            $recentPurchases[] = [
-                'number' => $inv->bill_number ?? $inv->invoice_number ?? $inv->id,
-                'date' => Carbon::parse($inv->created_at)->format('Y-m-d'),
+        // Recent Purchases: Carpet
+        $recentCarpets = PurchaseInvoice::with('agent')->orderBy('date', 'desc')->take(5)->get()->map(function($inv) {
+            return [
+                'id' => $inv->id,
+                'number' => $inv->invoice_number,
+                'supplier' => $inv->agent ? ($inv->agent->name ?? $inv->agent->company_name) : 'N/A',
+                'date' => Carbon::parse($inv->date)->format('Y-m-d'),
                 'amount' => $inv->total_amount ?? 0,
-                'status' => $inv->status ?? 'Completed'
+                'status' => $inv->status ?? 'open'
             ];
-        }
+        })->toArray();
+
+        // Recent Purchases: Materials
+        $recentMaterials = \App\RawMaterialPurchaseBill::with('seller')->orderBy('date', 'desc')->take(5)->get()->map(function($bill) {
+            return [
+                'id' => $bill->id,
+                'number' => $bill->bill_number,
+                'supplier' => $bill->seller ? ($bill->seller->name ?? $bill->seller->company_name) : 'N/A',
+                'date' => Carbon::parse($bill->date)->format('Y-m-d'),
+                'amount' => $bill->total_amount ?? 0, // Uses accessor
+                'status' => $bill->status ?? 'open'
+            ];
+        })->toArray();
 
         return [
             'kpis' => [
-                'total_purchases' => $totalPurchases,
-                'monthly_purchases' => $monthlyPurchases,
-                'raw_materials_value' => $rawMaterialsValue,
-                'top_supplier' => $topSupplier
+                'carpet_count' => $carpetCount,
+                'carpet_area' => $carpetArea,
+                'carpet_value' => $carpetValue,
+                'yarn_quantity' => $yarnQuantity,
+                'yarn_value' => $yarnValue,
+                'dye_quantity' => $dyeQuantity,
+                'dye_value' => $dyeValue,
             ],
-            'purchase_trend' => $purchaseTrend,
-            'supplier_distribution' => $topSuppliersData,
-            'restock_needs' => $restockNeeds,
-            'recent_purchases' => $recentPurchases
+            'trends' => $purchaseTrend,
+            'suppliers' => [
+                'carpet' => $carpetSuppliers,
+                'material' => $materialSuppliers
+            ],
+            'recent_purchases' => [
+                'carpet' => $recentCarpets,
+                'material' => $recentMaterials
+            ]
         ];
     }
 }
