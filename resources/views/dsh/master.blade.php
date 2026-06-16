@@ -219,8 +219,7 @@
                 <ul class="pcoded-submenu">
                   <li><a href="/dashboard/agents">لیست نماینده ها</a></li>
                   <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده (حسابداری)</a></li>
-                  <li><a href="{{ route('accounting.reports.entity_statement', ['entity' => 'agents']) }}">صورت حساب
-                      نمایندگان</a></li>
+
                   @if(auth()->user()->role == 'SP')
                     <li><a href="/dashboard/agent-money-request-list"> لیست درخواست های پول</a></li>
                   @endif
