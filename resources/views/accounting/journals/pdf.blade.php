@@ -47,8 +47,8 @@
         .footer-space { height: 130px; }
 
         .content-wrapper {
-            padding-left: 10mm;
-            padding-right: 10mm;
+            padding-left: 2mm;
+            padding-right: 2mm;
         }
         
         .title-block {

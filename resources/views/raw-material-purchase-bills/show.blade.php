@@ -254,9 +254,19 @@
                     </button>
                 </form>
             @endif
-            <button class="btn btn-primary rounded-lg shadow px-4" onclick="window.print()" style="font-weight: 600;">
-                <i class="fa fa-print mr-1"></i> چاپ بل خرید (Print)
-            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary rounded-lg shadow px-4 dropdown-toggle" type="button" id="printExportDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="font-weight: 600;">
+                    <i class="fa fa-print mr-1"></i> خروجی و چاپ
+                </button>
+                <div class="dropdown-menu dropdown-menu-right shadow-lg border-0" aria-labelledby="printExportDropdown" style="border-radius: 12px; z-index: 10000;">
+                    <a class="dropdown-item py-2" href="{{ route('raw-material-purchase-bills.show', $bill->id) }}?export=pdf" target="_blank">
+                        <i class="fa fa-file-pdf-o mr-2 text-danger"></i> خروجی PDF
+                    </a>
+                    <a class="dropdown-item py-2" href="{{ route('raw-material-purchase-bills.show', $bill->id) }}?export=excel">
+                        <i class="fa fa-file-excel-o mr-2 text-success"></i> خروجی Excel
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -340,7 +350,7 @@
                     @forelse($purchases as $index => $purchase)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $purchase->date }}</td>
+                            <td>{{ $purchase->purchase_date }}</td>
                             <td class="font-weight-bold text-dark">{{ $purchase->materialType->material_type ?? 'N/A' }}</td>
                             <td>
                                 @if($purchase->materialCategory)
@@ -351,7 +361,7 @@
                             </td>
                             <td>{{ $purchase->warehouse->name ?? 'N/A' }}</td>
                             <td class="font-weight-bold" style="direction: ltr;">{{ number_format($purchase->quantity, 2) }} kg</td>
-                            <td style="direction: ltr;">${{ number_format($purchase->rate, 2) }}</td>
+                            <td style="direction: ltr;">${{ number_format($purchase->price_per_kilo, 2) }}</td>
                             <td class="font-weight-bold text-dark" style="direction: ltr;">${{ number_format($purchase->total, 2) }}</td>
                         </tr>
                     @empty

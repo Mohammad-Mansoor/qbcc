@@ -70,13 +70,48 @@ class RawMaterialPurchaseBillController extends Controller
             ->with('status', 'بل خرید مواد خام با شماره ' . $data['bill_number'] . ' ثبت شد.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $bill = RawMaterialPurchaseBill::with(['seller', 'purchases.materialType', 'purchases.warehouse', 'allocations.seller_payment'])->findOrFail($id);
         $purchases = $bill->purchases;
+
+        if ($request->get('export') === 'pdf' || $request->get('export') === 'excel') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            $logoPath = public_path('images/logo.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+            }
+
+            if ($request->get('export') === 'pdf') {
+                return view('raw-material-purchase-bills.pdf', compact('bill', 'purchases', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
+            }
+
+            if ($request->get('export') === 'excel') {
+                $filename = 'raw_material_bill_' . $bill->bill_number . '_' . date('Y_m_d_His') . '.xls';
+                header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+                header('Pragma: public');
+
+                echo view('raw-material-purchase-bills.excel', compact('bill', 'purchases', 'topHeaderBase64', 'logoBase64'))->render();
+                exit;
+            }
+        }
+
         return view('raw-material-purchase-bills.show', compact('bill', 'purchases'));
     }
 
