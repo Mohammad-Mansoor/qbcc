@@ -2,106 +2,301 @@
 
 namespace App\Services\Dashboard;
 
-use App\Sale;
-use App\Invoice;
-use App\Carpet;
-use App\Customer;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class SalesDashboardService
 {
     public function getAnalytics()
     {
-        $today = Carbon::today();
-        $thisMonth = Carbon::now()->month;
-        $thisYear = Carbon::now()->year;
-
-        // Basic KPIs
-        $salesToday = Sale::whereDate('sale_date', $today)->sum('sale_cost_total') ?? 0;
-        
-        $monthlySales = Sale::whereYear('sale_date', $thisYear)
-            ->whereMonth('sale_date', $thisMonth)
-            ->sum('sale_cost_total') ?? 0;
-
-        $totalOrdersThisMonth = Sale::whereYear('sale_date', $thisYear)
-            ->whereMonth('sale_date', $thisMonth)
-            ->count();
+        return Cache::remember('sales_dashboard_executive_data', 1800, function () {
             
-        $averageOrderValue = $totalOrdersThisMonth > 0 ? ($monthlySales / $totalOrdersThisMonth) : 0;
-        $totalOrdersAllTime = Sale::count();
+            $now = Carbon::now();
+            $today = $now->format('Y-m-d');
+            $thisMonthStart = $now->copy()->startOfMonth()->format('Y-m-d');
+            $thisYearStart = $now->copy()->startOfYear()->format('Y-m-d');
 
-        // Sales Trend (Last 7 Days)
-        $salesTrend = [
-            'days' => [],
-            'data' => []
-        ];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $salesTrend['days'][] = $date->format('D');
-            $salesTrend['data'][] = Sale::whereDate('sale_date', $date->format('Y-m-d'))->sum('sale_cost_total') ?? 0;
-        }
+            // 1. Executive Snapshot (Carpet)
+            $carpetAgg = DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+                ->where('sales.is_returned', 0)
+                ->selectRaw("
+                    SUM(sales.sale_cost_total) as lifetime_revenue,
+                    SUM(sales.profit) as lifetime_profit,
+                    SUM(carpets.area) as lifetime_area,
+                    COUNT(sales.id) as lifetime_count,
+                    SUM(CASE WHEN sales.sale_date = ? THEN sales.sale_cost_total ELSE 0 END) as today_revenue,
+                    SUM(CASE WHEN sales.sale_date = ? THEN sales.profit ELSE 0 END) as today_profit,
+                    SUM(CASE WHEN sales.sale_date = ? THEN carpets.area ELSE 0 END) as today_area,
+                    SUM(CASE WHEN sales.sale_date = ? THEN 1 ELSE 0 END) as today_count,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total ELSE 0 END) as month_revenue,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.profit ELSE 0 END) as month_profit,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN carpets.area ELSE 0 END) as month_area,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN 1 ELSE 0 END) as month_count,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total ELSE 0 END) as year_revenue,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.profit ELSE 0 END) as year_profit
+                ", [
+                    $today, $today, $today, $today, 
+                    $thisMonthStart, $thisMonthStart, $thisMonthStart, $thisMonthStart, 
+                    $thisYearStart, $thisYearStart
+                ])
+                ->first();
 
-        // Sales by Carpet Type (Using Carpets with status 6 = Sold)
-        $soldByTypeRaw = Carpet::where('status', 6)
-            ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
-            ->select('carpet_types.carpet_type as name', DB::raw('count(carpets.carpet_id) as count'))
-            ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
-            ->get();
+            // 2. Executive Snapshot (Raw Materials)
+            $materialAgg = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->leftJoin('items', function($join) {
+                    $join->on('material_sales.type_id', '=', 'items.ref_id')
+                         ->where('items.type', '=', 'App\\MaterialType');
+                })
+                ->where('material_sales.status', 1)
+                ->selectRaw("
+                    SUM(material_sales.base_currency_amount) as lifetime_revenue,
+                    SUM(material_sales.base_currency_amount - (material_sales.amount * COALESCE(items.current_cost, 0))) as lifetime_profit,
+                    
+                    SUM(CASE WHEN material_categories.subtype = 'yarn' THEN material_sales.amount ELSE 0 END) as lifetime_yarn_kg,
+                    SUM(CASE WHEN material_categories.subtype = 'dye' THEN material_sales.amount ELSE 0 END) as lifetime_dye_kg,
+                    
+                    SUM(CASE WHEN material_sales.date = ? THEN material_sales.base_currency_amount ELSE 0 END) as today_revenue,
+                    SUM(CASE WHEN material_sales.date = ? THEN material_sales.base_currency_amount - (material_sales.amount * COALESCE(items.current_cost, 0)) ELSE 0 END) as today_profit,
+                    SUM(CASE WHEN material_sales.date = ? AND material_categories.subtype = 'yarn' THEN material_sales.amount ELSE 0 END) as today_yarn_kg,
+                    SUM(CASE WHEN material_sales.date = ? AND material_categories.subtype = 'dye' THEN material_sales.amount ELSE 0 END) as today_dye_kg,
+                    
+                    SUM(CASE WHEN material_sales.date >= ? THEN material_sales.base_currency_amount ELSE 0 END) as month_revenue,
+                    SUM(CASE WHEN material_sales.date >= ? THEN material_sales.base_currency_amount - (material_sales.amount * COALESCE(items.current_cost, 0)) ELSE 0 END) as month_profit,
+                    SUM(CASE WHEN material_sales.date >= ? AND material_categories.subtype = 'yarn' THEN material_sales.amount ELSE 0 END) as month_yarn_kg,
+                    SUM(CASE WHEN material_sales.date >= ? AND material_categories.subtype = 'dye' THEN material_sales.amount ELSE 0 END) as month_dye_kg,
+                    
+                    SUM(CASE WHEN material_sales.date >= ? THEN material_sales.base_currency_amount ELSE 0 END) as year_revenue,
+                    SUM(CASE WHEN material_sales.date >= ? THEN material_sales.base_currency_amount - (material_sales.amount * COALESCE(items.current_cost, 0)) ELSE 0 END) as year_profit
+                ", [
+                    $today, $today, $today, $today,
+                    $thisMonthStart, $thisMonthStart, $thisMonthStart, $thisMonthStart,
+                    $thisYearStart, $thisYearStart
+                ])
+                ->first();
 
-        $salesByType = [
-            'labels' => [],
-            'data' => []
-        ];
-        foreach ($soldByTypeRaw as $c) {
-            $salesByType['labels'][] = $c->name;
-            $salesByType['data'][] = $c->count;
-        }
+            // 3. Accounts Receivable (AR) Aging
+            $arAging = DB::query()->fromSub(function ($query) {
+                $query->from('invoices')
+                    ->select('id', 'payment_status')
+                    ->selectRaw('DATEDIFF(CURDATE(), invoice_date) as age')
+                    ->selectRaw('COALESCE((SELECT SUM(sale_cost_total) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0) as total')
+                    ->selectRaw('COALESCE((SELECT SUM(amount_applied) FROM invoice_payments WHERE invoice_id = invoices.id), 0) as paid')
+                    ->selectRaw('(COALESCE((SELECT SUM(sale_cost_total) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0)) - COALESCE((SELECT SUM(amount_applied) FROM invoice_payments WHERE invoice_id = invoices.id), 0) as outstanding')
+                    ->where('status', 'open');
+            }, 'invoice_totals')
+            ->selectRaw("
+                SUM(CASE WHEN age <= 30 AND payment_status != 'paid' THEN outstanding ELSE 0 END) as age_30,
+                SUM(CASE WHEN age BETWEEN 31 AND 60 AND payment_status != 'paid' THEN outstanding ELSE 0 END) as age_60,
+                SUM(CASE WHEN age BETWEEN 61 AND 90 AND payment_status != 'paid' THEN outstanding ELSE 0 END) as age_90,
+                SUM(CASE WHEN age > 90 AND payment_status != 'paid' THEN outstanding ELSE 0 END) as age_90_plus,
+                SUM(CASE WHEN payment_status != 'paid' THEN outstanding ELSE 0 END) as total_outstanding,
+                SUM(paid) as total_collected,
+                SUM(CASE WHEN payment_status = 'unpaid' THEN 1 ELSE 0 END) as count_unpaid,
+                SUM(CASE WHEN payment_status = 'partial' THEN 1 ELSE 0 END) as count_partial,
+                COUNT(id) as count_total
+            ")
+            ->first();
 
-        // Top Customers by Invoice Totals
-        $topCustomersRaw = Customer::with('invoice')->get();
-        $topCustomersArray = [];
-        foreach ($topCustomersRaw as $c) {
-            $totalPurchases = $c->invoice ? $c->invoice->sum('total_price') : 0;
-            if ($totalPurchases > 0) {
-                $topCustomersArray[] = [
-                    'name' => $c->name . ' ' . $c->last_name,
-                    'total_purchases' => $totalPurchases,
-                    'balance' => 0 // Balance requires ledger logic, set to 0 for strict reality
-                ];
+            // 4. Revenue Trends (12-Month Array)
+            $monthsLabel = [];
+            $carpetTrendArr = [];
+            $yarnTrendArr = [];
+            $dyeTrendArr = [];
+
+            $twelveMonthsAgo = Carbon::now()->subMonths(11)->startOfMonth();
+            
+            $carpetTrendData = DB::table('sales')
+                ->where('sale_date', '>=', $twelveMonthsAgo)
+                ->where('is_returned', 0)
+                ->selectRaw("DATE_FORMAT(sale_date, '%Y-%m') as month, SUM(sale_cost_total) as rev")
+                ->groupBy('month')
+                ->pluck('rev', 'month')->toArray();
+
+            $materialTrendData = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->where('material_sales.date', '>=', $twelveMonthsAgo)
+                ->where('material_sales.status', 1)
+                ->selectRaw("DATE_FORMAT(material_sales.date, '%Y-%m') as month, material_categories.subtype, SUM(material_sales.base_currency_amount) as rev")
+                ->groupBy('month', 'subtype')
+                ->get();
+
+            for ($i = 11; $i >= 0; $i--) {
+                $dt = Carbon::now()->subMonths($i);
+                $m = $dt->format('Y-m');
+                $monthsLabel[] = $dt->format('M Y');
+                
+                $carpetTrendArr[] = (float)($carpetTrendData[$m] ?? 0);
+                
+                $yRev = 0; $dRev = 0;
+                foreach($materialTrendData as $mtd) {
+                    if ($mtd->month === $m) {
+                        if ($mtd->subtype === 'yarn') $yRev += $mtd->rev;
+                        if ($mtd->subtype === 'dye') $dRev += $mtd->rev;
+                    }
+                }
+                $yarnTrendArr[] = (float)$yRev;
+                $dyeTrendArr[] = (float)$dRev;
             }
-        }
-        
-        // Sort descending by total purchases and take top 5
-        usort($topCustomersArray, function($a, $b) {
-            return $b['total_purchases'] <=> $a['total_purchases'];
-        });
-        $topCustomers = array_slice($topCustomersArray, 0, 5);
 
-        // Recent Invoices
-        $recentInvoicesRaw = Invoice::orderBy('created_at', 'desc')->take(5)->get();
-        $recentInvoices = [];
-        foreach ($recentInvoicesRaw as $inv) {
-            $recentInvoices[] = [
-                'number' => $inv->invoice_number,
-                'customer' => $inv->customer ? ($inv->customer->name . ' ' . $inv->customer->last_name) : 'Unknown',
-                'date' => Carbon::parse($inv->created_at)->format('Y-m-d'),
-                'amount' => $inv->total_price ?? $inv->amount ?? 0,
-                'status' => $inv->status ?? 'Closed'
+            // 5. Product Performance & Profitability
+            $topCarpetTypes = DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+                ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
+                ->where('sales.is_returned', 0)
+                ->selectRaw('carpet_types.carpet_type as name, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit, SUM(carpets.area) as area, COUNT(*) as qty')
+                ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
+                ->orderByDesc('profit')
+                ->limit(5)
+                ->get();
+
+            $topCarpetQualities = DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+                ->join('qualities', 'carpets.quality_id', '=', 'qualities.id')
+                ->where('sales.is_returned', 0)
+                ->selectRaw('qualities.quality as name, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit, COUNT(*) as qty')
+                ->groupBy('qualities.id', 'qualities.quality')
+                ->orderByDesc('profit')
+                ->limit(5)
+                ->get();
+
+            $topMaterialSales = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->where('material_sales.status', 1)
+                ->selectRaw("
+                    material_categories.material_category as name, 
+                    material_categories.subtype,
+                    SUM(material_sales.amount) as qty, 
+                    SUM(material_sales.base_currency_amount) as revenue
+                ")
+                ->groupBy('material_categories.material_category_id', 'material_categories.material_category', 'material_categories.subtype')
+                ->orderByDesc('revenue')
+                ->get();
+
+            // 6. Top Customers Deep Analytics
+            $topCustomers = DB::table('sales')
+                ->join('customers', 'sales.customer_id', '=', 'customers.id')
+                ->where('sales.is_returned', 0)
+                ->selectRaw('customers.name, customers.id, SUM(sales.sale_cost_total) as total_revenue, COUNT(sales.id) as sales_count, MAX(sales.sale_date) as last_purchase')
+                ->groupBy('customers.id', 'customers.name')
+                ->orderByDesc('total_revenue')
+                ->limit(5)
+                ->get();
+                
+            // (We omit balances directly here as balances per customer need AccountingService which is expensive in a tight loop. We use AR Aging for global balance).
+
+            // 7. Warehouse Intelligence
+            $whCarpet = DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+                ->join('warehouses', 'carpets.warehouse_id', '=', 'warehouses.id')
+                ->where('sales.is_returned', 0)
+                ->selectRaw('warehouses.name, COUNT(*) as qty, SUM(carpets.area) as area, SUM(sales.sale_cost_total) as revenue')
+                ->groupBy('warehouses.id', 'warehouses.name')
+                ->get();
+
+            $whMaterial = DB::table('material_sales')
+                ->leftJoin('warehouses', 'material_sales.warehouse_id', '=', 'warehouses.id')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->where('material_sales.status', 1)
+                ->selectRaw("
+                    COALESCE(warehouses.name, 'نامشخص') as name, 
+                    SUM(CASE WHEN material_categories.subtype = 'yarn' THEN material_sales.amount ELSE 0 END) as yarn_kg,
+                    SUM(CASE WHEN material_categories.subtype = 'dye' THEN material_sales.amount ELSE 0 END) as dye_kg,
+                    SUM(material_sales.base_currency_amount) as revenue
+                ")
+                ->groupBy('warehouses.id', 'warehouses.name')
+                ->get();
+
+            // 8. Velocity Analytics
+            $carpetVelocity = DB::table('sales')
+                ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
+                ->selectRaw('AVG(DATEDIFF(sales.sale_date, carpets.created_at)) as avg_days')
+                ->where('sales.is_returned', 0)
+                ->value('avg_days') ?? 0;
+
+            // Yarn Velocity = Total Stock / 30-day burn rate
+            $yarnStock = DB::table('material_stocks')
+                ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
+                ->where('material_categories.subtype', 'yarn')
+                ->sum('quantity');
+
+            $yarnSales30 = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->where('material_categories.subtype', 'yarn')
+                ->where('material_sales.date', '>=', Carbon::now()->subDays(30))
+                ->sum('amount');
+            
+            $yarnDailyBurn = $yarnSales30 / 30;
+            $yarnVelocity = $yarnDailyBurn > 0 ? ($yarnStock / $yarnDailyBurn) : 0;
+
+            // Dye Velocity
+            $dyeStock = DB::table('material_stocks')
+                ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
+                ->where('material_categories.subtype', 'dye')
+                ->sum('quantity');
+
+            $dyeSales30 = DB::table('material_sales')
+                ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
+                ->where('material_categories.subtype', 'dye')
+                ->where('material_sales.date', '>=', Carbon::now()->subDays(30))
+                ->sum('amount');
+            
+            $dyeDailyBurn = $dyeSales30 / 30;
+            $dyeVelocity = $dyeDailyBurn > 0 ? ($dyeStock / $dyeDailyBurn) : 0;
+
+            // 9. Unified Activity Feed
+            $activities = DB::table('activities')
+                ->leftJoin('users', 'activities.user_id', '=', 'users.id')
+                ->where(function($q) {
+                    $q->where('activities.description', 'like', '%فروش%')
+                      ->orWhere('activities.description', 'like', '%انوایس%')
+                      ->orWhere('activities.description', 'like', '%payment%');
+                })
+                ->select('activities.description', 'activities.created_at', 'users.name as user_name')
+                ->orderByDesc('activities.created_at')
+                ->limit(10)
+                ->get();
+
+            // 10. Financial Validation
+            $carpetRev = $carpetAgg->lifetime_revenue ?? 0;
+            $materialRev = $materialAgg->lifetime_revenue ?? 0;
+            $carpetProfit = $carpetAgg->lifetime_profit ?? 0;
+            $materialProfit = $materialAgg->lifetime_profit ?? 0;
+
+            // Since Total Revenue and Profit are dynamically calculated on the frontend by summing these components,
+            // we log the foundational metrics to ensure they exist and don't produce unexpected NULLs.
+            if ($carpetRev < 0 || $materialRev < 0) {
+                \Log::warning('Dashboard Sales Validation: Negative lifetime revenue detected.', [
+                    'carpet_revenue' => $carpetRev,
+                    'material_revenue' => $materialRev
+                ]);
+            }
+
+            return [
+                'carpetAgg' => $carpetAgg,
+                'materialAgg' => $materialAgg,
+                'arAging' => $arAging,
+                'trends' => [
+                    'months' => $monthsLabel,
+                    'carpet' => $carpetTrendArr,
+                    'yarn' => $yarnTrendArr,
+                    'dye' => $dyeTrendArr
+                ],
+                'topCarpetTypes' => $topCarpetTypes,
+                'topCarpetQualities' => $topCarpetQualities,
+                'topMaterialSales' => $topMaterialSales,
+                'topCustomers' => $topCustomers,
+                'whCarpet' => $whCarpet,
+                'whMaterial' => $whMaterial,
+                'velocity' => [
+                    'carpet' => round($carpetVelocity),
+                    'yarn' => round($yarnVelocity),
+                    'dye' => round($dyeVelocity)
+                ],
+                'activities' => $activities
             ];
-        }
-
-        return [
-            'kpis' => [
-                'sales_today' => $salesToday,
-                'monthly_sales' => $monthlySales,
-                'average_order_value' => round($averageOrderValue, 2),
-                'total_orders' => $totalOrdersAllTime
-            ],
-            'sales_trend' => $salesTrend,
-            'sales_by_type' => $salesByType,
-            'top_customers' => $topCustomers,
-            'recent_invoices' => $recentInvoices
-        ];
+        });
     }
 }
