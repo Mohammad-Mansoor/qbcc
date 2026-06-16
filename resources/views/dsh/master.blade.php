@@ -141,14 +141,14 @@
         <ul class="nav pcoded-inner-navbar ">
 
           <li
-            class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/finance*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
+            class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/accounting*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
             <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                 class="pcoded-mtext"><b>داشبورد</b></span></a>
             <ul class="pcoded-submenu">
               <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li>
               <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
               <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
-              <li><a href="/dashboard/finance">داشبورد مالی (Finance)</a></li>
+              <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
               <li><a href="/dashboard/sales">داشبورد فروشات (Sales)</a></li>
               <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>
               <li><a href="/dashboard/cost-analytics">تحلیل مصارف (Cost Analytics)</a></li>
@@ -158,7 +158,7 @@
           @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
             <li
               class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
-              <a href="{{ route('accounting.dashboard') }}" class="nav-link">
+              <a href="#" class="nav-link">
                 <span class="pcoded-micon"><i class="feather icon-book"></i></span>
                 <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
               </a>
