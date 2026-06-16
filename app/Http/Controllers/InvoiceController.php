@@ -216,15 +216,42 @@ class InvoiceController extends Controller
      * @param  \App\Invoice  $invoice
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($id, Request $request)
     {
-        $invoice = Invoice::find($id);
+        $invoice = Invoice::with(['customer', 'agent.user', 'payments'])->find($id);
+        
+        if ($request->export === 'pdf') {
+            if ($invoice->type === 'carpet') {
+                $sales = Sale::with('carpet')->where('invoice_id',$id)->get();
+            } else {
+                $sales = \App\MaterialSale::with(['category', 'type'])->where('invoice_id',$id)->get();
+            }
+            return $this->exportPdf($invoice, $sales);
+        }
+
         if ($invoice->type === 'carpet') {
-            $sales = Sale::where('invoice_id',$id)->paginate(30);
+            $sales = Sale::with('carpet')->where('invoice_id',$id)->paginate(30);
         } else {
-            $sales = \App\MaterialSale::where('invoice_id',$id)->paginate(30);
+            $sales = \App\MaterialSale::with(['category', 'type'])->where('invoice_id',$id)->paginate(30);
         }
         return view('invoices.invoice-details',compact('invoice','sales'));
+    }
+
+    protected function exportPdf($invoice, $sales)
+    {
+        $headerPath = public_path('images/header.png');
+        $footerPath = public_path('images/footer.png');
+        $headerBase64 = '';
+        $footerBase64 = '';
+        
+        if (file_exists($headerPath)) {
+            $headerBase64 = base64_encode(file_get_contents($headerPath));
+        }
+        if (file_exists($footerPath)) {
+            $footerBase64 = base64_encode(file_get_contents($footerPath));
+        }
+
+        return view('invoices.invoice_pdf', compact('invoice', 'sales', 'headerBase64', 'footerBase64'));
     }
 
     /**

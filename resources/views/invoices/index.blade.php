@@ -123,8 +123,8 @@
 
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-right">
-                            <thead class="bg-light">
-                                <tr class="text-muted small text-uppercase">
+                            <thead class="bg-primary text-white">
+                                <tr class="small text-uppercase">
                                     <th class="border-0 px-4 py-3">نمبر انوایس</th>
                                     <th class="border-0 py-3 text-center">نوعیت</th>
                                     <th class="border-0 py-3 text-center">حالت انوایس</th>
