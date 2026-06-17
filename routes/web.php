@@ -526,6 +526,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
     Route::get('/customer-orders-next-number', 'CustomerOrderController@getNextOrderNumber');
     Route::resource('/customer-orders','CustomerOrderController');
     Route::resource('/customer-order-details','CustomerOrderDetailsController');
+    Route::get('/carpet-specification/{id}', 'CustomerOrderDetailsController@show_carpet');
     Route::post('/customer-order-details/{id}/receive', 'CustomerOrderDetailsController@receiveIntoStock');
     Route::post('/customer-order-details/{id}/sell', 'CustomerOrderDetailsController@processFinalSale');
     Route::patch('/customer-order-details/{id}/change-status', 'CustomerOrderDetailsController@changeStatus');

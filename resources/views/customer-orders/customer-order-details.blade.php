@@ -337,44 +337,62 @@
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead>
-                                <tr style="direction: rtl; text-align: right;">
-                                    <th class="pr-4">مشخصات تخنیکی قالین</th>
-                                    <th>وضعیت کار</th>
-                                    <th>زمان‌بندی</th>
+                                <tr style="direction: rtl; text-align: right; white-space: nowrap;">
+                                    <th class="pr-4">عکس</th>
+                                    <th>کیفیت</th>
+                                    <th>طول</th>
+                                    <th>عرض</th>
+                                    <th>مساحت</th>
+                                    <th>تار</th>
+                                    <th>پود</th>
+                                    <th>کد بافنده</th>
+                                    <th>نمبر قالین</th>
+                                    <th>شروع</th>
+                                    <th>ختم</th>
+                                    <th>وضعیت</th>
                                     <th class="text-left pl-4">عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($customer_order_details as $co)
                                 <tr style="direction: rtl; text-align: right;">
-                                    <td class="pl-4 py-3">
-                                        <div class="d-flex align-items-center">
-                                            <a href="#" class="ml-3 hideOnPrint" data-toggle="modal" data-target="#imageModal" data-src="/{{$co->photo}}">
-                                                <img src="/{{$co->photo}}" class="rounded" style="height: 50px; width: 50px; object-fit: cover; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);" onerror="this.src='/uploads/placeholder.png'">
-                                            </a>
-                                            <div>
-                                                <span class="d-block font-weight-bold text-dark">{{ $co->quality }} ({{ $co->height }}x{{ $co->width }})</span>
-                                                <small class="text-muted">مساحت: {{ $co->area }} m² | تار و پود: {{ $co->warp }}/{{ $co->weft }}</small>
-                                            </div>
-                                        </div>
+                                    <td class="pl-4 py-2">
+                                        <a href="#" class="hideOnPrint" data-toggle="modal" data-target="#imageModal" data-src="/{{$co->photo}}">
+                                            <img src="/{{$co->photo}}" class="rounded" style="height: 40px; width: 40px; object-fit: cover; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onerror="this.src='/uploads/placeholder.png'">
+                                        </a>
                                     </td>
+                                    <td class="font-weight-bold text-dark">{{ $co->quality ?: '-' }}</td>
+                                    <td>{{ $co->height ?: '-' }}</td>
+                                    <td>{{ $co->width ?: '-' }}</td>
+                                    <td><span class="badge badge-light border">{{ number_format((float)$co->area, 2) }}</span></td>
+                                    <td>{{ $co->warp ?: '-' }}</td>
+                                    <td>{{ $co->weft ?: '-' }}</td>
+                                    <td>{{ $co->weaver_code ?: '-' }}</td>
+                                    <td>
+                                        @if($co->carpet_number)
+                                            <span class="badge badge-success">{{ $co->carpet_number }}</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td class="text-success">{{ $co->start_date }}</td>
+                                    <td class="text-danger">{{ $co->end_date ?: '-' }}</td>
                                     <td>
                                         <form action="/dashboard/customer-order-details/{{ $co->cod_id }}/change-status" method="POST" class="d-inline status-carpet-form-{{ $co->cod_id }}">
                                             @csrf
                                             @method('PATCH')
                                             <select name="status" class="select-status-premium select-carpet-status-inline status-{{ $co->current_status }}" data-id="{{ $co->cod_id }}">
                                                 <option value="pending" {{ $co->current_status == 'pending' ? 'selected' : '' }}>معلق</option>
-                                                <option value="in_progress" {{ $co->current_status == 'in_progress' ? 'selected' : '' }}>در حال کار</option>
-                                                <option value="completed" {{ $co->current_status == 'completed' ? 'selected' : '' }}>تکمیل شده</option>
+                                                <option value="in_progress" {{ $co->current_status == 'in_progress' ? 'selected' : '' }}>در کار</option>
+                                                <option value="completed" {{ $co->current_status == 'completed' ? 'selected' : '' }}>تکمیل</option>
                                             </select>
                                         </form>
                                     </td>
-                                    <td>
-                                        <small class="d-block text-success font-weight-bold"><i class="fa fa-calendar-alt ml-1"></i>شروع: {{ $co->start_date }}</small>
-                                        <small class="d-block text-danger font-weight-bold"><i class="fa fa-calendar-times ml-1"></i>تحویل: {{ $co->end_date ?: 'نامشخص' }}</small>
-                                    </td>
-                                    <td class="text-left pr-4 pl-4">
+                                    <td class="text-left pr-4 pl-4" style="white-space: nowrap;">
                                         <div class="btn-group">
+                                            <a href="/dashboard/carpet-specification/{{$co->cod_id}}" class="btn btn-light action-btn text-primary" title="مشاهده جزئیات کامل">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
                                             <a href="/dashboard/customer-order-details/{{$co->cod_id}}/edit" class="btn btn-light action-btn text-info" title="ویرایش مشخصات">
                                                 <i class="fa fa-edit"></i>
                                             </a>
@@ -386,7 +404,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted font-weight-bold">هیچ قالینی برای این فرمایش ثبت نشده است. برای ثبت قالین دکمه بالا را کلیک کنید.</td>
+                                    <td colspan="15" class="text-center py-5 text-muted font-weight-bold">هیچ قالینی برای این فرمایش ثبت نشده است. برای ثبت قالین دکمه بالا را کلیک کنید.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -544,6 +562,38 @@
     </div>
 </div>
 
+<!-- Modal: Carpet Number for Completed Status -->
+<div class="modal fade" id="carpetNumberModal" tabindex="-1" role="dialog" aria-labelledby="carpetNumberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+            <div class="modal-header modal-header-premium bg-white" style="direction: rtl;">
+                <h5 class="modal-title font-weight-bold text-success" id="carpetNumberModalLabel">
+                    <i class="fa fa-check-circle ml-2"></i> ثبت نمبر قالین تکمیل شده
+                </h5>
+                <button type="button" class="close ml-0 mr-auto" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
+                <p class="text-muted small mb-3">برای تکمیل این قالین، لطفا نمبر یا بارکد نهایی آن را وارد کنید:</p>
+                <input type="hidden" id="pending_status_form_id" value="">
+                <input type="hidden" id="pending_status_value" value="">
+                
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold text-dark">نمبر قالین (Carpet Number) <span class="text-danger">*</span></label>
+                    <input type="text" id="completed_carpet_number" class="form-control form-control-premium text-left" dir="ltr" placeholder="مثال: C-10293">
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 justify-content-start py-3" style="border-radius: 0 0 24px 24px;">
+                <button type="button" class="btn btn-success font-weight-bold px-4" onclick="submitStatusWithCarpetNumber()">
+                    <i class="fa fa-check ml-1"></i> تایید و تکمیل
+                </button>
+                <button type="button" class="btn btn-light font-weight-bold mr-2" data-dismiss="modal" onclick="resetStatusDropdown()">انصراف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -605,10 +655,60 @@
         });
     }
 
+    // Store original values when clicking on select
+    let originalStatus = {};
+    $(document).ready(function() {
+        $('.select-carpet-status-inline').each(function() {
+            originalStatus[$(this).data('id')] = $(this).val();
+        });
+    });
+
     $(document).on('change', '.select-carpet-status-inline', function() {
         var id = $(this).data('id');
-        $('.status-carpet-form-' + id).submit();
+        var val = $(this).val();
+        
+        if(val === 'completed') {
+            // Open modal to get carpet number
+            $('#pending_status_form_id').val(id);
+            $('#pending_status_value').val(val);
+            $('#completed_carpet_number').val('');
+            $('#carpetNumberModal').modal({
+                backdrop: 'static',
+                keyboard: false
+            });
+        } else {
+            // Submit directly
+            $('.status-carpet-form-' + id).submit();
+        }
     });
+
+    function resetStatusDropdown() {
+        var id = $('#pending_status_form_id').val();
+        if(id && originalStatus[id]) {
+            $('.select-carpet-status-inline[data-id="'+id+'"]').val(originalStatus[id]);
+        }
+    }
+
+    function submitStatusWithCarpetNumber() {
+        var id = $('#pending_status_form_id').val();
+        var num = $('#completed_carpet_number').val().trim();
+        
+        if(num === '') {
+            swal("خطا", "لطفا نمبر قالین را وارد کنید", "error");
+            return;
+        }
+
+        // Add hidden input with carpet number to the form
+        var form = $('.status-carpet-form-' + id);
+        if(form.find('input[name="carpet_number"]').length === 0) {
+            form.append('<input type="hidden" name="carpet_number" value="">');
+        }
+        form.find('input[name="carpet_number"]').val(num);
+        
+        // Hide modal and submit
+        $('#carpetNumberModal').modal('hide');
+        form.submit();
+    }
 
     $('.select2').select2({ width: '100%' });
 

@@ -146,6 +146,17 @@ class CustomerOrderDetailsController extends Controller
         return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'currencies'));
     }
 
+    public function show_carpet($carpet_id)
+    {
+        $carpet = DB::table('customer_order_details')->where('cod_id', $carpet_id)->first();
+        if (!$carpet) {
+            return redirect()->back()->with('error', 'قالین یافت نشد.');
+        }
+        $customer_order = CustomerOrder::find($carpet->customer_order_id);
+        
+        return view('customer-orders.carpet-specification-details', compact('carpet', 'customer_order'));
+    }
+
     public function edit($customer_order_details_id)
     {
         $orderEdit = CustomerOrderDetails::find($customer_order_details_id);
@@ -269,7 +280,8 @@ class CustomerOrderDetailsController extends Controller
     public function changeStatus(Request $request, $order_detail_id)
     {
         $request->validate([
-            'status' => 'required|in:pending,in_progress,completed'
+            'status' => 'required|in:pending,in_progress,completed',
+            'carpet_number' => 'nullable|string'
         ]);
 
         $detail = DB::table('customer_order_details')->where('cod_id', $order_detail_id)->first();
@@ -277,9 +289,15 @@ class CustomerOrderDetailsController extends Controller
             return redirect()->back()->with('error', 'قالین یافت نشد.');
         }
 
+        $updateData = ['current_status' => $request->status];
+        
+        if ($request->status === 'completed' && $request->filled('carpet_number')) {
+            $updateData['carpet_number'] = $request->carpet_number;
+        }
+
         DB::table('customer_order_details')
             ->where('cod_id', $order_detail_id)
-            ->update(['current_status' => $request->status]);
+            ->update($updateData);
 
         // If carpet is downgraded to non-completed, check if order is completed and downgrade it to in_progress
         if ($request->status != 'completed') {

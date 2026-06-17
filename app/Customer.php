@@ -20,4 +20,8 @@ class Customer extends Model
         return $this->hasMany(CustomerPayment::class, 'customer_id');
     }
 
+    public function orders()
+    {
+        return $this->hasMany(CustomerOrder::class, 'main_customer_id', 'id');
+    }
 }

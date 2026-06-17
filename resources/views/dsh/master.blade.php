@@ -145,7 +145,7 @@
             <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                 class="pcoded-mtext"><b>داشبورد</b></span></a>
             <ul class="pcoded-submenu">
-              <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li>
+              <!-- <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li> -->
               <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
               <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
               <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
@@ -389,12 +389,14 @@
             </li>
 
 
-            <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/assets-accounts*') || request()->is('dashboard/assets-report*') ? 'active pcoded-trigger' : '' }}">
-              <a href="#" class="nav-link"><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/assets-accounts*') || request()->is('dashboard/assets-report*') ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                  class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/assets-accounts">حسابات اجناس</a></li>
-                <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a></li>
+                <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a>
+                </li>
               </ul>
             </li>
           @endif
@@ -482,22 +484,22 @@
             <ul class="pcoded-submenu">
 
               <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
-                                <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
-                                <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
-                                <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
-                                <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                                <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
-                                <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
-                                <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
-                                <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
-                                <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
+                                  <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
+                                  <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
+                                  <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
+                                  <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
+                                  <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
+                                  <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
+                                  <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
+                                  <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
+                                  <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
               <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
               <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
                   Balance)</a></li>
               <!-- <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان
-                                    (P&L)</a></li> -->
+                                      (P&L)</a></li> -->
               <!-- <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
-                            (Aging)</a></li> -->
+                              (Aging)</a></li> -->
               <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
 
               <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار

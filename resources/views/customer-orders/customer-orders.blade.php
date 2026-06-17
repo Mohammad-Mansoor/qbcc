@@ -217,8 +217,9 @@
     <!-- Header -->
     <div class="order-header-premium d-flex justify-content-between align-items-center flex-wrap gap-3" style="direction: rtl; text-align: right;">
         <div>
-            <h2 class="text-white mb-2 font-weight-bold">مدیریت فرمایشات (Customer Orders)</h2>
-            <p class="mb-0 opacity-75">ثبت و مدیریت فنی و بررسی وضعیت پیشرفت سفارشات و مشخصات قالین مشتریان</p>
+            <a href="/dashboard/customer-orders" class="btn btn-sm btn-light mb-2"><i class="fa fa-arrow-right ml-1"></i> بازگشت به لیست مشتریان</a>
+            <h2 class="text-white mb-2 font-weight-bold">فرمایشات {{ $customer->name }}{{ $customer->country ? " ($customer->country)" : '' }}</h2>
+            <p class="mb-0 opacity-75">ثبت و مدیریت فرمایشات و لیست قالین‌های این مشتری</p>
         </div>
         <div class="hideOnPrint">
             <button class="btn btn-premium font-weight-bold shadow-sm" data-toggle="modal" data-target="#orderModal">
@@ -270,29 +271,18 @@
         <div class="card-body py-3">
             <div class="row align-items-center">
                 <!-- Search Box -->
-                <div class="col-lg-4 col-md-6 mb-2 mb-lg-0">
-                    <label class="small font-weight-bold text-dark"><i class="fa fa-search ml-1 text-primary"></i> جستجو بر اساس نمبر فرمایش یا نام مشتری</label>
+                <div class="col-lg-6 col-md-8 mb-2 mb-lg-0">
+                    <label class="small font-weight-bold text-dark"><i class="fa fa-search ml-1 text-primary"></i> جستجو بر اساس نمبر/نام فرمایش</label>
                     <div class="input-group">
                         <div class="input-group-prepend">
                             <span class="input-group-text bg-white border-left-0" style="border-radius: 0 10px 10px 0;"><i class="fa fa-search text-muted"></i></span>
                         </div>
-                        <input type="text" id="tableSearchInput" class="form-control form-control-premium" style="border-radius: 10px 0 0 10px;" placeholder="نام مشتری یا نمبر فرمایش را بنویسید...">
+                        <input type="text" id="tableSearchInput" class="form-control form-control-premium" style="border-radius: 10px 0 0 10px;" placeholder="نام یا نمبر فرمایش را بنویسید...">
                     </div>
                 </div>
 
-                <!-- Customer Filter -->
-                <div class="col-lg-4 col-md-3 mb-2 mb-lg-0">
-                    <label class="small font-weight-bold text-dark"><i class="fa fa-user ml-1 text-primary"></i> فیلتر بر اساس مشتری</label>
-                    <select id="filterCustomer" class="form-control select2">
-                        <option value="">همه مشتریان</option>
-                        @foreach($main_customers as $mc)
-                            <option value="{{ $mc->id }}">{{ $mc->name }}{{ $mc->country ? " ($mc->country)" : '' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <!-- Status Filter -->
-                <div class="col-lg-3 col-md-3 mb-2 mb-lg-0">
+                <div class="col-lg-5 col-md-4 mb-2 mb-lg-0">
                     <label class="small font-weight-bold text-dark"><i class="fa fa-filter ml-1 text-primary"></i> وضعیت فرمایش</label>
                     <select id="filterStatus" class="form-control select2">
                         <option value="">همه وضعیت‌ها</option>
@@ -327,7 +317,6 @@
                                 <tr style="direction: rtl; text-align: right;">
                                     <th class="pr-4">نام / نمبر فرمایش</th>
                                     <th>تاریخ ثبت</th>
-                                    <th>حساب مشتری</th>
                                     <th>میزان پیشرفت</th>
                                     <th>وضعیت</th>
                                     <th class="text-left pl-4">عملیات</th>
@@ -351,13 +340,6 @@
                                             <i class="fa fa-folder-open text-muted ml-2"></i> {{ $co->order_name }}
                                         </td>
                                         <td class="text-muted">{{ $co->order_date }}</td>
-                                        <td>
-                                            @if($co->customer)
-                                                <span class="badge-premium badge-premium-progress">{{ $co->customer->name }}{{ $co->customer->country ? " ({$co->customer->country})" : "" }}</span>
-                                            @else
-                                                <span class="badge-premium badge-premium-pending">تایید نشده (Unlinked)</span>
-                                            @endif
-                                        </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
                                                 <span class="small font-weight-bold text-muted ml-2">{{ $progressPercentage }}%</span>
@@ -433,16 +415,10 @@
                             <small class="text-muted d-block mt-1">تاریخ رسمی ثبت سفارش.</small>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold">اتصال به حساب اصلی (مشتری) <span class="text-danger">*</span></label>
-                            <select name="main_customer_id" class="form-control select2-modal" required>
-                                <option value="">انتخاب حساب مشتری</option>
-                                @foreach($main_customers as $mc)
-                                    <option value="{{$mc->id}}" {{ (is_object($orderEdit) && $orderEdit->main_customer_id == $mc->id) ? 'selected' : '' }}>
-                                        {{$mc->name}}{{ $mc->country ? " ($mc->country)" : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted d-block mt-1">مالک و سفارش‌دهنده این فرمایش.</small>
+                            <label class="small font-weight-bold">مشتری <span class="text-danger">*</span></label>
+                            <input type="hidden" name="main_customer_id" value="{{ $customer->id }}">
+                            <input type="text" class="form-control form-control-premium bg-light" value="{{ $customer->name }}{{ $customer->country ? " ($customer->country)" : '' }}" readonly>
+                            <small class="text-muted d-block mt-1">این فرمایش برای مشتری فعلی ثبت می‌شود.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="small font-weight-bold">وضعیت فرمایش <span class="text-danger">*</span></label>
@@ -534,28 +510,21 @@
     // Real-time client-side filter function
     function filterOrdersTable() {
         let searchQuery = $('#tableSearchInput').val().toLowerCase().trim();
-        let customerId = $('#filterCustomer').val();
         let status = $('#filterStatus').val();
 
         $('.order-row').each(function() {
             let row = $(this);
             let rowOrderName = row.attr('data-order-name') || '';
-            let rowCustomerName = row.attr('data-customer-name') || '';
-            let rowCustomerId = row.attr('data-customer-id') || '';
             let rowStatus = row.attr('data-status') || '';
 
             // Check if matches search string (order number or customer name)
             let matchesSearch = !searchQuery || 
-                                rowOrderName.indexOf(searchQuery) !== -1 || 
-                                rowCustomerName.indexOf(searchQuery) !== -1;
-
-            // Check if matches customer dropdown selection
-            let matchesCustomer = !customerId || rowCustomerId === customerId;
+                                rowOrderName.indexOf(searchQuery) !== -1;
 
             // Check if matches status dropdown selection
             let matchesStatus = !status || rowStatus === status;
 
-            if (matchesSearch && matchesCustomer && matchesStatus) {
+            if (matchesSearch && matchesStatus) {
                 row.show();
             } else {
                 row.hide();
@@ -565,12 +534,11 @@
 
     // Attach real-time keyup/change listeners
     $('#tableSearchInput').on('keyup change input', filterOrdersTable);
-    $('#filterCustomer, #filterStatus').on('change', filterOrdersTable);
+    $('#filterStatus').on('change', filterOrdersTable);
 
     // Reset button
     $('#btnClearFilters').on('click', function() {
         $('#tableSearchInput').val('');
-        $('#filterCustomer').val('').trigger('change');
         $('#filterStatus').val('').trigger('change');
     });
 </script>

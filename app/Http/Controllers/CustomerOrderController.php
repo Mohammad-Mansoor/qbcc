@@ -17,12 +17,14 @@ class CustomerOrderController extends Controller
      */
     public function index()
     {
-        $customer_orders = CustomerOrder::with(['customer', 'details'])->orderBy('co_id', 'DESC')->get();
-        $main_customers = \App\Customer::orderBy('name')->get();
-        $orderEdit = null;
-        $nextOrderNumber = $this->calculateNextOrderNumber(date('Y-m-d'));
+        // Fetch all main customers with their order counts
+        $main_customers = \App\Customer::withCount(['orders', 'orders as pending_orders_count' => function ($query) {
+            $query->where('status', 'pending');
+        }, 'orders as in_progress_orders_count' => function ($query) {
+            $query->where('status', 'in_progress');
+        }])->orderBy('name')->get();
 
-        return view('customer-orders.customer-orders', compact('orderEdit', 'customer_orders', 'main_customers', 'nextOrderNumber'));
+        return view('customer-orders.customers-list', compact('main_customers'));
     }
 
     /**
@@ -70,7 +72,7 @@ class CustomerOrderController extends Controller
         ]);
 
         if ($ord) {
-            return redirect()->back()->with('status', 'Order Successfully Added!');
+            return redirect('/dashboard/customer-orders/' . $request->main_customer_id)->with('status', 'Order Successfully Added!');
         } else {
             return redirect()->back()->with('error', 'Internal Server Error!');
         }
@@ -79,35 +81,40 @@ class CustomerOrderController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param \App\CustomerOrder $customerOrder
+     * @param int $customer_id
      * @return \Illuminate\Http\Response
      */
-    public function show(CustomerOrder $customerOrder)
+    public function show($customer_id)
     {
-        //
+        $customer = \App\Customer::findOrFail($customer_id);
+        $customer_orders = CustomerOrder::with('details')->where('main_customer_id', $customer_id)->orderBy('co_id', 'DESC')->get();
+        $orderEdit = null;
+        $nextOrderNumber = $this->calculateNextOrderNumber(date('Y-m-d'));
+
+        return view('customer-orders.customer-orders', compact('customer', 'orderEdit', 'customer_orders', 'nextOrderNumber'));
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param \App\CustomerOrder $customerOrder
+     * @param int $order_id
      * @return \Illuminate\Http\Response
      */
     public function edit($order_id)
     {
         $orderEdit = CustomerOrder::findOrFail($order_id);
-        $customer_orders = CustomerOrder::with(['customer', 'details'])->orderBy('co_id', 'DESC')->get();
-        $main_customers = \App\Customer::orderBy('name')->get();
+        $customer = \App\Customer::findOrFail($orderEdit->main_customer_id);
+        $customer_orders = CustomerOrder::with('details')->where('main_customer_id', $customer->id)->orderBy('co_id', 'DESC')->get();
         $nextOrderNumber = $orderEdit->order_name;
 
-        return view('customer-orders.customer-orders', compact('orderEdit', 'customer_orders', 'main_customers', 'nextOrderNumber'));
+        return view('customer-orders.customer-orders', compact('customer', 'orderEdit', 'customer_orders', 'nextOrderNumber'));
     }
 
     /**
      * Update the specified resource in storage.
      *
      * @param \Illuminate\Http\Request $request
-     * @param \App\CustomerOrder $customerOrder
+     * @param int $order_id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $order_id)
@@ -144,9 +151,9 @@ class CustomerOrderController extends Controller
         ]);
 
         if ($ord) {
-            return redirect('/dashboard/customer-orders')->with('status', 'موفقانه ثبت شد !');
+            return redirect('/dashboard/customer-orders/' . $request->main_customer_id)->with('status', 'موفقانه ثبت شد !');
         } else {
-            return redirect('/dashboard/customer-orders')->with('error', 'مشکل در سرور وجود داره!');
+            return redirect()->back()->with('error', 'مشکل در سرور وجود داره!');
         }
     }
 
