@@ -46,16 +46,19 @@ class ProductionDashboardService
         $wipFinish = DB::table('carpets')->where('status', 4)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
         
         // 4. Warehouse Carpet Intelligence (Live physical ledger calculation)
-        $warehouseIntelligence = DB::table('inventory_transactions')
-            ->join('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
+        $warehouseIntelligence = DB::table('carpets')
+            ->join('warehouses', 'carpets.warehouse_id', '=', 'warehouses.id')
+            ->leftJoin('items', function ($join) {
+                $join->on('carpets.carpet_id', '=', 'items.ref_id')
+                     ->where('items.type', '=', 'App\\Carpet');
+            })
             ->selectRaw("
                 warehouses.name as warehouse_name,
-                SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as qty,
-                SUM(CASE WHEN direction = 'IN' THEN area ELSE -area END) as area,
-                SUM(CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) as value
+                COUNT(carpets.carpet_id) as qty,
+                COALESCE(SUM(carpets.area), 0) as area,
+                COALESCE(SUM(COALESCE(items.current_cost, carpets.total_price)), 0) as value
             ")
-            ->where('inventory_transactions.status', 1)
-            ->where('inventory_transactions.reference_type', 'App\\Carpet')
+            ->where('carpets.status', '!=', 6)
             ->groupBy('warehouses.id', 'warehouses.name')
             ->having('qty', '>', 0)
             ->get();

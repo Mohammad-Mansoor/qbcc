@@ -31,13 +31,10 @@ class WarehouseController extends Controller
                     ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END), 0)");
             }, 'carpet_qty')
             ->selectSub(function($query) {
-                $query->from('inventory_transactions')
-                    ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                    ->whereColumn('inventory_transactions.warehouse_id', 'warehouses.id')
-                    ->where('inventory_transactions.status', 1)
-                    ->where('inventory_transactions.is_value_adjustment', 0)
-                    ->where('items.type', 'App\Carpet')
-                    ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.area ELSE -inventory_transactions.area END), 0)");
+                $query->from('carpets')
+                    ->whereColumn('carpets.warehouse_id', 'warehouses.id')
+                    ->where('carpets.status', '!=', 6)
+                    ->selectRaw("COALESCE(SUM(carpets.area), 0)");
             }, 'carpet_area')
             ->selectSub(function($query) {
                 $query->from('inventory_transactions')
