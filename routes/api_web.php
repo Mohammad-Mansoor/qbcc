@@ -544,6 +544,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,SC
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CCO,CO,SP,AO']], function () {
     /** Route for Agent Payment */
+    Route::post('agent-payments/allocate', 'AgentPaymentController@allocateAdvance');
+    Route::delete('agent-payments/allocation/{id}', 'AgentPaymentController@removeAllocation');
     Route::resource('/agent-payments', 'AgentPaymentController')->parameters(['agent-payments' => 'agent']);
     Route::get('agent-payments-all/{agent_id}', 'AgentPaymentController@show_all');
     Route::get('check-book/search-check-number-payment/{check_number},{agent_id}', 'CarpetCheckBookController@search_check_number_payment');

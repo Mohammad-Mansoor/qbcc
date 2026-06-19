@@ -32,6 +32,9 @@ class AgentPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
+            if ($payment->is_advance) {
+                $condition = ($payment->type == 'گرفت') ? 'AGENT_ADVANCE_OUT' : 'AGENT_ADVANCE_IN';
+            }
 
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted;
@@ -120,6 +123,7 @@ class AgentPaymentController extends Controller
                 'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
                 'allocatable_id' => 'nullable|integer',
                 'allocatable_type' => 'nullable|string|in:App\PurchaseInvoice,App\Invoice',
+                'is_advance' => 'nullable|boolean',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -149,6 +153,8 @@ class AgentPaymentController extends Controller
                 }
             }
 
+            $isAdvance = $request->has('is_advance') ? (bool)$request->is_advance : (!$document);
+
             $payed = new AgentPayment();
             $payed->description = $request->description;
             $payed->date = $request->date;
@@ -167,6 +173,10 @@ class AgentPaymentController extends Controller
             $payed->base_amount = $baseAmount;
             $payed->override_debit_account_id = $request->override_debit_account_id;
             $payed->override_credit_account_id = $request->override_credit_account_id;
+
+            $payed->is_advance = $isAdvance;
+            $payed->payment_status = $isAdvance ? ($document ? 'allocated' : 'unallocated') : 'allocated';
+            $payed->remaining_unallocated_amount = $isAdvance ? ($document ? 0.0000 : $request->amount) : 0.0000;
 
             // Legacy dual-amount logic (for old reports compatibility)
             if($currency->code == 'USD'){
@@ -230,7 +240,13 @@ class AgentPaymentController extends Controller
             return redirect('/dashboard/agents')->with('error', 'نماینده مورد نظر یافت نشد (Agent not found).');
         }
 
-        $payments = AgentPayment::where('agent_id', $agent_id)->doesntHave('allocations')->orderBy('date', 'DESC')->paginate(30);
+        $payments = AgentPayment::where('agent_id', $agent_id)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->orderBy('date', 'DESC')
+            ->paginate(30);
 
         // Fetch Carpet Purchase Bills (Bills)
         $purchaseBills = \App\PurchaseInvoice::where('agent_id', $agent_id)
@@ -263,18 +279,36 @@ class AgentPaymentController extends Controller
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = AgentPayment::where('agent_id', $agent_id)
             ->where('status', 1)
-            ->doesntHave('allocations')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
@@ -298,7 +332,13 @@ class AgentPaymentController extends Controller
 
     public function show_all($agent_id)
     {
-        $payments = AgentPayment::where('agent_id', $agent_id)->doesntHave('allocations')->orderBy('date', 'DESC')->get();
+        $payments = AgentPayment::where('agent_id', $agent_id)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->orderBy('date', 'DESC')
+            ->get();
         $agent = Agents::find($agent_id);
 
         // Fetch Carpet Purchase Bills (Bills)
@@ -332,18 +372,36 @@ class AgentPaymentController extends Controller
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = AgentPayment::where('agent_id', $agent_id)
             ->where('status', 1)
-            ->doesntHave('allocations')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = AgentPayment::where('agent_id', $agent_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $check_numbers = CarpetCheckBook::where('agent_id', '=', $agent_id)->orderBy('check_number', 'DESC')->distinct()->get(['check_number']);
@@ -540,6 +598,9 @@ class AgentPaymentController extends Controller
             // Remove allocations and update document statuses
             $allocations = \App\AgentPaymentAllocation::where('agent_payment_id', $payment->id)->get();
             foreach ($allocations as $alloc) {
+                // Reverse the advance settlement accounting entry if posted
+                $this->accountingService->reverseTransactionBySource($alloc->id, 'Agent Allocation Deleted via Payment Delete');
+
                 $doc = $alloc->allocatable;
                 if ($doc) {
                     $alloc->delete(); // Delete first
@@ -566,6 +627,142 @@ class AgentPaymentController extends Controller
 
             $payment->delete();
             return response()->json(['status' => 'success']);
+        });
+    }
+
+    public function allocateAdvance(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'agent_payment_id' => 'required|exists:agent_payments,id',
+                'allocatable_id' => 'required|integer',
+                'allocatable_type' => 'required|string|in:App\PurchaseInvoice',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $payment = AgentPayment::where('id', $request->agent_payment_id)->lockForUpdate()->firstOrFail();
+            $modelClass = $request->allocatable_type;
+            $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->firstOrFail();
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            $this->accountingService->failIfLocked($document->date ?? ($document->invoice_date ?? now()->format('Y-m-d')));
+
+            // Validation logic
+            $availableAdvance = $payment->remaining_unallocated_amount;
+            $remainingBill = $document->remaining_balance;
+            $baseAllocated = bcmul($request->amount, $payment->exchange_rate, 4);
+
+            if (bccomp($request->amount, $availableAdvance, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص (" . number_format($request->amount, 2) . " " . $payment->currency_code . ") بیش از موجودی علی‌الحساب (" . number_format($availableAdvance, 2) . " " . $payment->currency_code . ") است."]);
+            }
+            if (bccomp($baseAllocated, $remainingBill, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص معادل دالر ($" . number_format($baseAllocated, 2) . ") بیش از باقیمانده بل ($" . number_format($remainingBill, 2) . ") است."]);
+            }
+
+            // Create allocation record
+            $allocation = \App\AgentPaymentAllocation::create([
+                'agent_payment_id' => $payment->id,
+                'allocatable_type' => $request->allocatable_type,
+                'allocatable_id' => $document->id,
+                'allocated_amount' => $request->amount,
+                'exchange_rate' => $payment->exchange_rate,
+                'base_allocated_amount' => $baseAllocated,
+            ]);
+
+            // Update parent statuses
+            $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $request->amount, 4);
+            $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+            $payment->save();
+
+            // Re-evaluate document payment status
+            $newPaid = \App\AgentPaymentAllocation::where('allocatable_type', $request->allocatable_type)
+                ->where('allocatable_id', $document->id)
+                ->sum('base_allocated_amount') ?? 0;
+            $totalAmount = $document->total_amount;
+            if ($newPaid >= $totalAmount - 0.01) {
+                $document->payment_status = 'paid';
+            } else if ($newPaid <= 0.01) {
+                $document->payment_status = 'unpaid';
+            } else {
+                $document->payment_status = 'partially_paid';
+            }
+            $document->save();
+
+            // Post accounting entry for settlement
+            $this->accountingService->postAutoTransaction('agent_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                'date' => now()->format('Y-m-d'),
+                'amount' => $request->amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
+                'party_type' => 'App\Agents',
+                'party_id' => $payment->agent_id,
+                'reference' => 'SETTLE-' . $allocation->id,
+                'description' => "تصفیه بل خرید " . ($document->invoice_number ?? $document->invoice_no) . " از پیش‌پرداخت شماره " . $payment->id,
+                'source_id' => $allocation->id,
+            ]);
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "تخصیص پیش‌پرداخت به مبلغ " . $request->amount . " " . $payment->currency_code . " از پیش‌پرداخت شماره " . $payment->id . " به سند " . ($document->invoice_number ?? $document->invoice_no);
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه انجام شد!']);
+        });
+    }
+
+    public function removeAllocation($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $allocation = \App\AgentPaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->agent_payment;
+            $doc = $allocation->allocatable;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? ($doc->invoice_date ?? now()->format('Y-m-d')));
+            }
+
+            // Reverse the accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Agent Allocation Deleted', 'Agent_advance_settlement');
+
+            // Restore the payment's unallocated amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Delete the allocation record
+            $allocation->delete();
+
+            // Re-evaluate document status
+            if ($doc) {
+                $newPaid = \App\AgentPaymentAllocation::where('allocatable_type', get_class($doc))
+                    ->where('allocatable_id', $doc->id)
+                    ->sum('base_allocated_amount') ?? 0;
+                $totalAmount = $doc->total_amount;
+                if ($newPaid >= $totalAmount - 0.01) {
+                    $doc->payment_status = 'paid';
+                } else if ($newPaid <= 0.01) {
+                    $doc->payment_status = 'unpaid';
+                } else {
+                    $doc->payment_status = 'partially_paid';
+                }
+                $doc->save();
+            }
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "حذف تخصیص پیش‌پرداخت به مبلغ " . $allocation->allocated_amount . " از پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
         });
     }
 }

@@ -187,7 +187,9 @@
         </div>
 
         <!-- Card 4: Net Agent Balance -->
-        @php($netBalance = (($totalOwedPurchases - $totalPaidPurchases) + $totalBaseReceived) - (($totalReceivableSales - $totalReceivedSales) + $totalBaseSent))
+        @php
+        $netBalance = (($totalOwedPurchases - $totalPaidPurchases) + $totalBaseReceived) - (($totalReceivableSales - $totalReceivedSales) + $totalBaseSent);
+        @endphp
         <div class="col-md-3">
             <div class="premium-card p-3 text-white shadow-sm" 
                  style="background: {{ $netBalance >= 0 ? 'linear-gradient(135deg, #f57c00 0%, #ffb74d 100%)' : 'linear-gradient(135deg, #0097a7 0%, #4dd0e1 100%)' }};">
@@ -298,6 +300,14 @@
                                         <option value="گرفت" class="text-danger" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت (Payment Sent)</option>
                                     </select>
                                     <small class="field-explanation text-right">آیا پول دریافت شده یا پرداخت شده؟</small>
+                                </div>
+
+                                <div class="form-group mb-4" id="is_advance_container">
+                                    <div class="custom-control custom-checkbox text-right" style="direction: rtl;">
+                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" checked {{ ($paymentEdit && !$paymentEdit->is_advance) ? '' : 'checked' }}>
+                                        <label class="custom-control-label field-label pr-4" for="is_advance" style="cursor: pointer;">به عنوان پیش‌پرداخت (As Advance Payment)</label>
+                                    </div>
+                                    <small class="field-explanation text-right">آیا این مبلغ علی‌الحساب بوده و بعداً به بل‌ها تخصیص می‌یابد؟</small>
                                 </div>
 
                                 <div class="form-group mb-4">
@@ -425,6 +435,16 @@
                                 <i class="fa fa-shopping-cart"></i> انوایس‌های فروش مواد (Sales Invoices)
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link font-weight-bold text-white-50" id="advances-tab" data-toggle="tab" href="#agent-advances" role="tab" style="background: transparent; border: none; padding: 15px 20px;">
+                                <i class="fa fa-cubes"></i> پیش‌پرداخت‌ها (Advances)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link font-weight-bold text-white-50" id="reconciliation-tab" data-toggle="tab" href="#agent-reconciliation" role="tab" style="background: transparent; border: none; padding: 15px 20px;">
+                                <i class="fa fa-handshake-o"></i> تاریخچه تصفیه (Reconciliation)
+                            </a>
+                        </li>
                     </ul>
                     <div id="exportButton" class="mr-3"></div>
                 </div>
@@ -456,6 +476,9 @@
                                             <span class="badge {{ $pa->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
                                                 {{ $pa->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
                                             </span>
+                                            @if($pa->is_advance)
+                                                <span class="badge badge-info px-2 py-1 text-white d-block mt-1">علی‌الحساب (Advance)</span>
+                                            @endif
                                         </td>
                                         <td>{{ $pa->description }}</td>
                                         <td>
@@ -466,6 +489,9 @@
                                         <td class="text-center font-weight-bold text-primary">{{ $pa->currency_code ?: ($pa->amount > 0 ? 'USD' : 'AFN') }}</td>
                                         <td class="font-weight-bold" style="direction: ltr;">
                                             {{ number_format($pa->original_amount ?: ($pa->amount ?: $pa->amount_af), 2) }}
+                                            @if($pa->is_advance)
+                                                <div class="small text-success mt-1">باقیمانده: {{ number_format($pa->remaining_unallocated_amount, 2) }}</div>
+                                            @endif
                                         </td>
                                         <td class="text-muted small" style="direction: ltr;">{{ number_format($pa->exchange_rate ?: $pa->dollar_rate, 8) }}</td>
                                         <td class="font-weight-bold text-dark" style="direction: ltr;">
@@ -499,7 +525,9 @@
                                         <th colspan="3" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
                                         <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
-                                        @php($balance = $totals->total_received - $totals->total_sent)
+                                        @php
+                                            $balance = $totals->total_received - $totals->total_sent;
+                                        @endphp
                                         <td colspan="2" class="text-center font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
                                             {{ $balance >= 0 ? 'طلبکار' : 'بدهکار' }}: {{ number_format(abs($balance), 2) }} {{ $code }}
                                         </td>
@@ -509,12 +537,14 @@
                                         <th colspan="3" class="text-right"><b>مجموع کل بیلانس نقدی (Base USD)</b></th>
                                         <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
-                                        @php($baseBalance = $totalBaseReceived - $totalBaseSent)
+                                        @php
+                                            $baseBalance = $totalBaseReceived - $totalBaseSent;
+                                        @endphp
                                         <td colspan="2" class="text-center font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
                                             بیلانس نهایی نقد: $ {{ number_format(abs($baseBalance), 2) }}
                                         </td>
                                     </tr>
-                                </tbody>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -642,6 +672,139 @@
                             </table>
                         </div>
                     </div>
+
+                    <!-- Tab 4: Agent Advances -->
+                    <div class="tab-pane fade" id="agent-advances" role="tabpanel">
+                        @php
+                            $advances = \App\AgentPayment::where('agent_id', $agent->agent_id)
+                                ->where('is_advance', true)
+                                ->orderBy('date', 'DESC')
+                                ->get();
+                        @endphp
+                        <div class="table-responsive">
+                            <table class="table premium-table table-hover mb-0">
+                                <thead>
+                                    <tr class="text-right">
+                                        <th>تاریخ (Date)</th>
+                                        <th>نمبر پیش‌پرداخت (Payment ID)</th>
+                                        <th>نوعیت (Type)</th>
+                                        <th>شرح (Description)</th>
+                                        <th>ارز (Currency)</th>
+                                        <th>مبلغ اصلی (Original Amount)</th>
+                                        <th>نرخ ارز (Exchange Rate)</th>
+                                        <th>معادل دالر (USD Amount)</th>
+                                        <th>باقیمانده مصرف‌نشده (Unallocated Balance)</th>
+                                        <th class="hideOnPrint">عملیات (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($advances as $adv)
+                                    <tr class="text-right">
+                                        <td>{{ $adv->date }}</td>
+                                        <td><strong>AGT-PAY-{{ $adv->id }}</strong></td>
+                                        <td>
+                                            <span class="badge {{ $adv->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
+                                                {{ $adv->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $adv->description }}</td>
+                                        <td class="text-center font-weight-bold text-primary">{{ $adv->currency_code }}</td>
+                                        <td class="font-weight-bold" style="direction: ltr;">{{ number_format($adv->original_amount, 2) }}</td>
+                                        <td class="text-muted small" style="direction: ltr;">{{ number_format($adv->exchange_rate, 4) }}</td>
+                                        <td class="font-weight-bold" style="direction: ltr;">$ {{ number_format($adv->base_amount, 2) }}</td>
+                                        <td class="font-weight-bold text-success" style="direction: ltr;">
+                                            {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
+                                        </td>
+                                        <td class="hideOnPrint">
+                                            @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                            <button class="btn btn-sm btn-premium btn-premium-primary open-allocate-modal-btn" 
+                                                    data-payment-id="{{ $adv->id }}"
+                                                    data-currency="{{ $adv->currency_code }}"
+                                                    data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                    data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                <i class="fa fa-share-square-o"></i> تخصیص به سند
+                                            </button>
+                                            @else
+                                            <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="10" class="text-center py-4">هیچ پیش‌پرداختی برای این نماینده یافت نشد.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab 5: Agent Reconciliation (Allocations History) -->
+                    <div class="tab-pane fade" id="agent-reconciliation" role="tabpanel">
+                        @php
+                            $agentAllocations = \App\AgentPaymentAllocation::whereHas('agent_payment', function($q) use ($agent) {
+                                $q->where('agent_id', $agent->agent_id);
+                            })->with(['agent_payment', 'allocatable'])->orderBy('id', 'DESC')->get();
+                        @endphp
+                        <div class="table-responsive">
+                            <table class="table premium-table table-hover mb-0">
+                                <thead>
+                                    <tr class="text-right">
+                                        <th>تاریخ تخصیص (Allocation Date)</th>
+                                        <th>سند پیش‌پرداخت (Source Advance)</th>
+                                        <th>بل/انوایس مقصد (Target Document)</th>
+                                        <th>مبلغ تخصیص (Allocated Amount)</th>
+                                        <th>نرخ ارز (Exchange Rate)</th>
+                                        <th>معادل دالر (Base USD Allocated)</th>
+                                        <th class="hideOnPrint">عملیات (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($agentAllocations as $alloc)
+                                    <tr class="text-right">
+                                        <td>{{ $alloc->created_at ? $alloc->created_at->format('Y-m-d') : '---' }}</td>
+                                        <td>
+                                            <a href="#" class="font-weight-bold">
+                                                AGT-PAY-{{ $alloc->agent_payment_id }}
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ $alloc->agent_payment->description ?? '' }}</small>
+                                        </td>
+                                        <td>
+                                            @if($alloc->allocatable)
+                                                @if($alloc->allocatable_type == 'App\PurchaseInvoice')
+                                                    <span class="badge badge-info text-white">بل خرید</span>
+                                                    <strong>{{ $alloc->allocatable->invoice_number }}</strong>
+                                                @else
+                                                    <span class="badge badge-success text-white">انوایس فروش</span>
+                                                    <strong>{{ $alloc->allocatable->invoice_no }}</strong>
+                                                @endif
+                                            @else
+                                                <span class="text-danger">سند حذف شده</span>
+                                            @endif
+                                        </td>
+                                        <td class="font-weight-bold text-success" style="direction: ltr;">
+                                            {{ number_format($alloc->allocated_amount, 2) }} {{ $alloc->agent_payment->currency_code ?? 'USD' }}
+                                        </td>
+                                        <td class="text-muted small" style="direction: ltr;">{{ number_format($alloc->exchange_rate, 4) }}</td>
+                                        <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                            $ {{ number_format($alloc->base_allocated_amount, 2) }}
+                                        </td>
+                                        <td class="hideOnPrint">
+                                            <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
+                                                <i class="fa fa-undo"></i> لغو تصفیه
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">هیچ تخصیصی در سیستم ثبت نشده است.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="p-3">
@@ -653,6 +816,71 @@
         </div>
     </div>
 </div>
+
+
+    <!-- Allocation Modal -->
+    <div class="modal fade" id="allocateAdvanceModal" tabindex="-1" role="dialog" aria-labelledby="allocateAdvanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content premium-modal">
+                <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                    <h5 class="modal-title font-weight-bold" id="allocateAdvanceModalLabel"><i class="fa fa-share-square-o"></i> تخصیص پیش‌پرداخت به سند بدهی</h5>
+                    <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="allocateAdvanceForm">
+                    @csrf
+                    <input type="hidden" name="agent_payment_id" id="modal_payment_id">
+                    <div class="modal-body text-right" style="direction: rtl;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                    <h6 class="font-weight-bold text-primary mb-3"><i class="fa fa-info-circle"></i> معلومات علی‌الحساب</h6>
+                                    <p class="mb-2"><strong>شماره پرداخت:</strong> <span id="modal_display_pay_id" class="badge badge-secondary py-1 px-2 font-weight-bold"></span></p>
+                                    <p class="mb-2"><strong>مبلغ باقیمانده (Unallocated):</strong> <span id="modal_display_remaining" class="text-success font-weight-bold" style="font-size: 1.1rem;"></span></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                    <h6 class="font-weight-bold text-warning mb-3"><i class="fa fa-file-text-o"></i> انتخاب سند جهت تصفیه</h6>
+                                    
+                                    <input type="hidden" name="allocatable_type" id="modal_allocatable_type" value="App\PurchaseInvoice">
+
+                                    <div class="form-group mb-3">
+                                        <label class="font-weight-bold field-label">سند بدهی:</label>
+                                        <select name="allocatable_id" id="modal_allocatable_id" class="form-control custom-input" style="width: 100%;">
+                                            <!-- Dynamically filled via JS -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold text-dark field-label">مبلغ تخصیص (Allocation Amount):</label>
+                                    <div class="input-group" style="direction: ltr;">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text modal_currency_display" style="font-weight: bold; background: #e3f2fd;">USD</span>
+                                        </div>
+                                        <input type="number" step="0.0001" name="amount" id="modal_alloc_amount" class="form-control font-weight-bold text-center text-success" style="font-size: 1.25rem; direction: ltr;" required>
+                                    </div>
+                                    <small class="field-explanation text-right d-block mt-1">مقداری از پیش‌پرداخت که می‌خواهید به سند انتخاب‌شده تخصیص دهید.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
+                        <button type="submit" class="btn btn-premium btn-premium-primary shadow-sm" id="btn_submit_modal_allocation">
+                            <i class="fa fa-save"></i> ثبت تخصیص (Apply Allocation)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 @endsection
 
@@ -666,8 +894,8 @@
         $('#agentDetailTabs a').on('click', function (e) {
             e.preventDefault();
             $(this).tab('show');
-            $('#agentDetailTabs a').removeClass('text-white').addClass('text-white-50');
-            $(this).removeClass('text-white-50').addClass('text-white');
+            $('#agentDetailTabs a').removeClass('text-white').addClass('text-white-50').css('border-bottom', 'none');
+            $(this).removeClass('text-white-50').addClass('text-white').css('border-bottom', '3px solid #ffffff');
         });
 
         // LIVE TRUTH PREVIEW LOGIC
@@ -711,6 +939,7 @@
             // Set allocation inputs
             $('#allocatable_id').val(docId);
             $('#allocatable_type').val(type);
+            $('#is_advance').prop('checked', false);
 
             // Set transaction type and description note
             if (type === 'App\PurchaseInvoice') {
@@ -739,6 +968,7 @@
             $('#allocation_info_box').fadeOut();
             $('#original_amount').val('');
             $('#payment_description').val('');
+            $('#is_advance').prop('checked', true);
         });
 
         // Export functionality
@@ -773,6 +1003,79 @@
         $('.override-select').select2({ width: '100%' });
         $('select[name="type"]').on('change', toggleOverrideAccounts);
         toggleOverrideAccounts(); // Initial call
+
+        // ADVANCE ALLOCATION MODAL ACTIONS
+        const purchaseBills = @json($purchaseBills);
+        const salesInvoices = @json($salesInvoices);
+
+        let activePaymentRemaining = 0;
+        let activePaymentExchangeRate = 1;
+
+        $('.open-allocate-modal-btn').on('click', function () {
+            const payId = $(this).data('payment-id');
+            const currency = $(this).data('currency');
+            const remaining = parseFloat($(this).data('remaining')) || 0;
+            const rate = parseFloat($(this).data('exchange-rate')) || 1;
+
+            activePaymentRemaining = remaining;
+            activePaymentExchangeRate = rate;
+
+            $('#modal_payment_id').val(payId);
+            $('#modal_display_pay_id').text('AGT-PAY-' + payId);
+            $('#modal_display_remaining').text(remaining.toFixed(2) + ' ' + currency);
+            $('.modal_currency_display').text(currency);
+            $('#modal_alloc_amount').val(remaining.toFixed(4)).attr('max', remaining);
+
+            loadDocumentsForAllocation(currency);
+
+            $('#allocateAdvanceModal').modal('show');
+        });
+
+        function loadDocumentsForAllocation(currency) {
+            const select = $('#modal_allocatable_id');
+            select.empty();
+
+            purchaseBills.forEach(bill => {
+                const remaining = parseFloat(bill.remaining_balance) || 0;
+                if (remaining > 0.01) {
+                    select.append(`<option value="${bill.id}" data-remaining="${remaining}">بل خرید شماره ${bill.invoice_number} (باقیمانده: $${remaining.toFixed(2)})</option>`);
+                }
+            });
+            select.trigger('change');
+        }
+
+        $('#modal_allocatable_id').on('change', function () {
+            const selectedOpt = $(this).find(':selected');
+            if (selectedOpt.length) {
+                const billRemainingUsd = parseFloat(selectedOpt.data('remaining')) || 0;
+                const billRemainingInPaymentCurrency = billRemainingUsd / activePaymentExchangeRate;
+                const targetAmount = Math.min(activePaymentRemaining, billRemainingInPaymentCurrency);
+                $('#modal_alloc_amount').val(targetAmount.toFixed(4));
+            }
+        });
+
+        $('#allocateAdvanceForm').on('submit', function (e) {
+            e.preventDefault();
+            const data = $(this).serialize();
+            
+            $.ajax({
+                type: 'POST',
+                url: '/dashboard/agent-payments/allocate',
+                data: data,
+                success: function (res) {
+                    if (res.status === 'success') {
+                        $('#allocateAdvanceModal').modal('hide');
+                        swal("موفقانه انجام شد!", res.message, "success");
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        swal("خطا!", res.message, "error");
+                    }
+                },
+                error: function (xhr) {
+                    swal("خطا!", "مشکلی در پروسس درخواست رخ داد.", "error");
+                }
+            });
+        });
     });
 
     function deletePayment(id, agent_id) {
@@ -798,6 +1101,38 @@
                         } else {
                             swal("خطا در حذف!", { icon: "error" });
                         }
+                    }
+                });
+            }
+        });
+    }
+
+    function removeAllocation(id) {
+        swal({
+            title: "آیا مطمئن هستید؟",
+            text: "این عمل تخصیص پیش‌پرداخت را لغو کرده و سند بدهی را دوباره بدهکار می‌سازد.",
+            icon: "warning",
+            buttons: {
+                cancel: "نخیر",
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/dashboard/agent-payments/allocation/' + id,
+                    data: { '_token': '{{csrf_token()}}' },
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("موفقانه لغو شد!", res.message, { icon: "success" });
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            swal("خطا در لغو تخصیص!", res.message, { icon: "error" });
+                        }
+                    },
+                    error: function () {
+                        swal("خطا!", "ارتباط با سرور برقرار نشد.", "error");
                     }
                 });
             }

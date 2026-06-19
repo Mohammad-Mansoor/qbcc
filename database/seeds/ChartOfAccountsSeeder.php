@@ -17,6 +17,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['account_code' => '1100', 'account_name' => 'Cash', 'account_type' => 'Asset', 'report_group' => 'Current Asset', 'normal_balance' => 'debit', 'is_cash_account' => true],
             ['account_code' => '1200', 'account_name' => 'Bank', 'account_type' => 'Asset', 'report_group' => 'Current Asset', 'normal_balance' => 'debit', 'is_cash_account' => true],
             ['account_code' => '1300', 'account_name' => 'Accounts Receivable', 'account_type' => 'Asset', 'report_group' => 'Current Asset', 'normal_balance' => 'debit', 'is_cash_account' => false],
+            ['account_code' => '1350', 'account_name' => 'Advances to Suppliers', 'account_type' => 'Asset', 'report_group' => 'Current Asset', 'normal_balance' => 'debit', 'is_cash_account' => false],
             ['account_code' => '1400', 'account_name' => 'Inventory', 'account_type' => 'Asset', 'report_group' => 'Current Asset', 'normal_balance' => 'debit', 'is_cash_account' => false],
             ['account_code' => '1500', 'account_name' => 'Fixed Assets', 'account_type' => 'Asset', 'report_group' => 'Fixed Asset', 'normal_balance' => 'debit', 'is_cash_account' => false],
 

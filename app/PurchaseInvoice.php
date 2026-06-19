@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PurchaseInvoice extends Model
 {
     protected $guarded = [];
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance'];
 
     public function agent()
     {

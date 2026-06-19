@@ -552,6 +552,40 @@ class MappingRulesSeeder extends Seeder
                 ]
             );
         }
+
+        // --- DYNAMIC AGENT ADVANCE & SETTLEMENT RULES ---
+        $advancesAccount = ChartOfAccount::where('account_code', '1350')->first();
+        if ($advancesAccount && $cashAccount && $payableAccount) {
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'agent_payment', 'condition' => 'AGENT_ADVANCE_OUT'],
+                [
+                    'mapping_key' => 'AGENT_ADVANCE_OUT',
+                    'debit_account_id' => $advancesAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'ثبت پیش‌پرداخت به نماینده (Agent Advance Payment): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'agent_payment', 'condition' => 'AGENT_ADVANCE_IN'],
+                [
+                    'mapping_key' => 'AGENT_ADVANCE_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'استرداد پیش‌پرداخت از نماینده (Agent Advance Refund): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'agent_advance_settlement', 'condition' => 'ADVANCE_SETTLEMENT'],
+                [
+                    'mapping_key' => 'ADVANCE_SETTLEMENT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'تصفیه بل خرید از پیش‌پرداخت (Advance Bill Settlement): {reference}'
+                ]
+            );
+        }
     }
 }
 
