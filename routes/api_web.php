@@ -412,6 +412,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,SO,
 
     // WASHING TEAM ROUTES
     Route::resource('washing-team', 'WashingTeamController')->parameters(['washing-team' => 'team']);
+    Route::post('/washing-payments/allocate', 'WashingPaymentController@allocateAdvance');
+    Route::delete('/washing-payments/allocation/{id}', 'WashingPaymentController@removeAllocation');
     Route::resource('washing-payments', 'WashingPaymentController');
     Route::get('/washing-payments-all/{team_id}', 'WashingPaymentController@show_all_payment');
     Route::get('/washing-accounts', 'WashingTeamController@accounts');

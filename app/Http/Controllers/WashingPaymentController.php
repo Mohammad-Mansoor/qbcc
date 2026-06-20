@@ -115,7 +115,19 @@ class WashingPaymentController extends Controller
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->dollar_rate = (string)$rate;
-            $payed->wash_number = $request->wash_number ?: 'General';
+            
+            // Advance logic
+            $isAdvance = $request->has('is_advance') && $request->is_advance;
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            if ($isAdvance) {
+                $payed->payment_status = 'unallocated';
+                $payed->remaining_unallocated_amount = $request->amount;
+                $payed->wash_number = 'General'; // Force ref number to 'General' for advances
+            } else {
+                $payed->payment_status = 'unallocated';
+                $payed->remaining_unallocated_amount = 0.0000;
+                $payed->wash_number = $request->wash_number ?: 'General';
+            }
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -171,24 +183,37 @@ class WashingPaymentController extends Controller
             ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
@@ -209,11 +234,22 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
-        // Map each repair with its paid/remaining metrics
+        $batchRefs = $washes->pluck('wash_number_sh')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('washing_payment_allocations')
+            ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
+        // Map each wash with its paid/remaining metrics
         $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
             $w->total_paid = (float)$totalPaid;
@@ -298,24 +334,37 @@ class WashingPaymentController extends Controller
             ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
         $all = 'true';
@@ -337,11 +386,22 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
-        // Map each repair with its paid/remaining metrics
+        $batchRefs = $washes->pluck('wash_number_sh')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('washing_payment_allocations')
+            ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
+        // Map each wash with its paid/remaining metrics
         $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
             $w->total_paid = (float)$totalPaid;
@@ -424,23 +484,36 @@ class WashingPaymentController extends Controller
             ->where('wash_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)->where('wash_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = WashingPayment::where('team_id', $team_id)
+            ->where('wash_number', 'General')
+            ->where('status', 1)
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
+            ->unique('id');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
+            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
+            ->unique('id');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
@@ -461,11 +534,22 @@ class WashingPaymentController extends Controller
             ->get()
             ->keyBy('wash_number');
 
-        // Map each repair with its paid/remaining metrics
+        $batchRefs = $washes->pluck('wash_number_sh')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('washing_payment_allocations')
+            ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
+        // Map each wash with its paid/remaining metrics
         $groupedWashes = [];
         foreach ($washes as $w) {
             $refPayments = $paymentsByRef->get($w->wash_number_sh);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
             $w->total_paid = (float)$totalPaid;
@@ -563,7 +647,21 @@ class WashingPaymentController extends Controller
             $payed->type = $request->type;
             $payed->team_id = $request->team_id;
             $payed->dollar_rate = (string)$rate;
-            $payed->wash_number = $request->wash_number ?: 'General';
+
+            // Advance logic
+            $isAdvance = $request->has('is_advance') && $request->is_advance;
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            if ($isAdvance) {
+                $payed->wash_number = 'General';
+                // Adjust remaining unallocated if not allocated yet
+                if ($payed->payment_status == 'unallocated') {
+                    $payed->remaining_unallocated_amount = $request->amount;
+                }
+            } else {
+                $payed->remaining_unallocated_amount = 0.0000;
+                $payed->payment_status = 'unallocated';
+                $payed->wash_number = $request->wash_number ?: 'General';
+            }
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -622,6 +720,13 @@ class WashingPaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Washing Payment Deleted', get_class($payment));
             }
 
+            // Reverse allocations if any exist
+            if ($payment->allocations) {
+                foreach ($payment->allocations as $alloc) {
+                    $this->accountingService->reverseTransactionBySource($alloc->id, 'Parent Washing Payment Deleted', get_class($alloc));
+                }
+            }
+
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = "حذف پرداخت شست‌گر " . $team_name->name . " اکونت نمبر " . $team_name->id;
@@ -630,6 +735,113 @@ class WashingPaymentController extends Controller
 
             $payment->delete();
             return response()->json(['status' => 'success']);
+        });
+    }
+
+    public function allocateAdvance(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'washing_payment_id' => 'required|exists:washing_payments,id',
+                'allocatable_id' => 'required|integer',
+                'allocatable_type' => 'required|string|in:App\ProductionBatch',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $payment = WashingPayment::where('id', $request->washing_payment_id)->lockForUpdate()->firstOrFail();
+            $modelClass = $request->allocatable_type;
+            $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->firstOrFail();
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            $this->accountingService->failIfLocked($document->date ?? now()->format('Y-m-d'));
+
+            // Validation logic
+            $availableAdvance = $payment->remaining_unallocated_amount;
+            $remainingBill = $document->remaining_balance;
+            $baseAllocated = bcmul($request->amount, $payment->exchange_rate, 4);
+
+            if (bccomp($request->amount, $availableAdvance, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص (" . number_format($request->amount, 2) . " " . $payment->currency_code . ") بیش از موجودی علی‌الحساب (" . number_format($availableAdvance, 2) . " " . $payment->currency_code . ") است."]);
+            }
+            if (bccomp($baseAllocated, $remainingBill, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص معادل دالر ($" . number_format($baseAllocated, 2) . ") بیش از باقیمانده بل ($" . number_format($remainingBill, 2) . ") است."]);
+            }
+
+            // Create allocation record
+            $allocation = \App\WashingPaymentAllocation::create([
+                'washing_payment_id' => $payment->id,
+                'allocatable_type' => $request->allocatable_type,
+                'allocatable_id' => $document->id,
+                'allocated_amount' => $request->amount,
+                'exchange_rate' => $payment->exchange_rate,
+                'base_allocated_amount' => $baseAllocated,
+            ]);
+
+            // Update parent statuses
+            $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $request->amount, 4);
+            $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+            $payment->save();
+
+            // Post accounting entry for settlement
+            $this->accountingService->postAutoTransaction('washing_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                'date' => now()->format('Y-m-d'),
+                'amount' => $request->amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
+                'party_type' => 'App\WashingTeam',
+                'party_id' => $payment->team_id,
+                'reference' => $document->reference_number,
+                'description' => "تصفیه بل شست‌وشو " . $document->reference_number . " از پیش‌پرداخت شماره " . $payment->id,
+                'source_id' => $allocation->id,
+                'source_type' => 'App\WashingPaymentAllocation',
+            ]);
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "تخصیص پیش‌پرداخت به مبلغ " . $request->amount . " " . $payment->currency_code . " از پیش‌پرداخت شماره " . $payment->id . " به بل شست‌وشو " . $document->reference_number;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه انجام شد!']);
+        });
+    }
+
+    public function removeAllocation($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $allocation = \App\WashingPaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->payment;
+            $doc = $allocation->allocatable;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
+            }
+
+            // Reverse the accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Washing Allocation Deleted', 'App\WashingPaymentAllocation');
+
+            // Restore the payment's unallocated amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Delete the allocation record
+            $allocation->delete();
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "حذف تخصیص پیش‌پرداخت به مبلغ " . $allocation->allocated_amount . " از پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
         });
     }
 }

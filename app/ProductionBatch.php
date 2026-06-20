@@ -72,6 +72,9 @@ class ProductionBatch extends Model
 
     public function allocations()
     {
+        if ($this->type === 'wash') {
+            return $this->morphMany(WashingPaymentAllocation::class, 'allocatable');
+        }
         return $this->morphMany(KachaeePaymentAllocation::class, 'allocatable');
     }
 
