@@ -110,10 +110,10 @@ class CostAnalyticsService
             $materialInv = DB::query()->fromSub(function($query) {
                 $query->from('inventory_transactions')
                       ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-                      ->leftJoin('material_categories', 'items.ref_id', '=', 'material_categories.material_category_id')
+                      ->leftJoin('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
                       ->where('items.type', 'App\\MaterialType')
-                      ->selectRaw("material_categories.subtype, items.current_cost, SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
-                      ->groupBy('items.id', 'material_categories.subtype', 'items.current_cost');
+                      ->selectRaw("material_types.subtype, items.current_cost, SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+                      ->groupBy('items.id', 'material_types.subtype', 'items.current_cost');
             }, 'balances')
             ->selectRaw('subtype, SUM(balance) as total_qty, SUM(balance * current_cost) as total_value')
             ->where('balance', '>', 0)
@@ -284,6 +284,41 @@ class CostAnalyticsService
                 ]);
             }
 
+            // Calculate Stage Areas and Averages
+            $stageAreas = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('carpets', 'items.ref_id', '=', 'carpets.carpet_id')
+                ->where('items.type', 'App\\Carpet')
+                ->whereIn('inventory_transactions.type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
+                ->selectRaw('inventory_transactions.type, MAX(carpets.area) as area, carpets.carpet_id')
+                ->groupBy('inventory_transactions.type', 'carpets.carpet_id')
+                ->get()
+                ->groupBy('type')
+                ->map(function ($items) {
+                    return $items->sum('area');
+                });
+
+            $purchaseArea = floatval($stageAreas->get('PURCHASE') ?? 0);
+            $repairArea   = floatval($stageAreas->get('KACHAEE') ?? 0);
+            $washArea     = floatval($stageAreas->get('WASHING') ?? 0);
+            $finishArea   = floatval($stageAreas->get('FINISHING') ?? 0);
+
+            $totalPurchasedArea = floatval(DB::table('carpets')->sum('area'));
+            $overallArea = $totalPurchasedArea > 0 ? $totalPurchasedArea : 1; // avoid division by zero
+
+            $purchaseAvgOverall = $carpetPurchaseCost / $overallArea;
+            $repairAvgOverall   = $repairCost / $overallArea;
+            $washAvgOverall     = $washCost / $overallArea;
+            $finishAvgOverall   = $finishCost / $overallArea;
+            
+            $totalInvestment = $carpetPurchaseCost + $repairCost + $washCost + $finishCost;
+            $totalAvgOverall    = $totalInvestment / $overallArea;
+
+            $purchaseAvgStage = $purchaseArea > 0 ? $carpetPurchaseCost / $purchaseArea : 0;
+            $repairAvgStage   = $repairArea > 0 ? $repairCost / $repairArea : 0;
+            $washAvgStage     = $washArea > 0 ? $washCost / $washArea : 0;
+            $finishAvgStage   = $finishArea > 0 ? $finishCost / $finishArea : 0;
+
             return [
                 'executive' => [
                     'lifetime' => ['rev' => $revLif, 'cost' => $costLif, 'profit' => $profLif],
@@ -319,7 +354,16 @@ class CostAnalyticsService
                     'repair' => $repairCost,
                     'wash' => $washCost,
                     'finish' => $finishCost,
-                    'total_investment' => $carpetPurchaseCost + $repairCost + $washCost + $finishCost
+                    'total_investment' => $totalInvestment,
+                    'purchase_avg_overall' => $purchaseAvgOverall,
+                    'repair_avg_overall' => $repairAvgOverall,
+                    'wash_avg_overall' => $washAvgOverall,
+                    'finish_avg_overall' => $finishAvgOverall,
+                    'total_avg_overall' => $totalAvgOverall,
+                    'purchase_avg_stage' => $purchaseAvgStage,
+                    'repair_avg_stage' => $repairAvgStage,
+                    'wash_avg_stage' => $washAvgStage,
+                    'finish_avg_stage' => $finishAvgStage,
                 ],
                 'trends' => [
                     'months' => $monthsLabel,

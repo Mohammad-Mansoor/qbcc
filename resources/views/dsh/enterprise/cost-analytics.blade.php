@@ -57,6 +57,9 @@
     .dark-mode .table-glass th { border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; }
     .table-glass td { color: #334155; vertical-align: middle; }
     .dark-mode .table-glass td { color: #cbd5e1; }
+    
+    .text-dark-custom { color: #0f172a !important; }
+    .dark-mode .text-dark-custom { color: #f8fafc !important; }
 </style>
 
 <div class="container-fluid py-4" dir="rtl">
@@ -192,11 +195,52 @@
             <div class="glass-card p-4 h-100">
                 <h5 class="primary-text mb-4">آبشار تحلیل مصارف قالین (Cost Build-Up Waterfall)</h5>
                 <div id="waterfallChart" style="height: 350px;"></div>
-                <div class="row text-center mt-3 border-top pt-3">
-                    <div class="col-3"><div class="text-muted text-xs">خرید</div><div class="fw-bold text-primary">${{ number_format($data['build_up']['purchase']) }}</div></div>
-                    <div class="col-3"><div class="text-muted text-xs">ترمیم</div><div class="fw-bold text-warning">${{ number_format($data['build_up']['repair']) }}</div></div>
-                    <div class="col-3"><div class="text-muted text-xs">شستشو</div><div class="fw-bold text-info">${{ number_format($data['build_up']['wash']) }}</div></div>
-                    <div class="col-3"><div class="text-muted text-xs">فینشنگ</div><div class="fw-bold text-purple" style="color: #8b5cf6;">${{ number_format($data['build_up']['finish']) }}</div></div>
+                <div class="row text-center mt-3 border-top pt-3 g-2">
+                    <!-- Purchase -->
+                    <div class="col">
+                        <div class="text-muted text-xs mb-1">خرید</div>
+                        <div class="fw-bold text-primary mb-2">${{ number_format($data['build_up']['purchase']) }}</div>
+                        <div class="pt-1 border-top" style="border-top-style: dashed !important; border-color: rgba(0,0,0,0.08) !important;">
+                            <div class="text-xs text-muted" title="معدل در کل قالین‌ها">کل: ${{ number_format($data['build_up']['purchase_avg_overall'], 2) }}/m²</div>
+                            <div class="text-xs text-secondary font-weight-bold" title="معدل در قالین‌های این مرحله">مرحله: ${{ number_format($data['build_up']['purchase_avg_stage'], 2) }}/m²</div>
+                        </div>
+                    </div>
+                    <!-- Repair -->
+                    <div class="col">
+                        <div class="text-muted text-xs mb-1">ترمیم</div>
+                        <div class="fw-bold text-warning mb-2">${{ number_format($data['build_up']['repair']) }}</div>
+                        <div class="pt-1 border-top" style="border-top-style: dashed !important; border-color: rgba(0,0,0,0.08) !important;">
+                            <div class="text-xs text-muted" title="معدل در کل قالین‌ها">کل: ${{ number_format($data['build_up']['repair_avg_overall'], 2) }}/m²</div>
+                            <div class="text-xs text-secondary font-weight-bold" title="معدل در قالین‌های این مرحله">مرحله: ${{ number_format($data['build_up']['repair_avg_stage'], 2) }}/m²</div>
+                        </div>
+                    </div>
+                    <!-- Wash -->
+                    <div class="col">
+                        <div class="text-muted text-xs mb-1">شستشو</div>
+                        <div class="fw-bold text-info mb-2">${{ number_format($data['build_up']['wash']) }}</div>
+                        <div class="pt-1 border-top" style="border-top-style: dashed !important; border-color: rgba(0,0,0,0.08) !important;">
+                            <div class="text-xs text-muted" title="معدل در کل قالین‌ها">کل: ${{ number_format($data['build_up']['wash_avg_overall'], 2) }}/m²</div>
+                            <div class="text-xs text-secondary font-weight-bold" title="معدل در قالین‌های این مرحله">مرحله: ${{ number_format($data['build_up']['wash_avg_stage'], 2) }}/m²</div>
+                        </div>
+                    </div>
+                    <!-- Finish -->
+                    <div class="col">
+                        <div class="text-muted text-xs mb-1">فینشنگ</div>
+                        <div class="fw-bold text-purple mb-2" style="color: #8b5cf6;">${{ number_format($data['build_up']['finish']) }}</div>
+                        <div class="pt-1 border-top" style="border-top-style: dashed !important; border-color: rgba(0,0,0,0.08) !important;">
+                            <div class="text-xs text-muted" title="معدل در کل قالین‌ها">کل: ${{ number_format($data['build_up']['finish_avg_overall'], 2) }}/m²</div>
+                            <div class="text-xs text-secondary font-weight-bold" title="معدل در قالین‌های این مرحله">مرحله: ${{ number_format($data['build_up']['finish_avg_stage'], 2) }}/m²</div>
+                        </div>
+                    </div>
+                    <!-- Total Investment -->
+                    <div class="col">
+                        <div class="text-muted text-xs mb-1">مجموع سرمایه گذاری</div>
+                        <div class="fw-bold text-dark-custom mb-2">${{ number_format($data['build_up']['total_investment']) }}</div>
+                        <div class="pt-1 border-top" style="border-top-style: dashed !important; border-color: rgba(0,0,0,0.08) !important;">
+                            <div class="text-xs text-dark-custom font-weight-bold" title="معدل کل مصارف در فی متر مربع">معدل: ${{ number_format($data['build_up']['total_avg_overall'], 2) }}/m²</div>
+                            <div class="text-xs text-transparent select-none">-</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -394,7 +438,43 @@ document.addEventListener('DOMContentLoaded', function() {
         stroke: { width: 1, colors: ['transparent'] },
         xaxis: { type: 'category', labels: { style: { colors: labelColor, fontWeight: 600 } } },
         yaxis: { labels: { style: { colors: labelColor }, formatter: (value) => "$" + value.toLocaleString() } },
-        tooltip: { theme: isDarkMode ? 'dark' : 'light', y: { formatter: function (val) { return "$" + val.toLocaleString() } } },
+        tooltip: {
+            theme: isDarkMode ? 'dark' : 'light',
+            custom: function({series, seriesIndex, dataPointIndex, w}) {
+                const val = series[seriesIndex][dataPointIndex];
+                const name = w.globals.labels[dataPointIndex];
+                
+                const avgs = [
+                    { overall: {{ $data['build_up']['purchase_avg_overall'] ?? 0 }}, stage: {{ $data['build_up']['purchase_avg_stage'] ?? 0 }} },
+                    { overall: {{ $data['build_up']['repair_avg_overall'] ?? 0 }}, stage: {{ $data['build_up']['repair_avg_stage'] ?? 0 }} },
+                    { overall: {{ $data['build_up']['wash_avg_overall'] ?? 0 }}, stage: {{ $data['build_up']['wash_avg_stage'] ?? 0 }} },
+                    { overall: {{ $data['build_up']['finish_avg_overall'] ?? 0 }}, stage: {{ $data['build_up']['finish_avg_stage'] ?? 0 }} },
+                    { overall: {{ $data['build_up']['total_avg_overall'] ?? 0 }}, stage: {{ $data['build_up']['total_avg_overall'] ?? 0 }} }
+                ];
+                
+                const avgData = avgs[dataPointIndex];
+                let stageText = '';
+                if (dataPointIndex < 4) {
+                    stageText = `<div class="d-flex justify-content-between gap-3 text-xs mb-1">
+                        <span class="text-muted">معدل مرحله (Stage Avg):</span>
+                        <strong class="text-info" style="color: #0ea5e9 !important;">$${avgData.stage.toFixed(2)}/m²</strong>
+                    </div>`;
+                }
+
+                return `<div class="p-3 shadow-lg rounded border-0" style="background: ${isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)'}; backdrop-filter: blur(10px); min-width: 220px; color: ${isDarkMode ? '#f8fafc' : '#0f172a'}">
+                    <div class="fw-bold mb-2 pb-1 border-bottom" style="border-color: rgba(128,128,128,0.2)">${name}</div>
+                    <div class="d-flex justify-content-between gap-3 text-xs mb-1">
+                        <span class="text-muted">مجموع هزینه (Total Cost):</span>
+                        <strong class="text-primary" style="color: #3b82f6 !important;">$${val.toLocaleString()}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between gap-3 text-xs mb-1">
+                        <span class="text-muted">معدل کل (Overall Avg):</span>
+                        <strong class="text-success" style="color: #10b981 !important;">$${avgData.overall.toFixed(2)}/m²</strong>
+                    </div>
+                    ${stageText}
+                </div>`;
+            }
+        },
         grid: { borderColor: gridColor, strokeDashArray: 4 },
         legend: { show: false }
     };
