@@ -666,6 +666,37 @@ class MappingRulesSeeder extends Seeder
                     'description_template' => 'تصفیه حساب شست‌وشو از پیش‌پرداخت (Washing Advance Settlement): {reference}'
                 ]
             );
+
+            // --- DYNAMIC FINISHING ADVANCE & SETTLEMENT RULES ---
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'finishing_payment', 'condition' => 'FINISH_ADVANCE_OUT'],
+                [
+                    'mapping_key' => 'FINISH_ADVANCE_OUT',
+                    'debit_account_id' => $advancesAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'ثبت پیش‌پرداخت به تیم آماده‌سازی (Finishing Advance Payment): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'finishing_payment', 'condition' => 'FINISH_ADVANCE_IN'],
+                [
+                    'mapping_key' => 'FINISH_ADVANCE_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'استرداد پیش‌پرداخت از تیم آماده‌سازی (Finishing Advance Refund): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'finishing_advance_settlement', 'condition' => 'ADVANCE_SETTLEMENT'],
+                [
+                    'mapping_key' => 'FINISH_ADVANCE_SETTLEMENT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'تصفیه حساب آماده‌سازی از پیش‌پرداخت (Finishing Advance Settlement): {reference}'
+                ]
+            );
         }
     }
 }

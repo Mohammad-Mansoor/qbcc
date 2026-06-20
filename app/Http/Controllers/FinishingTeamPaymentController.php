@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Activity;
 use App\FinishingTeam;
 use App\FinishingTeamPayment;
+use App\FinishingPaymentAllocation;
 use App\FinishingWork;
 use App\Services\AccountingService;
 use Carbon\Carbon;
@@ -35,6 +36,9 @@ class FinishingTeamPaymentController extends Controller
     {
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
+            if ($payment->is_advance) {
+                $mKey = ($payment->type == 'گرفت') ? 'FINISH_ADVANCE_OUT' : 'FINISH_ADVANCE_IN';
+            }
             
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted,
@@ -115,7 +119,19 @@ class FinishingTeamPaymentController extends Controller
             $payed->date = $request->date;
             $payed->type = $request->type;
             $payed->dollar_rate = (string)$rate;
-            $payed->finish_number = $request->finish_number ?: 'General';
+            
+            // Advance logic
+            $isAdvance = $request->has('is_advance') && $request->is_advance;
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            if ($isAdvance) {
+                $payed->payment_status = 'unallocated';
+                $payed->remaining_unallocated_amount = $request->amount;
+                $payed->finish_number = 'General'; // Force ref number to 'General' for advances
+            } else {
+                $payed->payment_status = 'unallocated';
+                $payed->remaining_unallocated_amount = 0.0000;
+                $payed->finish_number = $request->finish_number ?: 'General';
+            }
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -171,16 +187,16 @@ class FinishingTeamPaymentController extends Controller
             ->where('finish_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
@@ -209,10 +225,21 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $batchRefs = $finishingWorks->pluck('finish_number')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('finishing_payment_allocations')
+            ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
         $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->finish_number) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
@@ -267,10 +294,14 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
+
         return view('finishing-center.finishing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'
+            'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement',
+            'finishingAdvances', 'finishingAllocations'
         ));
     }
 
@@ -288,16 +319,16 @@ class FinishingTeamPaymentController extends Controller
             ->where('finish_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
@@ -327,10 +358,21 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $batchRefs = $finishingWorks->pluck('finish_number')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('finishing_payment_allocations')
+            ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
         $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->finish_number) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
@@ -385,7 +427,10 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
+
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement', 'finishingAdvances', 'finishingAllocations'));
     }
 
     public function edit($payment_id)
@@ -399,16 +444,16 @@ class FinishingTeamPaymentController extends Controller
             ->where('finish_number', 'General')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $finish_numbers = FinishingWork::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['finish_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -436,10 +481,21 @@ class FinishingTeamPaymentController extends Controller
             ->get()
             ->keyBy('finish_number');
 
+        $batchRefs = $finishingWorks->pluck('finish_number')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('finishing_payment_allocations')
+            ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
         $groupedFinishingWorks = [];
         foreach ($finishingWorks as $w) {
             $refPayments = $paymentsByRef->get($w->finish_number);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($w->finish_number) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $w->total_cost = (float)$w->price;
             $w->total_paid = (float)$totalPaid;
@@ -494,7 +550,10 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement'));
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
+
+        return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement', 'finishingAdvances', 'finishingAllocations'));
     }
 
     public function update(Request $request, $payment_id)
@@ -524,7 +583,21 @@ class FinishingTeamPaymentController extends Controller
             $payed->type = $request->type;
             $payed->team_id = $request->team_id;
             $payed->dollar_rate = (string)$rate;
-            $payed->finish_number = $request->finish_number ?: 'General';
+
+            // Advance logic
+            $isAdvance = $request->has('is_advance') && $request->is_advance;
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            if ($isAdvance) {
+                $payed->finish_number = 'General';
+                // Adjust remaining unallocated if not allocated yet
+                if ($payed->payment_status == 'unallocated') {
+                    $payed->remaining_unallocated_amount = $request->amount;
+                }
+            } else {
+                $payed->remaining_unallocated_amount = 0.0000;
+                $payed->payment_status = 'unallocated';
+                $payed->finish_number = $request->finish_number ?: 'General';
+            }
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -563,6 +636,111 @@ class FinishingTeamPaymentController extends Controller
             $activity->save();
 
             return redirect('/dashboard/finishing-payments/'.$request->team_id)->with('status', 'بروزرسانی با موفقیت انجام شد!');
+        });
+    }
+
+    public function allocateAdvance(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'finishing_team_payment_id' => 'required|exists:finishing_team_payments,id',
+                'allocatable_id' => 'required|integer',
+                'allocatable_type' => 'required|string|in:App\ProductionBatch',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $payment = FinishingTeamPayment::where('id', $request->finishing_team_payment_id)->lockForUpdate()->firstOrFail();
+            $modelClass = $request->allocatable_type;
+            $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->firstOrFail();
+
+            // Lock validation
+            $this->accountingService->failIfLocked($payment->date);
+            $this->accountingService->failIfLocked($document->date ?? now()->format('Y-m-d'));
+
+            $availableAdvance = $payment->remaining_unallocated_amount;
+            $remainingBill = $document->remaining_balance;
+            $baseAllocated = bcmul($request->amount, $payment->exchange_rate, 4);
+
+            if (bccomp($request->amount, $availableAdvance, 4) > 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "مقدار تخصیص (" . number_format($request->amount, 2) . " " . $payment->currency_code . ") بیش از موجودی علی‌الحساب (" . number_format($availableAdvance, 2) . " " . $payment->currency_code . ") است."
+                ]);
+            }
+            if (bccomp($baseAllocated, $remainingBill, 4) > 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "مقدار تخصیص معادل دالر ($" . number_format($baseAllocated, 2) . ") بیش از باقیمانده بل ($" . number_format($remainingBill, 2) . ") است."
+                ]);
+            }
+
+            // Create allocation record
+            $allocation = FinishingPaymentAllocation::create([
+                'finishing_team_payment_id' => $payment->id,
+                'allocatable_type' => $request->allocatable_type,
+                'allocatable_id' => $document->id,
+                'allocated_amount' => $request->amount,
+                'exchange_rate' => $payment->exchange_rate,
+                'base_allocated_amount' => $baseAllocated,
+            ]);
+
+            // Update parent statuses
+            $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $request->amount, 4);
+            $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+            $payment->save();
+
+            // Post accounting entry for settlement
+            $this->accountingService->postAutoTransaction('finishing_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                'date' => now()->format('Y-m-d'),
+                'amount' => $request->amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
+                'party_type' => 'App\FinishingTeam',
+                'party_id' => $payment->team_id,
+                'reference' => $document->reference_number,
+                'description' => "تصفیه کار تیاری " . $document->reference_number . " از پیش‌پرداخت شماره " . $payment->id,
+                'source_id' => $allocation->id,
+                'source_type' => 'App\FinishingPaymentAllocation',
+            ]);
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "تخصیص پیش‌پرداخت به مبلغ " . $request->amount . " " . $payment->currency_code . " از پیش‌پرداخت شماره " . $payment->id . " به بل تیاری " . $document->reference_number;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه انجام شد!']);
+        });
+    }
+
+    public function removeAllocation($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $allocation = FinishingPaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = FinishingTeamPayment::where('id', $allocation->finishing_team_payment_id)->lockForUpdate()->firstOrFail();
+
+            $this->accountingService->failIfLocked($payment->date);
+
+            // Revert parent status/balance
+            $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
+            $payment->payment_status = bccomp($payment->remaining_unallocated_amount, $payment->original_amount, 4) === 0 ? 'unallocated' : 'partially_allocated';
+            $payment->save();
+
+            // Reverse ledger entry
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Finishing Allocation Deleted', 'App\FinishingPaymentAllocation');
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "حذف تخصیص پیش‌پرداخت به مبلغ " . $allocation->allocated_amount . " از پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            // Delete allocation record
+            $allocation->delete();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
         });
     }
 

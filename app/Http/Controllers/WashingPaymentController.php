@@ -35,6 +35,9 @@ class WashingPaymentController extends Controller
     {
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
+            if ($payment->is_advance) {
+                $mKey = ($payment->type == 'گرفت') ? 'WASH_ADVANCE_OUT' : 'WASH_ADVANCE_IN';
+            }
             
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted,

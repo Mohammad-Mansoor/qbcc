@@ -211,6 +211,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::delete('refinish-approve-request/{id}', 'FinishingWorkController@approve_request');
     Route::delete('refinish-delete-request/{id}', 'FinishingWorkController@delete_request');
     //  FINISHING RECEIVEDS
+    Route::post('/finishing-payments/allocate', 'FinishingTeamPaymentController@allocateAdvance');
+    Route::delete('/finishing-payments/allocation/{id}', 'FinishingTeamPaymentController@removeAllocation');
     Route::resource('finishing-payments', 'FinishingTeamPaymentController');
     Route::get('/finishing-payments-all/{team_id}', 'FinishingTeamPaymentController@show_all_payment');
     Route::get('/finishing-accounts', 'FinishingTeamController@accounts');
