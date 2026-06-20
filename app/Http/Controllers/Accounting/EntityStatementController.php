@@ -230,6 +230,7 @@ class EntityStatementController extends Controller
         $selectedEntity = $selectedId ? $entityClass::find($selectedId) : null;
         $entries = [];
         $openingBalance = 0;
+        $isSummary = $request->get('type') === 'summary';
 
         if ($selectedId && $selectedEntity) {
             if ($entityKey === 'agents') {
@@ -305,7 +306,6 @@ class EntityStatementController extends Controller
 
             $entries = $query->get();
 
-            $isSummary = $request->get('type') === 'summary';
             if ($isSummary) {
                 // Batch pre-fetch relationships to avoid N+1 queries
                 $allocationIds = [];

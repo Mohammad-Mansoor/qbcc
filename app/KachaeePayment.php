@@ -10,4 +10,9 @@ class KachaeePayment extends Model
     public function kachaee(){
         return $this->belongsTo(Kachaee::class,'team_id','id');
     }
+
+    public function allocations()
+    {
+        return $this->hasMany(KachaeePaymentAllocation::class, 'kachaee_payment_id');
+    }
 }

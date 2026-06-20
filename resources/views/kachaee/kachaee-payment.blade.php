@@ -272,6 +272,17 @@
                                     </select>
                                 </div>
 
+                                <div class="form-group mb-4" id="is_advance_group">
+                                    <div class="custom-control custom-checkbox mr-sm-2 text-right">
+                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1"
+                                            {{ ($paymentEdit && $paymentEdit->is_advance) ? 'checked' : '' }}>
+                                        <label class="custom-control-label font-weight-bold" for="is_advance" style="cursor: pointer; color: #1b5e20;">
+                                            به عنوان پیش‌پرداخت (Is Advance Payment)
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">اگر این گزینه را فعال کنید، مبلغ به عنوان علی‌الحساب تیم ثبت شده و بعداً قابل تخصیص به گروپ‌ها خواهد بود.</small>
+                                </div>
+
                                 <div class="form-group mb-4">
                                     <label class="field-label">تاریخ (Date)</label>
                                     <input type="date" name="date" class="form-control custom-input" value="{{ $paymentEdit ? $paymentEdit->date : date('Y-m-d') }}" required>
@@ -334,6 +345,12 @@
                     <a class="nav-link font-weight-bold" id="grouped-batches-tab" data-toggle="tab" href="#grouped_batches" role="tab"><i class="fa fa-folder-open mr-1"></i> بل‌های دستمزد گروپ شده (Grouped Batches)</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link font-weight-bold" id="kachaee-advances-tab" data-toggle="tab" href="#kachaee_advances" role="tab"><i class="fa fa-share-square-o mr-1"></i> پیش‌پرداخت‌ها (Advances)</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link font-weight-bold" id="kachaee-reconciliation-tab" data-toggle="tab" href="#kachaee_reconciliation" role="tab"><i class="fa fa-undo mr-1"></i> تاریخچه تصفیه‌ها (Reconciliations)</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
                 </li>
             </ul>
@@ -385,6 +402,10 @@
                                                     <span class="status-badge bg-warning text-dark">انتظار تایید</span>
                                                 @else
                                                     <span class="status-badge bg-success text-white">تایید شده</span>
+                                                @endif
+                                                @if($pa->is_advance)
+                                                    <br>
+                                                    <span class="badge badge-info mt-1">پیش‌پرداخت ({{ $pa->payment_status == 'allocated' ? 'تخصیص شده' : ($pa->payment_status == 'partially_allocated' ? 'قسمتی تخصیص شده' : 'تخصیص نشده') }})</span>
                                                 @endif
                                             </td>
                                             <td class="hideOnPrint text-center">
@@ -574,6 +595,148 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Tab 4: Kachaee Advances -->
+                <div class="tab-pane fade" id="kachaee_advances" role="tabpanel">
+                    @php
+                        $advances = \App\KachaeePayment::where('team_id', $team->id)
+                            ->where('is_advance', true)
+                            ->orderBy('date', 'DESC')
+                            ->get();
+                    @endphp
+                    <div class="premium-card">
+                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);">
+                            <h5><i class="fa fa-share-square-o mr-2"></i> پیش‌پرداخت‌های تیم (Kachaee Advances)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table premium-table table-hover mb-0 text-right">
+                                    <thead>
+                                        <tr>
+                                            <th>تاریخ (Date)</th>
+                                            <th>نمبر پیش‌پرداخت (Payment ID)</th>
+                                            <th>نوعیت (Type)</th>
+                                            <th>شرح (Description)</th>
+                                            <th>ارز (Currency)</th>
+                                            <th>مبلغ اصلی (Original Amount)</th>
+                                            <th>نرخ ارز (Exchange Rate)</th>
+                                            <th>معادل دالر (USD Amount)</th>
+                                            <th>باقیمانده مصرف‌نشده (Unallocated Balance)</th>
+                                            <th class="hideOnPrint">عملیات (Action)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($advances as $adv)
+                                        <tr>
+                                            <td>{{ $adv->date }}</td>
+                                            <td><strong>KCH-PAY-{{ $adv->id }}</strong></td>
+                                            <td>
+                                                <span class="badge {{ $adv->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
+                                                    {{ $adv->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ $adv->description }}</td>
+                                            <td class="text-center font-weight-bold text-primary">{{ $adv->currency_code }}</td>
+                                            <td class="font-weight-bold" style="direction: ltr;">{{ number_format($adv->original_amount, 2) }}</td>
+                                            <td class="text-muted small" style="direction: ltr;">{{ number_format($adv->exchange_rate, 4) }}</td>
+                                            <td class="font-weight-bold" style="direction: ltr;">$ {{ number_format($adv->base_amount, 2) }}</td>
+                                            <td class="font-weight-bold text-success" style="direction: ltr;">
+                                                {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
+                                            </td>
+                                            <td class="hideOnPrint">
+                                                @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                <button type="button" class="btn btn-sm btn-success open-allocate-modal-btn" 
+                                                        data-payment-id="{{ $adv->id }}"
+                                                        data-currency="{{ $adv->currency_code }}"
+                                                        data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                        data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                    <i class="fa fa-share-square-o"></i> تخصیص به گروپ
+                                                </button>
+                                                @else
+                                                <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="10" class="text-center py-4">هیچ پیش‌پرداختی برای این تیم یافت نشد.</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Kachaee Reconciliation (Allocations History) -->
+                <div class="tab-pane fade" id="kachaee_reconciliation" role="tabpanel">
+                    @php
+                        $kachaeeAllocations = \App\KachaeePaymentAllocation::whereHas('payment', function($q) use ($team) {
+                            $q->where('team_id', $team->id);
+                        })->with(['payment', 'allocatable'])->orderBy('id', 'DESC')->get();
+                    @endphp
+                    <div class="premium-card">
+                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);">
+                            <h5><i class="fa fa-undo mr-2"></i> تاریخچه تخصیص و تصفیه پیش‌پرداخت‌ها (Reconciliation History)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table premium-table table-hover mb-0 text-right">
+                                    <thead>
+                                        <tr>
+                                            <th>تاریخ تخصیص (Allocation Date)</th>
+                                            <th>سند پیش‌پرداخت (Source Advance)</th>
+                                            <th>گروپ کچایی مقصد (Target Batch)</th>
+                                            <th>مبلغ تخصیص (Allocated Amount)</th>
+                                            <th>نرخ ارز (Exchange Rate)</th>
+                                            <th>معادل دالر (Base USD Allocated)</th>
+                                            <th class="hideOnPrint">عملیات (Action)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($kachaeeAllocations as $alloc)
+                                        <tr>
+                                            <td>{{ $alloc->created_at ? $alloc->created_at->format('Y-m-d') : '---' }}</td>
+                                            <td>
+                                                <a href="#" class="font-weight-bold">
+                                                    KCH-PAY-{{ $alloc->kachaee_payment_id }}
+                                                </a>
+                                                <br>
+                                                <small class="text-muted">{{ $alloc->payment->description ?? '' }}</small>
+                                            </td>
+                                            <td>
+                                                @if($alloc->allocatable)
+                                                    <span class="badge badge-info text-white">گروپ کچایی</span>
+                                                    <strong>{{ $alloc->allocatable->reference_number }}</strong>
+                                                @else
+                                                    <span class="text-danger">سند حذف شده</span>
+                                                @endif
+                                            </td>
+                                            <td class="font-weight-bold text-success" style="direction: ltr;">
+                                                {{ number_format($alloc->allocated_amount, 2) }} {{ $alloc->payment->currency_code ?? 'USD' }}
+                                            </td>
+                                            <td class="text-muted small" style="direction: ltr;">{{ number_format($alloc->exchange_rate, 4) }}</td>
+                                            <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                                $ {{ number_format($alloc->base_allocated_amount, 2) }}
+                                            </td>
+                                            <td class="hideOnPrint">
+                                                <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
+                                                    <i class="fa fa-undo"></i> لغو تصفیه
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">هیچ تخصیص پیش‌پرداختی ثبت نشده است.</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -734,5 +897,202 @@
             }
         });
     }
+
+    var groupedBatches = [
+        @foreach($groupedRepairs as $group)
+            @if($group['remaining_balance'] > 0.01 && $group['reference'] !== 'نقد')
+                @php
+                    $batchObj = \App\ProductionBatch::where('reference_number', $group['reference'])->first();
+                @endphp
+                @if($batchObj)
+                {
+                    id: {{ $batchObj->id }},
+                    reference_number: "{{ $group['reference'] }}",
+                    remaining_balance: {{ $group['remaining_balance'] }}
+                },
+                @endif
+            @endif
+        @endforeach
+    ];
+
+    $(document).ready(function() {
+        // Toggle is_advance checkbox visibility
+        function toggleAdvanceCheckbox() {
+            const isNqd = $('#kachaee_number').val() === 'نقد';
+            if (isNqd) {
+                $('#is_advance_group').show();
+            } else {
+                $('#is_advance_group').hide();
+                $('#is_advance').prop('checked', false);
+            }
+        }
+        $('#kachaee_number').on('change', toggleAdvanceCheckbox);
+        toggleAdvanceCheckbox();
+
+        let activePaymentRemaining = 0;
+        let activePaymentExchangeRate = 1;
+
+        $('.open-allocate-modal-btn').on('click', function () {
+            const payId = $(this).data('payment-id');
+            const currency = $(this).data('currency');
+            const remaining = parseFloat($(this).data('remaining')) || 0;
+            const rate = parseFloat($(this).data('exchange-rate')) || 1;
+
+            activePaymentRemaining = remaining;
+            activePaymentExchangeRate = rate;
+
+            $('#modal_payment_id').val(payId);
+            $('#modal_display_pay_id').text('KCH-PAY-' + payId);
+            $('#modal_display_remaining').text(remaining.toFixed(2) + ' ' + currency);
+            $('.modal_currency_display').text(currency);
+            $('#modal_alloc_amount').val(remaining.toFixed(4)).attr('max', remaining);
+
+            loadDocumentsForAllocation(currency);
+
+            $('#allocateAdvanceModal').modal('show');
+        });
+
+        function loadDocumentsForAllocation(currency) {
+            const select = $('#modal_allocatable_id');
+            select.empty();
+
+            groupedBatches.forEach(batch => {
+                const remaining = parseFloat(batch.remaining_balance) || 0;
+                if (remaining > 0.01) {
+                    select.append(`<option value="${batch.id}" data-remaining="${remaining}">گروپ کچایی ${batch.reference_number} (باقیمانده: $${remaining.toFixed(2)})</option>`);
+                }
+            });
+            select.trigger('change');
+        }
+
+        $('#modal_allocatable_id').on('change', function () {
+            const selectedOpt = $(this).find(':selected');
+            if (selectedOpt.length) {
+                const batchRemainingUsd = parseFloat(selectedOpt.data('remaining')) || 0;
+                const batchRemainingInPaymentCurrency = batchRemainingUsd / activePaymentExchangeRate;
+                const targetAmount = Math.min(activePaymentRemaining, batchRemainingInPaymentCurrency);
+                $('#modal_alloc_amount').val(targetAmount.toFixed(4));
+            }
+        });
+
+        $('#allocateAdvanceForm').on('submit', function (e) {
+            e.preventDefault();
+            const data = $(this).serialize();
+            
+            $.ajax({
+                type: 'POST',
+                url: '/dashboard/kachaee-payments/allocate',
+                data: data,
+                success: function (res) {
+                    if (res.status === 'success') {
+                        $('#allocateAdvanceModal').modal('hide');
+                        swal("موفقانه انجام شد!", res.message, "success");
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        swal("خطا!", res.message, "error");
+                    }
+                },
+                error: function (xhr) {
+                    swal("خطا!", "مشکلی در پروسس درخواست رخ داد.", "error");
+                }
+            });
+        });
+    });
+
+    function removeAllocation(id) {
+        swal({
+            title: "آیا مطمئن هستید؟",
+            text: "این عمل تخصیص پیش‌پرداخت را لغو کرده و گروپ کچایی را دوباره بدهکار می‌سازد.",
+            icon: "warning",
+            buttons: {
+                cancel: "نخیر",
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/dashboard/kachaee-payments/allocation/' + id,
+                    data: { '_token': '{{csrf_token()}}' },
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("موفقانه لغو شد!", res.message, { icon: "success" });
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            swal("خطا در لغو تخصیص!", res.message, { icon: "error" });
+                        }
+                    },
+                    error: function () {
+                        swal("خطا!", "ارتباط با سرور برقرار نشد.", "error");
+                    }
+                });
+            }
+        });
+    }
 </script>
+
+<!-- Allocation Modal -->
+<div class="modal fade" id="allocateAdvanceModal" tabindex="-1" role="dialog" aria-labelledby="allocateAdvanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content premium-modal">
+            <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);">
+                <h5 class="modal-title font-weight-bold" id="allocateAdvanceModalLabel"><i class="fa fa-share-square-o"></i> تخصیص پیش‌پرداخت به گروپ کچایی</h5>
+                <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="allocateAdvanceForm">
+                @csrf
+                <input type="hidden" name="kachaee_payment_id" id="modal_payment_id">
+                <div class="modal-body text-right" style="direction: rtl;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                <h6 class="font-weight-bold text-primary mb-3"><i class="fa fa-info-circle"></i> معلومات علی‌الحساب</h6>
+                                <p class="mb-2"><strong>شماره پیش‌پرداخت:</strong> <span id="modal_display_pay_id" class="badge badge-secondary py-1 px-2 font-weight-bold"></span></p>
+                                <p class="mb-2"><strong>مبلغ باقیمانده (Unallocated):</strong> <span id="modal_display_remaining" class="text-success font-weight-bold" style="font-size: 1.1rem;"></span-remaining></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                <h6 class="font-weight-bold text-warning mb-3"><i class="fa fa-file-text-o"></i> انتخاب گروپ جهت تصفیه</h6>
+                                
+                                <input type="hidden" name="allocatable_type" id="modal_allocatable_type" value="App\ProductionBatch">
+
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold field-label">گروپ کچایی (Production Batch):</label>
+                                    <select name="allocatable_id" id="modal_allocatable_id" class="form-control custom-input" style="width: 100%;">
+                                        <!-- Dynamically filled via JS -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold text-dark field-label">مبلغ تخصیص (Allocation Amount):</label>
+                                <div class="input-group" style="direction: ltr;">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text modal_currency_display" style="font-weight: bold; background: #e3f2fd;">USD</span>
+                                    </div>
+                                    <input type="number" step="0.0001" name="amount" id="modal_alloc_amount" class="form-control font-weight-bold text-center text-success" style="font-size: 1.25rem; direction: ltr;" required>
+                                </div>
+                                <small class="field-explanation text-right d-block mt-1">مقداری از پیش‌پرداخت که می‌خواهید به گروپ کچایی انتخاب‌شده تخصیص دهید.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
+                    <button type="submit" class="btn btn-premium btn-premium-success shadow-sm" id="btn_submit_modal_allocation">
+                        <i class="fa fa-save"></i> ثبت تخصیص (Apply Allocation)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

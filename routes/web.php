@@ -371,6 +371,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
 
     // Route for Kachaee team
     Route::resource('kachaee-team', 'KachaeeController')->parameters(['kachaee-team' => 'team']);
+    Route::post('/kachaee-payments/allocate', 'KachaeePaymentController@allocateAdvance');
+    Route::delete('/kachaee-payments/allocation/{id}', 'KachaeePaymentController@removeAllocation');
     Route::resource('kachaee-payments', 'KachaeePaymentController');
     Route::get('/kachaee-payments-all/{team_id}', 'KachaeePaymentController@show_all_payment');
     Route::get('/kachaee-accounts', 'KachaeeController@accounts');

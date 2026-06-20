@@ -25,6 +25,9 @@ class KachaeePaymentController extends Controller
     {
         try {
             $mKey = ($payment->type == 'گرفت') ? 'PYMT_OUT' : 'PYMT_IN';
+            if ($payment->is_advance) {
+                $mKey = ($payment->type == 'گرفت') ? 'KACHAEE_ADVANCE_OUT' : 'KACHAEE_ADVANCE_IN';
+            }
             
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted;
@@ -99,6 +102,7 @@ class KachaeePaymentController extends Controller
                 'date' => 'required|date',
                 'type' => 'required',
                 'team_id' => 'required',
+                'is_advance' => 'nullable|boolean',
             ]);
 
             // Overpayment check
@@ -146,6 +150,14 @@ class KachaeePaymentController extends Controller
             // Legacy Support
             $payed->dollar_rate = (string)$rate;
             $payed->kachaee_number = $request->kachaee_number;
+
+            $isAdvance = $request->has('is_advance') && (bool)$request->is_advance;
+            if ($request->kachaee_number !== 'نقد') {
+                $isAdvance = false;
+            }
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            $payed->remaining_unallocated_amount = $isAdvance ? $request->amount : 0.0;
+            $payed->payment_status = $isAdvance ? 'unallocated' : null;
             
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -207,16 +219,25 @@ class KachaeePaymentController extends Controller
             ->where('kachaee_number', 'نقد')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
+            ->where('status', 1)
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
+            ->where('status', 1)
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
@@ -250,10 +271,21 @@ class KachaeePaymentController extends Controller
             ->get()
             ->keyBy('kachaee_number');
 
+        $batchRefs = $repairs->pluck('kachaee_number')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('kachaee_payment_allocations')
+            ->join('production_batches', 'kachaee_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('kachaee_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
         // Map each repair with its paid/remaining metrics
         foreach ($repairs as $rep) {
             $refPayments = $paymentsByRef->get($rep->kachaee_number);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($rep->kachaee_number) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
             $rep->total_paid = (float)$totalPaid;
@@ -308,16 +340,25 @@ class KachaeePaymentController extends Controller
             ->where('kachaee_number', 'نقد')
             ->where('status', 1)
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
+            ->where('status', 1)
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = KachaeePayment::where('team_id', $team_id)
+            ->where('kachaee_number', 'نقد')
+            ->where('status', 1)
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $kachaee_numbers = CarpetRepair::where('team_id','=',$team_id)->distinct()->get(['kachaee_number']);
@@ -350,11 +391,22 @@ class KachaeePaymentController extends Controller
             ->get()
             ->keyBy('kachaee_number');
 
+        $batchRefs = $repairs->pluck('kachaee_number')->unique()->filter()->toArray();
+        $allocationsByRef = \DB::table('kachaee_payment_allocations')
+            ->join('production_batches', 'kachaee_payment_allocations.allocatable_id', '=', 'production_batches.id')
+            ->where('kachaee_payment_allocations.allocatable_type', 'App\ProductionBatch')
+            ->whereIn('production_batches.reference_number', $batchRefs)
+            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->groupBy('production_batches.reference_number')
+            ->pluck('total_allocated', 'reference_number');
+
         // Map each repair with its paid/remaining metrics
         $groupedRepairs = [];
         foreach ($repairs as $rep) {
             $refPayments = $paymentsByRef->get($rep->kachaee_number);
-            $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $directPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
+            $allocatedPaid = $allocationsByRef->get($rep->kachaee_number) ?? 0.0;
+            $totalPaid = $directPaid + $allocatedPaid;
             
             $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
             $rep->total_paid = (float)$totalPaid;
@@ -557,6 +609,7 @@ class KachaeePaymentController extends Controller
                 'date' => 'required|date',
                 'type' => 'required',
                 'team_id' => 'required',
+                'is_advance' => 'nullable|boolean',
             ]);
 
             // Overpayment check
@@ -597,6 +650,14 @@ class KachaeePaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payed->id, 'Kachaee Record Edited', get_class($payed));
             }
 
+            // Fetch and remove old allocations, reversing their transactions
+            $oldAllocations = \App\KachaeePaymentAllocation::where('kachaee_payment_id', $payed->id)->get();
+            foreach ($oldAllocations as $alloc) {
+                // Reverse the accounting transaction
+                $this->accountingService->reverseTransactionBySource($alloc->id, 'Kachaee Allocation Replaced via Edit', 'App\KachaeePaymentAllocation');
+                $alloc->delete();
+            }
+
             $currency = \App\Currency::find($request->currency_id);
             $rate = $request->exchange_rate ?: $currency->exchange_rate;
             $baseAmount = bcmul($request->amount, $rate, 4);
@@ -607,6 +668,14 @@ class KachaeePaymentController extends Controller
             $payed->team_id = $request->team_id;
             $payed->dollar_rate = (string)$rate;
             $payed->kachaee_number = $request->kachaee_number;
+
+            $isAdvance = $request->has('is_advance') && (bool)$request->is_advance;
+            if ($request->kachaee_number !== 'نقد') {
+                $isAdvance = false;
+            }
+            $payed->is_advance = $isAdvance ? 1 : 0;
+            $payed->remaining_unallocated_amount = $isAdvance ? $request->amount : 0.0;
+            $payed->payment_status = $isAdvance ? 'unallocated' : null;
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -666,6 +735,113 @@ class KachaeePaymentController extends Controller
 
             $payment->delete();
             return response()->json(['status' => 'success']);
+        });
+    }
+
+    public function allocateAdvance(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'kachaee_payment_id' => 'required|exists:kachaee_payments,id',
+                'allocatable_id' => 'required|integer',
+                'allocatable_type' => 'required|string|in:App\ProductionBatch',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $payment = KachaeePayment::where('id', $request->kachaee_payment_id)->lockForUpdate()->firstOrFail();
+            $modelClass = $request->allocatable_type;
+            $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->firstOrFail();
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            $this->accountingService->failIfLocked($document->date ?? now()->format('Y-m-d'));
+
+            // Validation logic
+            $availableAdvance = $payment->remaining_unallocated_amount;
+            $remainingBill = $document->remaining_balance;
+            $baseAllocated = bcmul($request->amount, $payment->exchange_rate, 4);
+
+            if (bccomp($request->amount, $availableAdvance, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص (" . number_format($request->amount, 2) . " " . $payment->currency_code . ") بیش از موجودی علی‌الحساب (" . number_format($availableAdvance, 2) . " " . $payment->currency_code . ") است."]);
+            }
+            if (bccomp($baseAllocated, $remainingBill, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص معادل دالر ($" . number_format($baseAllocated, 2) . ") بیش از باقیمانده بل ($" . number_format($remainingBill, 2) . ") است."]);
+            }
+
+            // Create allocation record
+            $allocation = \App\KachaeePaymentAllocation::create([
+                'kachaee_payment_id' => $payment->id,
+                'allocatable_type' => $request->allocatable_type,
+                'allocatable_id' => $document->id,
+                'allocated_amount' => $request->amount,
+                'exchange_rate' => $payment->exchange_rate,
+                'base_allocated_amount' => $baseAllocated,
+            ]);
+
+            // Update parent statuses
+            $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $request->amount, 4);
+            $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+            $payment->save();
+
+            // Post accounting entry for settlement
+            $this->accountingService->postAutoTransaction('kachaee_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                'date' => now()->format('Y-m-d'),
+                'amount' => $request->amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
+                'party_type' => 'App\Kachaee',
+                'party_id' => $payment->team_id,
+                'reference' => $document->reference_number,
+                'description' => "تصفیه بل کچایی " . $document->reference_number . " از پیش‌پرداخت شماره " . $payment->id,
+                'source_id' => $allocation->id,
+                'source_type' => 'App\KachaeePaymentAllocation',
+            ]);
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "تخصیص پیش‌پرداخت به مبلغ " . $request->amount . " " . $payment->currency_code . " از پیش‌پرداخت شماره " . $payment->id . " به بل کچایی " . $document->reference_number;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه انجام شد!']);
+        });
+    }
+
+    public function removeAllocation($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $allocation = \App\KachaeePaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->payment;
+            $doc = $allocation->allocatable;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
+            }
+
+            // Reverse the accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Kachaee Allocation Deleted', 'App\KachaeePaymentAllocation');
+
+            // Restore the payment's unallocated amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Delete the allocation record
+            $allocation->delete();
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "حذف تخصیص پیش‌پرداخت به مبلغ " . $allocation->allocated_amount . " از پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
         });
     }
 }

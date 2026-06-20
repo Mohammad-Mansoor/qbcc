@@ -605,6 +605,36 @@ class MappingRulesSeeder extends Seeder
                     'description_template' => 'تصفیه بل خرید از پیش‌پرداخت (Advance Bill Settlement): {reference}'
                 ]
             );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'kachaee_payment', 'condition' => 'KACHAEE_ADVANCE_OUT'],
+                [
+                    'mapping_key' => 'KACHAEE_ADVANCE_OUT',
+                    'debit_account_id' => $advancesAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'ثبت پیش‌پرداخت به تیم کچایی (Kachaee Advance Payment): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'kachaee_payment', 'condition' => 'KACHAEE_ADVANCE_IN'],
+                [
+                    'mapping_key' => 'KACHAEE_ADVANCE_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'استرداد پیش‌پرداخت از تیم کچایی (Kachaee Advance Refund): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'kachaee_advance_settlement', 'condition' => 'ADVANCE_SETTLEMENT'],
+                [
+                    'mapping_key' => 'KACHAEE_ADVANCE_SETTLEMENT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'تصفیه حساب کچایی از پیش‌پرداخت (Kachaee Advance Settlement): {reference}'
+                ]
+            );
         }
     }
 }

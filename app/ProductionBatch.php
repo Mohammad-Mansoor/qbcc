@@ -15,6 +15,8 @@ class ProductionBatch extends Model
         'status',
     ];
 
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status'];
+
     /**
      * Scope to filter by type.
      */
@@ -66,5 +68,74 @@ class ProductionBatch extends Model
         }
         
         return sprintf("%s-%s-%04d", $prefix, $currentYear, $nextSeqNum);
+    }
+
+    public function allocations()
+    {
+        return $this->morphMany(KachaeePaymentAllocation::class, 'allocatable');
+    }
+
+    public function getTotalAmountAttribute()
+    {
+        if ($this->type === 'kachaee') {
+            return \DB::table('carpet_repairs')
+                ->where('kachaee_number', $this->reference_number)
+                ->sum('total_price') ?? 0.0;
+        } elseif ($this->type === 'wash') {
+            return \DB::table('carpet_washes')
+                ->where('wash_number', $this->reference_number)
+                ->sum('total_price') ?? 0.0;
+        } elseif ($this->type === 'finish') {
+            return \DB::table('finishing_works')
+                ->where('finish_number', $this->reference_number)
+                ->sum('price') ?? 0.0;
+        }
+        return 0.0;
+    }
+
+    public function getPaidAmountAttribute()
+    {
+        // Direct payments (legacy/direct entries where kachaee_number is stored directly on the payment)
+        $directPaid = 0.0;
+        if ($this->type === 'kachaee') {
+            $directPaid = \DB::table('kachaee_payments')
+                ->where('kachaee_number', $this->reference_number)
+                ->where('status', 1)
+                ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
+        } elseif ($this->type === 'wash') {
+            $directPaid = \DB::table('washing_payments')
+                ->where('wash_number', $this->reference_number)
+                ->where('status', 1)
+                ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
+        } elseif ($this->type === 'finish') {
+            $directPaid = \DB::table('finishing_team_payments')
+                ->where('finish_number', $this->reference_number)
+                ->where('status', 1)
+                ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
+        }
+
+        // Plus allocated advance payments
+        $allocatedPaid = $this->allocations()->sum('allocated_amount') ?? 0.0;
+
+        return (float)($directPaid + $allocatedPaid);
+    }
+
+    public function getRemainingBalanceAttribute()
+    {
+        return max(0.0, $this->total_amount - $this->paid_amount);
+    }
+
+    public function getPaymentStatusAttribute()
+    {
+        $total = $this->total_amount;
+        $paid = $this->paid_amount;
+        
+        if ($paid >= $total - 0.01) {
+            return 'paid';
+        }
+        if ($paid <= 0.01) {
+            return 'unpaid';
+        }
+        return 'partially_paid';
     }
 }
