@@ -288,6 +288,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:CO,CCO
     // Route for string seller
     Route::resource('/string-seller', 'StringSellerController');
     Route::post('/string-seller/search', 'StringSellerController@search');
+    Route::post('/string-seller-payments/allocate-advance', 'SellerPaymentController@allocateAdvance')->name('string-seller-payments.allocate_advance');
+    Route::delete('/string-seller-payments/allocation/{id}', 'SellerPaymentController@removeAllocation');
     Route::resource('/string-seller-payments', 'SellerPaymentController');
     Route::get('/seller-payments-all/{seller_id}', 'SellerPaymentController@show_all_payment');
     Route::get('/sttring-seller-accounts', 'StringSellerController@accounts');

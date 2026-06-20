@@ -374,7 +374,7 @@ class AccountingService
                 'App\Http\Controllers\AgentPaymentController' => 'Agent_payment',
                 'App\Http\Controllers\MonthlyExpenseController' => 'Expense',
                 'App\Http\Controllers\NewMonthlyExpenseBalanceController' => 'NewMonthlyExpenseBalance',
-                'App\Http\Controllers\SellerPaymentController' => 'Payment',
+                'App\Http\Controllers\SellerPaymentController' => 'Seller_payment',
                 'App\Http\Controllers\EmployeePaymentController' => 'App\EmployeePayment',
                 'App\Http\Controllers\AjnasAccountDetailsController' => 'Ajnas_account',
                 'App\Http\Controllers\WashingPaymentController' => 'Washing_payment',

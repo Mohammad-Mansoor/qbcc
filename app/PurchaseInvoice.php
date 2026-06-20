@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PurchaseInvoice extends Model
 {
     protected $guarded = [];
-    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance'];
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status'];
 
     public function agent()
     {
@@ -37,5 +37,19 @@ class PurchaseInvoice extends Model
     public function getRemainingBalanceAttribute()
     {
         return max(0, $this->total_amount - $this->paid_amount);
+    }
+
+    public function getPaymentStatusAttribute($value)
+    {
+        $total = $this->total_amount;
+        $paid = $this->paid_amount;
+        
+        if ($paid >= $total - 0.01) {
+            return 'paid';
+        }
+        if ($paid <= 0.01) {
+            return 'unpaid';
+        }
+        return 'partially_paid';
     }
 }

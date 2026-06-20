@@ -149,7 +149,7 @@ class ReportController extends Controller
             // 2. Get Transactions for the period
             $entries = DB::table('ledger_entries as le')
                 ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.base_debit as debit', 'le.base_credit as credit', 'le.currency_code', 'le.original_amount')
+                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.base_debit as debit', 'le.base_credit as credit', 'le.currency_code', 'le.original_amount', 'lt.source_type', 'lt.source_id')
                 ->where('le.party_type', 'App\Agents')
                 ->where('le.party_id', $agentId)
                 ->whereBetween('lt.date', [$startDate, $endDate])
@@ -178,15 +178,78 @@ class ReportController extends Controller
             $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
         }
 
+        $isSummary = $request->get('type') === 'summary';
+        if ($agentId && $isSummary) {
+            // Batch pre-fetch relationships to avoid N+1 queries
+            $allocationIds = [];
+            $paymentIds = [];
+            foreach ($entries as $item) {
+                $srcType = strtolower($item->source_type);
+                if ($srcType === 'app\agentpaymentallocation' || $srcType === 'agent_advance_settlement') {
+                    $allocationIds[] = $item->source_id;
+                } elseif ($srcType === 'app\agentpayment' || $srcType === 'agent_payment') {
+                    $paymentIds[] = $item->source_id;
+                }
+            }
+
+            $allocations = \App\AgentPaymentAllocation::whereIn('id', array_unique($allocationIds))->get()->map(function($alloc) {
+                $alloc->allocatable = $alloc->allocatable; // Eager load polymorphic relation
+                return $alloc;
+            })->keyBy('id');
+
+            $payments = \App\AgentPayment::whereIn('id', array_unique($paymentIds))->with('allocations')->get()->map(function($pay) {
+                foreach ($pay->allocations as $alloc) {
+                    $alloc->allocatable = $alloc->allocatable;
+                }
+                return $pay;
+            })->keyBy('id');
+
+            // Group entries by resolved reference
+            $entries = collect($entries)->groupBy(function($item) use ($allocations, $payments) {
+                $groupRef = trim($item->reference);
+                $srcType = strtolower($item->source_type);
+                if ($srcType === 'app\agentpaymentallocation' || $srcType === 'agent_advance_settlement') {
+                    $alloc = $allocations->get($item->source_id);
+                    if ($alloc && $alloc->allocatable) {
+                        $groupRef = $alloc->allocatable->invoice_no ?? $alloc->allocatable->bill_number;
+                    }
+                } elseif ($srcType === 'app\agentpayment' || $srcType === 'agent_payment') {
+                    $pay = $payments->get($item->source_id);
+                    if ($pay) {
+                        $alloc = $pay->allocations->first();
+                        if ($alloc && $alloc->allocatable) {
+                            $groupRef = $alloc->allocatable->invoice_no ?? $alloc->allocatable->bill_number;
+                        }
+                    }
+                }
+                return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;
+            })->map(function($group, $key) {
+                $sorted = $group->sortBy('date');
+                $earliest = $sorted->first();
+                return (object)[
+                    'transaction_id' => $earliest->transaction_id,
+                    'date' => $earliest->date,
+                    'reference' => $key,
+                    'description' => $earliest->description,
+                    'debit' => $group->sum('debit'),
+                    'credit' => $group->sum('credit'),
+                    'currency_code' => $earliest->currency_code,
+                    'original_amount' => $group->sum('original_amount'),
+                    'source_type' => $earliest->source_type,
+                    'source_id' => $earliest->source_id
+                ];
+            })->sortBy('date')->values();
+        }
+
         if ($agentId && $request->get('export') === 'excel') {
             return $this->exportAgentExcel($entries, $agent, $openingBalance, $startDate, $endDate, $logoBase64, $topHeaderBase64);
         }
 
         if ($agentId && $request->get('export') === 'pdf') {
-            return view('accounting.reports.agent_pdf', compact('entries', 'agent', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'));
+            return view('accounting.reports.agent_pdf', compact('entries', 'agent', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64', 'isSummary'));
         }
 
-        return view('accounting.reports.agent_statement', compact('entries', 'agent', 'agents', 'openingBalance', 'startDate', 'endDate', 'logoBase64'));
+        return view('accounting.reports.agent_statement', compact('entries', 'agent', 'agents', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'isSummary'));
     }
 
     protected function exportAgentExcel($entries, $agent, $openingBalance, $startDate, $endDate, $logoBase64, $headerBase64)

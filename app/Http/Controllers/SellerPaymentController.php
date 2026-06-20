@@ -36,11 +36,20 @@ class SellerPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
+            if ($payment->is_advance) {
+                $condition = ($payment->type == 'گرفت') ? 'VENDOR_ADVANCE_OUT' : 'VENDOR_ADVANCE_IN';
+            }
             
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted,
             // passing it with a non-USD currency_code causes a double-conversion).
             $amount = $payment->original_amount;
+
+            $ref = 'V-PAY-' . $payment->id;
+            $allocation = \App\SellerPaymentAllocation::where('seller_payment_id', $payment->id)->first();
+            if ($allocation && $allocation->purchase_bill) {
+                $ref = $allocation->purchase_bill->bill_number;
+            }
 
             $this->accountingService->postAutoTransaction('seller_payment', $condition, [
                 'date' => $payment->date,
@@ -49,7 +58,7 @@ class SellerPaymentController extends Controller
                 'exchange_rate' => $payment->exchange_rate,
                 'party_type' => 'App\StringSeller',
                 'party_id' => $payment->seller_id,
-                'reference' => 'V-PAY-' . $payment->id,
+                'reference' => $ref,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
                 'override_debit_account_id' => $overrides['override_debit_account_id'] ?? $payment->override_debit_account_id ?? null,
@@ -187,6 +196,7 @@ class SellerPaymentController extends Controller
                 'date' => 'required|date',
                 'seller_id' => 'required',
                 'raw_material_purchase_bill_id' => 'nullable|integer|exists:raw_material_purchase_bills,id',
+                'is_advance' => 'nullable|boolean',
             ]);
 
             $currency = \App\Currency::find($request->currency_id);
@@ -215,6 +225,8 @@ class SellerPaymentController extends Controller
                 }
             }
 
+            $isAdvance = $request->has('is_advance') ? (bool)$request->is_advance : (!$document);
+
             $payed = new SellerPayment();
             $payed->seller_id = $request->seller_id;
             $payed->description = $request->description;
@@ -229,6 +241,10 @@ class SellerPaymentController extends Controller
             $payed->exchange_rate = $rate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = $baseAmount;
+
+            $payed->is_advance = $isAdvance;
+            $payed->payment_status = $isAdvance ? ($document ? 'allocated' : 'unallocated') : 'allocated';
+            $payed->remaining_unallocated_amount = $isAdvance ? ($document ? 0.0000 : $request->amount) : 0.0000;
 
             // Legacy dual-amount logic
             if($currency->code == 'USD'){
@@ -289,39 +305,61 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id',$seller_id)->doesntHave('allocations')->orderBy('date','DESC')->paginate(30);
+        $payments = SellerPayment::where('seller_id', $seller_id)
+            ->where('is_advance', false)
+            ->orderBy('date', 'DESC')
+            ->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $seller_id)
             ->where('status', 1)
-            ->doesntHave('allocations')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
         $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
 
         return view('string-seller.seller-payment', compact(
             'seller', 'payments', 'paymentEdit', 'currencyTotals',
             'totalBaseReceived', 'totalBaseSent', 'purchase_numbers',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies'
         ) + $rmData);
     }
     public function show_all_payment($seller_id){
@@ -330,32 +368,54 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id',$seller_id)->doesntHave('allocations')->orderBy('date','DESC')->get();
+        $payments = SellerPayment::where('seller_id', $seller_id)
+            ->where('is_advance', false)
+            ->orderBy('date', 'DESC')
+            ->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $seller_id)
             ->where('status', 1)
-            ->doesntHave('allocations')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = SellerPayment::where('seller_id', $seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$seller_id)->distinct()->get(['purchase_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
         $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
         $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
         $all = 'true';
@@ -363,46 +423,67 @@ class SellerPaymentController extends Controller
         return view('string-seller.seller-payment', compact(
             'seller', 'payments', 'paymentEdit', 'currencyTotals',
             'totalBaseReceived', 'totalBaseSent', 'purchase_numbers', 'all',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies'
         ) + $rmData);
     }
     public function edit($payment_id)
     {
         $paymentEdit = SellerPayment::find($payment_id);
         $seller = StringSeller::find($paymentEdit->seller_id);
-        $payments = SellerPayment::where('seller_id',$paymentEdit->seller_id)->doesntHave('allocations')->orderBy('date','DESC')->paginate(30);
+        $payments = SellerPayment::where('seller_id', $paymentEdit->seller_id)
+            ->where('is_advance', false)
+            ->orderBy('date', 'DESC')
+            ->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = SellerPayment::where('seller_id', $paymentEdit->seller_id)
             ->where('status', 1)
-            ->doesntHave('allocations')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
             ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
             )
             ->groupBy('currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = SellerPayment::where('seller_id', $paymentEdit->seller_id)->where('status', 1)->doesntHave('allocations')->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = SellerPayment::where('seller_id', $paymentEdit->seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'رسید')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+
+        $totalBaseSent = SellerPayment::where('seller_id', $paymentEdit->seller_id)
+            ->where('status', 1)
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'allocated')
+                  ->orWhereDoesntHave('allocations');
+            })
+            ->where('type', 'گرفت')
+            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $purchase_numbers = PurchaseMaterial::where('seller_id','=',$paymentEdit->seller_id)->distinct()->get(['purchase_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
-        $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
-        $allowedDebitAccounts = $selectionService->getValidAccounts($mKey, 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
+        $pymtInDebit = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $pymtInCredit = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
         $rmData = $this->buildRmPurchaseBillData((int) $paymentEdit->seller_id);
 
         return view('string-seller.seller-payment', compact(
             'seller', 'payments', 'paymentEdit', 'currencyTotals',
             'totalBaseReceived', 'totalBaseSent', 'purchase_numbers',
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies'
         ) + $rmData);
     }
 
@@ -415,6 +496,7 @@ class SellerPaymentController extends Controller
                 'description' => 'required',
                 'date' => 'required|date',
                 'raw_material_purchase_bill_id' => 'nullable|integer|exists:raw_material_purchase_bills,id',
+                'is_advance' => 'nullable|boolean',
             ]);
 
             $payed = SellerPayment::find($payment_id);
@@ -469,6 +551,8 @@ class SellerPaymentController extends Controller
                 }
             }
 
+            $isAdvance = $request->has('is_advance') ? (bool)$request->is_advance : (!$document);
+
             // Update record
             $payed->seller_id = $request->seller_id;
             $payed->description = $request->description;
@@ -483,6 +567,10 @@ class SellerPaymentController extends Controller
             $payed->exchange_rate = $rate;
             $payed->original_amount = $request->amount;
             $payed->base_amount = $baseAmount;
+
+            $payed->is_advance = $isAdvance;
+            $payed->payment_status = $isAdvance ? ($document ? 'allocated' : 'unallocated') : 'allocated';
+            $payed->remaining_unallocated_amount = $isAdvance ? ($document ? 0.0000 : $request->amount) : 0.0000;
 
             // Legacy dual-amount logic
             if($currency->code == 'USD'){
@@ -580,6 +668,139 @@ class SellerPaymentController extends Controller
 
             $payment->delete();
             return response()->json(['status' => 'success']);
+        });
+    }
+
+    public function allocateAdvance(Request $request)
+    {
+        return DB::transaction(function () use ($request) {
+            $request->validate([
+                'seller_payment_id' => 'required|exists:seller_payments,id',
+                'allocatable_id' => 'required|integer',
+                'allocatable_type' => 'required|string|in:App\RawMaterialPurchaseBill',
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $payment = SellerPayment::where('id', $request->seller_payment_id)->lockForUpdate()->firstOrFail();
+            $modelClass = $request->allocatable_type;
+            $document = $modelClass::where('id', $request->allocatable_id)->lockForUpdate()->firstOrFail();
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            $this->accountingService->failIfLocked($document->date ?? now()->format('Y-m-d'));
+
+            // Validation logic
+            $availableAdvance = $payment->remaining_unallocated_amount;
+            $remainingBill = $document->remaining_balance;
+            $baseAllocated = bcmul($request->amount, $payment->exchange_rate, 4);
+
+            if (bccomp($request->amount, $availableAdvance, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص (" . number_format($request->amount, 2) . " " . $payment->currency_code . ") بیش از موجودی پیش‌پرداخت (" . number_format($availableAdvance, 2) . " " . $payment->currency_code . ") است."]);
+            }
+            if (bccomp($baseAllocated, $remainingBill, 4) > 0) {
+                return response()->json(['status' => 'error', 'message' => "مقدار تخصیص معادل دالر ($" . number_format($baseAllocated, 2) . ") بیش از باقیمانده بل ($" . number_format($remainingBill, 2) . ") است."]);
+            }
+
+            // Create allocation record
+            $allocation = \App\SellerPaymentAllocation::create([
+                'seller_payment_id' => $payment->id,
+                'raw_material_purchase_bill_id' => $document->id,
+                'allocated_amount' => $request->amount,
+                'exchange_rate' => $payment->exchange_rate,
+                'base_allocated_amount' => $baseAllocated,
+            ]);
+
+            // Update parent statuses
+            $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $request->amount, 4);
+            $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+            $payment->save();
+
+            // Re-evaluate document payment status
+            $newPaid = \App\SellerPaymentAllocation::where('raw_material_purchase_bill_id', $document->id)
+                ->sum('base_allocated_amount') ?? 0;
+            $totalAmount = $document->total_amount;
+            if ($newPaid >= $totalAmount - 0.01) {
+                $document->payment_status = 'paid';
+            } else if ($newPaid <= 0.01) {
+                $document->payment_status = 'unpaid';
+            } else {
+                $document->payment_status = 'partially_paid';
+            }
+            $document->save();
+
+            // Post accounting entry for settlement
+            $this->accountingService->postAutoTransaction('vendor_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                'date' => now()->format('Y-m-d'),
+                'amount' => $request->amount,
+                'currency_code' => $payment->currency_code,
+                'exchange_rate' => $payment->exchange_rate,
+                'party_type' => 'App\StringSeller',
+                'party_id' => $payment->seller_id,
+                'reference' => $document->bill_number,
+                'description' => "تصفیه بل خرید مواد " . ($document->invoice_number ?? $document->id) . " از پیش‌پرداخت شماره " . $payment->id,
+                'source_id' => $allocation->id,
+            ]);
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "تخصیص پیش‌پرداخت به مبلغ " . $request->amount . " " . $payment->currency_code . " از پیش‌پرداخت شماره " . $payment->id . " به سند " . ($document->invoice_number ?? $document->id);
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص با موفقیت انجام شد.']);
+        });
+    }
+
+    public function removeAllocation($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $allocation = \App\SellerPaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->seller_payment;
+            $doc = $allocation->purchase_bill;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
+            }
+
+            // Reverse the accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Vendor Allocation Deleted', 'Vendor_advance_settlement');
+
+            // Restore the payment's unallocated amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Delete the allocation record
+            $allocation->delete();
+
+            // Re-evaluate document status
+            if ($doc) {
+                $newPaid = \App\SellerPaymentAllocation::where('raw_material_purchase_bill_id', $doc->id)
+                    ->sum('base_allocated_amount') ?? 0;
+                $totalAmount = $doc->total_amount;
+                if ($newPaid >= $totalAmount - 0.01) {
+                    $doc->payment_status = 'paid';
+                } else if ($newPaid <= 0.01) {
+                    $doc->payment_status = 'unpaid';
+                } else {
+                    $doc->payment_status = 'partially_paid';
+                }
+                $doc->save();
+            }
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "حذف تخصیص پیش‌پرداخت به مبلغ " . $allocation->allocated_amount . " از پیش‌پرداخت فروشنده شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
         });
     }
 }

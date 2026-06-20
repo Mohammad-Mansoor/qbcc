@@ -111,6 +111,14 @@ class PurchaseMaterialController extends Controller
     {
         $purchase = PurchaseMaterial::find($id);
 
+        $billNumber = $purchase->purchase_number;
+        if ($purchase->raw_material_purchase_bill_id) {
+            $bill = $purchase->purchaseBill;
+            if ($bill) {
+                $billNumber = $bill->bill_number;
+            }
+        }
+
         $this->inventoryManager->processPurchase($purchase, [
             'quantity' => $purchase->quantity,
             'unit_cost' => $purchase->price_per_kilo,
@@ -119,7 +127,7 @@ class PurchaseMaterialController extends Controller
             'total_amount' => $purchase->total_af,
             'party_type' => 'App\StringSeller',
             'party_id' => $purchase->seller_id,
-            'reference' => $purchase->purchase_number,
+            'reference' => $billNumber,
             'description' => "خریداری مواد از " . StringSeller::find($purchase->seller_id)->name,
             'override_debit_account_id' => $purchase->override_debit_account_id,
             'override_credit_account_id' => $purchase->override_credit_account_id,
@@ -203,6 +211,14 @@ class PurchaseMaterialController extends Controller
             // Pre-create the instance to have a model reference
             $purchase = new PurchaseMaterial($data);
             
+            $billNumber = $purchase->purchase_number;
+            if ($purchase->raw_material_purchase_bill_id) {
+                $bill = \App\RawMaterialPurchaseBill::find($purchase->raw_material_purchase_bill_id);
+                if ($bill) {
+                    $billNumber = $bill->bill_number;
+                }
+            }
+
             $this->inventoryManager->processPurchase($purchase, [
                 'quantity' => $purchase->quantity,
                 'unit_cost' => $purchase->price_per_kilo,
@@ -213,7 +229,7 @@ class PurchaseMaterialController extends Controller
                 'total_amount' => $data['base_currency_amount'], // Use USD for ledger
                 'party_type' => 'App\StringSeller',
                 'party_id' => $purchase->seller_id,
-                'reference' => $purchase->purchase_number,
+                'reference' => $billNumber,
                 'description' => "خریداری مواد از " . StringSeller::find($purchase->seller_id)->name,
                 'override_debit_account_id' => $purchase->override_debit_account_id,
                 'override_credit_account_id' => $purchase->override_credit_account_id,
@@ -320,6 +336,14 @@ class PurchaseMaterialController extends Controller
 
             // Re-process new transactions if approved
             if ($purchaseMaterial->status == 1) {
+                $billNumber = $purchaseMaterial->purchase_number;
+                if ($purchaseMaterial->raw_material_purchase_bill_id) {
+                    $bill = $purchaseMaterial->purchaseBill;
+                    if ($bill) {
+                        $billNumber = $bill->bill_number;
+                    }
+                }
+
                 $this->inventoryManager->processPurchase($purchaseMaterial, [
                     'quantity' => $purchaseMaterial->quantity,
                     'unit_cost' => $purchaseMaterial->price_per_kilo,
@@ -330,7 +354,7 @@ class PurchaseMaterialController extends Controller
                     'total_amount' => $data['base_currency_amount'], // Use USD for ledger
                     'party_type' => 'App\StringSeller',
                     'party_id' => $purchaseMaterial->seller_id,
-                    'reference' => $purchaseMaterial->purchase_number,
+                    'reference' => $billNumber,
                     'description' => "خریداری مواد از " . StringSeller::find($purchaseMaterial->seller_id)->name,
                     'override_debit_account_id' => $request->override_debit_account_id,
                     'override_credit_account_id' => $request->override_credit_account_id,

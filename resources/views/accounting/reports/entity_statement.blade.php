@@ -18,10 +18,10 @@
                     
                     <form action="{{ route('accounting.reports.entity_statement', ['entity' => $entityKey]) }}" method="GET">
                         <div class="row align-items-end">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="small font-weight-bold text-muted mb-1">انتخاب (Select):</label>
                                 <select name="entity_id" class="form-control select2 shadow-sm" required>
-                                    <option value="">-- نام یا نمبر مربوطه را انتخاب کنید --</option>
+                                    <option value="">-- انتخاب --</option>
                                     @foreach($entities as $e)
                                         <option value="{{ $e->id }}" {{ isset($selectedEntity) && $selectedEntity->id == $e->id ? 'selected' : '' }}>
                                             {{ $e->id }} - {{ $e->display_name }}
@@ -29,9 +29,16 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="small font-weight-bold text-muted mb-1">جستجو در شرح یا سند (Search):</label>
-                                <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control border-0 bg-light rounded-pill px-3" placeholder="جستجو (شرح، سند)...">
+                            <div class="col-md-2">
+                                <label class="small font-weight-bold text-muted mb-1">نوعیت گزارش (Type):</label>
+                                <select name="type" class="form-control border-0 bg-light rounded-pill px-3 shadow-sm" style="height: 40px;">
+                                    <option value="detailed" {{ request('type') !== 'summary' ? 'selected' : '' }}>تفصیلی (Detailed)</option>
+                                    <option value="summary" {{ request('type') === 'summary' ? 'selected' : '' }}>خلاصه (Summary)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="small font-weight-bold text-muted mb-1">جستجو (Search):</label>
+                                <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control border-0 bg-light rounded-pill px-3" placeholder="جستجو...">
                             </div>
                             <div class="col-md-2">
                                 <label class="small font-weight-bold text-muted mb-1">از تاریخ:</label>

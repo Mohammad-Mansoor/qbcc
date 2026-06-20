@@ -12,6 +12,7 @@
             margin: 0;
             padding: 0;
             color: #111827;
+            font-size: 8.5pt;
         }
         
         /* Remove ALL browser and PDF margins to allow images to touch edges */
@@ -59,29 +60,29 @@
         .title-block {
             text-align: center;
             border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 10px;
-            margin-top: 10px;
-            margin-bottom: 15px;
+            padding-bottom: 3px;
+            margin-top: 2px;
+            margin-bottom: 5px;
         }
-        .title-main { font-size: 18pt; font-weight: bold; color: #0f172a; margin: 0 0 5px 0; }
-        .title-sub { font-size: 12pt; color: #475569; margin: 0; }
+        .title-main { font-size: 11.5pt; font-weight: bold; color: #0f172a; margin: 0 0 2px 0; }
+        .title-sub { font-size: 8.5pt; color: #475569; margin: 0; }
         
-        .meta-table { width: 100%; margin-bottom: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
-        .meta-table td { padding: 12px; vertical-align: top; }
-        .meta-label { font-size: 9pt; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .meta-val-primary { font-size: 12pt; font-weight: bold; color: #0f172a; margin: 0 0 4px 0; }
-        .meta-val-secondary { font-size: 10pt; color: #475569; margin: 0 0 2px 0; }
+        .meta-table { width: 100%; margin-bottom: 6px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+        .meta-table td { padding: 3px 8px; vertical-align: top; }
+        .meta-label { font-size: 7pt; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 1px; display: block; }
+        .meta-val-primary { font-size: 8.5pt; font-weight: bold; color: #0f172a; margin: 0 0 1px 0; }
+        .meta-val-secondary { font-size: 7.5pt; color: #475569; margin: 0 0 1px 0; }
 
         .dashboard-row {
             display: flex;
             flex-wrap: wrap;
-            margin: 15px 0;
+            margin: 3px 0;
             gap: 10px;
         }
         .dashboard-col {
             flex: 1;
             min-width: 0;
-            padding: 10px;
+            padding: 2px 6px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             text-align: center;
@@ -98,8 +99,8 @@
             color: #ffffff !important;
             font-weight: bold;
             border: 1px solid #cbd5e1;
-            font-size: 9.5pt;
-            padding: 8px 5px;
+            font-size: 8pt;
+            padding: 4px 3px;
             text-align: center;
             white-space: nowrap;
             -webkit-print-color-adjust: exact !important;
@@ -107,13 +108,13 @@
         }
         table.ledger-table td {
             border: 1px solid #cbd5e1;
-            padding: 8px 5px;
-            font-size: 9pt;
+            padding: 4px 3px;
+            font-size: 7.5pt;
             color: #0f172a;
         }
         table.ledger-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         table.ledger-table .opening-row td { background-color: #fffbeb !important; font-weight: bold; color: #1e293b; }
-        table.ledger-table tfoot td { background-color: #f1f5f9 !important; font-weight: bold; border-top: 2px solid #1e3a8a; font-size: 9.5pt; }
+        table.ledger-table tfoot td { background-color: #f1f5f9 !important; font-weight: bold; border-top: 2px solid #1e3a8a; font-size: 8pt; }
 
         .text-center { text-align: center; }
         .text-left { text-align: left; }
@@ -127,8 +128,8 @@
         .card-green { background-color: #ecfdf5 !important; border-color: #a7f3d0 !important; }
         .card-blue { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
         
-        .small-title { font-size: 8.5pt; font-weight: bold; margin-bottom: 5px; }
-        .card-val { font-size: 12pt; font-weight: bold; margin: 0; }
+        .small-title { font-size: 6.5pt; font-weight: bold; margin-bottom: 2px; }
+        .card-val { font-size: 8.5pt; font-weight: bold; margin: 0; }
         
         @media print {
             thead { display: table-header-group; }
@@ -169,8 +170,8 @@
                 
                 <div class="content-wrapper">
                     <div class="title-block">
-                        <h2 class="title-main">صورت حساب تفصیلی نماینده</h2>
-                        <p class="title-sub">Detailed Agent Statement</p>
+                        <h2 class="title-main">{{ isset($isSummary) && $isSummary ? 'صورت حساب خلاصه نماینده' : 'صورت حساب تفصیلی نماینده' }}</h2>
+                        <p class="title-sub">{{ isset($isSummary) && $isSummary ? 'Summary Agent Statement' : 'Detailed Agent Statement' }}</p>
                     </div>
 
                     <table class="meta-table">

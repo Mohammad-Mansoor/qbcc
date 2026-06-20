@@ -270,6 +270,14 @@
                                     </select>
                                 </div>
 
+                                <div class="form-group mb-4" id="is_advance_container">
+                                    <div class="custom-control custom-checkbox text-right" style="direction: rtl;">
+                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" {{ ($paymentEdit && !$paymentEdit->is_advance) ? '' : 'checked' }}>
+                                        <label class="custom-control-label field-label pr-4" for="is_advance" style="cursor: pointer;">به عنوان پیش‌پرداخت (As Advance Payment)</label>
+                                    </div>
+                                    <small class="field-explanation text-right">آیا این مبلغ علی‌الحساب بوده و بعداً به بل‌ها تخصیص می‌یابد؟</small>
+                                </div>
+
                                 <div class="form-group mb-4">
                                     <label class="field-label">فاکتور خرید (Purchase Ref)</label>
                                     <select name="purchase_number" id="purchase_number" class="form-control custom-input">
@@ -288,28 +296,58 @@
 
                             <!-- Column 3: Accounting & Audit -->
                             <div class="col-lg-4">
-                                <h6 class="form-section-title"><i class="fa fa-university"></i> تنظیمات حسابی (Accounting)</h6>
+                                <h6 class="form-section-title"><i class="fa fa-university"></i> حسابات سفارشی (Manual GL Overrides) - <small class="text-muted">اختیاری (Optional)</small></h6>
                                 
-                                <div class="form-group mb-3">
-                                    <label class="field-label small">حساب بدهکار (Debit)</label>
-                                    <select name="override_debit_account_id" id="override_debit_account_id" class="form-control custom-input">
-                                        @foreach($allowedDebitAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->debit_account_id == $acc->id) || ($paymentEdit && $paymentEdit->override_debit_account_id == $acc->id) ? 'selected' : '' }}>
-                                                {{ $acc->account_code }} - {{ $acc->account_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                <!-- Container for Received (رسید) -->
+                                <div class="account-override-group" id="override_received_group" style="display: none;">
+                                    <div class="form-group mb-3">
+                                        <label class="field-label small">حساب بدهکار / Debit Account (رسید)</label>
+                                        <select name="override_debit_account_id" id="debit_received" class="form-control custom-input override-select">
+                                            <option value="">-- انتخاب حساب پیشفرض (Default Cash) --</option>
+                                            @foreach($pymtInDebit as $acc)
+                                                <option value="{{ $acc->id }}" {{ $paymentEdit && $paymentEdit->override_debit_account_id == $acc->id ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label class="field-label small">حساب بستانکار / Credit Account (رسید)</label>
+                                        <select name="override_credit_account_id" id="credit_received" class="form-control custom-input override-select">
+                                            <option value="">-- انتخاب حساب پیشفرض (Default Seller Control) --</option>
+                                            @foreach($pymtInCredit as $acc)
+                                                <option value="{{ $acc->id }}" {{ $paymentEdit && $paymentEdit->override_credit_account_id == $acc->id ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div class="form-group mb-3">
-                                    <label class="field-label small">حساب بستانکار (Credit)</label>
-                                    <select name="override_credit_account_id" id="override_credit_account_id" class="form-control custom-input">
-                                        @foreach($allowedCreditAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ ($mapping && $mapping->credit_account_id == $acc->id) || ($paymentEdit && $paymentEdit->override_credit_account_id == $acc->id) ? 'selected' : '' }}>
-                                                {{ $acc->account_code }} - {{ $acc->account_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                <!-- Container for Sent (گرفت) -->
+                                <div class="account-override-group" id="override_sent_group" style="display: none;">
+                                    <div class="form-group mb-3">
+                                        <label class="field-label small">حساب بدهکار / Debit Account (گرفت)</label>
+                                        <select name="override_debit_account_id" id="debit_sent" class="form-control custom-input override-select" disabled>
+                                            <option value="">-- انتخاب حساب پیشفرض (Default Seller Control) --</option>
+                                            @foreach($pymtOutDebit as $acc)
+                                                <option value="{{ $acc->id }}" {{ $paymentEdit && $paymentEdit->override_debit_account_id == $acc->id ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label class="field-label small">حساب بستانکار / Credit Account (گرفت)</label>
+                                        <select name="override_credit_account_id" id="credit_sent" class="form-control custom-input override-select" disabled>
+                                            <option value="">-- انتخاب حساب پیشفرض (Default Cash) --</option>
+                                            @foreach($pymtOutCredit as $acc)
+                                                <option value="{{ $acc->id }}" {{ $paymentEdit && $paymentEdit->override_credit_account_id == $acc->id ? 'selected' : '' }}>
+                                                    {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div class="form-group mb-4">
@@ -351,6 +389,20 @@
                                 @if($rmPurchaseBills->count() > 0)
                                     <span class="badge badge-warning ml-1">{{ $rmPurchaseBills->count() }}</span>
                                 @endif
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link font-weight-bold text-white-50" id="advances-tab"
+                               data-toggle="tab" href="#seller-advances" role="tab"
+                               style="background:transparent; border:none; padding:15px 20px;">
+                                <i class="fa fa-share-square-o"></i> پیش‌پرداخت‌ها (Advances)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link font-weight-bold text-white-50" id="reconciliation-tab"
+                               data-toggle="tab" href="#seller-reconciliation" role="tab"
+                               style="background:transparent; border:none; padding:15px 20px;">
+                                <i class="fa fa-history"></i> تاریخچه تخصیص (Allocations)
                             </a>
                         </li>
                     </ul>
@@ -407,9 +459,7 @@
                                                     <a href="/dashboard/string-seller-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-primary">
                                                         <i class="fa fa-edit"></i>
                                                     </a>
-                                                    @php
-                                                        $transaction = \App\LedgerTransaction::where('source_type', 'seller_payment')->where('source_id', $pa->id)->first();
-                                                    @endphp
+                                                    @php $transaction = \App\LedgerTransaction::where('source_type', 'seller_payment')->where('source_id', $pa->id)->first(); @endphp
                                                     @if($transaction)
                                                         <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="روزنامچه مالی">
                                                             <i class="fa fa-book"></i>
@@ -430,7 +480,7 @@
                                         <th colspan="3" class="text-right">خلاصه {{ $code }}</th>
                                         <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
-                                        @php($balance = $totals->total_received - $totals->total_sent)
+                                        @php $balance = $totals->total_received - $totals->total_sent; @endphp
                                         <td colspan="2" class="text-center font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
                                             بیلانس: {{ number_format(abs($balance), 2) }} {{ $code }}
                                         </td>
@@ -440,7 +490,7 @@
                                         <th colspan="3" class="text-right" style="color:#1a237e;"><b>مجموع کل بیلانس (Base USD)</b></th>
                                         <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
-                                        @php($baseBalance = $totalBaseReceived - $totalBaseSent)
+                                        @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp
                                         <td colspan="2" class="text-center font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
                                             $ {{ number_format(abs($baseBalance), 2) }}
                                         </td>
@@ -547,12 +597,204 @@
                         </div>
                     </div>
 
+                    {{-- ===== TAB 3: Seller Advances ===== --}}
+                    <div class="tab-pane fade" id="seller-advances" role="tabpanel">
+                        @php
+                            $sellerAdvances = \App\SellerPayment::where('seller_id', $seller->id)
+                                ->where('is_advance', true)
+                                ->orderBy('date', 'DESC')
+                                ->get();
+                        @endphp
+                        <div class="table-responsive">
+                            <table class="table premium-table table-hover mb-0">
+                                <thead>
+                                    <tr class="text-right">
+                                        <th>تاریخ (Date)</th>
+                                        <th>نمبر پیش‌پرداخت (Payment ID)</th>
+                                        <th>نوعیت (Type)</th>
+                                        <th>شرح (Description)</th>
+                                        <th>ارز (Currency)</th>
+                                        <th>مبلغ اصلی (Original Amount)</th>
+                                        <th>نرخ ارز (Exchange Rate)</th>
+                                        <th>معادل دالر (USD Amount)</th>
+                                        <th>باقیمانده مصرف‌نشده (Unallocated Balance)</th>
+                                        <th class="hideOnPrint">عملیات (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($sellerAdvances as $adv)
+                                    <tr class="text-right">
+                                        <td>{{ $adv->date }}</td>
+                                        <td><strong>V-PAY-{{ $adv->id }}</strong></td>
+                                        <td>
+                                            <span class="badge {{ $adv->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
+                                                {{ $adv->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $adv->description }}</td>
+                                        <td class="text-center font-weight-bold text-primary">{{ $adv->currency_code }}</td>
+                                        <td class="font-weight-bold" style="direction: ltr;">{{ number_format($adv->original_amount, 2) }}</td>
+                                        <td class="text-muted small" style="direction: ltr;">{{ number_format($adv->exchange_rate, 4) }}</td>
+                                        <td class="font-weight-bold" style="direction: ltr;">$ {{ number_format($adv->base_amount, 2) }}</td>
+                                        <td class="font-weight-bold text-success" style="direction: ltr;">
+                                            {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
+                                        </td>
+                                        <td class="hideOnPrint">
+                                            @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                            <button class="btn btn-sm btn-primary open-allocate-modal-btn" 
+                                                    data-payment-id="{{ $adv->id }}"
+                                                    data-currency="{{ $adv->currency_code }}"
+                                                    data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                    data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                <i class="fa fa-share-square-o"></i> تخصیص به سند
+                                            </button>
+                                            @else
+                                            <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="10" class="text-center py-4">هیچ پیش‌پرداختی برای این فروشنده یافت نشد.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- ===== TAB 4: Seller Reconciliation (Allocations History) ===== --}}
+                    <div class="tab-pane fade" id="seller-reconciliation" role="tabpanel">
+                        @php
+                            $sellerAllocations = \App\SellerPaymentAllocation::whereHas('seller_payment', function($q) use ($seller) {
+                                $q->where('seller_id', $seller->id);
+                            })->with(['seller_payment', 'purchase_bill'])->orderBy('id', 'DESC')->get();
+                        @endphp
+                        <div class="table-responsive">
+                            <table class="table premium-table table-hover mb-0">
+                                <thead>
+                                    <tr class="text-right">
+                                        <th>تاریخ تخصیص (Allocation Date)</th>
+                                        <th>سند پیش‌پرداخت (Source Advance)</th>
+                                        <th>بل خرید مقصد (Target Bill)</th>
+                                        <th>مبلغ تخصیص (Allocated Amount)</th>
+                                        <th>نرخ ارز (Exchange Rate)</th>
+                                        <th>معادل دالر (Base USD Allocated)</th>
+                                        <th class="hideOnPrint">عملیات (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($sellerAllocations as $alloc)
+                                    <tr class="text-right">
+                                        <td>{{ $alloc->created_at ? $alloc->created_at->format('Y-m-d') : '---' }}</td>
+                                        <td>
+                                            <a href="#" class="font-weight-bold">
+                                                V-PAY-{{ $alloc->seller_payment_id }}
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ $alloc->seller_payment->description ?? '' }}</small>
+                                        </td>
+                                        <td>
+                                            @if($alloc->purchase_bill)
+                                                <span class="badge badge-info text-white">بل خرید</span>
+                                                <strong>{{ $alloc->purchase_bill->bill_number }}</strong>
+                                            @else
+                                                <span class="text-danger">سند حذف شده</span>
+                                            @endif
+                                        </td>
+                                        <td class="font-weight-bold text-success" style="direction: ltr;">
+                                            {{ number_format($alloc->allocated_amount, 2) }} {{ $alloc->seller_payment->currency_code ?? 'USD' }}
+                                        </td>
+                                        <td class="text-muted small" style="direction: ltr;">{{ number_format($alloc->exchange_rate, 4) }}</td>
+                                        <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                            $ {{ number_format($alloc->base_allocated_amount, 2) }}
+                                        </td>
+                                        <td class="hideOnPrint">
+                                            <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
+                                                <i class="fa fa-undo"></i> لغو تصفیه
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                     <tr>
+                                         <td colspan="7" class="text-center py-4">هیچ تخصیص یا تصفیه حسابی برای این فروشنده ثبت نشده است.</td>
+                                     </tr>
+                                     @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>{{-- end tab-content --}}
             </div>
         </div>
     </div>
     {{-- ===================== END TABBED LEDGER SECTION ===================== --}}
 </div>{{-- end #seller-payment --}}
+
+    <!-- Allocation Modal -->
+    <div class="modal fade" id="allocateAdvanceModal" tabindex="-1" role="dialog" aria-labelledby="allocateAdvanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content premium-modal">
+                <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);">
+                    <h5 class="modal-title font-weight-bold" id="allocateAdvanceModalLabel"><i class="fa fa-share-square-o"></i> تخصیص پیش‌پرداخت به سند خرید</h5>
+                    <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="allocateAdvanceForm">
+                    @csrf
+                    <input type="hidden" name="seller_payment_id" id="modal_payment_id">
+                    <div class="modal-body text-right" style="direction: rtl;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                     <h6 class="font-weight-bold text-primary mb-3"><i class="fa fa-info-circle"></i> معلومات علی‌الحساب</h6>
+                                     <p class="mb-2"><strong>شماره پرداخت:</strong> <span id="modal_display_pay_id" class="badge badge-secondary py-1 px-2 font-weight-bold"></span></p>
+                                     <p class="mb-2"><strong>مبلغ باقیمانده (Unallocated):</strong> <span id="modal_display_remaining" class="text-success font-weight-bold" style="font-size: 1.1rem;"></span></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 mb-3 border-0 shadow-sm" style="border-radius: 8px;">
+                                     <h6 class="font-weight-bold text-warning mb-3"><i class="fa fa-file-text-o"></i> انتخاب سند جهت تصفیه</h6>
+                                     
+                                     <input type="hidden" name="allocatable_type" id="modal_allocatable_type" value="App\RawMaterialPurchaseBill">
+
+                                     <div class="form-group mb-3">
+                                         <label class="font-weight-bold field-label">بل خرید مواد خام:</label>
+                                         <select name="allocatable_id" id="modal_allocatable_id" class="form-control custom-input" style="width: 100%;">
+                                             <!-- Dynamically filled via JS -->
+                                         </select>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold text-dark field-label">مبلغ تخصیص (Allocation Amount):</label>
+                                    <div class="input-group" style="direction: ltr;">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text modal_currency_display" style="font-weight: bold; background: #e3f2fd;">USD</span>
+                                        </div>
+                                        <input type="number" step="0.0001" name="amount" id="modal_alloc_amount" class="form-control font-weight-bold text-center text-success" style="font-size: 1.25rem; direction: ltr;" required>
+                                    </div>
+                                    <small class="field-explanation text-right d-block mt-1">مقداری از پیش‌پرداخت که می‌خواهید به سند انتخاب‌شده تخصیص دهید.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
+                        <button type="submit" class="btn btn-premium btn-premium-indigo text-white shadow-sm" id="btn_submit_modal_allocation">
+                            <i class="fa fa-save"></i> ثبت تخصیص (Apply Allocation)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 @endsection
 
@@ -561,8 +803,28 @@
     $(document).ready(function () {
         $('#purchase_number').select2();
         $('#currency_id').select2();
-        $('#override_debit_account_id').select2();
-        $('#override_credit_account_id').select2();
+        $('.override-select').select2({ width: '100%' });
+
+        // MANUAL GL OVERRIDES TOGGLE
+        function toggleOverrideAccounts() {
+            const type = $('select[name="type"]').val();
+            if (type === 'رسید') {
+                $('#override_received_group').show();
+                $('#debit_received, #credit_received').prop('disabled', false).trigger('change');
+                
+                $('#override_sent_group').hide();
+                $('#debit_sent, #credit_sent').prop('disabled', true).trigger('change');
+            } else {
+                $('#override_received_group').hide();
+                $('#debit_received, #credit_received').prop('disabled', true).trigger('change');
+                
+                $('#override_sent_group').show();
+                $('#debit_sent, #credit_sent').prop('disabled', false).trigger('change');
+            }
+        }
+
+        $('select[name="type"]').on('change', toggleOverrideAccounts);
+        toggleOverrideAccounts(); // Initial call
 
         // ── TAB SWITCHING ──
         $('#sellerDetailTabs a').on('click', function (e) {
@@ -607,6 +869,7 @@
 
             // Set hidden field value
             $('#raw_material_purchase_bill_id').val(billId);
+            $('#is_advance').prop('checked', false);
 
             $('#allocation_doc_display').text(`بل خرید مواد خام شماره ${billNo} (باقیمانده: $${balance.toFixed(2)})`);
             $('#allocation_info_box').fadeIn();
@@ -627,6 +890,79 @@
             $('#allocation_info_box').fadeOut();
             $('#original_amount').val('');
             $('textarea[name="description"]').val('');
+            $('#is_advance').prop('checked', true);
+        });
+
+        // ADVANCE ALLOCATION MODAL ACTIONS
+        const purchaseBills = @json($rmPurchaseBills);
+
+        let activePaymentRemaining = 0;
+        let activePaymentExchangeRate = 1;
+
+        $('.open-allocate-modal-btn').on('click', function () {
+            const payId = $(this).data('payment-id');
+            const currency = $(this).data('currency');
+            const remaining = parseFloat($(this).data('remaining')) || 0;
+            const rate = parseFloat($(this).data('exchange-rate')) || 1;
+
+            activePaymentRemaining = remaining;
+            activePaymentExchangeRate = rate;
+
+            $('#modal_payment_id').val(payId);
+            $('#modal_display_pay_id').text('V-PAY-' + payId);
+            $('#modal_display_remaining').text(remaining.toFixed(2) + ' ' + currency);
+            $('.modal_currency_display').text(currency);
+            $('#modal_alloc_amount').val(remaining.toFixed(4)).attr('max', remaining);
+
+            loadDocumentsForAllocation(currency);
+
+            $('#allocateAdvanceModal').modal('show');
+        });
+
+        function loadDocumentsForAllocation(currency) {
+            const select = $('#modal_allocatable_id');
+            select.empty();
+
+            purchaseBills.forEach(bill => {
+                const remaining = parseFloat(bill.remaining_balance) || 0;
+                if (remaining > 0.01) {
+                    select.append(`<option value="${bill.id}" data-remaining="${remaining}">بل خرید شماره ${bill.bill_number} (باقیمانده: $${remaining.toFixed(2)})</option>`);
+                }
+            });
+            select.trigger('change');
+        }
+
+        $('#modal_allocatable_id').on('change', function () {
+            const selectedOpt = $(this).find(':selected');
+            if (selectedOpt.length) {
+                const billRemainingUsd = parseFloat(selectedOpt.data('remaining')) || 0;
+                const billRemainingInPaymentCurrency = billRemainingUsd / activePaymentExchangeRate;
+                const targetAmount = Math.min(activePaymentRemaining, billRemainingInPaymentCurrency);
+                $('#modal_alloc_amount').val(targetAmount.toFixed(4));
+            }
+        });
+
+        $('#allocateAdvanceForm').on('submit', function (e) {
+            e.preventDefault();
+            const data = $(this).serialize();
+            
+            $.ajax({
+                type: 'POST',
+                url: '/dashboard/string-seller-payments/allocate-advance',
+                data: data,
+                success: function (res) {
+                    if (res.status === 'success') {
+                        $('#allocateAdvanceModal').modal('hide');
+                        swal("موفقانه انجام شد!", res.message, "success");
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        swal("خطا!", res.message, "error");
+                    }
+                },
+                error: function (xhr) {
+                    swal("خطا!", "مشکلی در پروسس درخواست رخ داد.", "error");
+                }
+            });
         });
 
         // ── EXPORT ──
@@ -663,6 +999,38 @@
                         } else {
                             swal("خطا در حذف!", { icon: "error" });
                         }
+                    }
+                });
+            }
+        });
+    }
+
+    function removeAllocation(id) {
+        swal({
+            title: "آیا مطمئن هستید؟",
+            text: "این عمل تخصیص پیش‌پرداخت را لغو کرده و سند بدهی را دوباره بدهکار می‌سازد.",
+            icon: "warning",
+            buttons: {
+                cancel: "نخیر",
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
+            },
+            dangerMode: true,
+        }).then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                    type: 'DELETE',
+                    url: '/dashboard/string-seller-payments/allocation/' + id,
+                    data: { '_token': '{{csrf_token()}}' },
+                    success: function (res) {
+                        if (res.status == 'success') {
+                            swal("موفقانه لغو شد!", res.message, { icon: "success" });
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            swal("خطا در لغو تخصیص!", res.message, { icon: "error" });
+                        }
+                    },
+                    error: function () {
+                        swal("خطا!", "ارتباط با سرور برقرار نشد.", "error");
                     }
                 });
             }

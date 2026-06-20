@@ -8,6 +8,39 @@ class PurchaseMaterial extends Model
 {
  
     protected $guarded = [];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function ($purchase) {
+            if ($purchase->raw_material_purchase_bill_id) {
+                $bill = $purchase->purchaseBill;
+                if ($bill) {
+                    $bill->recalculatePaymentStatus();
+                }
+            }
+            if ($purchase->isDirty('raw_material_purchase_bill_id')) {
+                $originalId = $purchase->getOriginal('raw_material_purchase_bill_id');
+                if ($originalId) {
+                    $originalBill = \App\RawMaterialPurchaseBill::find($originalId);
+                    if ($originalBill) {
+                        $originalBill->recalculatePaymentStatus();
+                    }
+                }
+            }
+        });
+
+        static::deleted(function ($purchase) {
+            if ($purchase->raw_material_purchase_bill_id) {
+                $bill = $purchase->purchaseBill;
+                if ($bill) {
+                    $bill->recalculatePaymentStatus();
+                }
+            }
+        });
+    }
+
     public function materialType() {
         return $this->belongsTo(MaterialType::class , 'material_type' , 'material_type_id');
     }

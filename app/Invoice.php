@@ -7,6 +7,7 @@ class Invoice extends Model
 {
 
     protected $guarded = [];
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status'];
 
     public function customer()
     {
@@ -80,5 +81,19 @@ class Invoice extends Model
         }
 
         return $prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function getPaymentStatusAttribute($value)
+    {
+        $total = $this->total_amount;
+        $paid = $this->paid_amount;
+        
+        if ($paid >= $total - 0.01) {
+            return 'paid';
+        }
+        if ($paid <= 0.01) {
+            return 'unpaid';
+        }
+        return 'partially_paid';
     }
 }

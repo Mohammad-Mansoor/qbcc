@@ -577,6 +577,26 @@ class MappingRulesSeeder extends Seeder
             );
 
             MappingRule::updateOrCreate(
+                ['transaction_type' => 'seller_payment', 'condition' => 'VENDOR_ADVANCE_OUT'],
+                [
+                    'mapping_key' => 'VENDOR_ADVANCE_OUT',
+                    'debit_account_id' => $advancesAccount->id,
+                    'credit_account_id' => $cashAccount->id,
+                    'description_template' => 'ثبت پیش‌پرداخت به فروشنده (Vendor Advance Payment): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
+                ['transaction_type' => 'seller_payment', 'condition' => 'VENDOR_ADVANCE_IN'],
+                [
+                    'mapping_key' => 'VENDOR_ADVANCE_IN',
+                    'debit_account_id' => $cashAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'استرداد پیش‌پرداخت از فروشنده (Vendor Advance Refund): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
                 ['transaction_type' => 'agent_advance_settlement', 'condition' => 'ADVANCE_SETTLEMENT'],
                 [
                     'mapping_key' => 'ADVANCE_SETTLEMENT',

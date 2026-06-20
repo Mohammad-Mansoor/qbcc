@@ -61,6 +61,15 @@ class AgentPaymentController extends Controller
                 $exchangeRate = $payment->dollar_rate ?: 1;
             }
 
+            $ref = 'AGT-PAY-' . $payment->id;
+            $allocation = \App\AgentPaymentAllocation::where('agent_payment_id', $payment->id)->first();
+            if ($allocation) {
+                $allocatable = $allocation->allocatable;
+                if ($allocatable) {
+                    $ref = $allocatable->invoice_no ?? $allocatable->bill_number ?? $allocatable->invoice_number;
+                }
+            }
+
             $this->accountingService->postAutoTransaction('agent_payment', $condition, [
                 'date' => $payment->date,
                 'amount' => $amount,
@@ -68,7 +77,7 @@ class AgentPaymentController extends Controller
                 'exchange_rate' => $exchangeRate,
                 'party_type' => 'App\Agents',
                 'party_id' => $payment->agent_id,
-                'reference' => 'AGT-PAY-' . $payment->id,
+                'reference' => $ref,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
                 'override_debit_account_id' => $payment->override_debit_account_id,
@@ -697,7 +706,7 @@ class AgentPaymentController extends Controller
                 'exchange_rate' => $payment->exchange_rate,
                 'party_type' => 'App\Agents',
                 'party_id' => $payment->agent_id,
-                'reference' => 'SETTLE-' . $allocation->id,
+                'reference' => $document->invoice_no ?? $document->invoice_number ?? $document->bill_number,
                 'description' => "تصفیه بل خرید " . ($document->invoice_number ?? $document->invoice_no) . " از پیش‌پرداخت شماره " . $payment->id,
                 'source_id' => $allocation->id,
             ]);

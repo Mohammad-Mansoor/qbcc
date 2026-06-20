@@ -18,7 +18,7 @@
                     
                     <form action="{{ route('accounting.reports.agent_statement') }}" method="GET">
                         <div class="row align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="small font-weight-bold text-muted mb-1">انتخاب نماینده (Search Agent):</label>
                                 <select name="agent_id" class="form-control select2 shadow-sm" required>
                                     <option value="">-- نام یا نمبر نماینده را وارد کنید --</option>
@@ -30,20 +30,25 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
+                                <label class="small font-weight-bold text-muted mb-1">نوعیت گزارش (Type):</label>
+                                <select name="type" class="form-control border-0 bg-light rounded-pill px-3 shadow-sm" style="height: 45px;">
+                                    <option value="detailed" {{ request('type') !== 'summary' ? 'selected' : '' }}>تفصیلی (Detailed)</option>
+                                    <option value="summary" {{ request('type') === 'summary' ? 'selected' : '' }}>خلاصه (Summary)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="small font-weight-bold text-muted mb-1">از تاریخ:</label>
-                                <input type="date" name="start_date" value="{{ $startDate }}" class="form-control border-0 bg-light rounded-pill px-3">
+                                <input type="date" name="start_date" value="{{ $startDate }}" class="form-control border-0 bg-light rounded-pill px-3" style="height: 45px;">
                             </div>
                             <div class="col-md-2">
                                 <label class="small font-weight-bold text-muted mb-1">الی تاریخ:</label>
-                                <input type="date" name="end_date" value="{{ $endDate }}" class="form-control border-0 bg-light rounded-pill px-3">
+                                <input type="date" name="end_date" value="{{ $endDate }}" class="form-control border-0 bg-light rounded-pill px-3" style="height: 45px;">
                             </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-indigo btn-block rounded-pill shadow-sm text-white" style="background: #3f51b5;">
-                                    <i class="feather icon-search mr-1"></i> مشاهده صورت حساب
+                            <div class="col-md-3 d-flex">
+                                <button type="submit" class="btn btn-indigo rounded-pill shadow-sm text-white mr-2 flex-fill" style="background: #3f51b5; padding: 10px 15px; height: 45px;">
+                                    <i class="feather icon-search mr-1"></i> مشاهده
                                 </button>
-                            </div>
-                            <div class="col-md-2">
-                                <a href="{{ route('accounting.reports.agent_statement') }}" class="btn btn-light btn-block rounded-pill text-muted">پاکسازی</a>
+                                <a href="{{ route('accounting.reports.agent_statement') }}" class="btn btn-light rounded-pill text-muted flex-fill" style="padding: 10px 15px; height: 45px;">پاکسازی</a>
                             </div>
                         </div>
                     </form>

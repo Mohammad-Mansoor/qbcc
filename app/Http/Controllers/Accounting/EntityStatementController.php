@@ -107,12 +107,12 @@ class EntityStatementController extends Controller
         $to_date = $request->get('to_date') ?: date('Y-m-d');
         $search = $request->get('search');
 
-        // 1. Calculate Opening Balance before $from_date (Posted ledger transactions only)
+        // 1. Calculate Opening Balance before $from_date (Posted/Reversed ledger transactions)
         $openingBalanceQuery = DB::table('ledger_entries')
             ->where('party_type', $config['party_type'])
             ->where('party_id', $id)
             ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-            ->where('ledger_transactions.status', 'posted')
+            ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
             ->where('ledger_transactions.date', '<', $from_date);
 
         if ($entityKey === 'customer') {
@@ -126,7 +126,7 @@ class EntityStatementController extends Controller
             ->where('party_type', $config['party_type'])
             ->where('party_id', $id)
             ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-            ->where('ledger_transactions.status', 'posted');
+            ->whereIn('ledger_transactions.status', ['posted', 'reversed']);
 
         // Apply filters
         if ($request->filled('from_date')) {
@@ -243,7 +243,7 @@ class EntityStatementController extends Controller
                 ->where('party_type', $config['party_type'])
                 ->where('party_id', $selectedId)
                 ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-                ->where('ledger_transactions.status', 'posted')
+                ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
                 ->where('ledger_transactions.date', '<', $startDate);
 
             if ($entityKey === 'customer') {
@@ -256,7 +256,7 @@ class EntityStatementController extends Controller
                 ->where('party_type', $config['party_type'])
                 ->where('party_id', $selectedId)
                 ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-                ->where('ledger_transactions.status', 'posted')
+                ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
                 ->whereBetween('ledger_transactions.date', [$startDate, $endDate]);
 
             if ($request->filled('search')) {
@@ -273,11 +273,14 @@ class EntityStatementController extends Controller
                 'ledger_transactions.date',
                 'ledger_transactions.reference',
                 'ledger_transactions.description',
+                'ledger_transactions.source_type',
+                'ledger_transactions.source_id',
                 'ledger_entries.debit',
                 'ledger_entries.credit',
                 'ledger_entries.currency_code',
                 'ledger_entries.exchange_rate',
-                'ledger_entries.base_currency_amount'
+                'ledger_entries.base_currency_amount',
+                'ledger_entries.original_amount'
             )->orderBy('ledger_transactions.date', 'ASC')
              ->orderBy('ledger_transactions.id', 'ASC');
 
@@ -300,8 +303,74 @@ class EntityStatementController extends Controller
                 $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
             }
 
+            $entries = $query->get();
+
+            $isSummary = $request->get('type') === 'summary';
+            if ($isSummary) {
+                // Batch pre-fetch relationships to avoid N+1 queries
+                $allocationIds = [];
+                $paymentIds = [];
+                $purchaseIds = [];
+                foreach ($entries as $item) {
+                    $srcType = strtolower($item->source_type);
+                    if ($srcType === 'app\sellerpaymentallocation' || $srcType === 'vendor_advance_settlement') {
+                        $allocationIds[] = $item->source_id;
+                    } elseif ($srcType === 'app\sellerpayment' || $srcType === 'seller_payment') {
+                        $paymentIds[] = $item->source_id;
+                    } elseif ($srcType === 'app\purchasematerial' || $srcType === 'material_purchase') {
+                        $purchaseIds[] = $item->source_id;
+                    }
+                }
+
+                $allocations = \App\SellerPaymentAllocation::whereIn('id', array_unique($allocationIds))->with('purchase_bill')->get()->keyBy('id');
+                $payments = \App\SellerPayment::whereIn('id', array_unique($paymentIds))->with('allocations.purchase_bill')->get()->keyBy('id');
+                $purchases = \App\PurchaseMaterial::whereIn('id', array_unique($purchaseIds))->with('purchaseBill')->get()->keyBy('id');
+
+                $entries = collect($entries)->groupBy(function($item) use ($allocations, $payments, $purchases) {
+                    $groupRef = trim($item->reference);
+                    $srcType = strtolower($item->source_type);
+                    if ($srcType === 'app\sellerpaymentallocation' || $srcType === 'vendor_advance_settlement') {
+                        $alloc = $allocations->get($item->source_id);
+                        if ($alloc && $alloc->purchase_bill) {
+                            $groupRef = $alloc->purchase_bill->bill_number;
+                        }
+                    } elseif ($srcType === 'app\sellerpayment' || $srcType === 'seller_payment') {
+                        $pay = $payments->get($item->source_id);
+                        if ($pay) {
+                            $alloc = $pay->allocations->first();
+                            if ($alloc && $alloc->purchase_bill) {
+                                $groupRef = $alloc->purchase_bill->bill_number;
+                            }
+                        }
+                    } elseif ($srcType === 'app\purchasematerial' || $srcType === 'material_purchase') {
+                        $purch = $purchases->get($item->source_id);
+                        if ($purch && $purch->purchaseBill) {
+                            $groupRef = $purch->purchaseBill->bill_number;
+                        }
+                    }
+                    return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;
+                })->map(function($group, $key) {
+                    $sorted = $group->sortBy('date');
+                    $earliest = $sorted->first();
+                    return (object)[
+                        'transaction_id' => $earliest->transaction_id,
+                        'journal_id' => $earliest->journal_id,
+                        'date' => $earliest->date,
+                        'reference' => $key,
+                        'description' => $earliest->description,
+                        'debit' => $group->sum('debit'),
+                        'credit' => $group->sum('credit'),
+                        'currency_code' => $earliest->currency_code,
+                        'exchange_rate' => $earliest->exchange_rate,
+                        'base_currency_amount' => $group->sum('base_currency_amount'),
+                        'original_amount' => $group->sum('original_amount'),
+                        'source_type' => $earliest->source_type,
+                        'source_id' => $earliest->source_id
+                    ];
+                })->values();
+            }
+
             if ($request->get('export') === 'excel') {
-                $entries = $query->get();
                 $filename = \Illuminate\Support\Str::slug($entityKey) . '_statement_' . date('Y_m_d_His') . '.xls';
                 
                 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
@@ -325,7 +394,6 @@ class EntityStatementController extends Controller
             }
 
             if ($request->get('export') === 'pdf') {
-                $entries = $query->get();
                 return view('accounting.reports.entity_pdf', compact(
                     'entries',
                     'selectedEntity',
@@ -339,8 +407,6 @@ class EntityStatementController extends Controller
                     'bottomFooterBase64'
                 ));
             }
-
-            $entries = $query->get();
         }
 
         return view('accounting.reports.entity_statement', compact(
@@ -352,7 +418,8 @@ class EntityStatementController extends Controller
             'entries',
             'startDate',
             'endDate',
-            'search'
+            'search',
+            'isSummary'
         ));
     }
 }
