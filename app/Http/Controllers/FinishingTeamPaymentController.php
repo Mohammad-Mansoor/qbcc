@@ -248,6 +248,7 @@ class FinishingTeamPaymentController extends Controller
             if (!isset($groupedFinishingWorks[$ref])) {
                 $groupedFinishingWorks[$ref] = [
                     'reference' => $ref,
+                    'unique_carpets' => [],
                     'total_carpets' => 0,
                     'total_cost' => 0.0,
                     'total_paid' => (float)$totalPaid,
@@ -256,7 +257,10 @@ class FinishingTeamPaymentController extends Controller
                     'date' => $w->date,
                 ];
             }
-            $groupedFinishingWorks[$ref]['total_carpets']++;
+            if (!in_array($w->carpetId, $groupedFinishingWorks[$ref]['unique_carpets'])) {
+                $groupedFinishingWorks[$ref]['unique_carpets'][] = $w->carpetId;
+                $groupedFinishingWorks[$ref]['total_carpets']++;
+            }
             $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
         }
 
@@ -381,6 +385,7 @@ class FinishingTeamPaymentController extends Controller
             if (!isset($groupedFinishingWorks[$ref])) {
                 $groupedFinishingWorks[$ref] = [
                     'reference' => $ref,
+                    'unique_carpets' => [],
                     'total_carpets' => 0,
                     'total_cost' => 0.0,
                     'total_paid' => (float)$totalPaid,
@@ -389,7 +394,10 @@ class FinishingTeamPaymentController extends Controller
                     'date' => $w->date,
                 ];
             }
-            $groupedFinishingWorks[$ref]['total_carpets']++;
+            if (!in_array($w->carpetId, $groupedFinishingWorks[$ref]['unique_carpets'])) {
+                $groupedFinishingWorks[$ref]['unique_carpets'][] = $w->carpetId;
+                $groupedFinishingWorks[$ref]['total_carpets']++;
+            }
             $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
         }
 
@@ -504,6 +512,7 @@ class FinishingTeamPaymentController extends Controller
             if (!isset($groupedFinishingWorks[$ref])) {
                 $groupedFinishingWorks[$ref] = [
                     'reference' => $ref,
+                    'unique_carpets' => [],
                     'total_carpets' => 0,
                     'total_cost' => 0.0,
                     'total_paid' => (float)$totalPaid,
@@ -512,7 +521,10 @@ class FinishingTeamPaymentController extends Controller
                     'date' => $w->date,
                 ];
             }
-            $groupedFinishingWorks[$ref]['total_carpets']++;
+            if (!in_array($w->carpetId, $groupedFinishingWorks[$ref]['unique_carpets'])) {
+                $groupedFinishingWorks[$ref]['unique_carpets'][] = $w->carpetId;
+                $groupedFinishingWorks[$ref]['total_carpets']++;
+            }
             $groupedFinishingWorks[$ref]['total_cost'] += (float)$w->price;
         }
 

@@ -10,94 +10,81 @@
             direction: rtl;
             background-color: #ffffff;
             margin: 0;
-            padding: 10mm; /* Standard margin since no fixed headers/footers */
-            color: #111827;
+            padding: 4mm;
+            color: #000;
         }
         
         @page {
             size: A4 landscape;
-            margin: 10mm; 
+            margin: 2mm; 
         }
 
-        .title-block {
-            text-align: center;
-            border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .company-info { text-align: right; }
-        .title-main { font-size: 20pt; font-weight: bold; color: #1e3a8a; margin: 0 0 5px 0; }
-        .title-sub { font-size: 11pt; color: #475569; margin: 0; }
-        
-        .logo { width: 80px; height: auto; }
+        .title-main { font-size: 14pt; font-weight: bold; color: #1e3a8a; margin: 0; }
+        .logo { width: 50px; height: auto; }
 
         .report-title-badge {
             background-color: #eff6ff; 
             border: 1px solid #bfdbfe; 
-            padding: 8px 25px; 
-            border-radius: 20px; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
             color: #1d4ed8; 
             font-weight: bold; 
-            font-size: 14pt;
+            font-size: 10pt;
+            display: inline-block;
         }
         
-        .meta-table { width: 100%; margin-bottom: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .meta-table td { padding: 12px; vertical-align: top; }
-        .meta-label { font-size: 10pt; color: #64748b; font-weight: bold; margin-bottom: 4px; display: block; }
-        .meta-val-primary { font-size: 13pt; font-weight: bold; color: #0f172a; margin: 0 0 4px 0; }
+        .meta-table { width: 100%; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        .meta-table td { padding: 2px; vertical-align: middle; }
+        .meta-label { font-size: 8pt; color: #475569; font-weight: bold; }
+        .meta-val-primary { font-size: 9pt; font-weight: bold; color: #000; margin: 0; display: inline-block; margin-right: 5px;}
         
         table.ledger-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 5px;
         }
         table.ledger-table th {
             background-color: #1e3a8a !important;
             color: #ffffff !important;
             font-weight: bold;
-            border: 1px solid #cbd5e1;
-            font-size: 9.5pt;
-            padding: 6px 4px;
+            border: 1px solid #94a3b8;
+            font-size: 7pt;
+            padding: 3px 2px;
             text-align: center;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
         table.ledger-table td {
-            border: 1px solid #cbd5e1;
-            padding: 6px 4px;
-            font-size: 9pt;
-            color: #0f172a;
+            border: 1px solid #94a3b8;
+            padding: 3px 2px;
+            font-size: 7.5pt;
+            color: #000;
             vertical-align: middle;
         }
         table.ledger-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         
         .cat-header {
             background-color: #2563eb !important;
-            font-size: 8.5pt !important;
+            font-size: 7pt !important;
         }
 
         .totals-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
         .totals-table td {
-            padding: 8px 10px;
-            font-size: 10.5pt;
+            padding: 4px;
+            font-size: 8pt;
             border-bottom: 1px solid #e2e8f0;
-            color: #0f172a;
+            color: #000;
         }
         .totals-table tr.grand-total td {
-            font-size: 14pt;
+            font-size: 10pt;
             font-weight: bold;
             color: #2563eb !important;
             background-color: #eff6ff !important;
-            border-top: 2px solid #1e3a8a;
-            border-bottom: 2px solid #1e3a8a;
+            border-top: 1px solid #1e3a8a;
+            border-bottom: 1px solid #1e3a8a;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
@@ -108,20 +95,18 @@
         .font-bold { font-weight: bold; }
 
         .signatures {
-            margin-top: 50px;
+            margin-top: 20px;
             display: flex;
             justify-content: space-between;
             text-align: center;
         }
-        .signature-box {
-            width: 30%;
-        }
+        .signature-box { width: 30%; }
         .signature-line {
-            border-top: 1px solid #0f172a;
-            padding-top: 8px;
+            border-top: 1px dotted #000;
+            padding-top: 4px;
             font-weight: bold;
-            font-size: 10pt;
-            color: #0f172a;
+            font-size: 8pt;
+            color: #000;
         }
 
         @media print {
@@ -132,45 +117,39 @@
 </head>
 <body onload="window.print();">
 
-    <!-- Standard Header (No Full Bleed Image) -->
-    <table style="width: 100%; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 20px;">
+    <table style="width: 100%; border-bottom: 1px solid #1e3a8a; padding-bottom: 2px; margin-bottom: 5px;">
         <tr>
-            <td style="width: 15%; text-align: right;">
+            <td style="width: 10%; text-align: right;">
                 @if(isset($logoBase64) && $logoBase64)
                     <img src="{{ $logoBase64 }}" class="logo" alt="Logo">
-                @else
-                    <div style="width: 80px; height: 80px; background: #eee; text-align: center; line-height: 80px; font-weight: bold;">LOGO</div>
                 @endif
             </td>
-            <td style="width: 50%; text-align: right; padding-right: 15px;">
-                <h2 class="title-main">شرکت صنعتی برادران قاسمی</h2>
-                <p class="title-sub">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت افغانستان</p>
+            <td style="width: 30%; text-align: right; padding-right: 5px; vertical-align: middle;">
+                <h2 class="title-main">شرکت برادران قاسمی</h2>
             </td>
-            <td style="width: 35%; text-align: left;">
-                <div class="report-title-badge">
-                    صورتحساب تیاری (Finishing Payment Bill)
-                </div>
+            <td style="width: 60%; text-align: left; vertical-align: middle;">
+                <div class="report-title-badge">صورتحساب تیاری (Finishing Payment Bill)</div>
             </td>
         </tr>
     </table>
 
     <table class="meta-table">
         <tr>
-            <td style="width: 25%; text-align: center; border-left: 1px solid #e2e8f0;">
-                <span class="meta-label">تیم کاری / بخش مربوطه</span>
-                <p class="meta-val-primary">{{ $team->name ?? '---' }}</p>
+            <td style="width: 25%; text-align: right;">
+                <span class="meta-label">تیم کاری:</span>
+                <span class="meta-val-primary">{{ $team->name ?? '---' }}</span>
             </td>
-            <td style="width: 25%; text-align: center; border-left: 1px solid #e2e8f0;">
-                <span class="meta-label">نمبر مسلسل</span>
-                <p class="meta-val-primary" style="font-family: monospace; color: #2563eb; direction: ltr;">{{ $batch->reference_number }}</p>
+            <td style="width: 25%; text-align: right;">
+                <span class="meta-label">نمبر مسلسل:</span>
+                <span class="meta-val-primary" style="font-family: monospace; color: #2563eb; direction: ltr;">{{ $batch->reference_number }}</span>
             </td>
-            <td style="width: 25%; text-align: center; border-left: 1px solid #e2e8f0;">
-                <span class="meta-label">مجموع مساحت</span>
-                <p class="meta-val-primary" style="direction: ltr;">{{ number_format($groupedCarpets->sum(function($group) { return $group->first()->carpet->area ?? 0; }), 2) }} m²</p>
+            <td style="width: 25%; text-align: right;">
+                <span class="meta-label">مجموع مساحت:</span>
+                <span class="meta-val-primary" style="direction: ltr;">{{ number_format($groupedCarpets->sum(function($group) { return $group->first()->carpet->area ?? 0; }), 2) }} m²</span>
             </td>
-            <td style="width: 25%; text-align: center;">
-                <span class="meta-label">تاریخ ایجاد</span>
-                <p class="meta-val-primary" style="direction: ltr;">{{ $batch->created_at->format('Y-m-d') }}</p>
+            <td style="width: 25%; text-align: left;">
+                <span class="meta-label">تاریخ ایجاد:</span>
+                <span class="meta-val-primary" style="direction: ltr;">{{ $batch->created_at->format('Y-m-d') }}</span>
             </td>
         </tr>
     </table>
@@ -225,10 +204,26 @@
                             $workForCat = $works->firstWhere('category_id', $cat->id);
                             $workPrice = $workForCat ? $workForCat->price : 0;
                             $catTotals[$cat->id] += $workPrice;
+                            
+                            $unitPriceStr = '';
+                            if ($workForCat && $workPrice > 0) {
+                                $totalOrig = ($workForCat->currency_code == 'AFN') ? $workForCat->price_af : $workForCat->price;
+                                $uPrice = 0;
+                                if (in_array($cat->id, [1, 3, 5, 6, 7])) {
+                                    $uPrice = $area > 0 ? ($totalOrig / $area) : 0;
+                                } elseif (in_array($cat->id, [4, 8])) {
+                                    $uPrice = ($carpet->height > 0) ? ($totalOrig / ($carpet->height * 2)) : 0;
+                                } elseif ($cat->id == 2) {
+                                    $uPrice = $totalOrig;
+                                }
+                                $curSym = $workForCat->currency_code == 'AFN' ? 'AFN' : '$';
+                                $unitPriceStr = $curSym . round($uPrice, 2);
+                            }
                         @endphp
                         <td class="text-center" style="direction: ltr;">
                             @if($workPrice > 0)
-                                <span style="color: #1e293b;">${{ number_format($workPrice, 2) }}</span>
+                                <span style="display: block; font-weight: bold;">${{ number_format($workPrice, 2) }}</span>
+                                <span style="color: #475569; font-size: 6pt;">({{ $unitPriceStr }}{{ $cat->id != 2 ? '/m' : '' }})</span>
                             @else
                                 <span style="color: #94a3b8;">-</span>
                             @endif
@@ -255,19 +250,19 @@
         </tfoot>
     </table>
 
-    <table style="width: 100%; margin-top: 20px;">
+    <table style="width: 100%; margin-top: 5px;">
         <tr>
-            <td style="width: 50%;">
+            <td style="width: 60%; vertical-align: top;">
                 @if($payments && $payments->count() > 0)
-                <div style="padding-left: 20px;">
-                    <h5 style="font-size: 10pt; color: #0f172a; margin-bottom: 5px;">تاریخچه تادیات و پرداخت‌ها</h5>
+                <div style="padding-left: 10px;">
+                    <h5 style="font-size: 8pt; color: #0f172a; margin: 0 0 2px 0;">تادیات</h5>
                     <table class="ledger-table" style="margin-top: 0;">
                         <thead>
                             <tr>
-                                <th style="background-color: #475569 !important;">تاریخ</th>
-                                <th style="background-color: #475569 !important;">بابت</th>
-                                <th style="background-color: #475569 !important;">مبلغ اصلی</th>
-                                <th style="background-color: #475569 !important;">معادل ($)</th>
+                                <th style="background-color: #475569 !important; padding: 2px;">تاریخ</th>
+                                <th style="background-color: #475569 !important; padding: 2px;">بابت</th>
+                                <th style="background-color: #475569 !important; padding: 2px;">مبلغ اصلی</th>
+                                <th style="background-color: #475569 !important; padding: 2px;">معادل ($)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -286,19 +281,19 @@
                 </div>
                 @endif
             </td>
-            <td style="width: 50%;">
+            <td style="width: 40%; vertical-align: top;">
                 <table class="totals-table text-right">
                     <tr class="grand-total">
                         <td class="text-left font-bold" style="direction: ltr;">${{ number_format($totalCost, 2) }}</td>
-                        <td class="font-bold">مبلغ کل قابل تادیه (USD):</td>
+                        <td class="font-bold">مبلغ کل (USD):</td>
                     </tr>
                     <tr>
                         <td class="text-left font-bold" style="direction: ltr; color: #16a34a;">${{ number_format($totalPaid, 2) }}</td>
-                        <td class="font-bold" style="color: #64748b;">مجموع پرداخت شده:</td>
+                        <td class="font-bold" style="color: #64748b;">پرداخت شده:</td>
                     </tr>
                     <tr>
                         <td class="text-left font-bold" style="direction: ltr; color: #dc2626;">${{ number_format($remaining, 2) }}</td>
-                        <td class="font-bold" style="color: #64748b;">باقیمانده طلب:</td>
+                        <td class="font-bold" style="color: #64748b;">باقیمانده:</td>
                     </tr>
                 </table>
             </td>
@@ -317,7 +312,7 @@
         </div>
     </div>
     
-    <div style="margin-top: 30px; font-size: 9pt; text-align: right; color: #94a3b8;" dir="ltr">
+    <div style="margin-top: 5px; font-size: 6pt; text-align: right; color: #94a3b8;" dir="ltr">
         Generated by QBCC ERP System on {{ date('Y-m-d H:i:s') }}
     </div>
 

@@ -172,10 +172,26 @@
                                         $workForCat = $works->firstWhere('category_id', $cat->id);
                                         $workPrice = $workForCat ? $workForCat->price : 0;
                                         $catTotals[$cat->id] += $workPrice;
+                                        
+                                        $unitPriceStr = '';
+                                        if ($workForCat && $workPrice > 0) {
+                                            $totalOrig = ($workForCat->currency_code == 'AFN') ? $workForCat->price_af : $workForCat->price;
+                                            $uPrice = 0;
+                                            if (in_array($cat->id, [1, 3, 5, 6, 7])) {
+                                                $uPrice = $area > 0 ? ($totalOrig / $area) : 0;
+                                            } elseif (in_array($cat->id, [4, 8])) {
+                                                $uPrice = ($carpet->height > 0) ? ($totalOrig / ($carpet->height * 2)) : 0;
+                                            } elseif ($cat->id == 2) {
+                                                $uPrice = $totalOrig;
+                                            }
+                                            $curSym = $workForCat->currency_code == 'AFN' ? 'AFN' : '$';
+                                            $unitPriceStr = $curSym . round($uPrice, 2);
+                                        }
                                     @endphp
                                     <td style="direction: ltr;">
                                         @if($workPrice > 0)
-                                            <span class="text-dark">${{ number_format($workPrice, 2) }}</span>
+                                            <span class="text-dark font-weight-bold">${{ number_format($workPrice, 2) }}</span><br>
+                                            <span class="text-muted" style="font-size: 0.75rem;">({{ $unitPriceStr }}{{ $cat->id != 2 ? '/m' : '' }})</span>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
