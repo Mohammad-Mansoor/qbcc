@@ -182,32 +182,72 @@ class AccountingAnalyticsService
 
     private function getAgingAnalysis($endDate)
     {
-        // Simple Aging by balance per party
-        $parties = DB::table('ledger_entries as le')
+        $transactions = DB::table('ledger_entries as le')
             ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
             ->join('chart_of_accounts as coa', 'le.account_id', '=', 'coa.id')
             ->select(
-                'le.party_type',
                 'le.party_id',
                 'lt.date',
-                DB::raw('SUM(le.base_debit - le.base_credit) as balance')
+                DB::raw('SUM(le.base_debit) as total_debit'),
+                DB::raw('SUM(le.base_credit) as total_credit')
             )
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $endDate)
             ->whereNotNull('le.party_id')
             ->where('coa.account_code', 'LIKE', '13%') // Accounts Receivable
-            ->groupBy('le.party_type', 'le.party_id', 'lt.date')
+            ->groupBy('le.party_id', 'lt.date')
+            ->orderBy('le.party_id')
+            ->orderBy('lt.date', 'asc')
             ->get();
+
+        $parties = [];
+        foreach ($transactions as $t) {
+            if (!isset($parties[$t->party_id])) {
+                $parties[$t->party_id] = ['invoices' => [], 'unallocated_payments' => 0];
+            }
+            if ($t->total_debit > 0) {
+                $parties[$t->party_id]['invoices'][] = ['date' => $t->date, 'amount' => $t->total_debit];
+            }
+            if ($t->total_credit > 0) {
+                $parties[$t->party_id]['unallocated_payments'] += $t->total_credit;
+            }
+        }
 
         $aging = ['0-30' => 0, '31-60' => 0, '61-90' => 0, '90+' => 0];
         $now = Carbon::parse($endDate);
 
-        foreach ($parties as $p) {
-            $days = Carbon::parse($p->date)->diffInDays($now);
-            if ($days <= 30) $aging['0-30'] += $p->balance;
-            elseif ($days <= 60) $aging['31-60'] += $p->balance;
-            elseif ($days <= 90) $aging['61-90'] += $p->balance;
-            else $aging['90+'] += $p->balance;
+        // Apply FIFO allocation
+        foreach ($parties as $partyId => $data) {
+            $paymentRemaining = $data['unallocated_payments'];
+            
+            // First, offset oldest invoices
+            foreach ($data['invoices'] as &$inv) {
+                if ($paymentRemaining <= 0) break;
+                
+                if ($paymentRemaining >= $inv['amount']) {
+                    $paymentRemaining -= $inv['amount'];
+                    $inv['amount'] = 0;
+                } else {
+                    $inv['amount'] -= $paymentRemaining;
+                    $paymentRemaining = 0;
+                }
+            }
+
+            // Bucket remaining open invoice amounts
+            foreach ($data['invoices'] as $inv) {
+                if ($inv['amount'] > 0) {
+                    $days = Carbon::parse($inv['date'])->diffInDays($now);
+                    if ($days <= 30) $aging['0-30'] += $inv['amount'];
+                    elseif ($days <= 60) $aging['31-60'] += $inv['amount'];
+                    elseif ($days <= 90) $aging['61-90'] += $inv['amount'];
+                    else $aging['90+'] += $inv['amount'];
+                }
+            }
+            
+            // If there's still payment remaining (overpayment/advance), it technically reduces the 0-30 bucket
+            if ($paymentRemaining > 0) {
+                $aging['0-30'] -= $paymentRemaining;
+            }
         }
 
         return $aging;
@@ -226,6 +266,19 @@ class AccountingAnalyticsService
         $openingBalances = $this->getBalancesAtDate($start->copy()->subDay());
         $closingBalances = $this->getBalancesAtDate($end);
 
+        // Calculate Depreciation Expense (non-cash)
+        $depreciationData = DB::table('chart_of_accounts as coa')
+            ->leftJoin('ledger_entries as le', 'coa.id', '=', 'le.account_id')
+            ->leftJoin('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->where('lt.status', 'posted')
+            ->whereBetween('lt.date', [$start, $end])
+            ->where('coa.account_type', 'Expense')
+            ->where('coa.account_name', 'LIKE', '%Depreciation%')
+            ->select(DB::raw('SUM(le.base_debit - le.base_credit) as total'))
+            ->first();
+            
+        $depreciation = $depreciationData->total ?? 0;
+
         $arChange = ($closingBalances['receivables'] ?? 0) - ($openingBalances['receivables'] ?? 0);
         $apChange = ($closingBalances['payables'] ?? 0) - ($openingBalances['payables'] ?? 0);
         $invChange = ($closingBalances['inventory'] ?? 0) - ($openingBalances['inventory'] ?? 0);
@@ -235,11 +288,12 @@ class AccountingAnalyticsService
         return [
             'net_profit' => $netProfit,
             'adjustments' => [
+                'depreciation' => $depreciation,
                 'receivables' => -$arChange,
                 'payables' => $apChange,
                 'inventory' => -$invChange,
             ],
-            'net_cash_operating' => $netProfit - $arChange + $apChange - $invChange,
+            'net_cash_operating' => $netProfit + $depreciation - $arChange + $apChange - $invChange,
             'investing' => [
                 'fixed_assets' => -$fixedAssetsChange,
             ],
@@ -248,7 +302,7 @@ class AccountingAnalyticsService
                 'equity' => $equityChange,
             ],
             'net_cash_financing' => $equityChange,
-            'net_change_in_cash' => ($netProfit - $arChange + $apChange - $invChange) - $fixedAssetsChange + $equityChange
+            'net_change_in_cash' => ($netProfit + $depreciation - $arChange + $apChange - $invChange) - $fixedAssetsChange + $equityChange
         ];
     }
 
@@ -380,8 +434,8 @@ class AccountingAnalyticsService
         
         return [
             'liquidity' => [
-                'current_ratio' => $total['payables'] != 0 ? round(($total['receivables'] + $total['cash']) / $total['payables'], 2) : 0,
-                'quick_ratio' => $total['payables'] != 0 ? round($total['cash'] / $total['payables'], 2) : 0,
+                'current_ratio' => $total['payables'] != 0 ? round(($total['receivables'] + $total['cash'] + $total['inventory']) / $total['payables'], 2) : 0,
+                'quick_ratio' => $total['payables'] != 0 ? round(($total['receivables'] + $total['cash']) / $total['payables'], 2) : 0,
             ],
             'profitability' => [
                 'net_margin' => $total['revenue'] != 0 ? round(($total['profit'] / $total['revenue']) * 100, 2) : 0,

@@ -1238,7 +1238,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CustomerOrder::all();
+        $orders = CarpetOrder::orderBy('order_number')->get();
         $types = CarpetType::all();
         $qualities = \App\Quality::all();
         $currencies = \App\Currency::all();
@@ -1271,7 +1271,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CustomerOrder::all();
+        $orders = CarpetOrder::orderBy('order_number')->get();
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
@@ -1329,7 +1329,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CustomerOrder::all();
+        $orders = CarpetOrder::orderBy('order_number')->get();
         $types = CarpetType::all();
         $all = '';
         $editCarpet = '';
@@ -1482,7 +1482,7 @@ class CarpetsController extends Controller
             $AccountNo = 'QB1000';
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
-        $orders = CustomerOrder::all();
+        $orders = CarpetOrder::orderBy('order_number')->get();
         $types = CarpetType::all();
         $qualities = Quality::all();
         $currencies = \App\Currency::all();

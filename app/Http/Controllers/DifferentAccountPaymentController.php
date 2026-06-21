@@ -39,6 +39,8 @@ class DifferentAccountPaymentController extends Controller
                 'source_id' => $payment->id,
                 'override_debit_account_id' => $payment->override_debit_account_id ?? null,
                 'override_credit_account_id' => $payment->override_credit_account_id ?? null,
+                'party_type' => 'App\DifferentAccount',
+                'party_id' => $payment->account_id,
             ]);
 
             if ($transaction) {

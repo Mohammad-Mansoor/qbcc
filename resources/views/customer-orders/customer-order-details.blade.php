@@ -222,13 +222,28 @@
 </style>
 
 @php
+    $statusProgress = [
+        'graphing' => 10, 'dyeing' => 20, 'on_loom' => 40, 'off_loom' => 50,
+        'washing' => 60, 'finishing' => 70, 'repairing' => 80, 'ready' => 100,
+        'shipped' => 100, 'paused' => 0, 'cancelled' => 0
+    ];
+
     $totalCarpets = count($customer_order_details);
-    $completedCarpets = $customer_order_details->where('current_status', 'completed')->count();
-    $inProgressCarpets = $customer_order_details->where('current_status', 'in_progress')->count();
-    $pendingCarpets = $customer_order_details->where('current_status', 'pending')->count();
+    $completedCarpets = $customer_order_details->whereIn('current_status', ['ready', 'shipped'])->count();
+    $inProgressCarpets = $customer_order_details->whereNotIn('current_status', ['ready', 'shipped', 'cancelled', 'paused'])->count();
+    $pendingCarpets = $customer_order_details->where('current_status', 'graphing')->count(); // Taking graphing as the initial active state
     $totalArea = $customer_order_details->sum('area');
     $totalAmount = $customer_order_details->sum('total_amount');
-    $progressPercentage = $totalCarpets > 0 ? round(($completedCarpets / $totalCarpets) * 100) : 0;
+    
+    $totalProgressScore = 0;
+    $validCarpetsCount = 0;
+    foreach($customer_order_details as $carpet) {
+        if ($carpet->current_status != 'cancelled') {
+            $totalProgressScore += $statusProgress[$carpet->current_status] ?? 0;
+            $validCarpetsCount++;
+        }
+    }
+    $progressPercentage = $validCarpetsCount > 0 ? round($totalProgressScore / $validCarpetsCount) : 0;
 @endphp
 
 <div class="container-fluid py-4">
@@ -382,9 +397,17 @@
                                             @csrf
                                             @method('PATCH')
                                             <select name="status" class="select-status-premium select-carpet-status-inline status-{{ $co->current_status }}" data-id="{{ $co->cod_id }}">
-                                                <option value="pending" {{ $co->current_status == 'pending' ? 'selected' : '' }}>معلق</option>
-                                                <option value="in_progress" {{ $co->current_status == 'in_progress' ? 'selected' : '' }}>در کار</option>
-                                                <option value="completed" {{ $co->current_status == 'completed' ? 'selected' : '' }}>تکمیل</option>
+                                                <option value="graphing" {{ $co->current_status == 'graphing' ? 'selected' : '' }}>نقشه کشی</option>
+                                                <option value="dyeing" {{ $co->current_status == 'dyeing' ? 'selected' : '' }}>رنگ ریزی</option>
+                                                <option value="on_loom" {{ $co->current_status == 'on_loom' ? 'selected' : '' }}>روی دار</option>
+                                                <option value="off_loom" {{ $co->current_status == 'off_loom' ? 'selected' : '' }}>پایین دار</option>
+                                                <option value="washing" {{ $co->current_status == 'washing' ? 'selected' : '' }}>شستشو</option>
+                                                <option value="finishing" {{ $co->current_status == 'finishing' ? 'selected' : '' }}>تیاری</option>
+                                                <option value="repairing" {{ $co->current_status == 'repairing' ? 'selected' : '' }}>ترمیم</option>
+                                                <option value="ready" {{ $co->current_status == 'ready' ? 'selected' : '' }}>آماده</option>
+                                                <option value="shipped" {{ $co->current_status == 'shipped' ? 'selected' : '' }}>ارسال شده</option>
+                                                <option value="paused" {{ $co->current_status == 'paused' ? 'selected' : '' }}>متوقف</option>
+                                                <option value="cancelled" {{ $co->current_status == 'cancelled' ? 'selected' : '' }}>لغو شده</option>
                                             </select>
                                         </form>
                                     </td>
@@ -501,7 +524,7 @@
                             <div class="col-md-3 mb-3">
                                 <label class="small font-weight-bold text-dark">وضعیت تولید <span class="text-danger">*</span></label>
                                 <select name="current_status" class="form-control select2-modal">
-                                    @foreach(['pending' => 'معلق (Pending)', 'in_progress' => 'در حال کار (In Progress)', 'completed' => 'تکمیل شده (Completed)'] as $val => $label)
+                                    @foreach(['graphing' => 'نقشه کشی', 'dyeing' => 'رنگ ریزی', 'on_loom' => 'روی دار', 'off_loom' => 'پایین دار', 'washing' => 'شستشو', 'finishing' => 'تیاری', 'repairing' => 'ترمیم', 'ready' => 'آماده (تکمیل)', 'shipped' => 'ارسال شده', 'paused' => 'متوقف', 'cancelled' => 'لغو شده'] as $val => $label)
                                         <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
@@ -667,7 +690,7 @@
         var id = $(this).data('id');
         var val = $(this).val();
         
-        if(val === 'completed') {
+        if(val === 'ready') {
             // Open modal to get carpet number
             $('#pending_status_form_id').val(id);
             $('#pending_status_value').val(val);

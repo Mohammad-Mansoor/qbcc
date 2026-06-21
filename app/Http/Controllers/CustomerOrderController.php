@@ -55,7 +55,7 @@ class CustomerOrderController extends Controller
             'order_name' => 'required|unique:customer_orders,order_name',
             'order_date' => 'required|date',
             'main_customer_id' => 'required|exists:customers,id',
-            'status' => 'required|in:pending,in_progress,completed',
+            'status' => 'required|in:pending,in_progress,completed,cancel',
         ]);
 
         if ($request->status == 'completed') {
@@ -123,7 +123,7 @@ class CustomerOrderController extends Controller
             'order_name' => 'required|unique:customer_orders,order_name,' . $order_id . ',co_id',
             'order_date' => 'required|date',
             'main_customer_id' => 'required|exists:customers,id',
-            'status' => 'required|in:pending,in_progress,completed',
+            'status' => 'required|in:pending,in_progress,completed,cancel',
         ]);
 
         if ($request->status == 'completed') {

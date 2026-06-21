@@ -38,6 +38,7 @@ class ProductionDashboardService
             ->first();
 
         $revenueData = DB::table('sales')
+            ->where('is_returned', '!=', 1)
             ->selectRaw('COALESCE(SUM(sale_cost_total), 0) as total_revenue, COALESCE(SUM(profit), 0) as net_profit')
             ->first();
 
@@ -86,7 +87,7 @@ class ProductionDashboardService
             'Repaired' => DB::table('carpet_repairs')->distinct('carpetId')->count('carpetId'),
             'Washed' => DB::table('carpet_washes')->distinct('carpetId')->count('carpetId'),
             'Finished' => DB::table('finishing_works')->distinct('carpetId')->count('carpetId'),
-            'Sold' => DB::table('sales')->count()
+            'Sold' => DB::table('sales')->where('is_returned', '!=', 1)->count()
         ];
 
         // 6. Trend Analytics (Last 12 Months)
@@ -108,7 +109,7 @@ class ProductionDashboardService
             $repairedTrend[] = DB::table('carpet_repairs')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
             $washedTrend[] = DB::table('carpet_washes')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
             $finishedTrend[] = DB::table('finishing_works')->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->distinct('carpetId')->count('carpetId');
-            $soldTrend[] = DB::table('sales')->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->count();
+            $soldTrend[] = DB::table('sales')->where('is_returned', '!=', 1)->whereBetween('sale_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])->count();
         }
 
         // 7. Throughput Analytics
@@ -131,6 +132,7 @@ class ProductionDashboardService
 
         // 8. Profitability Top Performers
         $topCarpetTypes = DB::table('sales')
+            ->where('sales.is_returned', '!=', 1)
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
             ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
             ->selectRaw('carpet_types.carpet_type as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')
@@ -141,6 +143,7 @@ class ProductionDashboardService
 
         // Top Qualities
         $topQualities = DB::table('sales')
+            ->where('sales.is_returned', '!=', 1)
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
             ->join('qualities', 'carpets.quality_id', '=', 'qualities.id')
             ->selectRaw('qualities.quality as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')

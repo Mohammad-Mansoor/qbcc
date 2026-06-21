@@ -308,7 +308,9 @@
                                     <select name="order_id" class="form-control select2">
                                         <option value="">انتخاب فرمایش...</option>
                                         @foreach($orders as $ord)
-                                            <option value="{{$ord->co_id}}" {{ ($editCarpet && $editCarpet->order_id == $ord->co_id) || (old('order_id') == $ord->co_id) ? 'selected' : '' }}>{{$ord->order_name}}</option>
+                                            <option value="{{ $ord->id }}" {{ ($editCarpet && $editCarpet->order_id == $ord->id) || (old('order_id') == $ord->id) ? 'selected' : '' }}>
+                                                {{ $ord->order_number }}{{ $ord->design_number ? ' — ' . $ord->design_number : '' }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>

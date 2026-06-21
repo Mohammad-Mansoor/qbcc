@@ -211,6 +211,13 @@
     $pendingOrders = $customer_orders->where('status', 'pending')->count();
     $inProgressOrders = $customer_orders->where('status', 'in_progress')->count();
     $completedOrders = $customer_orders->where('status', 'completed')->count();
+    $canceledOrders = $customer_orders->where('status', 'cancel')->count();
+
+    $statusProgress = [
+        'graphing' => 10, 'dyeing' => 20, 'on_loom' => 40, 'off_loom' => 50,
+        'washing' => 60, 'finishing' => 70, 'repairing' => 80, 'ready' => 100,
+        'shipped' => 100, 'paused' => 0, 'cancelled' => 0
+    ];
 @endphp
 
 <div class="container-fluid py-4">
@@ -264,6 +271,13 @@
                 <h2 class="font-weight-bold mb-0">{{ $completedOrders }}</h2>
             </div>
         </div>
+        <div class="col-xl-3 col-md-6 mb-4 hideOnPrint">
+            <div class="stat-card" style="background: var(--danger-gradient);">
+                <div class="stat-icon"><i class="fa fa-times-circle"></i></div>
+                <small class="d-block opacity-75 font-weight-bold mb-1">فرمایشات لغو شده</small>
+                <h2 class="font-weight-bold mb-0">{{ $canceledOrders }}</h2>
+            </div>
+        </div>
     </div>
 
     <!-- Search and Filter Bar -->
@@ -289,6 +303,7 @@
                         <option value="pending">معلق (Pending)</option>
                         <option value="in_progress">در حال اجرا (In Progress)</option>
                         <option value="completed">تکمیل شده (Completed)</option>
+                        <option value="cancel">لغو شده (Canceled)</option>
                     </select>
                 </div>
 
@@ -327,8 +342,17 @@
                                     @php
                                         // Calculate carpet details statistics for progress
                                         $totalCarpets = $co->details->count();
-                                        $completedCarpets = $co->details->where('current_status', 'completed')->count();
-                                        $progressPercentage = $totalCarpets > 0 ? round(($completedCarpets / $totalCarpets) * 100) : 0;
+                                        $completedCarpets = $co->details->whereIn('current_status', ['ready', 'shipped'])->count();
+                                        
+                                        $totalProgressScore = 0;
+                                        $validCarpetsCount = 0;
+                                        foreach($co->details as $carpet) {
+                                            if ($carpet->current_status != 'cancelled') {
+                                                $totalProgressScore += $statusProgress[$carpet->current_status] ?? 0;
+                                                $validCarpetsCount++;
+                                            }
+                                        }
+                                        $progressPercentage = $validCarpetsCount > 0 ? round($totalProgressScore / $validCarpetsCount) : 0;
                                     @endphp
                                     <tr class="order-row" 
                                         data-order-name="{{ strtolower($co->order_name) }}" 
@@ -360,6 +384,7 @@
                                                     <option value="pending" {{ $co->status == 'pending' ? 'selected' : '' }}>معلق</option>
                                                     <option value="in_progress" {{ $co->status == 'in_progress' ? 'selected' : '' }}>در حال اجرا</option>
                                                     <option value="completed" {{ $co->status == 'completed' ? 'selected' : '' }}>تکمیل شده</option>
+                                                    <option value="cancel" {{ $co->status == 'cancel' ? 'selected' : '' }}>لغو شده</option>
                                                 </select>
                                             </form>
                                         </td>
@@ -426,6 +451,7 @@
                                 <option value="pending" {{ (is_object($orderEdit) && $orderEdit->status == 'pending') ? 'selected' : '' }}>معلق (Pending)</option>
                                 <option value="in_progress" {{ (is_object($orderEdit) && $orderEdit->status == 'in_progress') ? 'selected' : '' }}>در حال اجرا (In Progress)</option>
                                 <option value="completed" {{ (is_object($orderEdit) && $orderEdit->status == 'completed') ? 'selected' : '' }}>تکمیل شده (Completed)</option>
+                                <option value="cancel" {{ (is_object($orderEdit) && $orderEdit->status == 'cancel') ? 'selected' : '' }}>لغو شده (Canceled)</option>
                             </select>
                             <small class="text-muted d-block mt-1">وضعیت کاری کلی فرمایش.</small>
                         </div>

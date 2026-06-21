@@ -280,7 +280,7 @@ class CustomerOrderDetailsController extends Controller
     public function changeStatus(Request $request, $order_detail_id)
     {
         $request->validate([
-            'status' => 'required|in:pending,in_progress,completed',
+            'status' => 'required|in:graphing,dyeing,on_loom,off_loom,washing,finishing,repairing,ready,shipped,paused,cancelled',
             'carpet_number' => 'nullable|string'
         ]);
 
@@ -291,7 +291,7 @@ class CustomerOrderDetailsController extends Controller
 
         $updateData = ['current_status' => $request->status];
         
-        if ($request->status === 'completed' && $request->filled('carpet_number')) {
+        if ($request->status === 'ready' && $request->filled('carpet_number')) {
             $updateData['carpet_number'] = $request->carpet_number;
         }
 
@@ -300,7 +300,7 @@ class CustomerOrderDetailsController extends Controller
             ->update($updateData);
 
         // If carpet is downgraded to non-completed, check if order is completed and downgrade it to in_progress
-        if ($request->status != 'completed') {
+        if (!in_array($request->status, ['ready', 'shipped'])) {
             DB::table('customer_orders')
                 ->where('co_id', $detail->customer_order_id)
                 ->where('status', 'completed')

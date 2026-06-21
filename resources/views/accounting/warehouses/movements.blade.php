@@ -173,6 +173,18 @@
                                             <a href="{{ route('accounting.transfers.show', $tx->reference_id) }}" target="_blank" class="text-warning font-weight-bold" style="text-decoration: underline;">
                                                 {{ $tx->reference_code }}
                                             </a>
+                                        @elseif($tx->reference_type === 'App\CarpetWash')
+                                            <a href="/dashboard/carpet-wash/{{ $tx->reference_id }}" target="_blank" class="text-primary font-weight-bold" style="text-decoration: underline;">
+                                                {{ $tx->reference_code }}
+                                            </a>
+                                        @elseif($tx->reference_type === 'App\CarpetRepair')
+                                            <a href="/dashboard/carpet-repair/{{ $tx->reference_id }}" target="_blank" class="text-danger font-weight-bold" style="text-decoration: underline;">
+                                                {{ $tx->reference_code }}
+                                            </a>
+                                        @elseif($tx->reference_type === 'App\FinishingWork')
+                                            <a href="/dashboard/finishing-center/{{ $tx->reference_id }}" target="_blank" class="text-success font-weight-bold" style="text-decoration: underline;">
+                                                {{ $tx->reference_code }}
+                                            </a>
                                         @else
                                             <span class="text-dark">{{ $tx->reference_code }}</span>
                                         @endif

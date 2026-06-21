@@ -104,13 +104,16 @@ class InventoryTransaction extends Model
                     return $c ? 'قالین ' . $c->carpet_no : 'قالین';
                     
                 case 'App\CarpetWash':
-                    return 'سند شستشو';
+                    $cw = \App\CarpetWash::find($this->reference_id);
+                    return $cw ? $cw->wash_number : 'شستشو';
                     
                 case 'App\CarpetRepair':
-                    return 'سند ترمیم';
+                    $cr = \App\CarpetRepair::find($this->reference_id);
+                    return $cr ? $cr->kachaee_number : 'ترمیم';
                     
                 case 'App\FinishingWork':
-                    return 'سند پرداخت قالین';
+                    $fw = \App\FinishingWork::find($this->reference_id);
+                    return $fw ? $fw->finish_number : 'تیاری';
                     
                 case 'App\ProductionBatch':
                     $pb = \App\ProductionBatch::find($this->reference_id);

@@ -43,8 +43,8 @@
             display: block;
         }
 
-        .header-space { height: 120px; }
-        .footer-space { height: 130px; }
+        .header-space { height: 90px; }
+        .footer-space { height: 90px; }
 
         .content-wrapper {
             padding-left: 2mm;
@@ -54,59 +54,60 @@
         .title-block {
             text-align: center;
             border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 10px;
-            margin-top: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
         }
-        .title-main { font-size: 18pt; font-weight: bold; color: #0f172a; margin: 0 0 5px 0; }
-        .title-sub { font-size: 12pt; color: #475569; margin: 0; }
+        .title-main { font-size: 14pt; font-weight: bold; color: #0f172a; margin: 0 0 2px 0; }
+        .title-sub { font-size: 10pt; color: #475569; margin: 0; }
         
-        .meta-table { width: 100%; margin-bottom: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .meta-table td { padding: 12px; vertical-align: top; }
-        .meta-label { font-size: 10pt; color: #64748b; font-weight: bold; margin-bottom: 4px; display: block; }
-        .meta-val-primary { font-size: 13pt; font-weight: bold; color: #0f172a; margin: 0 0 4px 0; }
+        .meta-table { width: 100%; margin-bottom: 5px; background: #f8fafc; border-radius: 4px; border: 1px solid #e2e8f0; }
+        .meta-table td { padding: 4px; vertical-align: top; }
+        .meta-label { font-size: 8pt; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block; }
+        .meta-val-primary { font-size: 10pt; font-weight: bold; color: #0f172a; margin: 0; }
         
         .billing-section {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border-radius: 4px;
+            padding: 5px;
+            margin-bottom: 5px;
         }
         .billing-title {
-            font-size: 11pt;
+            font-size: 9pt;
             font-weight: bold;
             color: #1e3a8a;
             border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
         }
         .billing-details {
-            font-size: 10pt;
+            font-size: 8pt;
             color: #334155;
-            line-height: 1.6;
+            line-height: 1.4;
         }
         
         table.ledger-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 5px;
+            margin-bottom: 5px;
         }
         table.ledger-table th {
             background-color: #1e3a8a !important;
             color: #ffffff !important;
             font-weight: bold;
             border: 1px solid #cbd5e1;
-            font-size: 9.5pt;
-            padding: 8px 6px;
+            font-size: 8pt;
+            padding: 4px 2px;
             text-align: center;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
         table.ledger-table td {
             border: 1px solid #cbd5e1;
-            padding: 8px 6px;
-            font-size: 9.5pt;
+            padding: 4px 2px;
+            font-size: 8pt;
             color: #0f172a;
         }
         table.ledger-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -114,16 +115,16 @@
         .totals-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 5px;
         }
         .totals-table td {
-            padding: 8px 10px;
-            font-size: 10.5pt;
+            padding: 4px 5px;
+            font-size: 9pt;
             border-bottom: 1px solid #e2e8f0;
             color: #0f172a;
         }
         .totals-table tr.grand-total td {
-            font-size: 14pt;
+            font-size: 11pt;
             font-weight: bold;
             color: #2563eb !important;
             background-color: #eff6ff !important;
@@ -196,9 +197,7 @@
                 <div class="content-wrapper">
                     <div class="title-block">
                         <h2 class="title-main">شرکت صنعتی برادران قاسمی</h2>
-                        <p class="title-sub" style="margin-bottom: 10px;">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت افغانستان</p>
-                        
-                        <div style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 6px 20px; border-radius: 20px; color: #1d4ed8; font-weight: bold; font-size: 14pt; margin-top: 5px;">
+                        <div style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 15px; border-radius: 10px; color: #1d4ed8; font-weight: bold; font-size: 12pt; margin-top: 2px;">
                             بل خرید مواد خام
                         </div>
                     </div>
@@ -353,9 +352,7 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; font-size: 9pt; text-align: right; color: #94a3b8;" dir="ltr">
-                        Generated by QBCC ERP System on {{ date('Y-m-d H:i:s') }}
-                    </div>
+
                 </div>
 
             </td>

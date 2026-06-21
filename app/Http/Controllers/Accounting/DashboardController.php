@@ -48,7 +48,7 @@ class DashboardController extends Controller
 
         foreach ($inventoryData as $inv) {
             $type = strtolower($inv->item_type ?? '');
-            if ($type == 'raw_material' || $type == 'material' || strpos($type, 'raw') !== false || $type == 'تار' || $type == 'خامه') {
+            if ($type == 'raw_material' || $type == 'material' || strpos($type, 'raw') !== false || strpos($type, 'materialtype') !== false || $type == 'تار' || $type == 'خامه') {
                 $rawVal += $inv->total_value;
             } else {
                 // Default everything else (like carpets) to finished
@@ -91,9 +91,11 @@ class DashboardController extends Controller
         // NEW: Top 5 Expenses for the current period
         $topExpenses = DB::table('ledger_entries')
             ->join('chart_of_accounts', 'ledger_entries.account_id', '=', 'chart_of_accounts.id')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
             ->where('chart_of_accounts.account_type', 'Expense')
-            ->whereBetween('ledger_entries.created_at', [$startDate, $endDate])
-            ->select('chart_of_accounts.account_name', DB::raw('SUM(debit - credit) as total'))
+            ->where('ledger_transactions.status', 'posted')
+            ->whereBetween('ledger_transactions.date', [$startDate, $endDate])
+            ->select('chart_of_accounts.account_name', DB::raw('SUM(ledger_entries.base_debit - ledger_entries.base_credit) as total'))
             ->groupBy('chart_of_accounts.account_name')
             ->orderBy('total', 'desc')
             ->limit(5)
@@ -103,6 +105,7 @@ class DashboardController extends Controller
         $profitability = DB::table('sales')
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
             ->select('carpets.field as type', DB::raw('SUM(sales.profit) as total_profit'))
+            ->where('sales.is_returned', '!=', 1)
             ->groupBy('carpets.field')
             ->orderBy('total_profit', 'desc')
             ->limit(5)

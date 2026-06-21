@@ -127,9 +127,13 @@
                     </a>
                   </td>
 
-                  {{-- Purchase Bill Image --}}
+                  {{-- Purchase Bill Image or Link --}}
                   <td style="padding: 10px 16px; text-align: center; vertical-align: middle;">
-                    @if($p->purchase_bill)
+                    @if($p->purchaseBill)
+                      <a href="{{ route('raw-material-purchase-bills.show', $p->raw_material_purchase_bill_id) }}" target="_blank" style="font-weight: bold; color: #1e3a8a; font-size: 0.85rem; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; text-decoration: none;">
+                        {{ $p->purchaseBill->bill_number }}
+                      </a>
+                    @elseif($p->purchase_bill)
                       <a href="{{ asset($p->purchase_bill) }}" target="_blank">
                         <img src="{{ asset($p->purchase_bill) }}" alt="بل خرید" style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
                       </a>
