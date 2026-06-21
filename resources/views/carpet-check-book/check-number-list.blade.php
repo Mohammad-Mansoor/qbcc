@@ -251,9 +251,9 @@
                     </button>
                 </form>
             @endif
-            <button class="btn btn-primary rounded-lg shadow px-4" onclick="window.print()">
-                <i class="feather icon-printer mr-1"></i> چاپ بل خرید (Print)
-            </button>
+            <a href="?export=pdf" target="_blank" class="btn btn-secondary rounded-lg shadow px-4 text-white">
+                <i class="feather icon-download mr-1"></i> دانلود PDF (Print)
+            </a>
         </div>
     </div>
 </div>

@@ -109,6 +109,16 @@ class CarpetCheckBookController extends Controller
         $invoice = PurchaseInvoice::with('agent.user')->findOrFail($id);
         $carpets = Carpet::where('purchase_invoice_id', $id)->with('type', 'quality')->get();
 
+        if (request()->get('export') == 'pdf') {
+            $issueDate = Carbon::now()->format('Y-m-d H:i');
+            $logoPath = public_path('images/logo.png');
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+            }
+            return view('carpet-check-book.pdf', compact('invoice', 'carpets', 'issueDate', 'logoBase64'));
+        }
+
         return view('carpet-check-book.check-number-list', compact('invoice', 'carpets'));
     }
 
