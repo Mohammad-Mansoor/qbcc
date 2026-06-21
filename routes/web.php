@@ -767,6 +767,10 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
     Route::post('/batches/{type}', 'ProductionBatchController@store')->name('batches.store');
     Route::post('/batches/{id}/toggle-status', 'ProductionBatchController@toggleStatus')->name('batches.toggle-status');
     Route::get('/batches/{id}/details', 'ProductionBatchController@details')->name('batches.details');
+    
+    // Global Search Routes
+    Route::get('/global-search/carpets', 'GlobalSearchController@searchCarpets')->name('global-search.carpets');
+    Route::get('/global-search/carpet/{id}', 'GlobalSearchController@showCarpet')->name('global-search.carpet.details');
 });
 
 Auth::routes();

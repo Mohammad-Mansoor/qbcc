@@ -87,6 +87,13 @@
       align-self: center;
       padding: 0 10px;
     }
+
+    /* Global Search Styles */
+    .global-search-input::placeholder { color: rgba(255,255,255,0.6); }
+    .global-search-input:focus { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.6); box-shadow: none; outline: none; }
+    .search-result-item { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer; display: block; text-decoration: none; color: inherit; }
+    .search-result-item:hover { background: #f8fafc; text-decoration: none; }
+    .search-result-item:last-child { border-bottom: none; }
   </style>
 
 </head>
@@ -569,6 +576,19 @@
       </a>
     </div>
 
+    <!-- Global Search -->
+    <div class="global-search-container d-none d-md-block" style="position: relative; margin-right: 20px; width: 450px; z-index: 1050; align-self: center;">
+        <div class="input-group" style="position: relative;">
+            <input type="text" class="form-control global-search-input" placeholder="جستجوی قالین بر اساس ID یا نقشه (مثال: 1000 یا QB1000)" autocomplete="off" style="border-radius: 20px; padding-right: 40px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); transition: all 0.3s ease; height: 40px;">
+            <div style="position: absolute; right: 15px; top: 10px; color: rgba(255,255,255,0.8); z-index: 10; pointer-events: none;">
+                <i class="feather icon-search"></i>
+            </div>
+        </div>
+        <div class="global-search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 1060; width: 100%; max-height: 400px; overflow-y: auto; border-radius: 12px; margin-top: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: none; padding: 0; border: none;">
+            <!-- Results will be injected here -->
+        </div>
+    </div>
+
     <div style="position: absolute; left: 55px;">
       <a href="/dashboard/close-to-end-customer-order" title="لیست سفارشات رو به اتمام">
 
@@ -801,6 +821,95 @@ $ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('e
       }
       return "";
     }
+
+    // Global Search AJAX
+    $(document).ready(function() {
+        var searchTimeout;
+        
+        $(document).on('input', '.global-search-input', function() {
+            clearTimeout(searchTimeout);
+            var query = $(this).val().trim();
+            var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
+
+            console.log("Global search triggered for: " + query);
+
+            if (query.length < 1) {
+                parentContainer.css('display', 'none').empty();
+                return;
+            }
+
+            // Show loading
+            parentContainer.css('display', 'block').html('<div class="p-3 text-center text-muted"><i class="feather icon-loader" style="animation: spin 1s linear infinite; display: inline-block;"></i> در حال جستجو...</div>');
+
+            searchTimeout = setTimeout(function() {
+                $.ajax({
+                    url: '/dashboard/global-search/carpets',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: { q: query },
+                    success: function(data) {
+                        parentContainer.empty();
+                        console.log("Search results:", data);
+                        
+                        if (!data || data.length === 0) {
+                            var emptyHtml = '<div class="p-4 text-center">' +
+                                '<i class="feather icon-search text-muted" style="font-size: 2rem; opacity: 0.5;"></i>' +
+                                '<p class="mt-2 mb-0 text-muted" style="font-weight: bold;">هیچ قالینی با این مشخصات یافت نشد!</p>' +
+                                '<small class="text-muted">شماره نقشه یا ID دیگری را امتحان کنید.</small>' +
+                                '</div>';
+                            parentContainer.html(emptyHtml);
+                            return;
+                        }
+
+                        var html = '<div class="px-3 py-2 bg-light border-bottom" style="font-size: 11px; font-weight: bold; color: #64748b;">نتایج جستجو</div>';
+                        
+                        for (var i = 0; i < data.length; i++) {
+                            var item = data[i];
+                            html += '<a href="' + item.url + '" class="search-result-item">' +
+                                '<div class="d-flex justify-content-between align-items-center">' +
+                                    '<div>' +
+                                        '<div style="font-weight: 800; color: #1e40af; font-size: 14px; margin-bottom: 2px;">' +
+                                            '<i class="feather icon-target mr-1"></i> ' + item.carpet_no +
+                                        '</div>' +
+                                        '<div style="font-size: 11px; color: #64748b;">' +
+                                            'نقشه: <span style="color: #0f172a; font-weight: bold;">' + item.map_number + '</span> | ' +
+                                            'نوع: ' + item.type + ' | ' +
+                                            'نماینده: ' + item.agent +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="text-right">' +
+                                        '<span class="badge badge-light-primary" style="font-size: 10px; margin-bottom: 4px;">' + item.status + '</span>' +
+                                        '<div style="font-size: 11px; font-weight: bold; color: #334155; direction: ltr;">' + item.area + ' m²</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</a>';
+                        }
+                        
+                        parentContainer.html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Search AJAX Error:", error);
+                        parentContainer.html('<div class="p-3 text-center text-danger">خطا در برقراری ارتباط</div>');
+                    }
+                });
+            }, 300);
+        });
+
+        // Hide when clicked outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.global-search-container').length) {
+                $('.global-search-results').css('display', 'none');
+            }
+        });
+        
+        // Show again when input is focused if there's a value
+        $(document).on('focus', '.global-search-input', function() {
+            var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
+            if ($(this).val().trim().length > 0 && parentContainer.children().length > 0) {
+                parentContainer.css('display', 'block');
+            }
+        });
+    });
 
     function checkCookie() {
       var ticks = getCookie("modelopen");
