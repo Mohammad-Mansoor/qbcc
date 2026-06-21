@@ -99,18 +99,49 @@
         </div>
 
         <div class="glass-card">
-            <div class="glass-header">
+            <div class="glass-header flex-wrap" style="gap: 15px;">
                 <h4>
                     <i class="fa fa-list text-primary mr-2"></i> 
                     لیست نمبرهای مسلسل برای {{ $title }}
                 </h4>
                 
-                <form action="/dashboard/batches/{{ $type }}" method="post" class="m-0">
-                    @csrf
-                    <button type="submit" class="btn btn-success btn-premium shadow-sm">
-                        <i class="fa fa-plus mr-1"></i> ایجاد نمبر جدید (Generate Next)
-                    </button>
-                </form>
+                @php
+                    $uniqueTeams = $stats->pluck('team_name')->filter()->unique()->values();
+                @endphp
+
+                <div class="d-flex align-items-center flex-wrap" style="gap: 15px;">
+                    <!-- Search by ID -->
+                    <div class="input-group m-0" style="width: 230px;">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-right-0" style="border-radius: 8px 0 0 8px; border-color: #e2e8f0;">
+                                <i class="feather icon-search text-muted"></i>
+                            </span>
+                        </div>
+                        <input type="text" id="batchSearchInput" class="form-control border-left-0 pl-0" placeholder="جستجو نمبر مسلسل..." style="border-radius: 0 8px 8px 0; border-color: #e2e8f0; box-shadow: none;">
+                    </div>
+                    
+                    <!-- Filter by Team -->
+                    <div class="input-group m-0" style="width: 230px;">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-right-0" style="border-radius: 8px 0 0 8px; border-color: #e2e8f0;">
+                                <i class="feather icon-users text-muted"></i>
+                            </span>
+                        </div>
+                        <select id="teamFilter" class="form-control border-left-0 pl-0 custom-select" style="border-radius: 0 8px 8px 0; border-color: #e2e8f0; box-shadow: none;">
+                            <option value="">همه تیم‌ها (All Teams)</option>
+                            @foreach($uniqueTeams as $teamName)
+                                <option value="{{ $teamName }}">{{ $teamName }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <form action="/dashboard/batches/{{ $type }}" method="post" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-success btn-premium shadow-sm m-0">
+                            <i class="fa fa-plus mr-1"></i> ایجاد نمبر جدید (Generate Next)
+                        </button>
+                    </form>
+                </div>
             </div>
             
             <div class="card-body p-4">
@@ -120,6 +151,7 @@
                             <tr class="text-muted small uppercase">
                                 <th class="font-weight-bold">#</th>
                                 <th class="font-weight-bold">نمبر مسلسل (Batch Reference)</th>
+                                <th class="font-weight-bold">تیم/کارمند (Team)</th>
                                 <th class="font-weight-bold text-center">تعداد قالین (Carpets)</th>
                                 <th class="font-weight-bold text-center">مساحت کل (Total Area)</th>
                                 <th class="font-weight-bold text-center">حالت (Status)</th>
@@ -133,16 +165,24 @@
                                     $batchStats = $stats->get($batch->reference_number);
                                     $totalCarpets = $batchStats ? $batchStats->total_carpets : 0;
                                     $totalArea = $batchStats ? $batchStats->total_area : 0.0;
+                                    $teamName = $batchStats ? $batchStats->team_name : '';
                                 @endphp
-                                <tr>
+                                <tr class="batch-row" data-ref="{{ strtolower($batch->reference_number) }}" data-team="{{ strtolower($teamName) }}">
                                     <td>{{ $index + 1 }}</td>
-                                    <td class="font-weight-bold text-primary" style="font-size: 1.1rem; letter-spacing: 0.5px;">
+                                    <td class="font-weight-bold text-primary" style="font-size: 1.1rem; letter-spacing: 0.5px; direction: ltr; text-align: right;">
                                         {{ $batch->reference_number }}
+                                    </td>
+                                    <td class="font-weight-bold text-secondary">
+                                        @if($teamName)
+                                            <i class="feather icon-user mr-1"></i> {{ $teamName }}
+                                        @else
+                                            <span class="text-muted" style="opacity: 0.5;">اختصاص داده نشده</span>
+                                        @endif
                                     </td>
                                     <td class="text-center font-weight-bold text-dark">
                                         <span class="badge badge-light border px-3 py-2 rounded-pill">{{ $totalCarpets }} قالین</span>
                                     </td>
-                                    <td class="text-center font-weight-bold text-success">
+                                    <td class="text-center font-weight-bold text-success" style="direction: ltr;">
                                         {{ number_format($totalArea, 2) }} m²
                                     </td>
                                     <td class="text-center">
@@ -179,12 +219,18 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="8" class="text-center text-muted py-4">
                                         <i class="fa fa-folder-open-o fa-2x mb-2 d-block"></i>
                                         هیچ نمبری برای این مرحله ایجاد نشده است.
                                     </td>
                                 </tr>
                             @endforelse
+                            <tr id="noResultsRow" style="display: none;">
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    <i class="feather icon-search fa-2x mb-2 d-block" style="opacity: 0.3;"></i>
+                                    موردی با این مشخصات یافت نشد!
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -193,4 +239,40 @@
     </div>
 </div>
 
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        function filterBatches() {
+            var searchTerm = $('#batchSearchInput').val().toLowerCase().trim();
+            var teamTerm = $('#teamFilter').val().toLowerCase().trim();
+            var visibleCount = 0;
+
+            $('.batch-row').each(function() {
+                var ref = $(this).data('ref') || '';
+                var team = $(this).data('team') || '';
+                
+                var matchSearch = ref.includes(searchTerm);
+                var matchTeam = teamTerm === '' || team === teamTerm;
+
+                if (matchSearch && matchTeam) {
+                    $(this).show();
+                    visibleCount++;
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            if (visibleCount === 0 && $('.batch-row').length > 0) {
+                $('#noResultsRow').show();
+            } else {
+                $('#noResultsRow').hide();
+            }
+        }
+
+        $('#batchSearchInput').on('input', filterBatches);
+        $('#teamFilter').on('change', filterBatches);
+    });
+</script>
 @endsection

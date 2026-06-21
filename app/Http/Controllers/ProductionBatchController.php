@@ -29,21 +29,24 @@ class ProductionBatchController extends Controller
         if ($type === 'kachaee') {
             $stats = \DB::table('carpet_repairs')
                 ->join('carpets', 'carpet_repairs.carpetId', '=', 'carpets.carpet_id')
-                ->select('carpet_repairs.kachaee_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'))
+                ->leftJoin('kachaees', 'carpet_repairs.team_id', '=', 'kachaees.id')
+                ->select('carpet_repairs.kachaee_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'), \DB::raw('MAX(kachaees.name) as team_name'))
                 ->groupBy('carpet_repairs.kachaee_number')
                 ->get()
                 ->keyBy('ref');
         } elseif ($type === 'wash') {
             $stats = \DB::table('carpet_washes')
                 ->join('carpets', 'carpet_washes.carpetId', '=', 'carpets.carpet_id')
-                ->select('carpet_washes.wash_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'))
+                ->leftJoin('washing_teams', 'carpet_washes.team_id', '=', 'washing_teams.id')
+                ->select('carpet_washes.wash_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'), \DB::raw('MAX(washing_teams.name) as team_name'))
                 ->groupBy('carpet_washes.wash_number')
                 ->get()
                 ->keyBy('ref');
         } elseif ($type === 'finish') {
             $stats = \DB::table('finishing_works')
                 ->join('carpets', 'finishing_works.carpetId', '=', 'carpets.carpet_id')
-                ->select('finishing_works.finish_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'))
+                ->leftJoin('finishing_teams', 'finishing_works.team_id', '=', 'finishing_teams.id')
+                ->select('finishing_works.finish_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'), \DB::raw('MAX(finishing_teams.name) as team_name'))
                 ->groupBy('finishing_works.finish_number')
                 ->get()
                 ->keyBy('ref');
