@@ -374,9 +374,13 @@
                                 @forelse($customer_order_details as $co)
                                 <tr style="direction: rtl; text-align: right;">
                                     <td class="pl-4 py-2">
+                                        @if($co->photo)
                                         <a href="#" class="hideOnPrint" data-toggle="modal" data-target="#imageModal" data-src="/{{$co->photo}}">
-                                            <img src="/{{$co->photo}}" class="rounded" style="height: 40px; width: 40px; object-fit: cover; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onerror="this.src='/uploads/placeholder.png'">
+                                            <img src="/{{$co->photo}}" class="rounded" style="height: 40px; width: 40px; object-fit: cover; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onerror="this.onerror=null; this.src='/images/logo.png';">
                                         </a>
+                                        @else
+                                        <span class="text-muted"><i class="fa fa-image fa-2x"></i></span>
+                                        @endif
                                     </td>
                                     <td class="font-weight-bold text-dark">{{ $co->quality ?: '-' }}</td>
                                     <td>{{ $co->height ?: '-' }}</td>

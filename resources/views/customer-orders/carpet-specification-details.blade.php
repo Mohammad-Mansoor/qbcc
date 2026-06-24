@@ -128,7 +128,7 @@
         <div class="col-lg-4 mb-4">
             <div class="carpet-image-container">
                 @if($carpet->photo)
-                    <img src="/{{ $carpet->photo }}" alt="Carpet Image" onerror="this.src='/uploads/placeholder.png'">
+                    <img src="/{{ $carpet->photo }}" alt="Carpet Image" onerror="this.onerror=null; this.src='/images/logo.png';">
                 @else
                     <div class="text-muted text-center py-5">
                         <i class="fa fa-image fa-4x mb-3 opacity-50"></i>

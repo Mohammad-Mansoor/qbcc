@@ -974,10 +974,8 @@ $ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('e
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/file-saverjs/FileSaver.min.js')}}"></script>
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/blobjs/Blob.min.js')}}"></script>
 
-  @if(auth()->user()->hasRole('Super Admin'))
     <script
       src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/tableexport/dist/js/tableexport.min.js')}}"></script>
-  @endif
   <script src="{{asset('dsh/assets/js/pages/form-select-custom.js')}}"></script>
   <script>
     $(document).ready(function () {
