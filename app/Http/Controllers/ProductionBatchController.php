@@ -21,6 +21,16 @@ class ProductionBatchController extends Controller
         if (!in_array($type, ['kachaee', 'wash', 'finish'])) {
             abort(404);
         }
+        
+        $permissionMap = [
+            'kachaee' => 'view_kachaee_batches',
+            'wash' => 'view_washing_batches',
+            'finish' => 'view_finishing_batches'
+        ];
+        
+        if (!Auth::user()->can($permissionMap[$type])) {
+            abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
+        }
 
         $batches = ProductionBatch::ofType($type)->orderBy('id', 'desc')->get();
         
@@ -73,6 +83,16 @@ class ProductionBatchController extends Controller
             abort(404);
         }
 
+        $permissionMap = [
+            'kachaee' => 'create_kachaee_batch',
+            'wash' => 'create_washing_batch',
+            'finish' => 'create_finishing_batch'
+        ];
+        
+        if (!Auth::user()->can($permissionMap[$type])) {
+            abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
+        }
+
         $nextNumber = ProductionBatch::generateNextNumber($type);
 
         $batch = ProductionBatch::create([
@@ -97,6 +117,17 @@ class ProductionBatchController extends Controller
     public function toggleStatus($id)
     {
         $batch = ProductionBatch::findOrFail($id);
+        
+        $permissionMap = [
+            'kachaee' => 'manage_kachaee_batch_status',
+            'wash' => 'manage_washing_batch_status',
+            'finish' => 'manage_finishing_batch_status'
+        ];
+        
+        if (!Auth::user()->can($permissionMap[$batch->type])) {
+            abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
+        }
+
         $batch->status = $batch->status === 'open' ? 'closed' : 'open';
         $batch->save();
 
@@ -111,6 +142,38 @@ class ProductionBatchController extends Controller
         
         $type = $batch->type;
         $ref = $batch->reference_number;
+        
+        $viewPermissionMap = [
+            'kachaee' => 'view_kachaee_batches',
+            'wash' => 'view_washing_batches',
+            'finish' => 'view_finishing_batches'
+        ];
+        
+        if (!Auth::user()->can($viewPermissionMap[$type])) {
+            abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
+        }
+        
+        if ($request->get('export') === 'pdf') {
+            $pdfPermissionMap = [
+                'kachaee' => 'export_kachaee_batches_pdf',
+                'wash' => 'export_washing_batches_pdf',
+                'finish' => 'export_finishing_batches_pdf'
+            ];
+            if (!Auth::user()->can($pdfPermissionMap[$type])) {
+                abort(403, 'شما اجازه چاپ را ندارید.');
+            }
+        }
+        
+        if ($request->get('export') === 'excel') {
+            $excelPermissionMap = [
+                'kachaee' => 'export_kachaee_batches_excel',
+                'wash' => 'export_washing_batches_excel',
+                'finish' => 'export_finishing_batches_excel'
+            ];
+            if (!Auth::user()->can($excelPermissionMap[$type])) {
+                abort(403, 'شما اجازه دریافت اکسل را ندارید.');
+            }
+        }
         
         $carpets = [];
         $payments = [];

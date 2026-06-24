@@ -250,6 +250,7 @@
     </div>
 
     <!-- Entry Form Section -->
+    @can('manage_washing_payments')
     @if(!isset($all))
     <div class="premium-card form-card-parent">
         <div class="card-header-premium">
@@ -375,6 +376,7 @@
         </div>
     </div>
     @endif
+    @endcan
 
     <!-- 3-TABBED FORENSIC MODULE -->
     <div class="row profile-card-parent">
@@ -449,6 +451,7 @@
                                                 @endif
                                             </td>
                                             <td class="hideOnPrint text-center">
+                                                @can('manage_washing_payments')
                                                 @if($p->status == 0 || auth()->user()->role == 'SP')
                                                     <div class="btn-group">
                                                         <a href="/dashboard/washing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-info">
@@ -459,6 +462,7 @@
                                                         </button>
                                                     </div>
                                                 @endif
+                                                @endcan
                                             </td>
                                         </tr>
                                         @endforeach
@@ -550,12 +554,14 @@
                                             </td>
                                             <td>
                                                 @if($group['remaining_balance'] > 0)
+                                                @can('manage_washing_payments')
                                                 <button type="button" class="btn btn-sm btn-success pay-wash-btn" 
                                                         data-ref="{{ $group['reference'] }}" 
                                                         data-remaining="{{ $group['remaining_balance'] }}" 
                                                         data-currency="USD">
                                                     <i class="fa fa-credit-card"></i> تصفیه گروپ
                                                 </button>
+                                                @endcan
                                                 @else
                                                 <span class="text-success"><i class="fa fa-check-circle"></i> پرداخت کامل</span>
                                                 @endif
@@ -690,6 +696,7 @@
                                             </td>
                                             <td class="hideOnPrint">
                                                 @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                @can('manage_washing_payments')
                                                 <button type="button" class="btn btn-sm btn-success open-allocate-modal-btn" 
                                                         data-payment-id="{{ $adv->id }}"
                                                         data-currency="{{ $adv->currency_code }}"
@@ -697,6 +704,7 @@
                                                         data-exchange-rate="{{ $adv->exchange_rate }}">
                                                     <i class="fa fa-share-square-o"></i> تخصیص به گروپ
                                                 </button>
+                                                @endcan
                                                 @else
                                                 <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
                                                 @endif
@@ -766,9 +774,11 @@
                                                 $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                             </td>
                                             <td class="hideOnPrint">
+                                                @can('manage_washing_payments')
                                                 <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                     <i class="fa fa-undo"></i> لغو تصفیه
                                                 </button>
+                                                @endcan
                                             </td>
                                         </tr>
                                         @empty

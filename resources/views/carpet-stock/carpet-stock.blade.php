@@ -429,9 +429,12 @@
                       <td class="text-primary font-weight-bold font-italic">{{ number_format($carpet->total_price, 2) }} $</td>
                       <td class="hideOnPrint">
                          <div class="btn-group">
+                             @can('view_carpet_stock_details')
                              <a class="btn-modern-action btn-view-details btn-sm" href="/dashboard/carpet-stock-details/{{ $carpet->carpet_id }}" title="مشاهده جزئیات">
                                  <i class="fa fa-eye"></i> جزئیات
                              </a>
+                             @endcan
+                             @can('sell_carpet_from_stock')
                              <button class="btn-modern-action btn-sell btn-sm ml-1" data-toggle="modal" data-target="#sale_modal"
                                  onclick="
                                  $('#carpet_id').val('{{$carpet->carpet_id}}');
@@ -448,6 +451,7 @@
                                  " title="ثبت فروش">
                                  <i class="fa fa-shopping-cart"></i> فروش
                              </button>
+                             @endcan
                          </div>
                       </td>
                     </tr>

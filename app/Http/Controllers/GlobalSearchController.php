@@ -64,7 +64,8 @@ class GlobalSearchController extends Controller
             'sale.customer', 
             'repair.team', 
             'carpet_wash.washing_team', 
-            'finishing_works.team'
+            'finishing_works.team',
+            'carpet_order'
         ])->findOrFail($id);
 
         $statuses = [

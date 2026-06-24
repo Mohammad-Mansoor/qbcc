@@ -10,6 +10,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$employeeEdit)
+              @can('create_employee')
               <form action="/dashboard/office-employee" method="post" id="user-form" enctype="multipart/form-data">
                 @csrf
                 <div class="row">
@@ -129,7 +130,9 @@
                 </div>
 
               </form>
+              @endcan
             @else
+              @can('edit_employee')
               <form action="/dashboard/office-employee/{{$employeeEdit->id}}" enctype="multipart/form-data" method="post"
                 id="user-form">
                 @method('PATCH')
@@ -194,6 +197,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -267,12 +271,16 @@
                   @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                     <th>کارمند بخش</th>
                   @endif
+                  @can('edit_employee')
                   <th>ویرایش</th>
                   <th>قرار داد</th>
-
+                  @endcan
+                  @can('manage_employee_payments')
                   <th>حساب</th>
+                  @endcan
+                  @can('view_employee_statement')
                   <th>صورت حساب</th>
-
+                  @endcan
 
                   <!-- <th>حذف</th> -->
 
@@ -301,17 +309,21 @@
                         @endif
 
 
+                        @can('edit_employee')
                         <td><a href="/dashboard/office-employee/{{$employee->id}}/edit" class="btn btn-sm btn-info"><i
                               class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
-
                         <td><a href="/dashboard/employee-salary/{{$employee->id}}" class="btn btn-sm btn-primary"><i
                               class="fa fa-info-circle"></i>&nbsp;قرار داد </a></td>
-
-
+                        @endcan
+                        
+                        @can('manage_employee_payments')
                         <td><a href="/dashboard/employee-payments/{{$employee->id}}" class="btn btn-sm btn-warning"><i
                               class="fa fa-money"></i>&nbsp;حساب </a></td>
+                        @endcan
+                        @can('view_employee_statement')
                         <td><a href="{{ route('accounting.statements.show', ['entity' => 'employee', 'id' => $employee->id]) }}" class="btn btn-sm btn-info"><i
                               class="fa fa-file-text"></i>&nbsp;صورت حساب </a></td>
+                        @endcan
 
                       </tr>
                     @endif

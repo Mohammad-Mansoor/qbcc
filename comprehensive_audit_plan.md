@@ -1,6 +1,6 @@
 # Comprehensive ERP Integration & Audit Plan (Exhaustive)
 
-This document is the source of truth for the 100% verification of the QBCC Forensic ERP. We will verify every single item from the sidebar one by one.
+This document is the source of truth for the 100% verification of the QBIC Forensic ERP. We will verify every single item from the sidebar one by one.
 
 ## Verification Criteria (The 5 Pillars)
 1.  **Finance**: Automatic transaction triggering in the General Ledger.

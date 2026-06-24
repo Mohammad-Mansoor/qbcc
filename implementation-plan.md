@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Mission Objective
 
-This document serves as the master blueprint for the forensic hardening and financial integrity transformation of the QBCC ERP system. The mission is to transition the ERP from a "functional" state to a "mathematically correct, audit-safe, and production-grade" multi-currency environment.
+This document serves as the master blueprint for the forensic hardening and financial integrity transformation of the QBIC ERP system. The mission is to transition the ERP from a "functional" state to a "mathematically correct, audit-safe, and production-grade" multi-currency environment.
 
 ### 1.1 The Core Mandate
 - **Base Currency**: Absolute anchoring in **USD**.
@@ -545,6 +545,6 @@ public function legacyAction() {
 
 ## 30. Conclusion & Commitment
 
-This plan represents a rigorous commitment to financial truth. By implementing these controls, the QBCC ERP will provide a rock-solid foundation for manufacturing growth and international trade.
+This plan represents a rigorous commitment to financial truth. By implementing these controls, the QBIC ERP will provide a rock-solid foundation for manufacturing growth and international trade.
 
 **END OF MASTER IMPLEMENTATION PLAN (500+ LINES)**

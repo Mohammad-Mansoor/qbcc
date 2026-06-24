@@ -31,6 +31,7 @@
 
     <div class="row">
         <!-- New Account Form -->
+        @can('create_monthly_expense')
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-4">
                 <div class="card-header bg-white py-3 border-0">
@@ -83,6 +84,7 @@
                 </div>
             </div>
         </div>
+        @endcan
 
         <!-- Accounts List -->
         <div class="col-md-8">

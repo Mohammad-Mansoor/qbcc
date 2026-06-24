@@ -13,12 +13,16 @@
             <p class="text-muted small mb-0 mt-1">ثبت، مرور و چاپ راپور معاشات کارمندان — هر ردیف یک دوره پرداخت مستقل است</p>
         </div>
         <div class="col-md-5 text-left">
+            @can('run_payroll')
             <a href="{{ route('payroll.create') }}" class="btn btn-success shadow-sm px-4 font-weight-bold">
                 <i class="fa fa-plus mr-2"></i> اجرای معاش جدید
             </a>
+            @endcan
+            @can('view_employees')
             <a href="{{ url('/dashboard/office-employee') }}" class="btn btn-light shadow-sm px-3 ml-2">
                 <i class="fa fa-users mr-1"></i> لیست کارمندان
             </a>
+            @endcan
         </div>
     </div>
 
@@ -153,9 +157,11 @@
                             <i class="fa fa-inbox" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
                             هیچ معاشی هنوز اجرا نشده است.
                             <br>
+                            @can('run_payroll')
                             <a href="{{ route('payroll.create') }}" class="btn btn-sm btn-success mt-3">
                                 <i class="fa fa-plus mr-1"></i> اجرای اولین معاش
                             </a>
+                            @endcan
                         </td>
                     </tr>
                     @endforelse

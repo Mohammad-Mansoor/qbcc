@@ -72,12 +72,14 @@ class WarehouseMovementController extends Controller
 
         // Check if PDF export is requested
         if ($request->get('export') === 'pdf') {
+            abort_if(!auth()->user()->can('export_warehouse_movements_pdf'), 403);
             $transactions = $query->get();
             return $this->exportToPdf($transactions, $request);
         }
 
         // Check if Excel export is requested
         if ($request->get('export') === 'excel') {
+            abort_if(!auth()->user()->can('export_warehouse_movements_excel'), 403);
             $transactions = $query->get();
             return $this->exportToExcel($transactions, $request);
         }

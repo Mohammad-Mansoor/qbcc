@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class NewMonthlyExpenseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_monthly_expense')->only(['store']);
+        // edit, update, destroy are not implemented here but good to protect if they ever are
+        $this->middleware('permission:manage_monthly_expense_payments')->only(['edit', 'update', 'destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *

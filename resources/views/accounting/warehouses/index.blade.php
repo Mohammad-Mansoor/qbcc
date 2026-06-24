@@ -14,9 +14,11 @@
                             <p class="mb-0 opacity-80">تعریف و مدیریت انبارهای مواد اولیه، محصولات نهایی و کالاهای در جریان ساخت (WIP).</p>
                         </div>
                         <div class="col-md-4 text-right">
+                            @can('create_warehouse')
                             <button class="btn btn-primary rounded-pill px-4 shadow" data-toggle="modal" data-target="#addWarehouseModal">
                                 <i class="feather icon-plus mr-2"></i> افزودن گدام جدید
                             </button>
+                            @endcan
                         </div>
                     </div>
                 </div>
@@ -90,16 +92,23 @@
                                 <i class="feather icon-more-vertical"></i>
                             </button>
                             <div class="dropdown-menu dropdown-menu-left shadow-lg border-0" style="border-radius: 10px; min-width: 180px;">
+                                @can('edit_warehouse')
                                 <a class="dropdown-item py-2" href="#!" data-toggle="modal" data-target="#editWarehouseModal{{ $warehouse->id }}">
                                     <i class="fa fa-edit mr-2 text-info"></i> ویرایش اطلاعات
                                 </a>
+                                @endcan
+                                @can('view_warehouse_in_out_report')
                                 <a class="dropdown-item py-2" href="{{ route('accounting.warehouses.movements', ['warehouse_id' => $warehouse->id]) }}">
                                     <i class="feather icon-activity mr-2 text-primary"></i> گزارش ورودی و خروجی
                                 </a>
+                                @endcan
+                                @can('view_warehouse_available_stock')
                                 <a class="dropdown-item py-2" href="{{ route('accounting.warehouses.stock_report', $warehouse->id) }}">
                                     <i class="feather icon-box mr-2 text-success"></i> گزارش موجودی (Stock)
                                 </a>
+                                @endcan
                                 @if($warehouse->id != 1)
+                                @can('delete_warehouse')
                                 <div class="dropdown-divider"></div>
                                 <form action="{{ route('accounting.warehouses.destroy', $warehouse->id) }}" method="POST" class="d-inline" onsubmit="return confirm('آیا از حذف این گدام اطمینان دارید؟');">
                                     @csrf
@@ -108,6 +117,7 @@
                                         <i class="fa fa-trash mr-2"></i> حذف گدام
                                     </button>
                                 </form>
+                                @endcan
                                 @endif
                             </div>
                         </div>

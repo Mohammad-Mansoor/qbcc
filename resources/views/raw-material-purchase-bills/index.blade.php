@@ -30,9 +30,11 @@
           </h5>
           <small style="color:#94a3b8;">مدیریت بل‌های خرید مواد خام — شناسه سریال: RM-PB-YYYY-NNNN</small>
         </div>
+        @can('create_raw_material_bill')
         <a href="{{ route('raw-material-purchase-bills.create') }}" class="btn btn-primary btn-sm" style="border-radius:6px; font-weight:600;">
           <i class="fa fa-plus-circle"></i> ثبت بل جدید
         </a>
+        @endcan
       </div>
     </div>
 
@@ -95,16 +97,20 @@
                      style="background:#10b981; color:#fff; padding:4px 12px; border-radius:6px; font-size:.78rem; font-weight:600; text-decoration:none; margin-left:4px;">
                     <i class="fa fa-eye"></i> مشاهده
                   </a>
+                  @can('edit_raw_material_bill')
                   <a href="{{ route('raw-material-purchase-bills.edit', $bill->id) }}"
                      class="btn btn-xs"
                      style="background:#3b82f6; color:#fff; padding:4px 12px; border-radius:6px; font-size:.78rem; font-weight:600; text-decoration:none;">
                     <i class="fa fa-edit"></i> ویرایش
                   </a>
+                  @endcan
+                  @can('delete_raw_material_bill')
                   <button onclick="deleteBill({{ $bill->id }})"
                           class="btn btn-xs"
                           style="background:#ef4444; color:#fff; padding:4px 10px; border-radius:6px; font-size:.78rem; margin-right:4px; border:none; cursor:pointer;">
                     <i class="fa fa-trash"></i>
                   </button>
+                  @endcan
                 </td>
               </tr>
             @empty

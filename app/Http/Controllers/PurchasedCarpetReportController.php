@@ -11,6 +11,12 @@ use DB;
 
 class PurchasedCarpetReportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_purchased_carpets_report')->only('index');
+        $this->middleware('permission:export_purchased_carpets_excel')->only('exportExcel');
+        $this->middleware('permission:export_purchased_carpets_pdf')->only('exportPdf');
+    }
     private $statuses = [
         '' => 'همه حالت‌ها (All)',
         0 => 'در نزد نماینده (With agent)',

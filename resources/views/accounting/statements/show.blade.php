@@ -65,12 +65,41 @@
                                 <a href="{{ route('accounting.statements.show', ['entity' => $entityKey, 'id' => $entity->id]) }}" class="btn btn-light rounded-pill px-4 mr-2" style="height: 38px; display: inline-flex; align-items: center;">
                                     پاک کردن فیلتر
                                 </a>
+                                @php
+                                    $excelPermission = null;
+                                    $pdfPermission = null;
+                                    if ($entityKey === 'customer') {
+                                        $excelPermission = 'export_customer_statement_excel';
+                                        $pdfPermission = 'export_customer_statement_pdf';
+                                    } elseif ($entityKey === 'agents') {
+                                        $excelPermission = 'export_agent_statement_excel';
+                                        $pdfPermission = 'export_agent_statement_pdf';
+                                    } elseif ($entityKey === 'different-account') {
+                                        $excelPermission = 'export_different_account_statement_excel';
+                                        $pdfPermission = 'export_different_account_statement_pdf';
+                                    } elseif ($entityKey === 'kachayee-team') {
+                                        $excelPermission = 'export_kachaee_statement_excel';
+                                        $pdfPermission = 'export_kachaee_statement_pdf';
+                                    } elseif ($entityKey === 'washing-team') {
+                                        $excelPermission = 'export_washing_statement_excel';
+                                        $pdfPermission = 'export_washing_statement_pdf';
+                                    } elseif ($entityKey === 'tayaari-team') {
+                                        $excelPermission = 'export_finishing_statement_excel';
+                                        $pdfPermission = 'export_finishing_statement_pdf';
+                                    }
+                                @endphp
+
+                                @if(!$pdfPermission || auth()->user()->can($pdfPermission))
                                 <button type="button" class="btn btn-info rounded-pill px-4 mr-2 shadow-sm" onclick="window.print();" style="height: 38px;">
                                     <i class="fa fa-print mr-1"></i> چاپ صورت حساب
                                 </button>
+                                @endif
+
+                                @if(!$excelPermission || auth()->user()->can($excelPermission))
                                 <button type="submit" name="export" value="excel" class="btn btn-success rounded-pill px-4 shadow-sm" style="height: 38px;">
                                     <i class="fa fa-file-excel-o mr-1"></i> خروجی اکسل
                                 </button>
+                                @endif
                             </div>
                         </div>
                     </form>

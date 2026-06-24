@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Auth;
 
 class DifferentAccountController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_different_account')->only(['create', 'store']);
+        $this->middleware('permission:edit_different_account')->only(['edit', 'update']);
+        $this->middleware('permission:delete_different_account')->only('destroy');
+    }
+
     /**
      * Display a listing of the resource.
      *

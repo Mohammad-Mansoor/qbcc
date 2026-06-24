@@ -19,6 +19,10 @@ class NewDifferentAccountPaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->middleware('permission:manage_different_account_payments')->only(['create', 'store', 'edit', 'update', 'destroy']);
+        $this->middleware('permission:view_different_account_money_requests')->only(['money_request']);
+        $this->middleware('permission:approve_different_account_money_requests')->only(['approve_request']);
+        $this->middleware('permission:reject_different_account_money_requests')->only(['delete_request']);
     }
 
     private function postPaymentToAccounting($payment)

@@ -15,6 +15,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$mtypeEdit)
+              @can('create_material_type')
               <form action="/dashboard/materialtypes" method="post">
                 @csrf
                 <div class="row">
@@ -46,7 +47,9 @@
                 </div>
               
               </form>
+              @endcan
             @else
+              @can('edit_material_type')
               <form action="/dashboard/materialtypes/{{$mtypeEdit->material_type_id}}" method="post">
                 @csrf
                 @method('PUT')
@@ -80,6 +83,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -129,8 +133,12 @@
                   <td>{{$type->material_type_id}}</td>
                   <td>{{$type->material_type}}</td>
                   <td>{{$type->subtype_fa}}</td>
-                  <td><a href="/dashboard/materialtypes/{{$type->material_type_id}}/edit"
-                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  <td>
+                    @can('edit_material_type')
+                    <a href="/dashboard/materialtypes/{{$type->material_type_id}}/edit"
+                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
+                    @endcan
+                  </td>
         
                 </tr>
               @empty

@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class RawMaterialPurchaseBillController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_raw_material_bill')->only(['create', 'store']);
+        $this->middleware('permission:edit_raw_material_bill')->only(['edit', 'update']);
+        $this->middleware('permission:delete_raw_material_bill')->only('destroy');
+        $this->middleware('permission:close_raw_material_bill')->only('closeBill');
+    }
+
     /**
      * Generate next serial bill number: RM-PB-YYYY-NNNN
      */
@@ -96,10 +104,12 @@ class RawMaterialPurchaseBillController extends Controller
             }
 
             if ($request->get('export') === 'pdf') {
+                abort_unless(Auth::user()->can('print_raw_material_bill_pdf'), 403);
                 return view('raw-material-purchase-bills.pdf', compact('bill', 'purchases', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
             }
 
             if ($request->get('export') === 'excel') {
+                abort_unless(Auth::user()->can('export_raw_material_bill_excel'), 403);
                 $filename = 'raw_material_bill_' . $bill->bill_number . '_' . date('Y_m_d_His') . '.xls';
                 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
                 header('Content-Disposition: attachment; filename="' . $filename . '"');

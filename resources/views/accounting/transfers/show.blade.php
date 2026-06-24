@@ -156,7 +156,7 @@
 
                 <!-- Reversal Action Section -->
                 @if($transfer->status === 'posted')
-                    @if(auth()->user()->role === 'SP' || auth()->user()->role === 'FI')
+                    @can('reverse_inventory_transfer')
                     <div class="reversal-box mt-5 shadow-sm">
                         <h6 class="text-danger font-weight-bold mb-3"><i class="fa fa-exclamation-triangle mr-2"></i> ابطال مکتوب انتقال (Reversal Flow)</h6>
                         <p class="small text-muted mb-4">
@@ -180,7 +180,7 @@
                             </div>
                         </form>
                     </div>
-                    @endif
+                    @endcan
                 @endif
             </div>
         </div>

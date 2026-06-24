@@ -121,12 +121,16 @@
                     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                         <div class="text-muted">تاریخچه تراکنش‌های <span class="badge badge-indigo text-white px-3" style="background: #3f51b5;">{{ $agent->display_name }}</span></div>
                         <div id="export-buttons">
+                            @can('export_agent_statement_excel')
                             <a href="{{ route('accounting.reports.agent_statement', array_merge(request()->all(), ['export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
                                 <i class="feather icon-file-text"></i> EXCEL
                             </a>
+                            @endcan
+                            @can('export_agent_statement_pdf')
                             <a href="{{ route('accounting.reports.agent_statement', array_merge(request()->all(), ['export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
                                 <i class="feather icon-file"></i> PDF
                             </a>
+                            @endcan
                             <button onclick="window.print()" class="btn btn-dark rounded-pill px-4">
                                 <i class="feather icon-printer"></i> PRINT
                             </button>

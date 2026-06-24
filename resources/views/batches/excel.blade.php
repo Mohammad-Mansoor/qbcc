@@ -38,7 +38,7 @@
                 @if(isset($logoBase64) && $logoBase64)
                     <img src="{{ $logoBase64 }}" width="65" height="65" alt="Logo">
                 @else
-                    <span style="font-weight: bold; color: #1e3a8a; font-size: 18pt;">QBCC</span>
+                    <span style="font-weight: bold; color: #1e3a8a; font-size: 18pt;">QBIC</span>
                 @endif
             </td>
             <td colspan="{{ $batch->type == 'finish' ? '5' : '4' }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
@@ -107,12 +107,15 @@
         <tbody>
             @forelse($carpets as $index => $item)
                 @php 
-                    $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff'; 
+                                    $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff';
                     $area = isset($item->carpet->area) && $item->carpet->area > 0 ? $item->carpet->area : 1;
                     $price = 0;
-                    if($batch->type == 'finish') $price = $item->price;
-                    elseif($batch->type == 'kachaee') $price = $item->total_price;
-                    elseif($batch->type == 'wash') $price = $item->total_price ?: $item->af_total_price;
+                    if ($batch->type == 'finish')
+                        $price = $item->price;
+                    elseif ($batch->type == 'kachaee')
+                        $price = $item->total_price;
+                    elseif ($batch->type == 'wash')
+                        $price = $item->total_price ?: $item->af_total_price;
                 @endphp
                 <tr style="background-color: {{ $rowBgColor }};">
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $index + 1 }}</td>
@@ -138,7 +141,8 @@
 
             <tr>
                 <td colspan="6" class="meta-label" style="height: 26pt;">مجموع کل مساحت:</td>
-                <td class="text-center font-bold" style="background-color: #f1f5f9; direction: ltr; height: 26pt;">{{ number_format($carpets->sum(function($c) { return $c->carpet->area ?? 0; }), 2) }}</td>
+                <td class="text-center font-bold" style="background-color: #f1f5f9; direction: ltr; height: 26pt;">{{ number_format($carpets->sum(function ($c) {
+    return $c->carpet->area ?? 0; }), 2) }}</td>
                 @if($batch->type == 'finish')
                     <td class="meta-label" style="height: 26pt;">مبلغ کل (USD):</td>
                     <td class="text-left font-bold" style="background-color: #eff6ff; color: #2563eb; direction: ltr; height: 26pt;">${{ number_format($totalCost, 2) }}</td>
@@ -178,7 +182,7 @@
                         </td>
                     </tr>
                 @endforeach
-                
+
                 <tr>
                     <td colspan="4" style="border: none;"></td>
                     <td class="meta-label" style="height: 24pt;">مجموع پرداخت شده:</td>

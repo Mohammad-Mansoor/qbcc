@@ -254,6 +254,7 @@
 
     <!-- Entry Form Section -->
     @if(!isset($all))
+    @can('manage_finishing_payments')
     <div class="premium-card form-card-parent">
         <div class="card-header-premium">
             <h5><i class="fa fa-plus-circle mr-2"></i> {{ $paymentEdit ? 'ویرایش سند پرداخت (Edit Payment)' : 'ثبت تراکنش جدید (New Entry)' }}</h5>
@@ -377,6 +378,7 @@
             </form>
         </div>
     </div>
+    @endcan
     @endif
 
     <!-- 3-TABBED FORENSIC MODULE -->
@@ -459,6 +461,7 @@
                                             </td>
                                             <td class="hideOnPrint text-center">
                                                 @if($p->status == 0 || auth()->user()->role == 'SP')
+                                                    @can('manage_finishing_payments')
                                                     <div class="btn-group">
                                                         <a href="/dashboard/finishing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-warning">
                                                             <i class="fa fa-edit"></i>
@@ -467,6 +470,7 @@
                                                             <i class="fa fa-trash"></i>
                                                         </button>
                                                     </div>
+                                                    @endcan
                                                 @endif
                                             </td>
                                         </tr>
@@ -559,12 +563,14 @@
                                             </td>
                                             <td>
                                                 @if($group['remaining_balance'] > 0)
+                                                @can('manage_finishing_payments')
                                                 <button type="button" class="btn btn-sm btn-success pay-finish-btn" 
                                                         data-ref="{{ $group['reference'] }}" 
                                                         data-remaining="{{ $group['remaining_balance'] }}" 
                                                         data-currency="USD">
                                                     <i class="fa fa-credit-card"></i> تصفیه گروپ
                                                 </button>
+                                                @endcan
                                                 @else
                                                 <span class="text-success"><i class="fa fa-check-circle"></i> پرداخت کامل</span>
                                                 @endif
@@ -693,6 +699,7 @@
                                             </td>
                                             <td class="hideOnPrint">
                                                 @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                @can('manage_finishing_payments')
                                                 <button type="button" class="btn btn-sm btn-success open-allocate-modal-btn" 
                                                          data-payment-id="{{ $adv->id }}"
                                                          data-currency="{{ $adv->currency_code }}"
@@ -700,6 +707,7 @@
                                                          data-exchange-rate="{{ $adv->exchange_rate }}">
                                                     <i class="fa fa-share-square-o"></i> تخصیص به گروپ
                                                 </button>
+                                                @endcan
                                                 @else
                                                 <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
                                                 @endif
@@ -764,9 +772,11 @@
                                                 $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                             </td>
                                             <td class="hideOnPrint">
+                                                @can('manage_finishing_payments')
                                                 <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                     <i class="fa fa-undo"></i> لغو تصفیه
                                                 </button>
+                                                @endcan
                                             </td>
                                         </tr>
                                         @empty

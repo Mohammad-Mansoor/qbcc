@@ -11,6 +11,7 @@
                 <div class="card-body">
                     <div class="all-form-element-inner">
                         @if(!$editUser)
+                            @can('create_user')
                             <form action="/dashboard/users" method="post" id="user-form">
                                 @csrf
                                 <div class="row">
@@ -43,18 +44,9 @@
                                             <select name="role" id="" class="form-control"
                                                     required
                                                     data-parsley-required-message="نوعیت کاربر الزامی هست">
-                                                <option value="CO">دفتر مرکزی</option>
-                                                <option value="CCO">دفتر مرکزی و مشتریان</option>
-                                                <option value="SO">دفتر فروشات</option>
-                                                <option value="SCO">دفتر فروشات و مشتریان</option>
-                                                <option value="MO">حساب متفرقه</option>
-                                                <option value="SP">سوپر ادمین</option>
-                                                <option value="PH">عکاس</option>
-                                                <option value="OM">امید</option>
-                                                   <option value="DE">دیتا انتری</option>
-                                                      <option value="FI">کارمند مالی</option>
-                                            
-
+                                                @foreach($spatieRoles as $r)
+                                                    <option value="{{ $r->name }}">{{ $r->name }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>
@@ -111,7 +103,11 @@
                                     </div>
                                 </div>
                             </form>
+                            @else
+                                <div class="alert alert-warning">شما دسترسی ایجاد کاربر جدید را ندارید.</div>
+                            @endcan
                         @else
+                            @can('edit_user')
                             <form action="/dashboard/users/{{$editUser->id}}" method="post" id="user-form">
                                 @method('PATCH')
                                 @csrf
@@ -146,45 +142,9 @@
                                             <select name="role" id="" class="form-control"
                                                     required
                                                     data-parsley-required-message="نوعیت کاربر الزامی هست">
-                                                <option value="SP" {{ ($editUser->role == 'SP' ? 'selected' : '') }}>
-                                                    سوپر ادمین
-                                                </option>
-                                                <option value="CO" {{ ($editUser->role == 'CO' ? 'selected' : '') }}>
-                                                    دفتر
-                                                    مرکزی
-                                                </option>
-                                                <option value="CCO" {{ ($editUser->role == 'CCO' ? 'selected' : '') }}>
-                                                    دفتر
-                                                    مرکزی و مشتریان
-                                                </option>
-                                                <option value="SO" {{ ($editUser->role == 'SO' ? 'selected' : '') }}>
-                                                    دفتر
-                                                    فروشات و تیاری
-                                                </option>
-                                                <option value="SCO" {{ ($editUser->role == 'SCO' ? 'selected' : '') }}>
-                                                    دفتر
-                                                    فروشات و مشتریان
-                                                </option>
-                                                <option value="MO" {{ ($editUser->role == 'MO' ? 'selected' : '') }}>
-                                                    حساب
-                                                    متفرقه
-                                                </option>
-                                                <option value="PH" {{ ($editUser->role == 'PH' ? 'selected' : '') }}>
-                                                   عکاس
-                                                </option>
-                                                <option value="AO" {{ ($editUser->role == 'AO' ? 'selected' : '') }}>
-                                                    حساب نماینده
-                                                </option>
-                                                <option value="OM" {{ ($editUser->role == 'OM' ? 'selected' : '') }}>
-                                                    امید
-                                                </option>
-                                               <option value="DE" {{ ($editUser->role == 'DE' ? 'selected' : '') }}>
-                                                    دیتا انتری
-                                                </option>
-                                                <option value="FI" {{ ($editUser->role == 'FI' ? 'selected' : '') }}>
-                                                   کارمند مالی
-                                                </option>
-
+                                                @foreach($spatieRoles as $r)
+                                                    <option value="{{ $r->name }}" {{ ($editUser->role == $r->name ? 'selected' : '') }}>{{ $r->name }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>
@@ -241,6 +201,9 @@
                                 </div>
 
                             </form>
+                            @else
+                                <div class="alert alert-warning">شما دسترسی ویرایش کاربر را ندارید.</div>
+                            @endcan
                         @endif
                     </div>
                 </div>
@@ -313,12 +276,15 @@
                                 @endif
                                 <td>{{$user->email}}</td>
                                 <td class="hideOnPrint text-center">
+                                    @can('edit_user')
                                     <a href="/dashboard/users/{{$user->id}}/edit" class="btn btn-sm btn-info"><i
                                                 class="fa fa-pencil"></i>&nbsp; ویرایش</a>
-    
+                                    @endcan
+                                    @can('delete_user')
                                     <button onclick="deleteUser({{$user->id}})"
                                             class="btn btn-danger btn-sm ">حذف
                                     </button>
+                                    @endcan
                                 </td>
                               
     

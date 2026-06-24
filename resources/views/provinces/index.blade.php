@@ -15,6 +15,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$provinceEdit)
+              @can('create_province')
               <form action="/dashboard/provinces" method="post">
                 @csrf
                 <div class="row">
@@ -35,7 +36,9 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @else
+              @can('edit_province')
               <form action="/dashboard/provinces/{{$provinceEdit->province_id}}" method="post">
                 @csrf
                 @method('PUT')
@@ -58,6 +61,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -92,7 +96,7 @@
               <tr>
                 {{-- <th class="text-center">آی دی</th> --}}
                 <th>ولایت</th>
-                <th>ویرایش</th>
+                @can('edit_province')<th>ویرایش</th>@endcan
       
               </tr>
               </thead>
@@ -101,8 +105,10 @@
                 <tr class="ur{{ $province->province_id }} ">
                   {{-- <td>{{$province->province_id}}</td> --}}
                   <td>{{$province->province}}</td>
+                  @can('edit_province')
                   <td><a href="/dashboard/provinces/{{$province->province_id}}/edit"
                          class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  @endcan
         
                 </tr>
               @empty

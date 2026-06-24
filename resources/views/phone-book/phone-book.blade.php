@@ -27,6 +27,7 @@
                 </div>
                 <div class="card-body">
                     <div class="all-form-element-inner">
+                        @can('create_phone_book')
                         <form id="phone-book" action="/dashboard/phone-book" method="post">
                             @csrf
                             <div class="row">
@@ -83,6 +84,7 @@
                                 </div>
                             </div>
                         </form>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -116,8 +118,8 @@
                                 <th>وظیفه</th>
                                 <th>تلفن</th>
                                 <th>ایمیل</th>
-                                <th>ویرایش</th>
-                                <th>حذف</th>
+                                @can('edit_phone_book')<th>ویرایش</th>@endcan
+                                @can('delete_phone_book')<th>حذف</th>@endcan
                             </tr>
                             </thead>
                             <tbody>
@@ -128,13 +130,17 @@
                                     <td>{{$phone->job_title}}</td>
                                     <td>{{$phone->phone}}</td>
                                     <td>{{$phone->email}}</td>
+                                    @can('edit_phone_book')
                                     <td class="hideOnPrint"><a href="/dashboard/phone-book/{{$phone->phone_book_id}}/edit"
                                            class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                                    @endcan
+                                    @can('delete_phone_book')
                                     <td class="hideOnPrint">
                                         <button onclick="RemovePhone({{ $phone->phone_book_id }})"
                                                 class="btn btn-danger btn-sm"><i class="fa fa-remove"></i> &nbsp; حذف
                                         </button>
                                     </td>
+                                    @endcan
                                 </tr>
                             @endforeach
                             </tbody>

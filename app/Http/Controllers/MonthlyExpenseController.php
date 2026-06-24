@@ -17,6 +17,8 @@ class MonthlyExpenseController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->middleware('permission:create_monthly_expense')->only(['store']);
+        $this->middleware('permission:manage_monthly_expense_payments')->only(['edit', 'update', 'destroy']);
     }
 
     private function postExpenseToAccounting($expense)

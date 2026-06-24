@@ -83,6 +83,7 @@
         </div>
 
         <!-- Create/Edit Customer Form Card -->
+        @if(!$customerEdit && auth()->user()->can('create_customer') || $customerEdit && auth()->user()->can('edit_customer'))
         <div class="card border-0 shadow-sm mb-4 hideOnPrint"
             style="background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(15px); border-radius: 12px;">
             <div class="card-header bg-transparent border-0 pt-4 pb-0">
@@ -169,6 +170,7 @@
                 </form>
             </div>
         </div>
+        @endif
 
         <!-- Customer List Table Card -->
         <div class="card border-0 shadow-sm" style="border-radius: 12px;">
@@ -258,21 +260,27 @@
                                     </td>
                                     <td class="hideOnPrint text-center">
                                         <div class="btn-group">
+                                            @can('edit_customer')
                                             <a href="/dashboard/customers/{{$cust->id}}/edit"
                                                 class="btn btn-sm btn-outline-warning mr-1 p-1 px-2" title="ویرایش"
                                                 style="border-radius: 6px;">
                                                 <i class="feather icon-edit-2"></i>
                                             </a>
+                                            @endcan
+                                            @can('manage_customer_payments')
                                             <a href="/dashboard/customer-payments/{{$cust->id}}"
                                                 class="btn btn-sm btn-outline-info p-1 px-2" title="حساب و پرداخت"
                                                 style="border-radius: 6px;">
                                                 <i class="feather icon-credit-card"></i>
                                             </a>
+                                            @endcan
+                                            @can('view_customer_statement')
                                             <a href="{{ route('accounting.statements.show', ['entity' => 'customer', 'id' => $cust->id]) }}"
                                                 class="btn btn-sm btn-outline-primary p-1 px-2 ml-1" title="صورت حساب مالی"
                                                 style="border-radius: 6px;">
                                                 <i class="feather icon-file-text"></i>
                                             </a>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

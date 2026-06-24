@@ -25,6 +25,11 @@ class FinishingTeamPaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        
+        $this->middleware('permission:view_finishing_money_requests')->only(['money_request']);
+        $this->middleware('permission:approve_finishing_money_requests')->only(['approve_request']);
+        $this->middleware('permission:reject_finishing_money_requests')->only(['delete_request']);
+        $this->middleware('permission:manage_finishing_payments')->only(['store', 'show', 'show_all_payment', 'edit', 'update', 'destroy', 'allocateAdvance', 'removeAllocation']);
     }
 
     public function index()

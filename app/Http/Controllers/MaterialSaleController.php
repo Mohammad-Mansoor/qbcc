@@ -25,6 +25,15 @@ class MaterialSaleController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+
+        // Apply Spatie Permissions
+        $this->middleware('permission:view_material_sales')->only(['index', 'get_sale_info', 'search_sale_number']);
+        $this->middleware('permission:create_material_sale')->only(['create', 'store']);
+        $this->middleware('permission:edit_material_sale')->only(['edit', 'update']);
+        $this->middleware('permission:delete_material_sale')->only('destroy');
+        $this->middleware('permission:view_material_sale_requests')->only('request_list');
+        $this->middleware('permission:approve_material_sale_requests')->only('approve_request');
+        $this->middleware('permission:reject_material_sale_requests')->only('delete_request');
     }
 
     public function get_sale_info(Request $request)

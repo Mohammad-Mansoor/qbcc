@@ -84,14 +84,22 @@
                                 <td>{{ $r->description }}</td>
                                 <td>{{ $r->date }}</td>
                                 <td class="hideOnPrint text-center">
+                                    @can('approve_customer_money_requests')
                                     <button onclick="approveRequest({{$r->id}})" class="btn btn-sm btn-outline-success px-3" style="border-radius: 6px;">
                                         <i class="fa fa-check mr-1"></i> تایید
                                     </button>
+                                    @else
+                                    <span class="text-muted" style="font-size: 0.85rem;">-</span>
+                                    @endcan
                                 </td>
                                 <td class="hideOnPrint text-center">
+                                    @can('reject_customer_money_requests')
                                     <button onclick="deleteRequest({{$r->id}})" class="btn btn-sm btn-outline-danger px-3" style="border-radius: 6px;">
                                         <i class="fa fa-times mr-1"></i> رد کردن
                                     </button>
+                                    @else
+                                    <span class="text-muted" style="font-size: 0.85rem;">-</span>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

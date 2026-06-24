@@ -161,13 +161,18 @@
                         </div>
                         <div class="col-md-6 text-right">
                              @if($transaction->status == 'posted')
+                                @can('reverse_journal')
                                 <button type="button" class="btn btn-outline-danger px-4 rounded-pill mr-2" data-toggle="modal" data-target="#reverseModal">
                                     <i class="feather icon-rotate-ccw mr-1"></i> ابطال سند
                                 </button>
+                                @endcan
                              @endif
+                             
+                             @can('print_journal')
                              <a href="{{ route('accounting.journals.print', $transaction->id) }}?export=pdf" target="_blank" class="btn btn-primary rounded-pill px-4 shadow">
                                 <i class="feather icon-printer mr-2"></i> چاپ سند (Print PDF)
                              </a>
+                             @endcan
                         </div>
                     </div>
                 </div>

@@ -142,16 +142,23 @@
                 {{-- Actions --}}
                 <td class="hideOnPrint" style="padding: 10px 16px; text-align: center; white-space: nowrap;">
                   <div style="display: inline-flex; gap: 4px;">
+                    @can('approve_employee_money_requests')
                     <button onclick="approveRequest({{ $r->id }})"
                             title="تایید — ثبت در GL"
                             style="background: #10b981; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer; white-space: nowrap;">
                       <i class="fa fa-check"></i> تایید
                     </button>
+                    @endcan
+                    @can('reject_employee_money_requests')
                     <button onclick="deleteRequest({{ $r->id }})"
                             title="رد درخواست"
                             style="background: #ef4444; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer;">
                       <i class="fa fa-times"></i> رد
                     </button>
+                    @endcan
+                    @if(!auth()->user()->can('approve_employee_money_requests') && !auth()->user()->can('reject_employee_money_requests'))
+                      <span style="color: #94a3b8;">—</span>
+                    @endif
                   </div>
                 </td>
               </tr>

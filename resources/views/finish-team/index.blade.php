@@ -190,12 +190,16 @@
             <h3 class="modern-title"><i class="fa fa-users"></i> مدیریت تیم‌های تیاری (Finishing Teams)</h3>
           </div>
           <div class="col-md-6 text-left hideOnPrint">
+            @can('create_finishing_team')
             <button type="button" class="btn btn-sm btn-success rounded-pill px-3 ml-2" data-toggle="modal" data-target="#createTeamModal">
               <i class="fa fa-plus"></i> ثبت تیم جدید
             </button>
+            @endcan
+            @can('view_finishing_team_statement')
             <a href="/dashboard/finishing-accounts" class="btn btn-sm btn-info rounded-pill px-3 ml-2">
               <i class="fa fa-user-secret"></i> کارمندان حسابدار
             </a>
+            @endcan
             <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="printPage('teams')">
               <i class="fa fa-print"></i> چاپ
             </button>
@@ -276,19 +280,25 @@
                     @endif
 
                     <td class="hideOnPrint text-center">
+                      @can('edit_finishing_team')
                       <a href="/dashboard/finish-team/{{$t->id}}/edit" class="btn btn-sm btn-warning text-white" data-toggle="tooltip" title="ویرایش تیم">
                         <i class="fa fa-edit"></i>
                       </a>
+                      @endcan
                     </td>
                     <td class="hideOnPrint text-center">
+                      @can('manage_finishing_payments')
                       <a href="/dashboard/finishing-payments/{{$t->id}}" class="btn btn-sm btn-primary text-white" data-toggle="tooltip" title="حسابات و پرداخت‌ها">
                         <i class="fa fa-calculator"></i>
                       </a>
+                      @endcan
                     </td>
                     <td class="hideOnPrint text-center">
+                      @can('view_finishing_team_statement')
                       <a href="{{ route('accounting.statements.show', ['entity' => 'tayaari-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info text-white" data-toggle="tooltip" title="صورت حساب مالی">
                         <i class="fa fa-file-text"></i>
                       </a>
+                      @endcan
                     </td>
                   </tr>
                 @endforeach
@@ -316,19 +326,25 @@
                       @endif
 
                       <td class="hideOnPrint text-center">
+                        @can('edit_finishing_team')
                         <a href="/dashboard/finish-team/{{$t->id}}/edit" class="btn btn-sm btn-warning text-white" data-toggle="tooltip" title="ویرایش تیم">
                           <i class="fa fa-edit"></i>
                         </a>
+                        @endcan
                       </td>
                       <td class="hideOnPrint text-center">
+                        @can('manage_finishing_payments')
                         <a href="/dashboard/finishing-payments/{{$t->id}}" class="btn btn-sm btn-primary text-white" data-toggle="tooltip" title="حسابات و پرداخت‌ها">
                           <i class="fa fa-calculator"></i>
                         </a>
+                        @endcan
                       </td>
                       <td class="hideOnPrint text-center">
+                        @can('view_finishing_team_statement')
                         <a href="{{ route('accounting.statements.show', ['entity' => 'tayaari-team', 'id' => $t->id]) }}" class="btn btn-sm btn-info text-white" data-toggle="tooltip" title="صورت حساب مالی">
                           <i class="fa fa-file-text"></i>
                         </a>
+                        @endcan
                       </td>
                     </tr>
                   @endif

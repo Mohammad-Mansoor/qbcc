@@ -169,16 +169,20 @@
 
                 {{-- Actions --}}
                 <td class="hideOnPrint" style="padding: 10px 16px; text-align: center; white-space: nowrap;">
+                  @can('approve_purchase_material_requests')
                   <button onclick="approveRequest({{ $p->id }})"
                           class="btn btn-xs"
                           style="background: #10b981; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer; margin-bottom: 4px;">
                     <i class="fa fa-check"></i> تایید
                   </button>
+                  @endcan
+                  @can('reject_purchase_material_requests')
                   <button onclick="deleteRequest({{ $p->id }})"
                           class="btn btn-xs"
                           style="background: #ef4444; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer;">
                     <i class="fa fa-times"></i> رد
                   </button>
+                  @endcan
                 </td>
               </tr>
             @empty

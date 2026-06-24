@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class CarpetOrderController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_orders')->only(['index', 'show']);
+        $this->middleware('permission:create_order')->only(['create', 'store']);
+        $this->middleware('permission:edit_order')->only(['edit', 'update']);
+        $this->middleware('permission:delete_order')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

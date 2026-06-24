@@ -132,12 +132,58 @@
                     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                         <div class="text-muted">تاریخچه تراکنش‌های <span class="badge badge-indigo text-white px-3" style="background: #3f51b5;">{{ $selectedEntity->display_name }}</span></div>
                         <div id="export-buttons">
-                            <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
-                                <i class="feather icon-file-text"></i> EXCEL
-                            </a>
-                            <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
-                                <i class="feather icon-file"></i> PDF
-                            </a>
+                            @if($entityKey === 'different-account')
+                                @can('export_different_account_statement_excel')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file-text"></i> EXCEL
+                                    </a>
+                                @endcan
+                                @can('export_different_account_statement_pdf')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file"></i> PDF
+                                    </a>
+                                @endcan
+                            @elseif($entityKey === 'kachayee-team')
+                                @can('export_kachaee_statement_excel')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file-text"></i> EXCEL
+                                    </a>
+                                @endcan
+                                @can('export_kachaee_statement_pdf')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file"></i> PDF
+                                    </a>
+                                @endcan
+                            @elseif($entityKey === 'washing-team')
+                                @can('export_washing_statement_excel')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file-text"></i> EXCEL
+                                    </a>
+                                @endcan
+                                @can('export_washing_statement_pdf')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file"></i> PDF
+                                    </a>
+                                @endcan
+                            @elseif($entityKey === 'tayaari-team')
+                                @can('export_finishing_statement_excel')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file-text"></i> EXCEL
+                                    </a>
+                                @endcan
+                                @can('export_finishing_statement_pdf')
+                                    <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                        <i class="feather icon-file"></i> PDF
+                                    </a>
+                                @endcan
+                            @else
+                                <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'excel'])) }}" class="btn btn-success rounded-pill px-4 mr-2">
+                                    <i class="feather icon-file-text"></i> EXCEL
+                                </a>
+                                <a href="{{ route('accounting.reports.entity_statement', array_merge(request()->all(), ['entity' => $entityKey, 'export' => 'pdf'])) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2">
+                                    <i class="feather icon-file"></i> PDF
+                                </a>
+                            @endif
                             <button onclick="window.print()" class="btn btn-dark rounded-pill px-4">
                                 <i class="feather icon-printer"></i> PRINT
                             </button>

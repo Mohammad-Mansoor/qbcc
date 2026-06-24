@@ -102,6 +102,9 @@ class CustomerOrderController extends Controller
      */
     public function edit($order_id)
     {
+        if (!auth()->user()->can('edit_customer_order')) {
+            abort(403, 'شما اجازه ویرایش این بخش را ندارید.');
+        }
         $orderEdit = CustomerOrder::findOrFail($order_id);
         $customer = \App\Customer::findOrFail($orderEdit->main_customer_id);
         $customer_orders = CustomerOrder::with('details')->where('main_customer_id', $customer->id)->orderBy('co_id', 'DESC')->get();
@@ -119,6 +122,9 @@ class CustomerOrderController extends Controller
      */
     public function update(Request $request, $order_id)
     {
+        if (!auth()->user()->can('edit_customer_order')) {
+            abort(403, 'شما اجازه ویرایش این بخش را ندارید.');
+        }
         $data = $request->validate([
             'order_name' => 'required|unique:customer_orders,order_name,' . $order_id . ',co_id',
             'order_date' => 'required|date',
@@ -165,6 +171,9 @@ class CustomerOrderController extends Controller
      */
     public function destroy($order_id)
     {
+        if (!auth()->user()->can('delete_customer_order')) {
+            return response()->json(['status' => 'error', 'message' => 'شما اجازه حذف ندارید.']);
+        }
         DB::table('customer_order_details')->where('customer_order_id', $order_id)->delete();
         $ord = DB::table('customer_orders')->where('co_id', $order_id)->delete();
 

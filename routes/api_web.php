@@ -175,7 +175,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'usertype:SO,SCO
     Route::post('/carpet-stock/search', 'CarpetsController@carpet_stock_search');
 
     /** Route For Carpet Stock Details  */
-    Route::get('/carpet-stock-details/{carpet_id}', 'CarpetsController@carpet_stock_details');
+    Route::get('/carpet-stock-details/{carpet_id}', 'CarpetsController@carpet_stock_details')->middleware('permission:view_carpet_stock_details');
 
 
 

@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Auth;
 
 class AgentEmployeeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_agent_employees')->only(['index', 'show']);
+        $this->middleware('permission:create_agent_employee')->only(['create', 'store']);
+        $this->middleware('permission:edit_agent_employee')->only(['edit', 'update']);
+        $this->middleware('permission:delete_agent_employee')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

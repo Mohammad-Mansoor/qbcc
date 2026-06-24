@@ -184,16 +184,20 @@
                 {{-- Actions --}}
                 <td class="hideOnPrint" style="padding: 10px 16px; text-align: center; white-space: nowrap;">
                   <div style="display: inline-flex; gap: 4px;">
+                    @can('approve_seller_money_requests')
                     <button onclick="approveRequest({{ $r->id }})"
                             title="تایید درخواست"
                             style="background: #10b981; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer;">
                       <i class="fa fa-check"></i> تایید
                     </button>
+                    @endcan
+                    @can('reject_seller_money_requests')
                     <button onclick="deleteRequest({{ $r->id }})"
                             title="رد درخواست"
                             style="background: #ef4444; color: #fff; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer;">
                       <i class="fa fa-times"></i> رد
                     </button>
+                    @endcan
                   </div>
                 </td>
 

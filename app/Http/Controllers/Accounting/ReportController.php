@@ -80,10 +80,12 @@ class ReportController extends Controller
         }
 
         if ($customerId && $request->get('export') === 'excel') {
+            abort_if(!auth()->user()->can('export_customer_statement_excel'), 403, 'Unauthorized.');
             return $this->exportCustomerExcel($entries, $customer, $openingBalance, $startDate, $endDate, $logoBase64, $topHeaderBase64);
         }
 
         if ($customerId && $request->get('export') === 'pdf') {
+            abort_if(!auth()->user()->can('export_customer_statement_pdf'), 403, 'Unauthorized.');
             return view('accounting.reports.customer_pdf', compact('entries', 'customer', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'));
         }
 

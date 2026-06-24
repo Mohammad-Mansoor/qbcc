@@ -334,8 +334,12 @@
                 <th>اسعار انتخابی</th>
                 <th>نرخ تبادله</th>
                 <th>تاریخ</th>
+                @can('approve_finishing_money_requests')
                 <th class="hideOnPrint"><b>تایید پرداخت</b></th>
+                @endcan
+                @can('reject_finishing_money_requests')
                 <th class="hideOnPrint"><b>رد نمودن</b></th>
+                @endcan
               </tr>
             </thead>
             <tbody>
@@ -380,16 +384,20 @@
                     
                     <!-- Approve Button -->
                     <td class="hideOnPrint">
+                      @can('approve_finishing_money_requests')
                       <button onclick="approveRequest({{$r->id}}, this)" class="btn-modern-action btn-approve btn-sm">
                         <i class="fa fa-check"></i> تایید
                       </button>
+                      @endcan
                     </td>
                     
                     <!-- Reject Button -->
                     <td class="hideOnPrint">
+                      @can('reject_finishing_money_requests')
                       <button onclick="deleteRequest({{$r->id}}, this)" class="btn-modern-action btn-reject btn-sm">
                         <i class="fa fa-times"></i> رد کردن
                       </button>
+                      @endcan
                     </td>
                   </tr>
                 @endforeach

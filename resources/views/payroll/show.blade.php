@@ -135,11 +135,13 @@
 
                         {{-- Actions --}}
                         <td class="px-4 py-3 text-left hideOnPrint" style="white-space:nowrap;">
+                            @can('view_payroll_slip')
                             <a href="{{ route('payroll.slip', [$run->id, $item->id]) }}"
                                target="_blank"
                                class="btn btn-sm btn-outline-primary">
                                 <i class="fa fa-print mr-1"></i> سلیپ معاش
                             </a>
+                            @endcan
                         </td>
                     </tr>
                     @empty

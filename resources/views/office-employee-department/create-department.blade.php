@@ -16,6 +16,7 @@
             <div class="card-body">
                 <div class="all-form-element-inner">
                     @if(!$departmentEdit)
+                        @can('create_employee_department')
                         <form action="/dashboard/employee-department" method="post">
                             @csrf
                             <div class="row">
@@ -37,7 +38,9 @@
                             </div>
                           
                         </form>
+                        @endcan
                     @else
+                        @can('edit_employee_department')
                         <form action="/dashboard/employee-department/{{$departmentEdit->id}}" method="post">
                             @csrf
                             @method('PUT')
@@ -59,6 +62,7 @@
                                 </div>
                             </div>
                         </form>
+                        @endcan
                     @endif
                 </div>
                 
@@ -98,7 +102,9 @@
                         <tr>
                             <th>آی دی</th>
                             <th>دیپارتمنت</th>
+                            @can('edit_employee_department')
                             <th>ویرایش</th>
+                            @endcan
                         </tr>
                         </thead>
                         <tbody>
@@ -106,9 +112,10 @@
                             <tr class="ur{{ $department->id }}">
                                 <td>{{$department->id}}</td>
                                 <td>{{$department->department}}</td>
+                                @can('edit_employee_department')
                                 <td><a href="/dashboard/employee-department/{{$department->id}}/edit"
                                        class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
-                
+                                @endcan
                             </tr>
                         @empty
                             <h4 class="text-info text-center">هنوز موردی ثبت نشده است</h4>

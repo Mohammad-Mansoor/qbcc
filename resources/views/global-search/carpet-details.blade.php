@@ -123,111 +123,151 @@
 </div>
 
 <div class="row">
-    <!-- Basic Info -->
-    <div class="col-lg-4 col-md-6">
-        <div class="glass-panel h-100">
-            <h4 class="section-title"><i class="feather icon-info"></i> مشخصات اصلی</h4>
-            <div class="row">
-                <div class="col-6 mb-4">
-                    <div class="info-label">نوعیت قالین</div>
-                    <div class="info-value">{{ $carpet->type->carpet_type ?? 'N/A' }}</div>
+    <!-- Right Column: Info Panels -->
+    <div class="col-lg-9 col-md-8 order-md-2">
+        <div class="row">
+            <!-- Basic Info -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="glass-panel h-100">
+                    <h4 class="section-title"><i class="feather icon-info"></i> مشخصات اصلی</h4>
+                    <div class="row">
+                        <div class="col-6 mb-4">
+                            <div class="info-label">نوعیت قالین</div>
+                            <div class="info-value">{{ $carpet->type->carpet_type ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="info-label">کوالیتی</div>
+                            <div class="info-value">{{ $carpet->quality->quality ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="info-label">رنگ</div>
+                            <div class="info-value">{{ $carpet->color ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="info-label">سیستم/ID</div>
+                            <div class="info-value text-primary" style="direction: ltr;">{{ $carpet->carpet_id }}</div>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <div class="info-label">تاریخ ثبت سیستم</div>
+                            <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->date }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-6 mb-4">
-                    <div class="info-label">کوالیتی</div>
-                    <div class="info-value">{{ $carpet->quality->quality ?? 'N/A' }}</div>
+            </div>
+
+            <!-- Agent & Purchase Info -->
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="glass-panel h-100">
+                    <h4 class="section-title"><i class="feather icon-shopping-cart"></i> اطلاعات خرید</h4>
+                    
+                    <div class="mb-4">
+                        <div class="info-label">نماینده / فروشنده</div>
+                        <div class="info-value text-primary">
+                            <i class="feather icon-user mr-1"></i> {{ $carpet->agent && $carpet->agent->user ? $carpet->agent->user->name : 'N/A' }}
+                        </div>
+                    </div>
+
+                    @if($carpet->purchaseInvoice)
+                    <div class="mb-4">
+                        <div class="info-label">بل خرید (Purchase Bill)</div>
+                        <div class="info-value">
+                            <a href="/dashboard/check-book/{{ $carpet->purchase_invoice_id }}" class="text-info text-decoration-underline" style="direction: ltr; display: inline-block;">
+                                {{ $carpet->purchaseInvoice->invoice_number }}
+                            </a>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Order Details -->
+                    <div class="mb-4">
+                        <div class="info-label">شماره فرمایش (Order No)</div>
+                        <div class="info-value text-primary">
+                            <i class="feather icon-file-text mr-1"></i> {{ $carpet->carpet_order->order_number ?? 'بدون فرمایش' }}
+                        </div>
+                    </div>
+                    @if($carpet->carpet_order && $carpet->carpet_order->design_number)
+                    <div class="mb-4">
+                        <div class="info-label">نمبر دیزاین (Design No)</div>
+                        <div class="info-value">
+                            {{ $carpet->carpet_order->design_number }}
+                        </div>
+                    </div>
+                    @endif
+
+                    <div class="row">
+                        <div class="col-6 mb-4">
+                            <div class="info-label">قیمت فی متر</div>
+                            <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->price, 2) }}</div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="info-label">قیمت کل خرید</div>
+                            <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->total_price, 2) }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-6 mb-4">
-                    <div class="info-label">رنگ</div>
-                    <div class="info-value">{{ $carpet->color ?? 'N/A' }}</div>
-                </div>
-                <div class="col-6 mb-4">
-                    <div class="info-label">سیستم/ID</div>
-                    <div class="info-value text-primary" style="direction: ltr;">{{ $carpet->carpet_id }}</div>
-                </div>
-                <div class="col-12 mb-4">
-                    <div class="info-label">تاریخ ثبت سیستم</div>
-                    <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->date }}</div>
+            </div>
+
+            <!-- Sales Info -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="glass-panel h-100">
+                    <h4 class="section-title"><i class="feather icon-trending-up"></i> اطلاعات فروش</h4>
+                    
+                    @if($carpet->sale)
+                        <div class="mb-4">
+                            <div class="info-label">مشتری</div>
+                            <div class="info-value text-primary">
+                                <i class="feather icon-user-check mr-1"></i> {{ $carpet->sale->customer ? $carpet->sale->customer->name : 'N/A' }}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="info-label">نمبر انوایس</div>
+                            <div class="info-value" style="direction: ltr; text-align: right;">
+                                <a href="/dashboard/invoices/{{ $carpet->sale->invoice_id }}" class="text-info text-decoration-underline">
+                                    {{ $carpet->sale->invoice->invoice_number ?? 'N/A' }}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-4">
+                                <div class="info-label">قیمت فروش فی متر</div>
+                                <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->price, 2) }}</div>
+                            </div>
+                            <div class="col-6 mb-4">
+                                <div class="info-label">مجموع فروش</div>
+                                <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->sale_cost_total, 2) }}</div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <div class="info-label">تاریخ فروش</div>
+                            <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->sale->date }}</div>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="feather icon-package text-muted" style="font-size: 3rem; opacity: 0.2;"></i>
+                            <p class="text-muted mt-3 mb-0">این قالین هنوز فروخته نشده است.</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Agent & Purchase Info -->
-    <div class="col-lg-4 col-md-6">
-        <div class="glass-panel h-100">
-            <h4 class="section-title"><i class="feather icon-shopping-cart"></i> اطلاعات خرید</h4>
-            
-            <div class="mb-4">
-                <div class="info-label">نماینده / فروشنده</div>
-                <div class="info-value text-primary">
-                    <i class="feather icon-user mr-1"></i> {{ $carpet->agent && $carpet->agent->user ? $carpet->agent->user->name : 'N/A' }}
-                </div>
+    <!-- Left Column: Carpet Image -->
+    <div class="col-lg-3 col-md-4 order-md-1 mb-4">
+        <div class="glass-panel h-100 d-flex flex-column">
+            <h4 class="section-title mb-3"><i class="feather icon-image"></i> تصویر قالین</h4>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center bg-light rounded-lg overflow-hidden" style="min-height: 250px; border: 1px solid rgba(0,0,0,0.05);">
+                @if($carpet->carpet_image)
+                    <img src="/{{ $carpet->carpet_image }}" class="img-fluid rounded-lg shadow-sm"
+                        style="max-height: 350px; object-fit: cover; width: 100%; border-radius: 12px; cursor: pointer;"
+                        onclick="showImageModal('/{{ $carpet->carpet_image }}', '{{ $carpet->carpet_no }}')">
+                @else
+                    <div class="text-center p-4">
+                        <i class="feather icon-image text-muted" style="font-size: 48px; opacity: 0.5;"></i>
+                        <p class="text-muted small mt-2 mb-0">تصویری ثبت نشده است</p>
+                    </div>
+                @endif
             </div>
-
-            @if($carpet->purchaseInvoice)
-            <div class="mb-4">
-                <div class="info-label">بل خرید (Purchase Bill)</div>
-                <div class="info-value">
-                    <a href="/dashboard/check-book/{{ $carpet->purchase_invoice_id }}" class="text-info text-decoration-underline" style="direction: ltr; display: inline-block;">
-                        {{ $carpet->purchaseInvoice->invoice_number }}
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            <div class="row">
-                <div class="col-6 mb-4">
-                    <div class="info-label">قیمت فی متر</div>
-                    <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->price, 2) }}</div>
-                </div>
-                <div class="col-6 mb-4">
-                    <div class="info-label">قیمت کل خرید</div>
-                    <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->total_price, 2) }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sales Info -->
-    <div class="col-lg-4 col-md-12">
-        <div class="glass-panel h-100">
-            <h4 class="section-title"><i class="feather icon-trending-up"></i> اطلاعات فروش</h4>
-            
-            @if($carpet->sale)
-                <div class="mb-4">
-                    <div class="info-label">مشتری</div>
-                    <div class="info-value text-primary">
-                        <i class="feather icon-user-check mr-1"></i> {{ $carpet->sale->customer ? $carpet->sale->customer->name : 'N/A' }}
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="info-label">نمبر انوایس</div>
-                    <div class="info-value" style="direction: ltr; text-align: right;">
-                        <a href="/dashboard/invoices/{{ $carpet->sale->invoice_id }}" class="text-info text-decoration-underline">
-                            {{ $carpet->sale->invoice->invoice_number ?? 'N/A' }}
-                        </a>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-4">
-                        <div class="info-label">قیمت فروش فی متر</div>
-                        <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->price, 2) }}</div>
-                    </div>
-                    <div class="col-6 mb-4">
-                        <div class="info-label">مجموع فروش</div>
-                        <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->sale_cost_total, 2) }}</div>
-                    </div>
-                </div>
-                <div class="mb-0">
-                    <div class="info-label">تاریخ فروش</div>
-                    <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->sale->date }}</div>
-                </div>
-            @else
-                <div class="text-center py-5">
-                    <i class="feather icon-package text-muted" style="font-size: 3rem; opacity: 0.2;"></i>
-                    <p class="text-muted mt-3 mb-0">این قالین هنوز فروخته نشده است.</p>
-                </div>
-            @endif
         </div>
     </div>
 </div>
@@ -382,5 +422,28 @@
         </div>
     </div>
 </div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="text-right mb-2">
+                <button type="button" class="btn btn-white btn-sm rounded-circle shadow"
+                    data-dismiss="modal" style="background: white; border: none; width: 30px; height: 30px; font-weight: bold;">&times;</button>
+            </div>
+            <img src="" id="fullPreviewImage" class="img-fluid rounded shadow-lg mx-auto d-block"
+                style="max-height: 85vh; border-radius: 16px;">
+            <div class="text-center mt-3 text-white h5 font-weight-bold" id="previewTitle"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showImageModal(src, title) {
+    document.getElementById('fullPreviewImage').src = src;
+    document.getElementById('previewTitle').innerText = 'تصویر قالین نمبر: ' + title;
+    $('#imagePreviewModal').modal('show');
+}
+</script>
 
 @endsection

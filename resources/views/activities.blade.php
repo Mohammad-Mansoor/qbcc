@@ -66,9 +66,11 @@
                     ?>
                   <td>{{$user->name.' '.$user->last_name}}</td>
                   <td>
+                    @can('delete_activities')
                     <button onclick="destroyActivity({{$a->id}})" class="btn btn-sm btn-danger">
                       <span class="fa fa-trash"></span>
                     </button>
+                    @endcan
                   </td>
                 </tr>
                 <?php $c++; ?>

@@ -198,6 +198,7 @@
     </div>
 
     <!-- Entry Form Section -->
+    @can('manage_monthly_expense_payments')
     @if(!$search)
     <div class="premium-card">
         <div class="card-header-premium">
@@ -281,6 +282,7 @@
         </div>
     </div>
     @endif
+    @endcan
 
     <!-- Ledger Table -->
     <div class="premium-card" id="expense-print-area">
@@ -344,9 +346,11 @@
                             <td class="font-weight-bold text-dark" style="direction: ltr;">$ {{ number_format($e->base_amount ?: $e->amount, 2) }}</td>
                             <td class="hideOnPrint text-center">
                                 <div class="btn-group">
+                                    @can('manage_monthly_expense_payments')
                                     <a href="/dashboard/new-monthly-expense-payments/{{$e->id}}/edit" class="btn btn-sm btn-outline-purple border-0">
                                         <i class="fa fa-edit"></i>
                                     </a>
+                                    @endcan
                                     
                                     @php
                                         $transaction = \App\LedgerTransaction::where('source_type', 'NewMonthlyExpenseBalance')->where('source_id', $e->id)->first();
@@ -357,9 +361,11 @@
                                         </a>
                                     @endif
 
+                                    @can('manage_monthly_expense_payments')
                                     <button onclick="deleteExpense({{$e->id}})" class="btn btn-sm btn-outline-danger border-0">
                                         <i class="fa fa-trash"></i>
                                     </button>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

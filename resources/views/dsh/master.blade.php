@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-  <title>QBCC</title>
+  <title>QBIC</title>
   <!-- HTML5 Shim and Respond.js IE11 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
   <!--[if lt IE 11]>
@@ -89,11 +89,35 @@
     }
 
     /* Global Search Styles */
-    .global-search-input::placeholder { color: rgba(255,255,255,0.6); }
-    .global-search-input:focus { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.6); box-shadow: none; outline: none; }
-    .search-result-item { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer; display: block; text-decoration: none; color: inherit; }
-    .search-result-item:hover { background: #f8fafc; text-decoration: none; }
-    .search-result-item:last-child { border-bottom: none; }
+    .global-search-input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .global-search-input:focus {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: none;
+      outline: none;
+    }
+
+    .search-result-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.2s;
+      cursor: pointer;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .search-result-item:hover {
+      background: #f8fafc;
+      text-decoration: none;
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
   </style>
 
 </head>
@@ -147,22 +171,41 @@
 
         <ul class="nav pcoded-inner-navbar ">
 
+          @if(auth()->user()->hasAnyPermission(['view_production_dashboard', 'view_inventory_dashboard', 'view_finance_dashboard', 'view_sales_dashboard', 'view_purchases_dashboard', 'view_cost_analytics']))
+
           <li
             class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/accounting*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
             <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                 class="pcoded-mtext"><b>داشبورد</b></span></a>
             <ul class="pcoded-submenu">
               <!-- <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li> -->
+              @can('view_production_dashboard')
               <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
+              @endcan
+              @can('view_inventory_dashboard')
               <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
-              <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
+              @endcan
+              @can('view_finance_dashboard')
+              <li><a href="/dashboard/finance">داشبورد مالی (Finance)</a></li>
+              @endcan
+              @can('view_sales_dashboard')
               <li><a href="/dashboard/sales">داشبورد فروشات (Sales)</a></li>
+              @endcan
+              @can('view_purchases_dashboard')
               <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>
+              @endcan
+              @can('view_cost_analytics')
               <li><a href="/dashboard/cost-analytics">تحلیل مصارف (Cost Analytics)</a></li>
+              @endcan
             </ul>
           </li>
+          @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission([
+              'view_coa', 'view_journals', 'view_mapping_rules', 'view_currencies',
+              'view_pl_report', 'view_balance_sheet', 'view_trial_balance', 'view_comparative_pl', 'view_cash_flow_report', 'view_fx_exposure_report',
+              'view_inventory_valuation', 'view_cost_center_performance', 'view_audit_corrections', 'view_account_ledger', 'view_customer_statement', 'view_agent_statement', 'view_different_account_statement', 'view_kachaee_team_statement', 'view_washing_team_statement', 'view_finishing_team_statement', 'view_seller_statement', 'view_employee_statement'
+          ]))
             <li
               class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
               <a href="#" class="nav-link">
@@ -170,94 +213,154 @@
                 <span class="pcoded-mtext"><b>سیستم حسابداری</b></span>
               </a>
               <ul class="pcoded-submenu">
+                @can('view_coa')
                 <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
+                @endcan
+                @can('view_journals')
                 <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
+                @endcan
+                @can('view_mapping_rules')
                 <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
+                @endcan
+                @can('view_currencies')
                 <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
+                @endcan
 
                 <!-- Advanced Financial Reports (Dari Afghanistan) -->
+                @if(auth()->user()->hasAnyPermission(['view_pl_report', 'view_balance_sheet', 'view_trial_balance', 'view_comparative_pl', 'view_cash_flow_report', 'view_fx_exposure_report']))
                 <li class="nav-item pcoded-hasmenu">
                   <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و
                       تحلیلی</span></a>
                   <ul class="pcoded-submenu">
+                    @can('view_pl_report')
                     <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
+                    @endcan
+                    @can('view_balance_sheet')
                     <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
-                    <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی
+                    @endcan
+                    @can('view_trial_balance')
+                    <li><a href="{{ route('accounting.reports.trial_balance') }}" style="color: #4caf50;">بیلان آزمایشی
                         (Trial
                         Balance)</a></li>
+                    @endcan
+                    @can('view_comparative_pl')
                     <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
+                    @endcan
+                    @can('view_cash_flow_report')
                     <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
+                    @endcan
+                    @can('view_fx_exposure_report')
                     <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
+                    @endcan
                   </ul>
                 </li>
+                @endif
 
                 <!-- Operational & Audit Reports -->
+                @if(auth()->user()->hasAnyPermission(['view_inventory_valuation', 'view_cost_center_performance', 'view_audit_corrections', 'view_account_ledger', 'view_customer_statement', 'view_agent_statement', 'view_different_account_statement', 'view_kachaee_team_statement', 'view_washing_team_statement', 'view_finishing_team_statement', 'view_seller_statement', 'view_employee_statement']))
                 <li class="nav-item pcoded-hasmenu">
                   <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و
                       تفتیش</span></a>
                   <ul class="pcoded-submenu">
+                    @can('view_inventory_valuation')
                     <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
+                    @endcan
+                    @can('view_cost_center_performance')
                     <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
+                    @endcan
+                    @can('view_audit_corrections')
                     <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
+                    @endcan
+                    @can('view_account_ledger')
                     <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
+                    @endcan
+                    @can('view_customer_statement')
                     <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
+                    @endcan
+                    @can('view_agent_statement')
                     <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده</a></li>
+                    @endcan
+                    @can('view_different_account_statement')
                     <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
+                    @endcan
+                    @can('view_kachaee_team_statement')
                     <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب تیم کچایی</a></li>
+                    @endcan
+                    @can('view_washing_team_statement')
                     <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب تیم شست</a></li>
+                    @endcan
+                    @can('view_finishing_team_statement')
                     <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیم تیاری</a></li>
+                    @endcan
+                    @can('view_seller_statement')
                     <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشندگان مواد
                         خام</a></li>
+                    @endcan
+                    @can('view_employee_statement')
                     <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+                    @endcan
                   </ul>
                 </li>
+                @endif
               </ul>
             </li>
           @endif
 
           @if(auth()->user()->role != 'AO')
-            @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'FI')
-
+            @if(auth()->user()->hasAnyPermission(['view_agents', 'view_agent_statement', 'view_agent_money_requests']))
 
               <li
                 class="nav-item pcoded-hasmenu {{ request()->is('dashboard/agents*') || request()->is('dashboard/accounting/reports/agent-statement*') ? 'active' : '' }}">
                 <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                     class="pcoded-mtext"><b>نماینده</b></span></a>
                 <ul class="pcoded-submenu">
-                  <li><a href="/dashboard/agents">لیست نماینده ها</a></li>
-                  <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده (حسابداری)</a></li>
+                  @can('view_agents')
+                    <li><a href="/dashboard/agents">لیست نماینده ها</a></li>
+                  @endcan
+                  @can('view_agent_statement')
+                    <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده (حسابداری)</a></li>
+                  @endcan
 
-                  @if(auth()->user()->role == 'SP')
+                  @can('view_agent_money_requests')
                     <li><a href="/dashboard/agent-money-request-list"> لیست درخواست های پول</a></li>
-                  @endif
+                  @endcan
 
                 </ul>
               </li>
 
             @endif
-
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+          @if(auth()->user()->hasAnyPermission(['view_buy_carpets']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is(['dashboard/contract-carpet*', 'dashboard/list-weight', 'list-buy-carpet', 'check-book']) ? 'active' : '' }}">
               <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>قالین</b></span></a>
               <ul class="pcoded-submenu">
-                <li><a href="{{ route('purchased.carpets.index') }}" style="color: #00acc1; font-weight: bold;">گزارش
-                    قالین های خرید شده</a></li>
+                @can('view_purchased_carpets_report')
+                  <li><a href="{{ route('purchased.carpets.index') }}" style="color: #00acc1; font-weight: bold;">گزارش
+                      قالین های خرید شده</a></li>
+                @endcan
                 <!-- <li><a href="/dashboard/contract-carpet">قالین های قراردادی</a></li> -->
                 <!-- <li><a href="/dashboard/list-weight">قالین های وزنی</a></li> -->
-                <li><a href="/dashboard/list-buy-carpet">لیست قالین های خرید شده</a></li>
-                <li><a href="/dashboard/check-book">بل‌های خرید (Purchase Bills)</a></li>
-                <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
-                <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
+                @can('view_buy_carpets')
+                  <li><a href="/dashboard/list-buy-carpet">لیست قالین های خرید شده</a></li>
+                @endcan
+                @can('view_purchase_bills')
+                  <li><a href="/dashboard/check-book">بل‌های خرید (Purchase Bills)</a></li>
+                @endcan
+                @can('view_carpet_types')
+                  <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li>
+                @endcan
+                @can('view_carpet_qualities')
+                  <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li>
+                @endcan
 
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_material_purchases', 'view_material_stock']))
 
 
 
@@ -265,69 +368,96 @@
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>مواد خام</b></span></a>
               <ul class="pcoded-submenu">
-                <li><a href="/dashboard/material-purchase">خرید مواد خام</a></li>
-                <li><a href="/dashboard/raw-material-purchase-bills">بل‌های خرید مواد خام</a></li>
-                @if(auth()->user()->role == 'SP')
+                @can('view_material_purchases')
+                  <li><a href="/dashboard/material-purchase">خرید مواد خام</a></li>
+                @endcan
+                @can('view_raw_material_bills')
+                  <li><a href="/dashboard/raw-material-purchase-bills">بل‌های خرید مواد خام</a></li>
+                @endcan
+                @can('view_purchase_material_requests')
                   <li><a href="/dashboard/purchase-material-request-list"> لیست درخواست خرید مواد خام</a></li>
-                @endif
-                <li><a href="/dashboard/material-sales">فروش مواد خام</a></li>
-                @if(auth()->user()->role == 'SP')
+                @endcan
+                @can('view_material_sales')
+                  <li><a href="/dashboard/material-sales">فروش مواد خام</a></li>
+                @endcan
+                @can('view_material_sale_requests')
                   <li><a href="/dashboard/material-sale-request-list"> لیست درخواست فروش مواد خام</a></li>
-                @endif
-                <li><a href="/dashboard/material-stock">گدام مواد خام</a></li>
-                <li><a href="/dashboard/string-seller">فروشنده مواد خام</a></li>
-                <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشنده خام</a></li>
-                @if(auth()->user()->role == 'SP')
+                @endcan
+                @can('view_material_stock')
+                  <li><a href="/dashboard/material-stock">گدام مواد خام</a></li>
+                @endcan
+                @can('view_string_sellers')
+                  <li><a href="/dashboard/string-seller">فروشنده مواد خام</a></li>
+                @endcan
+                @can('view_seller_statement')
+                  <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشنده خام</a></li>
+                @endcan
+                @can('view_seller_money_requests')
                   <li><a href="/dashboard/string-seller-request-list"> لیست درخواست پول فروشنده مواد خام</a></li>
-                @endif
+                @endcan
 
-                <li><a href="/dashboard/material-category">کتگوری مواد</a></li>
-                <li><a href="/dashboard/materialtypes">نوعیت مواد</a></li>
+                @can('view_material_categories')
+                  <li><a href="/dashboard/material-category">کتگوری مواد</a></li>
+                @endcan
+                @can('view_material_types')
+                  <li><a href="/dashboard/materialtypes">نوعیت مواد</a></li>
+                @endcan
 
                 <!-- <li><a href="/dashboard/material-accounts">دخل و خرچ مواد خام</a></li> -->
-                <!-- @if(auth()->user()->role == 'SP') -->
+                <!-- @if(auth()->user()->can('approve_material_account_requests')) -->
                 <!-- <li><a href="/dashboard/material-account-request-list"> لیست درخواست اکونت های مواد خام</a></li> -->
                 <!-- @endif -->
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_different_accounts', 'view_different_account_statement', 'view_different_account_money_requests']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('dashboard/different-account*', 'dashboard/accounting/reports/different-account-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                   class="pcoded-mtext"><b>حساب متفرقه</b></span></a>
               <ul class="pcoded-submenu">
-                <li><a href="/dashboard/different-account">حساب متفرقه</a></li>
-                <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
-                @if(auth()->user()->role == 'SP')
+                @can('view_different_accounts')
+                  <li><a href="/dashboard/different-account">حساب متفرقه</a></li>
+                @endcan
+                @can('view_different_account_statement')
+                  <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
+                @endcan
+                @can('view_different_account_money_requests')
                   <li><a href="/dashboard/different-account-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
-
+                @endcan
               </ul>
 
             </li>
 
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
+          @if(auth()->user()->hasAnyPermission(['view_carpet_repairs', 'view_kachaee_teams', 'view_kachaee_team_statement', 'view_kachaee_batches', 'view_kachaee_money_requests']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('carpet-repair*', 'kachaee-team', 'dashboard/accounting/reports/repair-team-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>کچایی</b></span></a>
               <ul class="pcoded-submenu">
-                <li><a href="/dashboard/carpet-repair">کچای قالین ها</a></li>
-                <li><a href="/dashboard/kachaee-team">تیم کچایی</a></li>
-                <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب کچایی</a></li>
-                <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
-                @if(auth()->user()->role == 'SP')
+                @can('view_carpet_repairs')
+                  <li><a href="/dashboard/carpet-repair">کچای قالین ها</a></li>
+                @endcan
+                @can('view_kachaee_teams')
+                  <li><a href="/dashboard/kachaee-team">تیم کچایی</a></li>
+                @endcan
+                @can('view_kachaee_team_statement')
+                  <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب کچایی</a></li>
+                @endcan
+                @can('view_kachaee_batches')
+                  <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
+                @endcan
+                @if(auth()->user()->can('view_kachaee_money_requests'))
                   <li><a href="/dashboard/kachaee-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_carpet_washes', 'view_washing_teams', 'view_washing_team_statement', 'view_washing_batches', 'view_washing_money_requests']))
 
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('carpet-wash*', 'washing-team', 'dashboard/accounting/reports/washing-team-statement*') ? 'active' : '' }}">
@@ -335,39 +465,56 @@
                   class="pcoded-mtext"><b>شست</b></span></a>
               <ul class="pcoded-submenu">
 
-                <li><a href="/dashboard/carpet-wash">شست قالین ها</a></li>
-
-                <li><a href="/dashboard/washing-team"> تیم شست</a></li>
-                <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب شست</a></li>
-                <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
-                @if(auth()->user()->role == 'SP')
+                @can('view_carpet_washes')
+                  <li><a href="/dashboard/carpet-wash">شست قالین ها</a></li>
+                @endcan
+                @can('view_washing_teams')
+                  <li><a href="/dashboard/washing-team"> تیم شست</a></li>
+                @endcan
+                @can('view_washing_team_statement')
+                  <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب شست</a></li>
+                @endcan
+                @can('view_washing_batches')
+                  <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
+                @endcan
+                @if(auth()->user()->can('view_washing_money_requests'))
                   <li><a href="/dashboard/washing-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_finishing_centers', 'view_finishing_teams', 'view_finishing_team_statement', 'view_finishing_batches', 'view_refinish_requests', 'view_finishing_money_requests']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('finishing-center*', 'finish-team', 'finish-team-category', 'dashboard/accounting/reports/finishing-team-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>تیاری</b></span></a>
               <ul class="pcoded-submenu">
-                <li><a href="/dashboard/finishing-center">بخش های تیاری</a></li>
-                <li><a href="/dashboard/finish-team"> تیم تیاری</a></li>
-                <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیاری</a></li>
-                <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
+                @can('view_finishing_centers')
+                  <li><a href="/dashboard/finishing-center">بخش های تیاری</a></li>
+                @endcan
+                @can('view_finishing_teams')
+                  <li><a href="/dashboard/finish-team"> تیم تیاری</a></li>
+                @endcan
+                @can('view_finishing_team_statement')
+                  <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیاری</a></li>
+                @endcan
+                @can('view_finishing_batches')
+                  <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
+                @endcan
 
-                @if(auth()->user()->role == 'SP')
+                @can('view_refinish_requests')
                   <li><a href="/dashboard/refinish-request-list"> لیست درخواست های دوباره تیاری</a></li>
+                @endcan
+                @can('view_finishing_money_requests')
                   <li><a href="/dashboard/finishing-money-request-list"> لیست درخواست های پول</a></li>
-                @endif
+                @endcan
                 {{--<li><a href="/dashboard/finish-team-category"> دسته بندی تیاری</a></li>--}}
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_carpet_stock']))
             <li class="nav-item pcoded-hasmenu {{ request()->is('carpet-stock*') ? 'active' : '' }}">
               <a href="/dashboard/carpet-stock" class="nav-link "><span class="pcoded-micon"><i
                     class="feather icon-home"></i></span><span class="pcoded-mtext"><b> قالین آماده به
@@ -376,74 +523,95 @@
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'OM' || auth()->user()->role == 'DE' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') ? 'active' : '' }}">
+          @if(auth()->user()->hasAnyPermission(['view_sales', 'view_invoices']))
+            <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') || request()->is('invoices*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>فروشات</b></span></a>
               <ul class="pcoded-submenu">
+                @can('view_sales')
                 <li><a href="/dashboard/sales"> لیست فروشات</a></li>
+                @endcan
                 <!-- <li><a href="/dashboard/packing-list">پکینگ لیست</a></li> -->
+                @can('view_invoices')
                 <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
+                @endcan
               </ul>
             </li>
 
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
-            <li class="nav-item pcoded-hasmenu">
+          @if(auth()->user()->hasAnyPermission(['view_customer_orders']))
+            <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/customer-orders*') ? 'active' : '' }}">
               <a href="/dashboard/customer-orders" class="nav-link"><span class="pcoded-micon"><i
-                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>سفارشات</b></span></a>
+                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>سفارشات مشتریان</b></span></a>
             </li>
+          @endif
 
-
+          @if(auth()->user()->hasAnyPermission(['view_assets_accounts', 'view_assets_report']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('dashboard/assets-accounts*') || request()->is('dashboard/assets-report*') ? 'active pcoded-trigger' : '' }}">
               <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                   class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
               <ul class="pcoded-submenu">
+                @can('view_assets_accounts')
                 <li><a href="/dashboard/assets-accounts">حسابات اجناس</a></li>
+                @endcan
+                @can('view_assets_report')
                 <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a>
                 </li>
+                @endcan
               </ul>
             </li>
           @endif
 
-          @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+          @if(auth()->user()->hasAnyPermission(['view_warehouse_inventory_report', 'view_warehouses', 'view_inventory_transfers', 'view_warehouse_movements']))
               <li
-                class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*')) ? 'active pcoded-trigger' : '' }}">
+                class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*') || request()->is('dashboard/inventory/reports*')) ? 'active pcoded-trigger' : '' }}">
                 <a href="#" class="nav-link">
                   <span class="pcoded-micon"><i class="feather icon-package"></i></span>
                   <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
                 </a>
                 <ul class="pcoded-submenu">
-                  <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a>
-                  <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
-                  <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
-                  <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
+                  @can('view_warehouse_inventory_report')
+                    <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a></li>
+                  @endcan
+                  @can('view_warehouses')
+                    <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
+                  @endcan
+                  @can('view_inventory_transfers')
+                    <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
+                  @endcan
+                  @can('view_warehouse_movements')
+                    <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
+                  @endcan
               </li>
             </ul>
             </li>
           @endif
 
-        @if(auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
+        @if(auth()->user()->hasAnyPermission(['view_customers']))
           <li class="nav-item pcoded-hasmenu">
             <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
                 class="pcoded-mtext"><b>مشتری ها</b></span></a>
             <ul class="pcoded-submenu">
               <li><a href="/dashboard/customers">لیست مشتریان</a></li>
+              @can('view_customer_statement')
               <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
-              @if(auth()->user()->role == 'SP')
+              @endcan
+              @can('view_customer_money_requests')
                 <li><a href="/dashboard/customer-request-list"> لیست درخواست پول مشتریان</a></li>
-              @endif
+              @endcan
+              @can('view_ar_aging_report')
               <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
                   (Aging)</a></li>
+              @endcan
 
             </ul>
 
           </li>
         @endif
 
-        <!-- @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO')
+        <!-- @if(auth()->user()->hasAnyPermission(['view_contract_carpets']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('add-office-credit*', 'money-request-list', 'office-cash-book') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
@@ -451,7 +619,7 @@
               <ul class="pcoded-submenu">
                 <li><a href="/dashboard/add-office-credit">اضافه کردن پول به دخل</a></li>
 
-                @if(auth()->user()->role == 'SP')
+                @if(auth()->user()->can('approve_carpet_requests'))
                   <li><a href="/dashboard/money-request-list"> لیست درخواست های پول</a></li>
                 @endif
                 <li><a href="/dashboard/office-cash-book">مصارف</a></li>
@@ -460,57 +628,64 @@
             </li>
           @endif -->
 
-        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
+        @if(auth()->user()->hasAnyPermission(['view_monthly_expenses']))
           <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*') ? 'active' : '' }}">
             <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
                   class="feather icon-home"></i></span><span class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
           </li>
         @endif
 
-        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'FI')
+        @if(auth()->user()->hasAnyPermission(['view_employees', 'view_employee_statement', 'view_payroll', 'view_employee_money_requests', 'view_employee_departments']))
           <li
-            class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*') ? 'active' : '' }}">
-            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+            class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*', 'dashboard/payroll*', 'dashboard/employee-request-list*', 'dashboard/employee-department*') ? 'active pcoded-trigger' : '' }}">
+            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-users"></i></span><span
                 class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
             <ul class="pcoded-submenu">
+              @can('view_employees')
               <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
+              @endcan
+              @can('view_employee_statement')
               <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+              @endcan
+              @can('view_payroll')
               <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
-              @if(auth()->user()->role == 'SP')
+              @endcan
+              @if(auth()->user()->can('view_employee_money_requests'))
                 <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
               @endif
+              @can('view_employee_departments')
               <li><a href="/dashboard/employee-department">دیپارتمنت کارمندان</a></li>
+              @endcan
             </ul>
           </li>
         @endif
 
-        @if(auth()->user()->role == 'SP' || auth()->user()->role == 'SO' || auth()->user()->role == 'CO' || auth()->user()->role == 'SCO' || auth()->user()->role == 'CCO' || auth()->user()->role == 'MO' || auth()->user()->role == 'FI')
+        @if(auth()->user()->hasAnyPermission(['view_trial_balance', 'view_inventory_valuation']))
           <li class="nav-item pcoded-hasmenu">
             <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                 class="pcoded-mtext"><b>گزارشات</b></span></a>
             <ul class="pcoded-submenu">
 
               <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
-                                  <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
-                                  <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
-                                  <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
-                                  <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                                  <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
-                                  <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
-                                  <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
-                                  <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
-                                  <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
-              <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
+                                    <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
+                                    <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
+                                    <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
+                                    <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
+                                    <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
+                                    <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
+                                    <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
+                                    <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
+              @can('view_trial_balance')
               <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
                   Balance)</a></li>
-              <!-- <li><a href="{{ route('accounting.reports.income-statement') }}" style="color: #4caf50;">صورت سود و زیان
-                                      (P&L)</a></li> -->
-              <!-- <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
-                              (Aging)</a></li> -->
+              @endcan
+              
+              @can('view_inventory_valuation')
               <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
-
               <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
                   (WIP)</a></li>
+              @endcan
               <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
 
 
@@ -523,28 +698,33 @@
 
         @endif
 
-        @if(auth()->user()->role != 'MO' && auth()->user()->role != 'PH' && auth()->user()->role != 'AO' && auth()->user()->role != 'OM' && auth()->user()->role != 'DE')
+        @if(auth()->user()->hasAnyPermission(['manage_roles_and_permissions', 'view_users', 'view_phone_book', 'view_provinces', 'view_agent_employees', 'view_orders', 'view_activities']))
           <li class="nav-item pcoded-hasmenu">
             <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                 class="pcoded-mtext"><b>تنظیمات</b></span></a>
             <ul class="pcoded-submenu">
-              @if(auth()->user()->role == 'SP')
+              @can('view_users')
                 <li><a href="/dashboard/users">کاربران سیستم</a></li>
-              @endif
+              @endcan
+              @can('manage_roles_and_permissions')
+                <li><a href="/dashboard/roles">نقش ها و دسترسی ها</a></li>
+              @endcan
 
-              @if(auth()->user()->role != 'AO')
+              @can('view_phone_book')
                 <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
-                <!-- <li><a href="/dashboard/carpet-types">نوعیت قالین</a></li> -->
-                <!-- <li><a href="/dashboard/carpet-qualities">کوالتی قالین</a></li> -->
+              @endcan
+              @can('view_provinces')
                 <li><a href="/dashboard/provinces">ولایات</a></li>
-              @endif
-              @if(auth()->user()->role == 'AO' || auth()->user()->role == 'SP')
+              @endcan
+              @can('view_agent_employees')
                 <li><a href="/dashboard/agent-employees">کارگرها</a></li>
-              @endif
-              <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
-              @if(auth()->user()->role == 'SP')
+              @endcan
+              @can('view_orders')
+                <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
+              @endcan
+              @can('view_activities')
                 <li><a href="/dashboard/activities">نمایش فعالیت ها</a></li>
-              @endif
+              @endcan
 
             </ul>
           </li>
@@ -568,7 +748,7 @@
       <a href="#!" class="b-brand">
         <!-- ========   change your logo hear   ============ -->
         {{--<img src="/dsh/assets/images/logo.png" alt="" class="logo">--}}
-        QBCC
+        QBIC
 
       </a>
       <a href="#!" class="mob-toggler">
@@ -577,16 +757,21 @@
     </div>
 
     <!-- Global Search -->
-    <div class="global-search-container d-none d-md-block" style="position: relative; margin-right: 20px; width: 450px; z-index: 1050; align-self: center;">
-        <div class="input-group" style="position: relative;">
-            <input type="text" class="form-control global-search-input" placeholder="جستجوی قالین بر اساس ID یا نقشه (مثال: 1000 یا QB1000)" autocomplete="off" style="border-radius: 20px; padding-right: 40px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); transition: all 0.3s ease; height: 40px;">
-            <div style="position: absolute; right: 15px; top: 10px; color: rgba(255,255,255,0.8); z-index: 10; pointer-events: none;">
-                <i class="feather icon-search"></i>
-            </div>
+    <div class="global-search-container d-none d-md-block"
+      style="position: relative; margin-right: 20px; width: 450px; z-index: 1050; align-self: center;">
+      <div class="input-group" style="position: relative;">
+        <input type="text" class="form-control global-search-input"
+          placeholder="جستجوی قالین بر اساس ID یا نقشه (مثال: 1000 یا QB1000)" autocomplete="off"
+          style="border-radius: 20px; padding-right: 40px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); transition: all 0.3s ease; height: 40px;">
+        <div
+          style="position: absolute; right: 15px; top: 10px; color: rgba(255,255,255,0.8); z-index: 10; pointer-events: none;">
+          <i class="feather icon-search"></i>
         </div>
-        <div class="global-search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 1060; width: 100%; max-height: 400px; overflow-y: auto; border-radius: 12px; margin-top: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: none; padding: 0; border: none;">
-            <!-- Results will be injected here -->
-        </div>
+      </div>
+      <div class="global-search-results"
+        style="position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 1060; width: 100%; max-height: 400px; overflow-y: auto; border-radius: 12px; margin-top: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: none; padding: 0; border: none;">
+        <!-- Results will be injected here -->
+      </div>
     </div>
 
     <div style="position: absolute; left: 55px;">
@@ -789,7 +974,7 @@ $ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('e
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/file-saverjs/FileSaver.min.js')}}"></script>
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/blobjs/Blob.min.js')}}"></script>
 
-  @if(auth()->user()->role == 'SP')
+  @if(auth()->user()->hasRole('Super Admin'))
     <script
       src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/tableexport/dist/js/tableexport.min.js')}}"></script>
   @endif
@@ -823,92 +1008,92 @@ $ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('e
     }
 
     // Global Search AJAX
-    $(document).ready(function() {
-        var searchTimeout;
-        
-        $(document).on('input', '.global-search-input', function() {
-            clearTimeout(searchTimeout);
-            var query = $(this).val().trim();
-            var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
+    $(document).ready(function () {
+      var searchTimeout;
 
-            console.log("Global search triggered for: " + query);
+      $(document).on('input', '.global-search-input', function () {
+        clearTimeout(searchTimeout);
+        var query = $(this).val().trim();
+        var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
 
-            if (query.length < 1) {
-                parentContainer.css('display', 'none').empty();
+        console.log("Global search triggered for: " + query);
+
+        if (query.length < 1) {
+          parentContainer.css('display', 'none').empty();
+          return;
+        }
+
+        // Show loading
+        parentContainer.css('display', 'block').html('<div class="p-3 text-center text-muted"><i class="feather icon-loader" style="animation: spin 1s linear infinite; display: inline-block;"></i> در حال جستجو...</div>');
+
+        searchTimeout = setTimeout(function () {
+          $.ajax({
+            url: '/dashboard/global-search/carpets',
+            type: 'GET',
+            dataType: 'json',
+            data: { q: query },
+            success: function (data) {
+              parentContainer.empty();
+              console.log("Search results:", data);
+
+              if (!data || data.length === 0) {
+                var emptyHtml = '<div class="p-4 text-center">' +
+                  '<i class="feather icon-search text-muted" style="font-size: 2rem; opacity: 0.5;"></i>' +
+                  '<p class="mt-2 mb-0 text-muted" style="font-weight: bold;">هیچ قالینی با این مشخصات یافت نشد!</p>' +
+                  '<small class="text-muted">شماره نقشه یا ID دیگری را امتحان کنید.</small>' +
+                  '</div>';
+                parentContainer.html(emptyHtml);
                 return;
+              }
+
+              var html = '<div class="px-3 py-2 bg-light border-bottom" style="font-size: 11px; font-weight: bold; color: #64748b;">نتایج جستجو</div>';
+
+              for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                html += '<a href="' + item.url + '" class="search-result-item">' +
+                  '<div class="d-flex justify-content-between align-items-center">' +
+                  '<div>' +
+                  '<div style="font-weight: 800; color: #1e40af; font-size: 14px; margin-bottom: 2px;">' +
+                  '<i class="feather icon-target mr-1"></i> ' + item.carpet_no +
+                  '</div>' +
+                  '<div style="font-size: 11px; color: #64748b;">' +
+                  'نقشه: <span style="color: #0f172a; font-weight: bold;">' + item.map_number + '</span> | ' +
+                  'نوع: ' + item.type + ' | ' +
+                  'نماینده: ' + item.agent +
+                  '</div>' +
+                  '</div>' +
+                  '<div class="text-right">' +
+                  '<span class="badge badge-light-primary" style="font-size: 10px; margin-bottom: 4px;">' + item.status + '</span>' +
+                  '<div style="font-size: 11px; font-weight: bold; color: #334155; direction: ltr;">' + item.area + ' m²</div>' +
+                  '</div>' +
+                  '</div>' +
+                  '</a>';
+              }
+
+              parentContainer.html(html);
+            },
+            error: function (xhr, status, error) {
+              console.error("Search AJAX Error:", error);
+              parentContainer.html('<div class="p-3 text-center text-danger">خطا در برقراری ارتباط</div>');
             }
+          });
+        }, 300);
+      });
 
-            // Show loading
-            parentContainer.css('display', 'block').html('<div class="p-3 text-center text-muted"><i class="feather icon-loader" style="animation: spin 1s linear infinite; display: inline-block;"></i> در حال جستجو...</div>');
+      // Hide when clicked outside
+      $(document).on('click', function (e) {
+        if (!$(e.target).closest('.global-search-container').length) {
+          $('.global-search-results').css('display', 'none');
+        }
+      });
 
-            searchTimeout = setTimeout(function() {
-                $.ajax({
-                    url: '/dashboard/global-search/carpets',
-                    type: 'GET',
-                    dataType: 'json',
-                    data: { q: query },
-                    success: function(data) {
-                        parentContainer.empty();
-                        console.log("Search results:", data);
-                        
-                        if (!data || data.length === 0) {
-                            var emptyHtml = '<div class="p-4 text-center">' +
-                                '<i class="feather icon-search text-muted" style="font-size: 2rem; opacity: 0.5;"></i>' +
-                                '<p class="mt-2 mb-0 text-muted" style="font-weight: bold;">هیچ قالینی با این مشخصات یافت نشد!</p>' +
-                                '<small class="text-muted">شماره نقشه یا ID دیگری را امتحان کنید.</small>' +
-                                '</div>';
-                            parentContainer.html(emptyHtml);
-                            return;
-                        }
-
-                        var html = '<div class="px-3 py-2 bg-light border-bottom" style="font-size: 11px; font-weight: bold; color: #64748b;">نتایج جستجو</div>';
-                        
-                        for (var i = 0; i < data.length; i++) {
-                            var item = data[i];
-                            html += '<a href="' + item.url + '" class="search-result-item">' +
-                                '<div class="d-flex justify-content-between align-items-center">' +
-                                    '<div>' +
-                                        '<div style="font-weight: 800; color: #1e40af; font-size: 14px; margin-bottom: 2px;">' +
-                                            '<i class="feather icon-target mr-1"></i> ' + item.carpet_no +
-                                        '</div>' +
-                                        '<div style="font-size: 11px; color: #64748b;">' +
-                                            'نقشه: <span style="color: #0f172a; font-weight: bold;">' + item.map_number + '</span> | ' +
-                                            'نوع: ' + item.type + ' | ' +
-                                            'نماینده: ' + item.agent +
-                                        '</div>' +
-                                    '</div>' +
-                                    '<div class="text-right">' +
-                                        '<span class="badge badge-light-primary" style="font-size: 10px; margin-bottom: 4px;">' + item.status + '</span>' +
-                                        '<div style="font-size: 11px; font-weight: bold; color: #334155; direction: ltr;">' + item.area + ' m²</div>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</a>';
-                        }
-                        
-                        parentContainer.html(html);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Search AJAX Error:", error);
-                        parentContainer.html('<div class="p-3 text-center text-danger">خطا در برقراری ارتباط</div>');
-                    }
-                });
-            }, 300);
-        });
-
-        // Hide when clicked outside
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.global-search-container').length) {
-                $('.global-search-results').css('display', 'none');
-            }
-        });
-        
-        // Show again when input is focused if there's a value
-        $(document).on('focus', '.global-search-input', function() {
-            var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
-            if ($(this).val().trim().length > 0 && parentContainer.children().length > 0) {
-                parentContainer.css('display', 'block');
-            }
-        });
+      // Show again when input is focused if there's a value
+      $(document).on('focus', '.global-search-input', function () {
+        var parentContainer = $(this).closest('.global-search-container').find('.global-search-results');
+        if ($(this).val().trim().length > 0 && parentContainer.children().length > 0) {
+          parentContainer.css('display', 'block');
+        }
+      });
     });
 
     function checkCookie() {

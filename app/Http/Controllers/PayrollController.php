@@ -17,6 +17,9 @@ class PayrollController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->middleware('permission:view_payroll')->only(['index', 'show']);
+        $this->middleware('permission:run_payroll')->only(['create', 'store']);
+        $this->middleware('permission:view_payroll_slip')->only(['slip']);
     }
 
     // ─── Index ─────────────────────────────────────────────────────────────────

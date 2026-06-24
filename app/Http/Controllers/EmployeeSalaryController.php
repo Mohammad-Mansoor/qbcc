@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeSalaryController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_employees')->only(['index', 'show']);
+        $this->middleware('permission:edit_employee')->only(['create', 'store', 'edit', 'update', 'destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *

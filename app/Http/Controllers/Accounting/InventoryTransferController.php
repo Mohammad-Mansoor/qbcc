@@ -43,6 +43,7 @@ class InventoryTransferController extends Controller
 
     public function create()
     {
+        abort_if(!auth()->user()->can('create_inventory_transfer'), 403);
         $lastTransfer = WarehouseTransfer::latest()->first();
         $nextId = $lastTransfer ? ($lastTransfer->id + 1) : 1;
         $transferNo = 'TRF-' . Carbon::today()->format('Ymd') . '-' . sprintf('%03d', $nextId);
@@ -115,6 +116,7 @@ class InventoryTransferController extends Controller
 
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create_inventory_transfer'), 403);
         $request->validate([
             'transfer_number' => 'required|unique:warehouse_transfers',
             'transfer_date' => 'required|date',
@@ -215,6 +217,7 @@ class InventoryTransferController extends Controller
 
     public function reverse($id, Request $request)
     {
+        abort_if(!auth()->user()->can('reverse_inventory_transfer'), 403);
         $request->validate([
             'reversal_reason' => 'required|string|max:255'
         ]);

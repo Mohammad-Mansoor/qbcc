@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Auth;
 
 class QualityController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_carpet_qualities')->only(['index', 'show', 'get_by_type']);
+        $this->middleware('permission:create_carpet_quality')->only(['create', 'store']);
+        $this->middleware('permission:edit_carpet_quality')->only(['edit', 'update']);
+        $this->middleware('permission:delete_carpet_quality')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

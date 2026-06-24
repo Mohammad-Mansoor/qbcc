@@ -246,11 +246,14 @@
                      style="position: relative;float: left"><i class="fa fa-print"></i> Print
   
                 </div>
-                <a href="/dashboard/sttring-seller-accounts" style="float: left; margin-left: 10px;" class="btn btn-sm btn-info hideOnPrint">فروشنده های
-                  حسابدار</a>
+                @can('view_seller_statement')
+                <a href="/dashboard/sttring-seller-accounts" style="float: left; margin-left: 10px;" class="btn btn-sm btn-info hideOnPrint">فروشنده های حسابدار</a>
+                @endcan
+                @can('create_string_seller')
                 <button type="button" class="btn btn-sm btn-success hideOnPrint" onclick="openCreateModal()" style="float: left; margin-left: 10px;">
                   <i class="fa fa-plus"></i> ایجاد فروشنده جدید
                 </button>
+                @endcan
               </div>
             </div>
         </div>
@@ -307,22 +310,30 @@
                     
                     <td class="py-3 px-4 text-center hideOnPrint">
                       <div class="btn-group">
+                        @can('edit_string_seller')
                         <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}')" 
                            class="btn btn-icon-only text-primary" data-toggle="tooltip" data-placement="top" title="ویرایش اطلاعات">
                            <i class="fa fa-edit"></i>
                         </button>
+                        @endcan
+                        @can('manage_seller_payments')
                         <a href="/dashboard/string-seller-payments/{{$seller->id}}"
                            class="btn btn-icon-only text-info" data-toggle="tooltip" data-placement="top" title="حساب میراثی">
                            <i class="fa fa-history"></i>
                         </a>
+                        @endcan
+                        @can('view_account_ledger')
                         <a href="{{ route('accounting.reports.account_ledger', ['account_id' => 1]) }}?party_type=App\StringSeller&party_id={{$seller->id}}" 
                            class="btn btn-icon-only text-success" data-toggle="tooltip" data-placement="top" title="دفتر کل مالی">
                            <i class="fa fa-calculator"></i>
                         </a>
+                        @endcan
+                        @can('view_seller_statement')
                         <a href="{{ route('accounting.statements.show', ['entity' => 'string-seller', 'id' => $seller->id]) }}" 
                            class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="صورت حساب مالی">
                            <i class="fa fa-file-text"></i>
                         </a>
+                        @endcan
                       </div>
                     </td>
                   </tr>
@@ -356,22 +367,30 @@
 
                       <td class="py-3 px-4 text-center hideOnPrint">
                         <div class="btn-group">
+                          @can('edit_string_seller')
                           <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}')" 
                              class="btn btn-icon-only text-primary" data-toggle="tooltip" data-placement="top" title="ویرایش اطلاعات">
                              <i class="fa fa-edit"></i>
                           </button>
+                          @endcan
+                          @can('manage_seller_payments')
                           <a href="/dashboard/string-seller-payments/{{$seller->id}}"
                              class="btn btn-icon-only text-info" data-toggle="tooltip" data-placement="top" title="حساب میراثی">
                              <i class="fa fa-history"></i>
                           </a>
+                          @endcan
+                          @can('view_account_ledger')
                           <a href="{{ route('accounting.reports.account_ledger', ['account_id' => 1]) }}?party_type=App\StringSeller&party_id={{$seller->id}}" 
                              class="btn btn-icon-only text-success" data-toggle="tooltip" data-placement="top" title="دفتر کل مالی">
                              <i class="fa fa-calculator"></i>
                           </a>
+                          @endcan
+                          @can('view_seller_statement')
                           <a href="{{ route('accounting.statements.show', ['entity' => 'string-seller', 'id' => $seller->id]) }}" 
                              class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="صورت حساب مالی">
                              <i class="fa fa-file-text"></i>
                           </a>
+                          @endcan
                         </div>
                       </td>
                     </tr>

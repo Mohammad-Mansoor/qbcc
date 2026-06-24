@@ -16,6 +16,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$categoryEdit)
+              @can('create_material_category')
               <form action="/dashboard/material-category" method="post">
                 @csrf
                 <div class="row">
@@ -46,7 +47,9 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @else
+              @can('edit_material_category')
               <form method="post" id="carpetTypeForm"
                     action="/dashboard/material-category/{{$categoryEdit->material_category_id}}">
                 @csrf
@@ -81,6 +84,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -135,8 +139,12 @@
                       <span class="badge badge-primary">تار / مواد خام</span>
                     @endif
                   </td>
-                  <td class="hideOnPrint"><a href="/dashboard/material-category/{{$cat->material_category_id}}/edit"
-                                             class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  <td class="hideOnPrint">
+                    @can('edit_material_category')
+                    <a href="/dashboard/material-category/{{$cat->material_category_id}}/edit"
+                                             class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
+                    @endcan
+                  </td>
               @endforeach
               </tbody>
             </table>

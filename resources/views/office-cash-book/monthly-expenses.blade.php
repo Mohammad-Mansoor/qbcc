@@ -9,6 +9,7 @@
           <h5>فورم مصرف</h5>
         </div>
         <div class="card-body">
+          @can('create_monthly_expense')
           @if(!$expenseEdit)
             <form action="/dashboard/monthly-expenses" method="post">
               @csrf
@@ -178,6 +179,7 @@
               </div>
             </form>
           @endif
+          @endcan
         </div>
       </div>
     </div>
@@ -297,6 +299,7 @@
                       ادمین @endif</td>
                     
                     <td class="printTitle hideOnPrint">
+                      @can('manage_monthly_expense_payments')
                       <a href="/dashboard/monthly-expenses/{{$exp->id}}/edit"
                          class="btn btn-info btn-sm">
                         <i class="fa fa-pencil"></i> &nbsp; ویرایش
@@ -308,6 +311,7 @@
                                 class="fa fa-tick"></i>حذف
                       </button>
                       @endif
+                      @endcan
                     </td>
                   
                   </tr>
@@ -324,6 +328,7 @@
                     <td>{{$exp->date}}</td>
                     
                     <td class="printTitle hideOnPrint">
+                      @can('manage_monthly_expense_payments')
                       <a href="/dashboard/monthly-expenses/{{$exp->id}}/edit"
                          class="btn btn-info btn-sm">
                         <i class="fa fa-pencil"></i> &nbsp; ویرایش
@@ -333,6 +338,7 @@
                         <i
                                 class="fa fa-tick"></i>حذف
                       </button>
+                      @endcan
                     </td>
                   
                   </tr>

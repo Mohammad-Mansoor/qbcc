@@ -25,12 +25,20 @@
                     <i class="fa fa-print mr-1"></i> خروجی و چاپ
                 </button>
                 <div class="dropdown-menu dropdown-menu-right shadow-lg border-0" aria-labelledby="printExportDropdown" style="border-radius: 12px; z-index: 10000;">
+                    @php
+                        $pdfPermission = 'export_' . ($batch->type == 'wash' ? 'washing' : ($batch->type == 'finish' ? 'finishing' : 'kachaee')) . '_batches_pdf';
+                        $excelPermission = 'export_' . ($batch->type == 'wash' ? 'washing' : ($batch->type == 'finish' ? 'finishing' : 'kachaee')) . '_batches_excel';
+                    @endphp
+                    @can($pdfPermission)
                     <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=pdf" target="_blank">
                         <i class="fa fa-file-pdf-o mr-2 text-danger"></i> خروجی PDF
                     </a>
+                    @endcan
+                    @can($excelPermission)
                     <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=excel">
                         <i class="fa fa-file-excel-o mr-2 text-success"></i> خروجی Excel
                     </a>
+                    @endcan
                 </div>
             </div>
             <a href="/dashboard/batches/{{ $batch->type }}" class="btn btn-light shadow-sm px-4 ml-2">بازگشت به لیست</a>

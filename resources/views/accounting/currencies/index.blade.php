@@ -8,9 +8,11 @@
                 <h5 class="mb-0 text-primary font-weight-bold">
                     <i class="feather icon-globe mr-2"></i>مدیریت اسعار (Currencies)
                 </h5>
+                @can('create_currency')
                 <a href="{{ route('accounting.currencies.create') }}" class="btn btn-primary btn-sm shadow-sm">
                     <i class="feather icon-plus mr-1"></i>افزودن اسعار جدید
                 </a>
+                @endcan
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -55,10 +57,14 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm shadow-sm">
+                                        @can('edit_currency')
                                         <a href="{{ route('accounting.currencies.edit', $currency->id) }}" class="btn btn-outline-primary" title="ویرایش">
                                             <i class="feather icon-edit-2"></i>
                                         </a>
+                                        @endcan
+                                        
                                         @if(!$currency->is_base_currency)
+                                            @can('delete_currency')
                                             <button type="button" class="btn btn-outline-danger" onclick="confirmDelete('{{ $currency->id }}')" title="حذف">
                                                 <i class="feather icon-trash-2"></i>
                                             </button>
@@ -66,6 +72,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                             </form>
+                                            @endcan
                                         @endif
                                     </div>
                                 </td>

@@ -265,9 +265,11 @@
             </div>
             <div>
                 @if(!$detailEdit)
+                @can('manage_assets_account')
                 <button class="btn btn-light" style="border-radius: 10px; font-weight: 700; color: var(--primary-blue);" data-toggle="modal" data-target="#assetDetailModal">
                     <i class="fa fa-plus-circle mr-1"></i> ثبت جنس جدید
                 </button>
+                @endcan
                 @else
                 <a href="/dashboard/assets-accounts/{{$account->aa_id}}" class="btn btn-light" style="border-radius: 10px; font-weight: 700; color: var(--primary-blue);">
                     <i class="fa fa-arrow-right mr-1"></i> بازگشت به ثبت جدید
@@ -426,18 +428,18 @@
                                             </td>
 
                                             <td class="hideOnPrint text-center" style="white-space: nowrap; width: 1%;">
-                                                @if(auth()->user()->role == 'SP')
-                                                    <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
-                                                        <a href="/dashboard/assets-accounts-details/{{$co->aad_id}}/edit" class="btn-action-edit" title="ویرایش">
-                                                            <i class="fa fa-edit fa-lg"></i>
-                                                        </a>
-                                                        <button onclick="deleteAssetAccountDetails({{$co->aad_id}})" class="btn-action-delete" title="حذف">
-                                                            <i class="fa fa-trash fa-lg"></i>
-                                                        </button>
-                                                    </div>
+                                                @can('manage_assets_account')
+                                                <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
+                                                    <a href="/dashboard/assets-accounts-details/{{$co->aad_id}}/edit" class="btn-action-edit" title="ویرایش">
+                                                        <i class="fa fa-edit fa-lg"></i>
+                                                    </a>
+                                                    <button onclick="deleteAssetAccountDetails({{$co->aad_id}})" class="btn-action-delete" title="حذف">
+                                                        <i class="fa fa-trash fa-lg"></i>
+                                                    </button>
+                                                </div>
                                                 @else
                                                     <span class="text-muted">-</span>
-                                                @endif
+                                                @endcan
                                             </td>
                                         </tr>
                                     @endforeach

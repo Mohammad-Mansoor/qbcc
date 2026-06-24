@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class EmployeeDepartmentController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_employee_departments')->only(['index', 'show']);
+        $this->middleware('permission:create_employee_department')->only(['create', 'store']);
+        $this->middleware('permission:edit_employee_department')->only(['edit', 'update', 'destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *

@@ -18,6 +18,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$qualityEdit)
+              @can('create_carpet_quality')
               <form method="post" id="" action="/dashboard/carpet-qualities">
                 @csrf
                 <div class="row">
@@ -49,7 +50,9 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @else
+              @can('edit_carpet_quality')
               <form method="post" id="carpetTypeForm"
                     action="/dashboard/carpet-qualities/{{$qualityEdit->id}}">
                 @csrf
@@ -85,6 +88,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -125,7 +129,7 @@
                 <th>آی دی</th>
                 <th>کوالتی</th>
                 <th>نوعیت</th>
-                <th>ویرایش</th>
+                @can('edit_carpet_quality')<th>ویرایش</th>@endcan
               </tr>
               </thead>
               <tbody>
@@ -134,8 +138,8 @@
                   <td>{{$q->id}}</td>
                   <td>{{$q->quality}}</td>
                   <td>{{$q->type->carpet_type}}</td>
-                  <td><a href="/dashboard/carpet-qualities/{{$q->id}}/edit"
-                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  @can('edit_carpet_quality')<td><a href="/dashboard/carpet-qualities/{{$q->id}}/edit"
+                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>@endcan
         
                 </tr>
               @endforeach

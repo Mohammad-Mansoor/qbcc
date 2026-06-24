@@ -94,12 +94,16 @@
                     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                         <div class="text-muted">تاریخچه تراکنش‌های <span class="badge badge-indigo text-white px-3" style="background: #3f51b5;">{{ $customer->name }}</span></div>
                         <div class="d-flex align-items-center">
+                            @can('export_customer_statement_excel')
                             <a href="{{ route('accounting.reports.customer_statement', ['customer_id' => $customer->id, 'start_date' => $startDate, 'end_date' => $endDate, 'export' => 'excel']) }}" class="btn btn-success rounded-pill px-4 mr-2" style="font-weight: 500;">
                                 <i class="feather icon-file-text mr-1"></i> EXCEL EXPORT (اکسل)
                             </a>
+                            @endcan
+                            @can('export_customer_statement_pdf')
                             <a href="{{ route('accounting.reports.customer_statement', ['customer_id' => $customer->id, 'start_date' => $startDate, 'end_date' => $endDate, 'export' => 'pdf']) }}" target="_blank" class="btn btn-danger rounded-pill px-4" style="font-weight: 500; background-color: #dc2626; border-color: #dc2626;">
                                 <i class="feather icon-printer mr-1"></i> PDF / PRINT (پی‌دی‌اف)
                             </a>
+                            @endcan
                         </div>
                     </div>
 

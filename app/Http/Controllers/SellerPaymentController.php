@@ -25,6 +25,13 @@ class SellerPaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+
+        $this->middleware('permission:manage_seller_payments')->only([
+            'show', 'store', 'edit', 'update', 'destroy', 'allocateAdvance', 'removeAllocation', 'show_all_payment'
+        ]);
+        $this->middleware('permission:view_seller_money_requests')->only('request_list');
+        $this->middleware('permission:approve_seller_money_requests')->only('approve_request');
+        $this->middleware('permission:reject_seller_money_requests')->only('delete_request');
     }
 
     public function index()

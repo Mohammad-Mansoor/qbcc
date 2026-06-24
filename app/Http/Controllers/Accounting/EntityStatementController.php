@@ -83,11 +83,33 @@ class EntityStatementController extends Controller
         ],
     ];
 
+    protected function authorizeEntity($entityKey)
+    {
+        $permissions = [
+            'customer' => 'view_customer_statement',
+            'agents' => 'view_agent_statement',
+            'different-account' => 'view_different_account_statement',
+            'employee' => 'view_employee_statement',
+            'string-seller' => 'view_seller_statement',
+            'washing-team' => 'view_washing_team_statement',
+            'kachayee-team' => 'view_kachaee_team_statement',
+            'tayaari-team' => 'view_finishing_team_statement',
+        ];
+
+        if (isset($permissions[$entityKey])) {
+            if (!auth()->user()->can($permissions[$entityKey])) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
+    }
+
     public function show(Request $request, $entityKey, $id)
     {
         if (!array_key_exists($entityKey, $this->models)) {
             abort(404, 'Entity type not found');
         }
+
+        $this->authorizeEntity($entityKey);
 
         $config = $this->models[$entityKey];
         $entityClass = $config['class'];
@@ -159,6 +181,17 @@ class EntityStatementController extends Controller
 
         // Export Excel bypasses pagination
         if ($request->get('export') === 'excel') {
+            $excelPermissions = [
+                'customer' => 'export_customer_statement_excel',
+                'agents' => 'export_agent_statement_excel',
+                'different-account' => 'export_different_account_statement_excel',
+                'kachayee-team' => 'export_kachaee_statement_excel',
+                'washing-team' => 'export_washing_statement_excel',
+                'tayaari-team' => 'export_finishing_statement_excel',
+            ];
+            if (isset($excelPermissions[$entityKey])) {
+                abort_if(!auth()->user()->can($excelPermissions[$entityKey]), 403, 'Unauthorized.');
+            }
             $entries = $query->get();
             return $this->exportToExcel($entries, $entityName, $openingBalance, $config, $entityKey, $request);
         }
@@ -205,6 +238,8 @@ class EntityStatementController extends Controller
         if (!array_key_exists($entityKey, $this->models)) {
             abort(404, 'Entity type not found');
         }
+
+        $this->authorizeEntity($entityKey);
 
         $config = $this->models[$entityKey];
         $entityClass = $config['class'];
@@ -371,6 +406,17 @@ class EntityStatementController extends Controller
             }
 
             if ($request->get('export') === 'excel') {
+                $excelPermissions = [
+                    'customer' => 'export_customer_statement_excel',
+                    'agents' => 'export_agent_statement_excel',
+                    'different-account' => 'export_different_account_statement_excel',
+                    'kachayee-team' => 'export_kachaee_statement_excel',
+                    'washing-team' => 'export_washing_statement_excel',
+                    'tayaari-team' => 'export_finishing_statement_excel',
+                ];
+                if (isset($excelPermissions[$entityKey])) {
+                    abort_if(!auth()->user()->can($excelPermissions[$entityKey]), 403, 'Unauthorized.');
+                }
                 $filename = \Illuminate\Support\Str::slug($entityKey) . '_statement_' . date('Y_m_d_His') . '.xls';
                 
                 header('Content-Type: application/vnd.ms-excel; charset=utf-8');
@@ -394,6 +440,17 @@ class EntityStatementController extends Controller
             }
 
             if ($request->get('export') === 'pdf') {
+                $pdfPermissions = [
+                    'customer' => 'export_customer_statement_pdf',
+                    'agents' => 'export_agent_statement_pdf',
+                    'different-account' => 'export_different_account_statement_pdf',
+                    'kachayee-team' => 'export_kachaee_statement_pdf',
+                    'washing-team' => 'export_washing_statement_pdf',
+                    'tayaari-team' => 'export_finishing_statement_pdf',
+                ];
+                if (isset($pdfPermissions[$entityKey])) {
+                    abort_if(!auth()->user()->can($pdfPermissions[$entityKey]), 403, 'Unauthorized.');
+                }
                 return view('accounting.reports.entity_pdf', compact(
                     'entries',
                     'selectedEntity',

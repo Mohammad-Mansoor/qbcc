@@ -51,6 +51,7 @@ class WarehouseController extends Controller
 
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->can('create_warehouse'), 403);
         $request->validate([
             'name' => 'required|unique:warehouses,name',
             'location' => 'nullable',
@@ -77,6 +78,7 @@ class WarehouseController extends Controller
 
     public function update(Request $request, $id)
     {
+        abort_if(!auth()->user()->can('edit_warehouse'), 403);
         $warehouse = Warehouse::findOrFail($id);
         
         $request->validate([
@@ -95,6 +97,7 @@ class WarehouseController extends Controller
 
     public function destroy($id)
     {
+        abort_if(!auth()->user()->can('delete_warehouse'), 403);
         $warehouse = Warehouse::findOrFail($id);
         
         // Check if warehouse has transactions before deleting (optional but safer)
@@ -110,16 +113,19 @@ class WarehouseController extends Controller
 
     public function stockReport(Request $request, $id)
     {
+        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
         return $this->generateStockReport($request, $id, 'view');
     }
 
     public function stockReportPdf(Request $request, $id)
     {
+        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
         return $this->generateStockReport($request, $id, 'pdf');
     }
 
     public function stockReportExcel(Request $request, $id)
     {
+        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
         return $this->generateStockReport($request, $id, 'excel');
     }
 

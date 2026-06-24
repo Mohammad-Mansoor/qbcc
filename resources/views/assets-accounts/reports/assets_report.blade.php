@@ -104,8 +104,12 @@
             <p class="mb-0 text-white-50">رهگیری و تحلیل تمام دارایی‌ها و اجناس ثابت</p>
         </div>
         <div class="d-flex gap-2">
+            @can('export_assets_report_excel')
             <a href="{{ route('assets.report.excel', request()->all()) }}" class="btn btn-success btn-export"><i class="fa fa-file-excel-o"></i> خروجی اکسل (Excel)</a>
+            @endcan
+            @can('export_assets_report_pdf')
             <a href="{{ route('assets.report.pdf', request()->all()) }}" target="_blank" class="btn btn-danger btn-export"><i class="fa fa-file-pdf-o"></i> خروجی پی‌دی‌اف (PDF)</a>
+            @endcan
         </div>
     </div>
 

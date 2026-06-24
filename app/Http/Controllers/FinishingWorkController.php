@@ -26,6 +26,14 @@ class FinishingWorkController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+        
+        $this->middleware('permission:view_finishing_centers')->only(['index', 'search_finish_number', 'search_from_finish_number', 'search', 'search_non', 'show']);
+        $this->middleware('permission:create_finishing_work')->only(['saving_the_work', 'store', 'edit', 'update', 'destroy']);
+        $this->middleware('permission:re_saving_the_work')->only(['re_saving_the_work', 'store_refinish']);
+        $this->middleware('permission:view_refinish_requests')->only(['request_list']);
+        $this->middleware('permission:approve_refinish_requests')->only(['approve_request']);
+        $this->middleware('permission:reject_refinish_requests')->only(['delete_request']);
+        $this->middleware('permission:return_carpet_from_finishing')->only(['return_to_wash', 'return_to_center']);
     }
 
     public function saving_the_work(Carpet $carpet, Request $request)

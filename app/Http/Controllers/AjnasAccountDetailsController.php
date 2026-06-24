@@ -15,6 +15,7 @@ class AjnasAccountDetailsController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->middleware('permission:manage_assets_account')->only(['store', 'edit', 'update', 'destroy']);
     }
 
     private function postAssetToAccounting($id, $amount, $date, $name, $overrides = [])

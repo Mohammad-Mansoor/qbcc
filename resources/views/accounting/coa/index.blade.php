@@ -13,9 +13,11 @@
                             <p class="text-muted mb-0">مدیریت و ساختاردهی تمامی حساب‌های مالی شرکت</p>
                         </div>
                         <div class="col-md-6 text-right">
+                            @can('create_coa')
                             <a href="{{ route('accounting.coa.create') }}" class="btn btn-primary shadow-sm" style="border-radius: 10px;">
                                 <i class="feather icon-plus mr-2"></i>ایجاد حساب جدید
                             </a>
+                            @endcan
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
@@ -101,13 +103,17 @@
                             </td>
                             <td class="py-3 text-right px-4">
                                 <div class="btn-group">
+                                    @can('view_account_ledger')
                                     <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $acc->id]) }}" class="btn btn-sm btn-outline-info mr-2" title="مشاهده صورت حساب (Ledger)">
                                         <i class="feather icon-file-text"></i> صورت حساب
                                     </a>
+                                    @endcan
                                     
+                                    @can('edit_coa')
                                     <a href="{{ route('accounting.coa.edit', $acc->id) }}" class="btn btn-sm btn-outline-primary" title="ویرایش">
                                         <i class="feather icon-edit-2"></i>
                                     </a>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

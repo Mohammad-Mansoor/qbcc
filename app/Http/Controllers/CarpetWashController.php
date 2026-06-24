@@ -22,6 +22,12 @@ class CarpetWashController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+        
+        $this->middleware('permission:view_carpet_washes')->only(['index', 'wash_numbers', 'search_wash_number_for_wash', 'search_carpet_type_from_wash_number', 'search_wash_numbersh_for_wash', 'search_wash_numbersh_payment', 'search', 'search_carpet_type', 'show']);
+        $this->middleware('permission:create_carpet_wash')->only(['create_carpet_wash', 'store']);
+        $this->middleware('permission:edit_carpet_wash')->only(['edit', 'update']);
+        $this->middleware('permission:return_carpet_from_wash')->only(['return_to_center', 'return_to_kachaee']);
+        $this->middleware('permission:send_carpet_to_finishing')->only(['sent_to_finishing_center']);
     }
 
 

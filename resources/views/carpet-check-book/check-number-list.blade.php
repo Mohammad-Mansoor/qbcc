@@ -3,17 +3,17 @@
 @section('content')
 <style>
     :root {
-        --qbcc-primary: #0f172a;
-        --qbcc-secondary: #334155;
-        --qbcc-accent: #2563eb;
-        --qbcc-border: #cbd5e1;
+        --QBIC-primary: #0f172a;
+        --QBIC-secondary: #334155;
+        --QBIC-accent: #2563eb;
+        --QBIC-border: #cbd5e1;
         --radius-lg: 16px;
         --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
     }
 
     .invoice-card {
         background: #ffffff;
-        border: 1px solid var(--qbcc-border);
+        border: 1px solid var(--QBIC-border);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-soft);
         padding: 40px;
@@ -23,7 +23,7 @@
     }
 
     .invoice-header {
-        border-bottom: 2px solid var(--qbcc-primary);
+        border-bottom: 2px solid var(--QBIC-primary);
         padding-bottom: 20px;
         margin-bottom: 30px;
     }
@@ -35,7 +35,7 @@
     .company-name {
         font-size: 24px;
         font-weight: 800;
-        color: var(--qbcc-primary);
+        color: var(--QBIC-primary);
         margin-bottom: 5px;
     }
 
@@ -52,7 +52,7 @@
     .invoice-title {
         font-size: 28px;
         font-weight: 900;
-        color: var(--qbcc-accent);
+        color: var(--QBIC-accent);
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 10px;
@@ -77,7 +77,7 @@
 
     .invoice-meta-table td.value {
         font-weight: 700;
-        color: var(--qbcc-primary);
+        color: var(--QBIC-primary);
         text-align: right;
     }
 
@@ -92,7 +92,7 @@
     .billing-title {
         font-size: 14px;
         font-weight: 800;
-        color: var(--qbcc-primary);
+        color: var(--QBIC-primary);
         border-bottom: 1px solid #e2e8f0;
         padding-bottom: 8px;
         margin-bottom: 12px;
@@ -100,7 +100,7 @@
 
     .billing-details {
         font-size: 13px;
-        color: var(--qbcc-secondary);
+        color: var(--QBIC-secondary);
         line-height: 1.8;
     }
 
@@ -111,13 +111,13 @@
     }
 
     .table-invoice th {
-        background: var(--qbcc-primary);
+        background: var(--QBIC-primary);
         color: #ffffff;
         font-weight: 700;
         font-size: 12px;
         padding: 12px 10px;
         text-align: center;
-        border: 1px solid var(--qbcc-primary);
+        border: 1px solid var(--QBIC-primary);
     }
 
     .table-invoice td {
@@ -125,7 +125,7 @@
         border: 1px solid #e2e8f0;
         font-size: 13px;
         text-align: center;
-        color: var(--qbcc-secondary);
+        color: var(--QBIC-secondary);
     }
 
     .table-invoice tr:nth-child(even) {
@@ -150,9 +150,9 @@
     .totals-table tr.grand-total td {
         font-size: 18px;
         font-weight: 800;
-        color: var(--qbcc-accent);
-        border-top: 2px solid var(--qbcc-primary);
-        border-bottom: 2px solid var(--qbcc-primary);
+        color: var(--QBIC-accent);
+        border-top: 2px solid var(--QBIC-primary);
+        border-bottom: 2px solid var(--QBIC-primary);
         background: #eff6ff;
     }
 
@@ -200,7 +200,8 @@
             visibility: hidden;
         }
 
-        #print-area, #print-area * {
+        #print-area,
+        #print-area * {
             visibility: visible;
         }
 
@@ -244,16 +245,21 @@
         </div>
         <div class="d-flex align-items-center gap-2">
             @if($invoice->status == 'open')
-                <form action="/dashboard/check-book/{{ $invoice->id }}/close" method="post" class="d-inline ml-2" onsubmit="return confirm('آیا مطمئن هستید؟');">
-                    @csrf
-                    <button type="submit" class="btn btn-danger rounded-lg px-4 shadow-sm">
-                        <i class="feather icon-lock mr-1"></i> بستن بل خرید
-                    </button>
-                </form>
+                @can('close_purchase_bill')
+                    <form action="/dashboard/check-book/{{ $invoice->id }}/close" method="post" class="d-inline ml-2"
+                        onsubmit="return confirm('آیا مطمئن هستید؟');">
+                        @csrf
+                        <button type="submit" class="btn btn-danger rounded-lg px-4 shadow-sm">
+                            <i class="feather icon-lock mr-1"></i> بستن بل خرید
+                        </button>
+                    </form>
+                @endcan
             @endif
-            <a href="?export=pdf" target="_blank" class="btn btn-secondary rounded-lg shadow px-4 text-white">
-                <i class="feather icon-download mr-1"></i> دانلود PDF (Print)
-            </a>
+            @can('print_purchase_bill_pdf')
+                <a href="?export=pdf" target="_blank" class="btn btn-secondary rounded-lg shadow px-4 text-white">
+                    <i class="feather icon-download mr-1"></i> دانلود PDF (Print)
+                </a>
+            @endcan
         </div>
     </div>
 </div>
@@ -265,10 +271,10 @@
             <div class="invoice-header">
                 <div class="row align-items-center">
                     <div class="col-md-6 col-sm-6 company-logo-section">
-                        <div class="company-name">شرکت تولیدی قالین QBCC</div>
+                        <div class="company-name">شرکت تولیدی قالین QBIC</div>
                         <div class="company-details">
                             آدرس: کابل، افغانستان<br>
-                            ایمیل: info@qbcc.com | تلفن: +93 (0) 700 000 000<br>
+                            ایمیل: info@QBIC.com | تلفن: +93 (0) 700 000 000<br>
                             سیستم مدیریت مالی Forensic ERP
                         </div>
                     </div>
@@ -285,7 +291,8 @@
                             </tr>
                             <tr>
                                 <td class="value">
-                                    <span class="status-badge {{ $invoice->status == 'open' ? 'badge-open' : 'badge-closed' }}">
+                                    <span
+                                        class="status-badge {{ $invoice->status == 'open' ? 'badge-open' : 'badge-closed' }}">
                                         {{ $invoice->status == 'open' ? 'باز (Open)' : 'بسته (Closed)' }}
                                     </span>
                                 </td>
@@ -311,7 +318,7 @@
                     <div class="col-md-6 text-right">
                         <div class="billing-title"><i class="feather icon-home mr-1"></i> مشخصات تحویل‌گیرنده</div>
                         <div class="billing-details">
-                            <strong>نام سازمان:</strong> دفتر مرکزی QBCC<br>
+                            <strong>نام سازمان:</strong> دفتر مرکزی QBIC<br>
                             <strong>بخش تحویل‌گیرنده:</strong> مدیریت انبار و گدام مرکزی قالین<br>
                             <strong>آدرس دفتر:</strong> چهارراهی صدارت، کابل، افغانستان<br>
                             <strong>سیستم مالی:</strong> حسابداری دوبانده (Double Entry Ledger)
@@ -366,24 +373,29 @@
                             <td class="font-weight-bold text-muted">مجموع تعداد (Quantity):</td>
                         </tr>
                         <tr>
-                            <td class="text-left font-weight-bold text-dark">{{ number_format($carpets->sum('area'), 2) }} m²</td>
+                            <td class="text-left font-weight-bold text-dark">
+                                {{ number_format($carpets->sum('area'), 2) }} m²</td>
                             <td class="font-weight-bold text-muted">مجموع مساحت (Total Area):</td>
                         </tr>
                         <tr class="grand-total">
-                            <td class="text-left font-weight-bold">${{ number_format($carpets->sum('total_price'), 2) }}</td>
+                            <td class="text-left font-weight-bold">${{ number_format($carpets->sum('total_price'), 2) }}
+                            </td>
                             <td class="font-weight-bold">مبلغ کل قابل تادیه (Grand Total USD):</td>
                         </tr>
                         <tr>
-                            <td class="text-left font-weight-bold text-success">${{ number_format($invoice->paid_amount, 2) }}</td>
+                            <td class="text-left font-weight-bold text-success">
+                                ${{ number_format($invoice->paid_amount, 2) }}</td>
                             <td class="font-weight-bold text-muted">مجموع پرداخت شده (Total Paid USD):</td>
                         </tr>
                         <tr>
-                            <td class="text-left font-weight-bold text-danger">${{ number_format($invoice->remaining_balance, 2) }}</td>
+                            <td class="text-left font-weight-bold text-danger">
+                                ${{ number_format($invoice->remaining_balance, 2) }}</td>
                             <td class="font-weight-bold text-muted">باقیمانده (Remaining Balance USD):</td>
                         </tr>
                         <tr>
                             <td class="text-left">
-                                <span class="status-badge {{ $invoice->payment_status === 'paid' ? 'bg-success text-white' : ($invoice->payment_status === 'partially_paid' ? 'bg-info text-white' : 'bg-warning text-dark') }}">
+                                <span
+                                    class="status-badge {{ $invoice->payment_status === 'paid' ? 'bg-success text-white' : ($invoice->payment_status === 'partially_paid' ? 'bg-info text-white' : 'bg-warning text-dark') }}">
                                     {{ $invoice->payment_status === 'paid' ? 'تصفیه شده (Paid)' : ($invoice->payment_status === 'partially_paid' ? 'تادیه قسمتی (Partially Paid)' : 'پرداخت نشده (Unpaid)') }}
                                 </span>
                             </td>
@@ -395,41 +407,69 @@
 
             <!-- PAYMENT TRANSACTIONS / ALLOCATIONS HISTORY -->
             @if($invoice->allocations && $invoice->allocations->count() > 0)
-            <div class="row mt-4 pt-4 border-top text-right" style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+            <div class="row mt-4 pt-4 border-top text-right"
+                style="margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
                 <div class="col-12">
-                    <h5 class="font-weight-bold text-dark mb-3" style="font-size: 15px; margin-bottom: 15px;"><i class="fa fa-credit-card text-success mr-1"></i> تاریخچه تادیات و پرداخت‌های بل خرید (Payment History)</h5>
+                    <h5 class="font-weight-bold text-dark mb-3" style="font-size: 15px; margin-bottom: 15px;"><i
+                            class="fa fa-credit-card text-success mr-1"></i> تاریخچه تادیات و پرداخت‌های بل خرید
+                        (Payment History)</h5>
                     <div class="table-responsive">
-                        <table class="table-invoice" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <table class="table-invoice"
+                            style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                             <thead>
                                 <tr style="background-color: #f8f9fa;">
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">تاریخ پرداخت (Date)</th>
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">سند/تفصیلات (Reference / Description)</th>
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">نوعیت پرداخت</th>
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">مقدار پرداختی ارز اصلی (Amount)</th>
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">نرخ تسعیر (FX Rate)</th>
-                                    <th style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">معادل دالر (USD Amount)</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                        تاریخ پرداخت (Date)</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">
+                                        سند/تفصیلات (Reference / Description)</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                        نوعیت پرداخت</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                        مقدار پرداختی ارز اصلی (Amount)</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                        نرخ تسعیر (FX Rate)</th>
+                                    <th
+                                        style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                        معادل دالر (USD Amount)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($invoice->allocations as $pay)
-                                    @php($ap = $pay->agent_payment)
-                                    @if($ap)
+                                @php($ap = $pay->agent_payment)
+                                @if($ap)
                                     <tr>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">{{ $ap->date }}</td>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">
-                                            <strong>سند #: {{ $ap->check_number }}</strong> - 
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                            {{ $ap->date }}</td>
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: right;">
+                                            <strong>سند #: {{ $ap->check_number }}</strong> -
                                             {{ $ap->description }}
                                         </td>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
-                                            <span class="status-badge {{ $ap->type == 'رسید' ? 'bg-success text-white' : 'bg-danger text-white' }}" style="padding: 3px 8px; border-radius: 4px; font-size: 11px;">
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                            <span
+                                                class="status-badge {{ $ap->type == 'رسید' ? 'bg-success text-white' : 'bg-danger text-white' }}"
+                                                style="padding: 3px 8px; border-radius: 4px; font-size: 11px;">
                                                 {{ $ap->type == 'رسید' ? 'رسید (Inflow)' : 'گرفت (Outflow)' }}
                                             </span>
                                         </td>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">{{ number_format($pay->allocated_amount, 2) }} {{ $ap->currency_code }}</td>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; direction: ltr;">{{ number_format($pay->exchange_rate, 8) }}</td>
-                                        <td style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; color: #166534;">${{ number_format($pay->base_allocated_amount, 2) }}</td>
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center;">
+                                            {{ number_format($pay->allocated_amount, 2) }} {{ $ap->currency_code }}</td>
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; direction: ltr;">
+                                            {{ number_format($pay->exchange_rate, 8) }}</td>
+                                        <td
+                                            style="padding: 10px; font-size: 12px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; color: #166534;">
+                                            ${{ number_format($pay->base_allocated_amount, 2) }}</td>
                                     </tr>
-                                    @endif
+                                @endif
                                 @endforeach
                             </tbody>
                         </table>

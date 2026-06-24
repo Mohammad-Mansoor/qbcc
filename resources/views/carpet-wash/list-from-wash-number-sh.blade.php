@@ -176,13 +176,13 @@
                     @if($wash->carpet->status == 13)
                       <td>washed</td>
                     @elseif($wash->carpet->status == 3)
-                      @if(auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
+                      @can('create_carpet_wash')
                         <td><a href="/dashboard/carpet-wash/create/{{$wash->id}}"
                                class="btn btn-sm btn-info printBTN"><i
                                     class="fa fa-pencil-alt"></i>&nbsp; wash</a></td>
                       @else
                         <td>None Washed</td>
-                      @endif
+                      @endcan
                     @else
                       <td>از بخش شست رفته</td>
                     @endif

@@ -149,13 +149,17 @@
                     </div>
 
                     <!-- Action Buttons -->
+                    @can('view_washing_team_statement')
                     <a href="/dashboard/washing-accounts" class="btn btn-info shadow-sm mr-2 rounded-lg font-weight-bold px-3 border-0" style="background-color: #06b6d4;">
                         <i class="fa fa-calculator mr-1"></i> کارمندان حسابدار
                     </a>
+                    @endcan
                     
+                    @can('create_washing_team')
                     <button type="button" class="btn btn-success shadow-sm rounded-lg font-weight-bold px-3 border-0" data-toggle="modal" data-target="#washingTeamModal" style="background-color: #10b981;">
                         <i class="fa fa-plus-circle mr-1"></i> ایجاد عضو جدید
                     </button>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -218,9 +222,15 @@
                     <!-- Action Buttons -->
                     <td class="align-middle hideOnPrint">
                       <div class="btn-group shadow-sm" role="group">
+                        @can('edit_washing_team')
                         <a href="/dashboard/washing-team/{{$t->id}}/edit" class="btn btn-sm btn-light border" title="ویرایش" style="color: #4b5563;"><i class="fa fa-edit"></i></a>
+                        @endcan
+                        @can('manage_washing_payments')
                         <a href="/dashboard/washing-payments/{{$t->id}}" class="btn btn-sm btn-light border text-primary font-weight-bold px-3">حساب</a>
+                        @endcan
+                        @can('view_washing_team_statement')
                         <a href="{{ route('accounting.statements.show', ['entity' => 'washing-team', 'id' => $t->id]) }}" class="btn btn-sm btn-light border text-info" title="صورت حساب"><i class="fa fa-file-pdf-o"></i></a>
+                        @endcan
                       </div>
                     </td>
                   </tr>

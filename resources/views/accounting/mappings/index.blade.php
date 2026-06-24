@@ -312,9 +312,11 @@
                     <i class="feather icon-info mr-1 text-primary"></i>
                     تغییرات شما بلافاصله پس از ذخیره روی تمام تراکنش‌های آینده اعمال خواهد شد.
                 </div>
+                @can('edit_mapping_rules')
                 <button type="submit" class="btn btn-primary px-5 font-weight-bold shadow-sm" style="border-radius: 10px;">
                     <i class="feather icon-save mr-2"></i> ذخیره تنظیمات هوشمند
                 </button>
+                @endcan
             </div>
         </div>
     </form>

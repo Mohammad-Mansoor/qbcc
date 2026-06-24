@@ -58,7 +58,7 @@ Instead, start the PHP built-in server manually using `server.php` as the router
 Visit `http://127.0.0.1:8000` in your browser. 
 Use the default administrator credentials created by the database seeder:
 - **Email:** `qbc1@live.com`
-- **Password:** `Qbcc22000@1500af`
+- **Password:** `QBIC22000@1500af`
 
 ---
 

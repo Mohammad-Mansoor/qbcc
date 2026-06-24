@@ -70,6 +70,7 @@
               
               <div class="col-sm-12 hideOnPrint">
                 <div class="all-form-element-inner">
+                  @can('manage_different_account_payments')
                   @if(!$paymentEdit)
                     <form action="/dashboard/new-different-account-payments" method="post">
                       @csrf
@@ -231,6 +232,7 @@
                       </div>
                     </form>
                   @endif
+                  @endcan
                 </div>
               </div>
             
@@ -314,6 +316,7 @@
                           @endif
                           
                           @if( $pa->status == 0 || auth()->user()->role == 'SP')
+                            @can('manage_different_account_payments')
                             <td class="hideOnPrint">
                               <a href="/dashboard/new-different-account-payments/{{$pa->id}}/edit"
                                  class="btn btn-sm btn-info">ویرایش</a>
@@ -323,6 +326,7 @@
                               </button>
 
                             </td>
+                            @endcan
                           @endif
                         </tr>
                       @endforeach

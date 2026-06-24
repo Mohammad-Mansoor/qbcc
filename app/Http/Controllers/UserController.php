@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_user')->only(['create', 'store']);
+        $this->middleware('permission:edit_user')->only(['edit', 'update']);
+        $this->middleware('permission:delete_user')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *
@@ -18,16 +24,18 @@ class UserController extends Controller
      */
     public function index()
     {
-          $users = User::where('role','!=','AO')->paginate(30);
+        $users = User::where('role','!=','AO')->paginate(30);
         $editUser = '';
-        return view('users.user-list',compact('users','editUser'));
+        $spatieRoles = \Spatie\Permission\Models\Role::all();
+        return view('users.user-list',compact('users','editUser', 'spatieRoles'));
     }
     public function search(Request $request){
         $search = $request->search;
         $users = User::where('name','like','%'.$search.'%')->orWhere('last_name','like','%'.$search.'%')
             ->orWhere('email','like','%'.$search.'%')->paginate(30);
         $editUser = '';
-        return view('users.user-list',compact('users','editUser'));
+        $spatieRoles = \Spatie\Permission\Models\Role::all();
+        return view('users.user-list',compact('users','editUser', 'spatieRoles'));
     }
 
     /**
@@ -55,6 +63,10 @@ class UserController extends Controller
         $user->email = $request->email;
         $user->password = Hash::make($request->confirm);
         $user->save();
+
+        if($request->role) {
+            $user->assignRole($request->role);
+        }
 
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');
@@ -91,7 +103,8 @@ class UserController extends Controller
     {
          $users = User::where('role','!=','AO')->paginate(30);
         $editUser = User::find($id);
-        return view('users.user-list',compact('users','editUser'));
+        $spatieRoles = \Spatie\Permission\Models\Role::all();
+        return view('users.user-list',compact('users','editUser', 'spatieRoles'));
     }
 
     /**
@@ -119,6 +132,10 @@ class UserController extends Controller
             $user->password = Hash::make($request->confirm);
         }
         $user->save();
+
+        if($request->role && $user->role != 'AO') {
+            $user->syncRoles([$request->role]);
+        }
 
         $activity = new Activity();
         $activity->date = Carbon::today()->format('Y-m-d');

@@ -277,9 +277,11 @@
                             <p class="text-muted mb-0">مشاهده و مدیریت تمامی تراکنش‌های مالی ثبت شده در سیستم</p>
                         </div>
                         <div class="col-md-6 text-right">
+                            @can('create_journal')
                             <a href="{{ route('accounting.journals.create') }}" class="btn btn-primary shadow-sm px-4" style="border-radius: 10px;">
                                 <i class="feather icon-plus mr-2"></i>ثبت سند جدید (Journal Entry)
                             </a>
+                            @endcan
                         </div>
                     </div>
                     

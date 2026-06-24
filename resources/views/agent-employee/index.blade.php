@@ -32,8 +32,10 @@
                     <h4 class="text-center">لیست کارگرها</h4>
                     <div class="row">
                         <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 hideOnPrint">
+                            @can('create_agent_employee')
                             <a href="/dashboard/agent-employees/create" class="btn btn-primary pull-right hideOnPrint"><i
                                         class="fa fa-plus"></i>&nbsp;ثبت نام کارگر</a>
+                            @endcan
                         </div>
                         <div class="col-lg-9 col-md-9 col-sm-9 col-xs-9"></div>
                     </div>
@@ -64,7 +66,7 @@
                                 <th>تخلص</th>
                                 <th>نام پدر</th>
                                 <th>نماینده مربوطه</th>
-                                <th class="hideOnPrint">ویرایش</th>
+                                @can('edit_agent_employee')<th class="hideOnPrint">ویرایش</th>@endcan
 
 
                             </tr>
@@ -77,8 +79,10 @@
                                     <td>{{$employee->last_name}}</td>
                                     <td>{{$employee->father_name}}</td>
                                     <td>{{$employee->agent->user->name}}</td>
+                                    @can('edit_agent_employee')
                                     <td class="hideOnPrint"><a href="/dashboard/agent-employees/{{$employee->id}}/edit" class="btn btn-sm btn-info"><i
                                                     class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                                    @endcan
 
                                 </tr>
                             @endforeach

@@ -17,6 +17,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$typeEdit)
+              @can('create_carpet_type')
               <form method="post" id="" action="/dashboard/carpet-types">
                 @csrf
                 <div class="row">
@@ -37,7 +38,9 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @else
+              @can('edit_carpet_type')
               <form method="post" id="carpetTypeForm" action="/dashboard/carpet-types/{{$typeEdit->carpet_type_id}}">
                 @csrf
                 @method('PUT')
@@ -59,6 +62,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -97,7 +101,7 @@
               <tr >
                 <th>آی دی</th>
                 <th>نوعیت قالین</th>
-                <th>ویرایش</th>
+                @can('edit_carpet_type')<th>ویرایش</th>@endcan
               </tr>
               </thead>
               <tbody>
@@ -105,8 +109,8 @@
                 <tr class="ur{{ $type->carpet_type_id }}">
                   <td>{{$type->carpet_type_id}}</td>
                   <td>{{$type->carpet_type}}</td>
-                  <td><a href="/dashboard/carpet-types/{{$type->carpet_type_id}}/edit"
-                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  @can('edit_carpet_type')<td><a href="/dashboard/carpet-types/{{$type->carpet_type_id}}/edit"
+                         class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>@endcan
         
                 </tr>
               @endforeach

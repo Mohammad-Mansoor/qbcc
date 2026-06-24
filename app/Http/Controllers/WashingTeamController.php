@@ -22,6 +22,11 @@ class WashingTeamController extends Controller
     public function __construct(InventoryService $inventoryService)
     {
         $this->inventoryService = $inventoryService;
+        
+        $this->middleware('permission:view_washing_teams')->only(['index', 'accounts', 'search', 'team_carpets', 'show']);
+        $this->middleware('permission:create_washing_team')->only(['create', 'store']);
+        $this->middleware('permission:edit_washing_team')->only(['edit', 'update']);
+        $this->middleware('permission:send_carpet_to_washing')->only(['sending_to_washing', 'washing_team_selected']);
     }
     /**
      * Display a listing of the resource.

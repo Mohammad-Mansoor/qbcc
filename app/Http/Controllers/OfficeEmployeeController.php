@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Auth;
 
 class OfficeEmployeeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_employees')->only(['index', 'show', 'search']);
+        $this->middleware('permission:create_employee')->only(['create', 'store']);
+        $this->middleware('permission:edit_employee')->only(['edit', 'update', 'destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *

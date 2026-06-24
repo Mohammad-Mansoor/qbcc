@@ -47,42 +47,42 @@
         }
 
         /* Spacers to prevent content from hiding behind fixed header/footer */
-        .header-space { height: 100px; }
-        .footer-space { height: 120px; }
+        .header-space { height: 75px; }
+        .footer-space { height: 60px; }
 
         /* Container for actual text to give it safe padding from page edges */
         .content-wrapper {
-            padding-left: 3mm;
-            padding-right: 3mm;
+            padding-left: 2mm;
+            padding-right: 2mm;
         }
         
         .title-block {
             text-align: center;
-            border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 10px;
-            margin-top: 10px;
-            margin-bottom: 15px;
+            border-bottom: 1px solid #1e3a8a;
+            padding-bottom: 5px;
+            margin-top: 2px;
+            margin-bottom: 5px;
         }
-        .title-main { font-size: 18pt; font-weight: bold; color: #0f172a; margin: 0 0 5px 0; }
-        .title-sub { font-size: 12pt; color: #475569; margin: 0; }
+        .title-main { font-size: 12pt; font-weight: bold; color: #0f172a; margin: 0 0 2px 0; }
+        .title-sub { font-size: 9pt; color: #475569; margin: 0; }
         
-        .meta-table { width: 100%; margin-bottom: 15px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
-        .meta-table td { padding: 12px; vertical-align: top; }
-        .meta-label { font-size: 9pt; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .meta-val-primary { font-size: 12pt; font-weight: bold; color: #0f172a; margin: 0 0 4px 0; }
-        .meta-val-secondary { font-size: 10pt; color: #475569; margin: 0 0 2px 0; }
+        .meta-table { width: 100%; margin-bottom: 5px; background: #f8fafc; border-radius: 5px; border: 1px solid #e2e8f0; }
+        .meta-table td { padding: 4px; vertical-align: top; }
+        .meta-label { font-size: 7.5pt; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; }
+        .meta-val-primary { font-size: 9pt; font-weight: bold; color: #0f172a; margin: 0 0 2px 0; }
+        .meta-val-secondary { font-size: 8pt; color: #475569; margin: 0 0 1px 0; }
 
         .dashboard-row {
             display: flex;
             flex-wrap: wrap;
-            margin: 15px 0;
-            gap: 10px;
+            margin: 5px 0;
+            gap: 5px;
         }
         .dashboard-col {
             flex: 1;
             min-width: 0;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 4px;
+            border-radius: 4px;
             border: 1px solid #e2e8f0;
             text-align: center;
         }
@@ -90,7 +90,7 @@
         table.ledger-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 5px;
             table-layout: auto;
         }
         table.ledger-table th {
@@ -98,8 +98,8 @@
             color: #ffffff !important;
             font-weight: bold;
             border: 1px solid #cbd5e1;
-            font-size: 9.5pt;
-            padding: 8px 5px;
+            font-size: 7.5pt;
+            padding: 3px 2px;
             text-align: center;
             white-space: nowrap;
             -webkit-print-color-adjust: exact !important;
@@ -107,13 +107,13 @@
         }
         table.ledger-table td {
             border: 1px solid #cbd5e1;
-            padding: 8px 5px;
-            font-size: 9pt;
+            padding: 3px 2px;
+            font-size: 7.5pt;
             color: #0f172a;
         }
         table.ledger-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        table.ledger-table .opening-row td { background-color: #fffbeb !important; font-weight: bold; color: #1e293b; }
-        table.ledger-table tfoot td { background-color: #f1f5f9 !important; font-weight: bold; border-top: 2px solid #1e3a8a; font-size: 9.5pt; }
+        table.ledger-table .opening-row td { background-color: #fffbeb !important; font-weight: bold; color: #1e293b; font-size: 7.5pt; }
+        table.ledger-table tfoot td { background-color: #f1f5f9 !important; font-weight: bold; border-top: 1px solid #1e3a8a; font-size: 8pt; padding: 3px 2px; }
 
         .text-center { text-align: center; }
         .text-left { text-align: left; }
@@ -127,8 +127,8 @@
         .card-green { background-color: #ecfdf5 !important; border-color: #a7f3d0 !important; }
         .card-blue { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
         
-        .small-title { font-size: 8.5pt; font-weight: bold; margin-bottom: 5px; }
-        .card-val { font-size: 12pt; font-weight: bold; margin: 0; }
+        .small-title { font-size: 7pt; font-weight: bold; margin-bottom: 2px; }
+        .card-val { font-size: 9pt; font-weight: bold; margin: 0; }
         
         @media print {
             thead { display: table-header-group; }
@@ -237,7 +237,7 @@
                                 <td>
                                     {{ $entry->description ?: 'بدون توضیحات' }}
                                     @if($entry->currency_code != \App\Currency::getBase()->code && ($entry->debit > 0 || $entry->credit > 0))
-                                        <div style="font-size: 8pt; color: #64748b; margin-top: 3px;" dir="ltr">
+                                        <div style="font-size: 6.5pt; color: #64748b; margin-top: 1px;" dir="ltr">
                                             Original: {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
                                         </div>
                                     @endif
@@ -259,7 +259,7 @@
                                 <td colspan="3" class="text-center">خلاصه این دوره (Period Totals):</td>
                                 <td class="text-left text-danger" style="direction: ltr;">${{ number_format($entries->sum('debit'), 2) }}</td>
                                 <td class="text-left text-success" style="direction: ltr;">${{ number_format($entries->sum('credit'), 2) }}</td>
-                                <td class="text-left font-bold" style="direction: ltr; font-size: 11pt; color: #1e3a8a;">${{ number_format($currentRunning, 2) }}</td>
+                                <td class="text-left font-bold" style="direction: ltr; font-size: 8.5pt; color: #1e3a8a;">${{ number_format($currentRunning, 2) }}</td>
                             </tr>
                         </tfoot>
                     </table>

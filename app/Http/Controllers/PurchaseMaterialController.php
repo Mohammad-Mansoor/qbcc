@@ -30,6 +30,13 @@ class PurchaseMaterialController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+
+        $this->middleware('permission:create_material_purchase')->only(['create', 'store']);
+        $this->middleware('permission:edit_material_purchase')->only(['edit', 'update']);
+        $this->middleware('permission:delete_material_purchase')->only('destroy');
+        $this->middleware('permission:view_purchase_material_requests')->only('request_list');
+        $this->middleware('permission:approve_purchase_material_requests')->only('approve_request');
+        $this->middleware('permission:reject_purchase_material_requests')->only('delete_request');
     }
 
     private function postPurchaseToAccounting($purchase)

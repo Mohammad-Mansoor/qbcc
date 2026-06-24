@@ -229,9 +229,11 @@
             <p class="mb-0 opacity-75">ثبت و مدیریت فرمایشات و لیست قالین‌های این مشتری</p>
         </div>
         <div class="hideOnPrint">
+            @can('create_customer_order')
             <button class="btn btn-premium font-weight-bold shadow-sm" data-toggle="modal" data-target="#orderModal">
                 <i class="fa fa-plus-circle ml-2"></i> ثبت فرمایش جدید
             </button>
+            @endcan
         </div>
     </div>
 
@@ -374,6 +376,7 @@
                                             </div>
                                         </td>
                                         <td>
+                                            @can('create_customer_order')
                                             <form action="/dashboard/customer-orders/{{ $co->co_id }}" method="POST" class="d-inline status-order-form-{{ $co->co_id }}">
                                                 @csrf
                                                 @method('PUT')
@@ -387,17 +390,28 @@
                                                     <option value="cancel" {{ $co->status == 'cancel' ? 'selected' : '' }}>لغو شده</option>
                                                 </select>
                                             </form>
+                                            @else
+                                                <span class="badge badge-premium badge-premium-{{ $co->status }}">
+                                                    {{ $co->status == 'pending' ? 'معلق' : ($co->status == 'in_progress' ? 'در حال اجرا' : ($co->status == 'completed' ? 'تکمیل شده' : 'لغو شده')) }}
+                                                </span>
+                                            @endcan
                                         </td>
                                         <td class="text-left pl-4">
+                                            @can('manage_customer_order_details')
                                             <a href="/dashboard/customer-order-details/{{$co->co_id}}" class="btn btn-sm btn-outline-primary ml-1 font-weight-bold">
                                                 <i class="fa fa-list"></i> جزئیات قالین
                                             </a>
+                                            @endcan
+                                            @can('edit_customer_order')
                                             <a href="/dashboard/customer-orders/{{$co->co_id}}/edit" class="btn btn-sm btn-outline-info ml-1 font-weight-bold">
                                                 <i class="fa fa-edit"></i> ویرایش
                                             </a>
+                                            @endcan
+                                            @can('delete_customer_order')
                                             <button onclick="deleteOrder({{$co->co_id}})" class="btn btn-sm btn-outline-danger font-weight-bold">
                                                 <i class="fa fa-trash"></i> حذف
                                             </button>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @endforeach

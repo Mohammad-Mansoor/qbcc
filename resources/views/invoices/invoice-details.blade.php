@@ -18,16 +18,20 @@
         </div>
         <div class="col-md-6 text-left d-flex align-items-center justify-content-end">
             @if($invoice->status === 'open')
+                @can('close_invoice')
                 <form action="/dashboard/invoices/{{$invoice->id}}/close" method="POST" id="close-invoice-form" class="d-inline-block">
                     @csrf
                     <button type="button" onclick="confirmCloseInvoice()" class="btn btn-danger shadow-sm px-4 font-weight-bold ml-2">
                         <i class="fa fa-lock mr-2"></i> بستن انوایس
                     </button>
                 </form>
+                @endcan
             @endif
+            @can('print_invoice')
             <a href="?export=pdf" class="btn btn-primary shadow-sm px-4 font-weight-bold" target="_blank">
                 <i class="fa fa-file-pdf-o mr-2"></i> خروجی PDF (چاپ)
             </a>
+            @endcan
             <a href="/dashboard/invoices" class="btn btn-light shadow-sm px-4 ml-2">بازگشت به لیست</a>
         </div>
     </div>
@@ -216,7 +220,9 @@
                                         @if($totalPaid > 0)
                                             <button class="btn btn-outline-secondary btn-sm" disabled title="دارای پرداخت"><i class="fa fa-lock"></i></button>
                                         @else
+                                            @can('edit_invoice')
                                             <button onclick="sendToStock({{$sale->carpet_id}})" class="btn btn-outline-danger btn-sm" title="بازگشت به گدام"><i class="fa fa-undo"></i></button>
+                                            @endcan
                                         @endif
                                     @endif
                                 </td>
@@ -244,7 +250,9 @@
                                         @if($totalPaid > 0)
                                             <button class="btn btn-outline-secondary btn-sm" disabled><i class="fa fa-lock"></i></button>
                                         @else
+                                            @can('edit_invoice')
                                             <button onclick="returnMaterialSale({{$material->id}})" class="btn btn-outline-danger btn-sm"><i class="fa fa-undo"></i></button>
+                                            @endcan
                                         @endif
                                     @endif
                                 </td>

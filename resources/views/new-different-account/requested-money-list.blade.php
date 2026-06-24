@@ -88,17 +88,19 @@
                       <td>{{$r->date}}</td>
                       
                       <td class="hideOnPrint">
-                        
+                        @can('approve_different_account_money_requests')
                         <button onclick="approveRequest({{$r->id}})" class="btn btn-info btn-sm"><i
                                   class="fa fa-tick"></i> تایید پرداخت ؟
                         </button>
+                        @endcan
                       </td>
                       
                       <td class="hideOnPrint">
-                        
+                        @can('reject_different_account_money_requests')
                         <button onclick="deleteRequest({{$r->id}})" class="btn btn-danger btn-sm"><i
                                   class="fa fa-tick"></i> رد نمودن پرداخت ؟
                         </button>
+                        @endcan
                       </td>
                     
                     

@@ -457,24 +457,35 @@
                       @endif
                       
                       
-                      <td class="hideOnPrint"><a
-                                href="/dashboard/finishing-center/finish-work/{{$nonfinish->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
-                                class="btn-modern-action btn-tiari printBTN"><i
-                                  class="fa fa-scissors"></i>&nbsp; تیاری</a></td>
+                      <td class="hideOnPrint">
+                        @can('create_finishing_work')
+                        <a href="/dashboard/finishing-center/finish-work/{{$nonfinish->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
+                                  class="btn-modern-action btn-tiari printBTN"><i
+                                    class="fa fa-scissors"></i>&nbsp; تیاری</a>
+                        @endcan
+                      </td>
   
                      
                         <?php $wash = \App\CarpetWash::where('carpetId', $nonfinish->carpet_id)->first(); ?>
                    
                       
                       @if($wash)
-                        <td><a href="/dashboard/return-to-wash/{{$nonfinish->carpet_id}}"
-                               class="btn-modern-action btn-wash printBTN"><i
-                                    class="fa fa-undo"></i>&nbsp; بازگشت به شست</a></td>
+                        <td>
+                          @can('return_carpet_from_finishing')
+                          <a href="/dashboard/return-to-wash/{{$nonfinish->carpet_id}}"
+                                 class="btn-modern-action btn-wash printBTN"><i
+                                      class="fa fa-undo"></i>&nbsp; بازگشت به شست</a>
+                          @endcan
+                        </td>
                       @else
                         
-                        <td><a href="/dashboard/return-to-center-from-finish/{{$nonfinish->carpet_id}}"
-                               class="btn-modern-action btn-central printBTN"><i
-                                    class="fa fa-reply"></i>&nbsp; بازگشت به مرکزی</a></td>
+                        <td>
+                          @can('return_carpet_from_finishing')
+                          <a href="/dashboard/return-to-center-from-finish/{{$nonfinish->carpet_id}}"
+                                 class="btn-modern-action btn-central printBTN"><i
+                                      class="fa fa-reply"></i>&nbsp; بازگشت به مرکزی</a>
+                          @endcan
+                        </td>
                       @endif
                     
                     
@@ -581,15 +592,26 @@
                         </td>
                       @endif
   
-                      <td class="hideOnPrint"><a
-                                href="/dashboard/finishing-center/re-finish-work/{{$finish->carpet->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
-                                class="btn-modern-action btn-re-tiari printBTN"><i
-                                  class="fa fa-refresh"></i>&nbsp; دوباره تیاری</a></td>
-                      <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn-modern-action btn-edit printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                      <td class="hideOnPrint">
+                        @can('re_saving_the_work')
+                        <a href="/dashboard/finishing-center/re-finish-work/{{$finish->carpet->carpet_id ?? ''}}{{ request()->has('team_id') ? '?team_id='.request('team_id') : '' }}"
+                                  class="btn-modern-action btn-re-tiari printBTN"><i
+                                    class="fa fa-refresh"></i>&nbsp; دوباره تیاری</a>
+                        @endcan
+                      </td>
+                      <td class="hideOnPrint">
+                        @can('create_finishing_work')
+                        <a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn-modern-action btn-edit printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
+                        @endcan
+                      </td>
                       
-                      <td class="hideOnPrint"><a href="/dashboard/finishing-center/{{$finish->id ?? ''}}"
-                                                 class="btn-modern-action btn-view printBTN"><i
-                                  class="fa fa-eye"></i>&nbsp; نمایش</a></td>
+                      <td class="hideOnPrint">
+                        @can('view_finishing_centers')
+                        <a href="/dashboard/finishing-center/{{$finish->id ?? ''}}"
+                                                   class="btn-modern-action btn-view printBTN"><i
+                                    class="fa fa-eye"></i>&nbsp; نمایش</a>
+                        @endcan
+                      </td>
                     </tr>
                     
                     <span style="display: none">

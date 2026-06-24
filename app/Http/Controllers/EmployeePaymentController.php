@@ -19,6 +19,7 @@ class EmployeePaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        $this->middleware('permission:manage_employee_payments')->only(['create', 'store', 'edit', 'update', 'destroy']);
     }
 
     // ─── Private: Post to GL ────────────────────────────────────────────────

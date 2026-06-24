@@ -19,6 +19,11 @@ class KachaeePaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        
+        $this->middleware('permission:view_kachaee_money_requests')->only(['money_request']);
+        $this->middleware('permission:approve_kachaee_money_requests')->only(['approve_request']);
+        $this->middleware('permission:reject_kachaee_money_requests')->only(['delete_request']);
+        $this->middleware('permission:manage_kachaee_payments')->only(['store', 'update', 'edit', 'destroy', 'show_all_payment', 'show', 'allocateAdvance', 'removeAllocation']);
     }
 
     private function postPaymentToAccounting($payment, $overrides = [])
@@ -157,7 +162,7 @@ class KachaeePaymentController extends Controller
             }
             $payed->is_advance = $isAdvance ? 1 : 0;
             $payed->remaining_unallocated_amount = $isAdvance ? $request->amount : 0.0;
-            $payed->payment_status = $isAdvance ? 'unallocated' : null;
+            $payed->payment_status = 'unallocated';
             
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;
@@ -675,7 +680,7 @@ class KachaeePaymentController extends Controller
             }
             $payed->is_advance = $isAdvance ? 1 : 0;
             $payed->remaining_unallocated_amount = $isAdvance ? $request->amount : 0.0;
-            $payed->payment_status = $isAdvance ? 'unallocated' : null;
+            $payed->payment_status = 'unallocated';
 
             // FORENSIC SNAPSHOTS
             $payed->currency_code = $currency->code;

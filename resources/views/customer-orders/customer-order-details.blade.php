@@ -257,9 +257,11 @@
             </p>
         </div>
         <div class="hideOnPrint d-flex gap-2">
+            @can('manage_customer_order_details')
             <button class="btn btn-premium font-weight-bold shadow-sm" data-toggle="modal" data-target="#carpetModal">
                 <i class="fa fa-plus-circle ml-2"></i> ثبت مشخصات قالین جدید
             </button>
+            @endcan
             <a href="/dashboard/customer-orders" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
                 <i class="fa fa-arrow-right ml-1"></i> بازگشت
             </a>
@@ -393,6 +395,7 @@
                                     <td class="text-success">{{ $co->start_date }}</td>
                                     <td class="text-danger">{{ $co->end_date ?: '-' }}</td>
                                     <td>
+                                        @can('manage_customer_order_details')
                                         <form action="/dashboard/customer-order-details/{{ $co->cod_id }}/change-status" method="POST" class="d-inline status-carpet-form-{{ $co->cod_id }}">
                                             @csrf
                                             @method('PATCH')
@@ -410,18 +413,23 @@
                                                 <option value="cancelled" {{ $co->current_status == 'cancelled' ? 'selected' : '' }}>لغو شده</option>
                                             </select>
                                         </form>
+                                        @else
+                                            <span class="badge badge-light text-dark">{{ $co->current_status }}</span>
+                                        @endcan
                                     </td>
                                     <td class="text-left pr-4 pl-4" style="white-space: nowrap;">
                                         <div class="btn-group">
                                             <a href="/dashboard/carpet-specification/{{$co->cod_id}}" class="btn btn-light action-btn text-primary" title="مشاهده جزئیات کامل">
                                                 <i class="fa fa-eye"></i>
                                             </a>
+                                            @can('manage_customer_order_details')
                                             <a href="/dashboard/customer-order-details/{{$co->cod_id}}/edit" class="btn btn-light action-btn text-info" title="ویرایش مشخصات">
                                                 <i class="fa fa-edit"></i>
                                             </a>
                                             <button class="btn btn-light action-btn text-danger mr-1" title="حذف قالین" onclick="deleteOrder({{$co->cod_id}})">
                                                 <i class="fa fa-trash"></i>
                                             </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

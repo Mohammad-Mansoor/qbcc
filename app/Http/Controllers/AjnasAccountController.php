@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class AjnasAccountController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_assets_account')->only(['create', 'store']);
+        $this->middleware('permission:edit_assets_account')->only(['edit', 'update']);
+        $this->middleware('permission:delete_assets_account')->only(['destroy']);
+    }
+
     /**
      * Display a listing of the resource.
      *

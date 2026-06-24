@@ -1,6 +1,6 @@
 # Step-by-Step Execution Plan: Advanced ERP "Wrap & Extend" Integration (Production-Grade)
 
-This is the master integration plan for the QBCC ERP system. It combines high-depth manufacturing accounting with the module-specific requirements from the **QBIC Database notes.pdf**. 
+This is the master integration plan for the QBIC ERP system. It combines high-depth manufacturing accounting with the module-specific requirements from the **QBIC Database notes.pdf**. 
 
 **Principle:** Non-destructive upgrade. Existing tables remain; new services provide the ERP logic with strict audit trails and concurrency control.
 

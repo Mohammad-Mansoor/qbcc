@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class MaterialTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function __construct()
+    {
+        $this->middleware('permission:view_material_types')->only(['index', 'show']);
+        $this->middleware('permission:create_material_type')->only(['create', 'store']);
+        $this->middleware('permission:edit_material_type')->only(['edit', 'update']);
+        $this->middleware('permission:delete_material_type')->only('destroy');
+    }
     public function index()
     {
         $mtypeEdit = "";

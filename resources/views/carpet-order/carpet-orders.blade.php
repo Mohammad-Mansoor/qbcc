@@ -9,6 +9,7 @@
         <div class="card-body">
           <div class="all-form-element-inner">
             @if(!$orderEdit)
+              @can('create_order')
               <form action="/dashboard/carpet-orders" method="post" id="user-form">
                 @csrf
                 <div class="row">
@@ -38,7 +39,9 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @else
+              @can('edit_order')
               <form action="/dashboard/carpet-orders/{{$orderEdit->id}}" method="post" id="user-form">
                 @csrf
                 @method('PATCH')
@@ -69,6 +72,7 @@
                   </div>
                 </div>
               </form>
+              @endcan
             @endif
           </div>
         </div>
@@ -109,7 +113,7 @@
                 <th>آی دی</th>
                 <th>نمبر فرمایش</th>
                 <th> نمبر دیزاین</th>
-                <th>ویرایش</th>
+                @can('edit_order')<th>ویرایش</th>@endcan
               
               
               </tr>
@@ -121,9 +125,10 @@
                   <td>{{ $order->order_number}} </td>
                   <td>{{$order->design_number}}</td>
                   
-                  
+                  @can('edit_order')
                   <td><a href="/dashboard/carpet-orders/{{$order->id}}/edit"
                          class="btn btn-sm btn-info"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a></td>
+                  @endcan
                 
                 </tr>
               

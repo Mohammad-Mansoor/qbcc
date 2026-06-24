@@ -16,6 +16,10 @@ use Illuminate\Support\Str;
 
 class MaterialStockController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_material_stock')->only(['index', 'history', 'search']);
+    }
     /**
      * Display a listing of the resource.
      *

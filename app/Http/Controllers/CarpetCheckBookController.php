@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\Auth;
 
 class CarpetCheckBookController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_purchase_bills')->only(['index', 'show']);
+        $this->middleware('permission:create_purchase_bill')->only('store');
+        $this->middleware('permission:close_purchase_bill')->only('closeInvoice');
+        // print_purchase_bill_pdf is handled inside show method via export=pdf
+    }
     /**
      * Display a listing of the resource (Purchase Bills).
      *

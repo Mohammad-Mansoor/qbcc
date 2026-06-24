@@ -221,6 +221,9 @@ class InvoiceController extends Controller
         $invoice = Invoice::with(['customer', 'agent.user', 'payments'])->find($id);
         
         if ($request->export === 'pdf') {
+            if (!Auth::user()->hasPermissionTo('print_invoice')) {
+                abort(403, 'شما اجازه چاپ انوایس را ندارید.');
+            }
             if ($invoice->type === 'carpet') {
                 $sales = Sale::with('carpet')->where('invoice_id',$id)->get();
             } else {

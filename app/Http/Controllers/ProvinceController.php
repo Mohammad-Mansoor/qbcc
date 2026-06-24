@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Auth;
 
 class ProvinceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_provinces')->only(['index', 'show']);
+        $this->middleware('permission:create_province')->only(['create', 'store']);
+        $this->middleware('permission:edit_province')->only(['edit', 'update']);
+        $this->middleware('permission:delete_province')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

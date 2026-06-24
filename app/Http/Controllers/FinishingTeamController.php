@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\DB;
 
 class FinishingTeamController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_finishing_teams')->only(['index', 'search', 'accounts', 'show']);
+        $this->middleware('permission:create_finishing_team')->only(['create', 'store']);
+        $this->middleware('permission:edit_finishing_team')->only(['edit', 'update']);
+    }
+
     /**
      * Display a listing of the resource.
      *

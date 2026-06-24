@@ -24,6 +24,11 @@ class WashingPaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        
+        $this->middleware('permission:view_washing_money_requests')->only(['money_request']);
+        $this->middleware('permission:approve_washing_money_requests')->only(['approve_request']);
+        $this->middleware('permission:reject_washing_money_requests')->only(['delete_request']);
+        $this->middleware('permission:manage_washing_payments')->only(['store', 'show', 'show_all_payment', 'edit', 'update', 'destroy', 'allocateAdvance', 'unallocateAdvance']);
     }
 
     public function index()

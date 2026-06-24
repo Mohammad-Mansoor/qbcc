@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class PhoneBookController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_phone_book')->only(['index', 'search', 'show']);
+        $this->middleware('permission:create_phone_book')->only(['create', 'store']);
+        $this->middleware('permission:edit_phone_book')->only(['edit', 'update']);
+        $this->middleware('permission:delete_phone_book')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

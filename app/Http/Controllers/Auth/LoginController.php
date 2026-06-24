@@ -63,10 +63,12 @@ class LoginController extends Controller
 
                 if (auth()->user()->role == 'AO'){
                     $usr = User::find(auth()->user()->id);
-                    return redirect('/dashboard/agent-payments/'.$usr->agents->agent_id);
-                }else{
-                    return redirect('dashboard');
+                    if ($usr && $usr->agents) {
+                        return redirect('/dashboard/agent-payments/'.$usr->agents->agent_id);
+                    }
                 }
+                
+                return redirect(self::getDashboardRouteForUser(auth()->user()));
 
             }else{
                 return redirect()->back()->with('error','Email-Address And Password Are Wrong.');
@@ -75,5 +77,31 @@ class LoginController extends Controller
             return redirect()->back()->with('error','Email-Address And Password Are Wrong.');
         }
           
+    }
+
+    public static function getDashboardRouteForUser($user)
+    {
+        if ($user->hasPermissionTo('view_production_dashboard')) return '/dashboard/production';
+        if ($user->hasPermissionTo('view_inventory_dashboard')) return '/dashboard/inventory';
+        if ($user->hasPermissionTo('view_finance_dashboard')) return '/dashboard/finance';
+        if ($user->hasPermissionTo('view_sales_dashboard')) return '/dashboard/sales';
+        if ($user->hasPermissionTo('view_purchases_dashboard')) return '/dashboard/purchases';
+        if ($user->hasPermissionTo('view_cost_analytics')) return '/dashboard/cost-analytics';
+        
+        if ($user->hasPermissionTo('view_coa')) return '/dashboard/accounting/chart-of-accounts';
+        if ($user->hasPermissionTo('view_sales')) return '/dashboard/sales';
+        if ($user->hasPermissionTo('view_orders')) return '/dashboard/customer-orders';
+        if ($user->hasPermissionTo('view_buy_carpets')) return '/dashboard/list-buy-carpet';
+        if ($user->hasPermissionTo('view_material_purchases')) return '/dashboard/material-purchase';
+        if ($user->hasPermissionTo('view_material_stock')) return '/dashboard/accounting/warehouses';
+        if ($user->hasPermissionTo('view_different_accounts')) return '/dashboard/different-account';
+        if ($user->hasPermissionTo('view_carpet_repairs')) return '/dashboard/carpet-repair';
+        if ($user->hasPermissionTo('view_carpet_washes')) return '/dashboard/carpet-wash';
+        if ($user->hasPermissionTo('view_finishing_centers')) return '/dashboard/finishing-center';
+        if ($user->hasPermissionTo('view_customers')) return '/dashboard/customers';
+        if ($user->hasPermissionTo('view_users')) return '/dashboard/office-employee';
+        if ($user->hasPermissionTo('view_agents')) return '/dashboard/agents';
+        
+        return '/dashboard'; // Fallback
     }
 }

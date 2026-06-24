@@ -200,6 +200,7 @@
 
         <!-- Forensic Payment Form -->
         <div class="col-lg-9">
+            @can('manage_seller_payments')
             <div class="premium-card">
                 <div class="card-header-premium">
                     <h5><i class="fa fa-calculator mr-2"></i> {{ $paymentEdit ? 'ویرایش سند مالی (Edit Supplier Payment)' : 'ثبت سند مالی جدید (New Supplier Entry)' }}</h5>
@@ -363,6 +364,7 @@
                     </form>
                 </div>
             </div>
+            @endcan
         </div>
     </div>
 
@@ -456,18 +458,22 @@
                                         <td class="hideOnPrint text-center">
                                             @if($pa->status == 0 || auth()->user()->role == 'SP')
                                                 <div class="btn-group">
+                                                    @can('manage_seller_payments')
                                                     <a href="/dashboard/string-seller-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-primary">
                                                         <i class="fa fa-edit"></i>
                                                     </a>
+                                                    @endcan
                                                     @php $transaction = \App\LedgerTransaction::where('source_type', 'seller_payment')->where('source_id', $pa->id)->first(); @endphp
                                                     @if($transaction)
                                                         <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="روزنامچه مالی">
                                                             <i class="fa fa-book"></i>
                                                         </a>
                                                     @endif
+                                                    @can('manage_seller_payments')
                                                     <button onclick="deletePayment({{$pa->id}}, {{$pa->seller_id}})" class="btn btn-sm btn-outline-danger">
                                                         <i class="fa fa-trash"></i>
                                                     </button>
+                                                    @endcan
                                                 </div>
                                             @endif
                                         </td>
@@ -641,6 +647,7 @@
                                         </td>
                                         <td class="hideOnPrint">
                                             @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                            @can('manage_seller_payments')
                                             <button class="btn btn-sm btn-primary open-allocate-modal-btn" 
                                                     data-payment-id="{{ $adv->id }}"
                                                     data-currency="{{ $adv->currency_code }}"
@@ -648,6 +655,7 @@
                                                     data-exchange-rate="{{ $adv->exchange_rate }}">
                                                 <i class="fa fa-share-square-o"></i> تخصیص به سند
                                             </button>
+                                            @endcan
                                             @else
                                             <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
                                             @endif
@@ -710,9 +718,11 @@
                                             $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                         </td>
                                         <td class="hideOnPrint">
+                                            @can('manage_seller_payments')
                                             <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                 <i class="fa fa-undo"></i> لغو تصفیه
                                             </button>
+                                            @endcan
                                         </td>
                                     </tr>
                                     @empty

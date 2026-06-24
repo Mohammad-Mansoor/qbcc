@@ -48,9 +48,11 @@
               <small style="color: #94a3b8;">ثبت فاکتورهای خرید مواد خام (تار و رنگ) همراه با پیگیری حسابات و گدام‌ها</small>
             </div>
             <div>
+              @can('create_material_purchase')
               <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#purchaseModal" style="border-radius: 6px; font-weight: 600;">
                 <i class="fa fa-plus-circle"></i> ثبت خرید جدید
               </button>
+              @endcan
             </div>
           </div>
         </div>
@@ -236,20 +238,23 @@
 
                   {{-- Actions --}}
                   <td style="padding: 10px 16px; text-align: center; white-space: nowrap;">
-                    @if($p->status == 0 || auth()->user()->role == 'SP')
+                      @can('edit_material_purchase')
                       <a href="/dashboard/material-purchase/{{ $p->id }}/edit"
                          class="btn btn-xs"
                          style="background: #3b82f6; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; text-decoration: none;">
                         <i class="fa fa-edit"></i> ویرایش
                       </a>
+                      @endcan
+                      @can('delete_material_purchase')
                       <button onclick="deletePurchase({{ $p->id }})"
                               class="btn btn-xs"
                               style="background: #ef4444; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; margin-right: 4px; border: none; cursor: pointer;">
                         <i class="fa fa-trash"></i>
                       </button>
-                    @else
-                      <span style="color:#cbd5e1; font-size:0.78rem;">—</span>
-                    @endif
+                      @endcan
+                      @if(auth()->user()->cannot('edit_material_purchase') && auth()->user()->cannot('delete_material_purchase'))
+                        <span style="color:#cbd5e1; font-size:0.78rem;">—</span>
+                      @endif
                   </td>
                 </tr>
               @empty

@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-    <title>QBCC | Secure Login</title>
-    
+    <title>QBIC | Secure Login</title>
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         :root {
-            --primary-color: #d4af37; /* Luxury Gold */
+            --primary-color: #d4af37;
+            /* Luxury Gold */
             --glass-bg: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.2);
             --text-color: #ffffff;
@@ -43,7 +45,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 100%);
             z-index: 1;
         }
 
@@ -63,7 +65,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 24px;
             padding: 50px 40px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             text-align: center;
             transition: transform 0.3s ease;
         }
@@ -80,7 +82,7 @@
         .logo-box img {
             width: 120px;
             height: auto;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
         }
 
         h2 {
@@ -92,7 +94,7 @@
         }
 
         p.subtitle {
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
             margin-bottom: 40px;
             font-size: 0.95rem;
         }
@@ -108,14 +110,14 @@
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
             transition: color 0.3s;
         }
 
         .form-control {
             width: 100%;
             padding: 15px 15px 15px 45px;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
             color: #fff;
@@ -125,12 +127,12 @@
         }
 
         .form-control:focus {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-color: var(--primary-color);
             box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
         }
 
-        .form-control:focus + i {
+        .form-control:focus+i {
             color: var(--primary-color);
         }
 
@@ -163,7 +165,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 0.9rem;
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
         }
 
         .footer-links {
@@ -174,7 +176,7 @@
         }
 
         .footer-links a {
-            color: rgba(255,255,255,0.6);
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
             transition: color 0.3s;
         }
@@ -185,20 +187,51 @@
 
         /* Animations */
         @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.9); }
-            100% { opacity: 1; transform: scale(1); }
+            0% {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
         @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
         }
 
         /* Responsive */
@@ -209,14 +242,15 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="login-container">
         <div class="glass-card">
             <div class="logo-box">
-                <img src="/printStyle/logo.png" alt="QBCC Logo">
+                <img src="/printStyle/logo.png" alt="QBIC Logo">
             </div>
-            
+
             <h2>Welcome Back</h2>
             <p class="subtitle">Please enter your details to sign in</p>
 
@@ -229,10 +263,11 @@
             <form action="/login" method="post" id="loginForm">
                 @csrf
                 <div class="form-group">
-                    <input type="email" name="email" class="form-control" placeholder="Email Address" required autofocus>
+                    <input type="email" name="email" class="form-control" placeholder="Email Address" required
+                        autofocus>
                     <i class="fas fa-envelope"></i>
                 </div>
-                
+
                 <div class="form-group">
                     <input type="password" name="password" class="form-control" placeholder="Password" required>
                     <i class="fas fa-lock"></i>
@@ -244,17 +279,20 @@
             </form>
 
             <div class="footer-links">
-                <label style="color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <label
+                    style="color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" name="remember" style="accent-color: var(--primary-color);"> Remember me
                 </label>
                 <a href="#">Forgot Password?</a>
             </div>
         </div>
-        
-        <p style="text-align: center; margin-top: 30px; color: rgba(255,255,255,0.4); font-size: 0.8rem; letter-spacing: 1px;">
-            &copy; {{ date('Y') }} QBCC CARPET ERP SYSTEM
+
+        <p
+            style="text-align: center; margin-top: 30px; color: rgba(255,255,255,0.4); font-size: 0.8rem; letter-spacing: 1px;">
+            &copy; {{ date('Y') }} QBIC CARPET ERP SYSTEM
         </p>
     </div>
 
 </body>
+
 </html>

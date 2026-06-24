@@ -12,6 +12,7 @@
 
     <div class="row">
         <!-- Create/Edit Section -->
+        @if(auth()->user()->hasAnyPermission(['create_invoice', 'edit_invoice']))
         <div class="col-md-12 mb-4">
             <div class="card border-0 shadow-sm rounded-lg">
                 <div class="card-header bg-white py-3 text-right">
@@ -92,6 +93,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- List Section -->
         <div class="col-md-12">
@@ -183,10 +185,12 @@
                                     </td>
                                     <td class="px-4 py-3 text-left">
                                         @if($invoice->status !== 'closed')
+                                            @can('edit_invoice')
                                             <a href="/dashboard/invoices/{{$invoice->id}}/edit" 
                                                class="btn btn-outline-info btn-sm rounded-pill px-3 mr-1">
                                                 <i class="fa fa-pencil mr-1"></i> ویرایش
                                             </a>
+                                            @endcan
                                         @else
                                             <span class="text-muted mr-2 small"><i class="fa fa-lock"></i> قفل شده</span>
                                         @endif

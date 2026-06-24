@@ -341,8 +341,12 @@
                 <th>تیم آماده‌سازی</th>
                 <th>نوع آماده‌سازی</th>
                 <th>شرح</th>
+                @can('approve_refinish_requests')
                 <th class="hideOnPrint"><b>تایید پرداخت</b></th>
+                @endcan
+                @can('reject_refinish_requests')
                 <th class="hideOnPrint"><b>رد نمودن پرداخت</b></th>
+                @endcan
               </tr>
             </thead>
             <tbody>
@@ -375,15 +379,19 @@
                     <td>{{$r->description}}</td>
                 
                     <td class="hideOnPrint">
+                      @can('approve_refinish_requests')
                       <button onclick="approveRequest({{$r->id}}, this)" class="btn-modern-action btn-approve btn-sm">
                         <i class="fa fa-check"></i> تایید پرداخت ؟
                       </button>
+                      @endcan
                     </td>
                     
                     <td class="hideOnPrint">
+                      @can('reject_refinish_requests')
                       <button onclick="deleteRequest({{$r->id}}, this)" class="btn-modern-action btn-reject btn-sm">
                         <i class="fa fa-times"></i> رد نمودن پرداخت ؟
                       </button>
+                      @endcan
                     </td>
                   </tr>
                 @endforeach

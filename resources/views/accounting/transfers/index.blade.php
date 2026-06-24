@@ -53,9 +53,11 @@
         <div class="glass-card">
             <div class="glass-header">
                 <h4><i class="fa fa-exchange text-primary mr-2"></i> انتقال جنس بین گدام‌ها (Inter-Warehouse Transfers)</h4>
+                @can('create_inventory_transfer')
                 <a href="{{ route('accounting.transfers.create') }}" class="btn btn-success btn-premium shadow-sm">
                     <i class="fa fa-plus mr-2"></i> ثبت مکتوب انتقال جدید
                 </a>
+                @endcan
             </div>
             
             <div class="card-body p-4">

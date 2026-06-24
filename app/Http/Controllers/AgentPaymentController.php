@@ -21,6 +21,13 @@ class AgentPaymentController extends Controller
     public function __construct(AccountingService $accountingService)
     {
         $this->accountingService = $accountingService;
+        
+        $this->middleware('permission:manage_agent_accounts')->only([
+            'show', 'store', 'edit', 'update', 'destroy', 'allocateAdvance', 'removeAllocation', 'show_all'
+        ]);
+        $this->middleware('permission:view_agent_money_requests')->only('money_request');
+        $this->middleware('permission:approve_agent_money_requests')->only('approve_request');
+        $this->middleware('permission:delete_agent_money_requests')->only('delete_request');
     }
 
     public function index()

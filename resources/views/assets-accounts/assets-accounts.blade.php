@@ -111,9 +111,11 @@
         </div>
         <div>
             @if(!$accountEdit)
+            @can('create_assets_account')
             <button class="btn btn-light" style="border-radius: 10px; font-weight: 700; color: var(--primary-blue);" data-toggle="modal" data-target="#assetModal">
                 <i class="fa fa-plus-circle mr-1"></i> ثبت حساب جدید
             </button>
+            @endcan
             @else
             <a href="{{ route('assets-accounts.index') }}" class="btn btn-light" style="border-radius: 10px; font-weight: 700; color: var(--primary-blue);">
                 <i class="fa fa-arrow-right mr-1"></i> بازگشت به ثبت جدید
@@ -191,14 +193,16 @@
                                 <a href="/dashboard/assets-accounts/{{$as->aa_id}}" class="btn-action-view" title="جزییات گردش">
                                     <i class="fa fa-eye fa-lg"></i>
                                 </a>
-                                @if(auth()->user()->role == 'SP')
+                                    @can('edit_assets_account')
                                     <a href="/dashboard/assets-accounts/{{$as->aa_id}}/edit" class="btn-action-edit" title="ویرایش جنس">
                                         <i class="fa fa-edit fa-lg"></i>
                                     </a>
+                                    @endcan
+                                    @can('delete_assets_account')
                                     <button onclick="deleteAssetAccount({{$as->aa_id}})" class="btn-action-delete" title="حذف جنس">
                                         <i class="fa fa-trash fa-lg"></i>
                                     </button>
-                                @endif
+                                    @endcan
                             </div>
                         </td>
                     </tr>

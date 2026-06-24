@@ -241,11 +241,12 @@
                             <p>شماره تماس: {{ $invoice->customer->phone ?? '---' }}</p>
                         @else
                             <p class="font-weight-bold" style="font-size: 14px;">
-                                {{ $invoice->agent->user->name ?? $invoice->agent->name ?? '---' }}</p>
+                                {{ $invoice->agent->user->name ?? $invoice->agent->name ?? '---' }}
+                            </p>
                             <p>شماره حساب: {{ $invoice->agent->account_no ?? '---' }}</p>
                             @php
                                 $agentPhone = '---';
-                                if(isset($invoice->agent->phone) && is_iterable($invoice->agent->phone) && count($invoice->agent->phone) > 0) {
+                                if (isset($invoice->agent->phone) && is_iterable($invoice->agent->phone) && count($invoice->agent->phone) > 0) {
                                     $firstPhone = collect($invoice->agent->phone)->first();
                                     $agentPhone = $firstPhone['phone_no'] ?? $firstPhone->phone_no ?? '---';
                                 } elseif (is_string($invoice->agent->phone)) {
@@ -318,7 +319,8 @@
                                     </span>
                                 </td>
                                 <td dir="ltr">{{ $sale->carpet_height ?? ($sale->carpet->height ?? '---') }} &times;
-                                    {{ $sale->carpet_width ?? ($sale->carpet->width ?? '---') }}</td>
+                                    {{ $sale->carpet_width ?? ($sale->carpet->width ?? '---') }}
+                                </td>
                                 <td>{{ round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2) }}</td>
                                 <td>${{ number_format($sale->sale_cost_per_meter, 2) }}</td>
                                 <td class="font-weight-bold">${{ number_format($sale->sale_cost_total, 2) }}</td>
@@ -398,7 +400,7 @@
         </table>
 
         <div style="text-align: center; margin-top: 30px; font-size: 10px; color: #888; margin-bottom: 20px;">
-            چاپ شده توسط سیستم QBCC ERP - {{ \Carbon\Carbon::now()->format('Y-m-d H:i:s') }}
+            چاپ شده توسط سیستم QBIC ERP - {{ \Carbon\Carbon::now()->format('Y-m-d H:i:s') }}
         </div>
     </div>
 

@@ -109,8 +109,12 @@
             <p class="mb-0 text-white-50">رهگیری و تحلیل تمام قالین‌های وارد شده به سیستم</p>
         </div>
         <div class="d-flex gap-2">
+            @can('export_purchased_carpets_excel')
             <a href="{{ route('purchased.carpets.excel', request()->all()) }}" class="btn btn-success btn-export"><i class="fa fa-file-excel-o"></i> خروجی اکسل (Excel)</a>
+            @endcan
+            @can('export_purchased_carpets_pdf')
             <a href="{{ route('purchased.carpets.pdf', request()->all()) }}" target="_blank" class="btn btn-danger btn-export"><i class="fa fa-file-pdf-o"></i> خروجی پی‌دی‌اف (PDF)</a>
+            @endcan
         </div>
     </div>
 

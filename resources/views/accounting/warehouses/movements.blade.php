@@ -102,12 +102,16 @@
                                 <a href="{{ route('accounting.warehouses.movements') }}" class="btn btn-light rounded-pill px-4 mr-2" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
                                     پاک کردن فیلتر
                                 </a>
+                                @can('export_warehouse_movements_pdf')
                                 <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-danger rounded-pill px-4 mr-2 shadow-sm" style="height: 38px;">
                                     <i class="fa fa-file-pdf-o mr-1"></i> چاپ / PDF
                                 </button>
+                                @endcan
+                                @can('export_warehouse_movements_excel')
                                 <button type="submit" name="export" value="excel" class="btn btn-success rounded-pill px-4 shadow-sm" style="height: 38px;">
                                     <i class="fa fa-file-excel-o mr-1"></i> خروجی اکسل
                                 </button>
+                                @endcan
                             </div>
                         </div>
                     </form>

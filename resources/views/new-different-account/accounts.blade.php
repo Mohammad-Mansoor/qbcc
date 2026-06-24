@@ -8,14 +8,17 @@
     <div class="col-sm-12">
       <div class="card">
         <div class="card-header">
+          @canany(['create_different_account', 'edit_different_account'])
           @if(!$accountEdit)
             <h4>ایجاد حساب متفرقه جدید</h4>
           @else
             <h4>ویرایش حساب متفرقه جدید</h4>
           @endif
+          @endcanany
         </div>
         <div class="card-body">
           @if(!$accountEdit)
+            @can('create_different_account')
             <form method="post" id="" action="/dashboard/new-different-account">
               @csrf
               <div class="row">
@@ -55,7 +58,9 @@
               </div>
             
             </form>
+            @endcan
           @else
+            @can('edit_different_account')
             <form method="post" id="" action="/dashboard/new-different-account/{{$accountEdit->id}}">
               {{method_field('patch')}}
               @csrf
@@ -97,6 +102,7 @@
                 </div>
               </div>
             </form>
+            @endcan
           @endif
         
         </div>
@@ -200,8 +206,12 @@
                     <td style="direction: ltr; @if($total_usd_amount > 0) color:#00e3ae; @elseif($total_usd_amount < 0) color:red; @endif">{{$total_usd_amount}}</td>
                     <td style="direction: ltr;@if($total_cd_amount > 0) color:#00e3ae; @elseif($total_cd_amount < 0) color:red; @endif">{{$total_cd_amount}}</td>
                     
-                    <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}/edit"
-                                               class="btn-sm btn-info">&nbsp; ویرایش</a></td>
+                    <td class="hideOnPrint">
+                      @can('edit_different_account')
+                      <a href="/dashboard/new-different-account/{{$account->id}}/edit"
+                                                class="btn-sm btn-info">&nbsp; ویرایش</a>
+                      @endcan
+                    </td>
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn-sm btn-warning">
                         حسابات</a></td>
@@ -254,9 +264,10 @@
                     
                     <td class="hideOnPrint">
                       
+                      @can('edit_different_account')
                       <a href="/dashboard/new-different-account/{{$account->id}}/edit"
                          class="btn-sm btn-info">&nbsp; ویرایش</a>
-                    
+                      @endcan
                     
                     </td>
                     
@@ -310,8 +321,12 @@
                     <td style="direction: ltr; @if($total_afg_amount > 0) color:#00e3ae; @elseif($total_afg_amount < 0) color:red; @endif " >{{$total_afg_amount}}</td>
                     <td style="direction: ltr; @if($total_usd_amount > 0) color:#00e3ae; @elseif($total_usd_amount < 0) color:red; @endif">{{$total_usd_amount}}</td>
                     <td style="direction: ltr;@if($total_cd_amount > 0) color:#00e3ae; @elseif($total_cd_amount < 0) color:red; @endif">{{$total_cd_amount}}</td>
-                    <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}/edit"
-                                               class="btn-sm btn-info">&nbsp; ویرایش</a></td>
+                    <td class="hideOnPrint">
+                      @can('edit_different_account')
+                      <a href="/dashboard/new-different-account/{{$account->id}}/edit"
+                                                class="btn-sm btn-info">&nbsp; ویرایش</a>
+                      @endcan
+                    </td>
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"
                                                class="btn-sm btn-warning">
                         حسابات</a></td>
@@ -379,11 +394,14 @@
                     
                     <td class="hideOnPrint">
                       
+                      @can('edit_different_account')
                       <a href="/dashboard/new-different-account/{{$account->id}}/edit"
                          class="btn btn-sm btn-info">&nbsp; ویرایش</a>
+                      @endcan
                     
                     </td>
                     
+                    @can('delete_different_account')
                     @if(auth()->user()->role == 'SP')
                     <td class="hideOnPrint">
                       
@@ -393,6 +411,7 @@
                     
                     </td>
                     @endif
+                    @endcan
                     
                     
                     <td class="hideOnPrint"><a href="/dashboard/new-different-account/{{$account->id}}"

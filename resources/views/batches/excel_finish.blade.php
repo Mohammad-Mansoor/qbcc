@@ -42,7 +42,7 @@
                 @if(isset($logoBase64) && $logoBase64)
                     <img src="{{ $logoBase64 }}" width="65" height="65" alt="Logo">
                 @else
-                    <span style="font-weight: bold; color: #1e3a8a; font-size: 18pt;">QBCC</span>
+                    <span style="font-weight: bold; color: #1e3a8a; font-size: 18pt;">QBIC</span>
                 @endif
             </td>
             <td colspan="{{ $colspanHeader - 1 }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
@@ -60,7 +60,8 @@
             <td colspan="2" class="meta-label" style="height: 24pt;">نمبر مسلسل:</td>
             <td colspan="2" class="meta-value font-bold" style="height: 24pt;">{{ $batch->reference_number }}</td>
             <td colspan="1" class="meta-label" style="height: 24pt;">مجموع مساحت:</td>
-            <td colspan="{{ $colspanHeader - 5 }}" class="meta-value" style="height: 24pt; direction: ltr; text-align: right;">{{ number_format($groupedCarpets->sum(function($group) { return $group->first()->carpet->area ?? 0; }), 2) }} m²</td>
+            <td colspan="{{ $colspanHeader - 5 }}" class="meta-value" style="height: 24pt; direction: ltr; text-align: right;">{{ number_format($groupedCarpets->sum(function ($group) {
+    return $group->first()->carpet->area ?? 0; }), 2) }} m²</td>
         </tr>
         <tr>
             <td colspan="2" class="meta-label" style="height: 24pt;">تیم کاری / بخش مربوطه:</td>
@@ -88,22 +89,24 @@
         </thead>
         <tbody>
             @php 
-                $grandTotalArea = 0;
+                                $grandTotalArea = 0;
                 $grandTotalPrice = 0;
                 $catTotals = [];
-                foreach($batchCategories as $cat) { $catTotals[$cat->id] = 0; }
+                foreach ($batchCategories as $cat) {
+                    $catTotals[$cat->id] = 0;
+                }
                 $rowIndex = 1;
             @endphp
             @forelse($groupedCarpets as $carpetId => $works)
                 @php 
-                    $firstWork = $works->first();
+                                    $firstWork = $works->first();
                     $carpet = $firstWork->carpet;
                     $area = $carpet->area ?? 0;
                     $grandTotalArea += $area;
-                    
+
                     $carpetTotal = $works->sum('price');
                     $grandTotalPrice += $carpetTotal;
-                    
+
                     $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff'; 
                 @endphp
                 <tr style="background-color: {{ $rowBgColor }};">
@@ -114,7 +117,7 @@
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->quality->quality ?? '---' }}</td>
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $carpet->height ?? '---' }} × {{ $carpet->width ?? '---' }}</td>
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($area, 2) }}</td>
-                    
+
                     @foreach($batchCategories as $cat)
                         @php
                             $workForCat = $works->firstWhere('category_id', $cat->id);
@@ -179,7 +182,7 @@
                         </td>
                     </tr>
                 @endforeach
-                
+
                 <tr>
                     <td colspan="4" style="border: none;"></td>
                     <td class="meta-label" style="height: 24pt;">مجموع پرداخت شده:</td>

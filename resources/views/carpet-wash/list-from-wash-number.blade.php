@@ -3,129 +3,134 @@
 @section('content')
 
 <style>
-    /* PREMIUM GLASSMORPHISM UI */
-    .glass-card {
-        background: white;
-        border: 1px solid var(--qbcc-border, #e2e8f0);
-        border-radius: 16px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-        margin-bottom: 30px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .glass-header {
-        background: #f8fafc;
-        padding: 20px 25px;
-        border-bottom: 1px solid var(--qbcc-border, #e2e8f0);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .glass-header h4 {
-        margin: 0;
-        font-weight: 700;
-        color: #1e293b;
-        font-size: 1.2rem;
-    }
-    
-    .table-modern thead th {
-        background: #f8fafc;
-        color: #64748b;
-        font-weight: 700;
-        text-transform: uppercase;
-        border: none;
-        letter-spacing: 0.5px;
-        padding: 15px;
-        font-size: 0.8rem;
-    }
-    
-    .table-modern tbody td {
-        padding: 15px;
-        vertical-align: middle;
-        border-top: 1px solid #f1f5f9;
-        color: #334155;
-    }
+  /* PREMIUM GLASSMORPHISM UI */
+  .glass-card {
+    background: white;
+    border: 1px solid var(--QBIC-border, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+    margin-bottom: 30px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
 
-    .table-modern tbody tr:hover {
-        background: #f8fafc;
-    }
+  .glass-header {
+    background: #f8fafc;
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--QBIC-border, #e2e8f0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    /* METADATA CARDS */
-    .meta-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-    }
-    
-    .meta-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--qbcc-primary, #3b82f6);
-        margin-bottom: 15px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+  .glass-header h4 {
+    margin: 0;
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.2rem;
+  }
 
-    .meta-item {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        font-size: 0.85rem;
-    }
+  .table-modern thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: none;
+    letter-spacing: 0.5px;
+    padding: 15px;
+    font-size: 0.8rem;
+  }
 
-    .meta-label {
-        color: #64748b;
-        font-weight: 600;
-    }
+  .table-modern tbody td {
+    padding: 15px;
+    vertical-align: middle;
+    border-top: 1px solid #f1f5f9;
+    color: #334155;
+  }
 
-    .meta-value {
-        color: #1e293b;
-        font-weight: 700;
-    }
+  .table-modern tbody tr:hover {
+    background: #f8fafc;
+  }
 
-    /* SEARCH INPUT MODERNIZATION */
-    .search-modern .form-control {
-        border-radius: 8px;
-        border: 2px solid #e2e8f0;
-        box-shadow: none;
-        padding: 10px 15px;
-        transition: all 0.2s;
-    }
-    .search-modern .form-control:focus {
-        border-color: var(--qbcc-accent, #3b82f6);
-    }
-    .search-modern .btn-search {
-        border-radius: 8px;
-        background: var(--qbcc-accent, #3b82f6);
-        color: white;
-        border: none;
-        padding: 8px 20px;
-    }
-    .search-modern .btn-search:hover {
-        background: #2563eb;
-    }
-    .search-modern .btn-clear {
-        border-radius: 8px;
-        background: #fef2f2;
-        color: #ef4444;
-        border: 1px solid #fecaca;
-        margin-right: 10px;
-        transition: all 0.2s;
-    }
-    .search-modern .btn-clear:hover {
-        background: #fee2e2;
-        color: #dc2626;
-    }
+  /* METADATA CARDS */
+  .meta-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .meta-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--QBIC-primary, #3b82f6);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .meta-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+
+  .meta-label {
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .meta-value {
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  /* SEARCH INPUT MODERNIZATION */
+  .search-modern .form-control {
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    box-shadow: none;
+    padding: 10px 15px;
+    transition: all 0.2s;
+  }
+
+  .search-modern .form-control:focus {
+    border-color: var(--QBIC-accent, #3b82f6);
+  }
+
+  .search-modern .btn-search {
+    border-radius: 8px;
+    background: var(--QBIC-accent, #3b82f6);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+  }
+
+  .search-modern .btn-search:hover {
+    background: #2563eb;
+  }
+
+  .search-modern .btn-clear {
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    margin-right: 10px;
+    transition: all 0.2s;
+  }
+
+  .search-modern .btn-clear:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
 </style>
 
 <div id="PaidToDA">
   <div class="row">
     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
       <div class="glass-card">
-        
+
         <!-- Header -->
         <div class="glass-header">
           <h4><i class="fa fa-file-text-o mr-2 text-primary"></i> جزئیات بل شستشوی قالین (Wash Bill Details)</h4>
@@ -140,7 +145,7 @@
         </div>
 
         <div class="card-body p-4">
-          
+
           <!-- Metadata Overview Grid -->
           <div class="row mb-4">
             <!-- Bill details -->
@@ -175,15 +180,17 @@
                   <span class="meta-value">{{$team->address ?: '-'}}</span>
                 </div>
                 <?php
-                  $none_washed_total = DB::table('carpets')
-                    ->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')
-                    ->where('carpet_washes.team_id', $team->id)
-                    ->where('carpets.status', 3)
-                    ->get();
+$none_washed_total = DB::table('carpets')
+  ->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')
+  ->where('carpet_washes.team_id', $team->id)
+  ->where('carpets.status', 3)
+  ->get();
                 ?>
                 <div class="meta-item">
                   <span class="meta-label">Pending Washes (شست نشده ها):</span>
-                  <span class="meta-value text-danger font-weight-bold">{{$none_washed_total ? $none_washed_total->count() : 0}} قالین</span>
+                  <span
+                    class="meta-value text-danger font-weight-bold">{{$none_washed_total ? $none_washed_total->count() : 0}}
+                    قالین</span>
                 </div>
               </div>
             </div>
@@ -202,7 +209,8 @@
                       <label class="font-weight-bold mb-1">شست نمبر ها:</label>
                       <select name="wash_number" class="form-control">
                         @foreach($wash_numbers as $w)
-                          <option {{($w->wash_number == $wash_number ? 'selected' : '')}} value="{{$w->wash_number}}">{{$w->wash_number}}</option>
+                          <option {{($w->wash_number == $wash_number ? 'selected' : '')}} value="{{$w->wash_number}}">
+                            {{$w->wash_number}}</option>
                         @endforeach
                       </select>
                     </div>
@@ -233,7 +241,8 @@
                 <div class="form-group mb-0">
                   <label class="font-weight-bold mb-1">جستجو نمبر قالین:</label>
                   <div class="input-group">
-                    <input type="text" value="{{ Request::old('search') }}" name="search" class="form-control" placeholder="جستجو نمبر قالین..." required>
+                    <input type="text" value="{{ Request::old('search') }}" name="search" class="form-control"
+                      placeholder="جستجو نمبر قالین..." required>
                     <div class="input-group-append">
                       <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
                     </div>
@@ -276,129 +285,132 @@
           <div class="table-responsive">
             <table class="table table-modern text-center" style="direction: ltr;">
               <thead>
-              <tr>
-                <th>ITEM#</th>
-                <th>ITEM DESCRIPTION</th>
-                <th>HEIGHT</th>
-                <th>WIDTH</th>
-                <th>AREA</th>
-                <th>BACKGROUND</th>
-                <th class="hideOnPrint">STATUS / WASH</th>
-                <th>RETURN</th>
-              </tr>
+                <tr>
+                  <th>ITEM#</th>
+                  <th>ITEM DESCRIPTION</th>
+                  <th>HEIGHT</th>
+                  <th>WIDTH</th>
+                  <th>AREA</th>
+                  <th>BACKGROUND</th>
+                  <th class="hideOnPrint">STATUS / WASH</th>
+                  <th>RETURN</th>
+                </tr>
               </thead>
-              
+
               <tbody>
-              @php($washed = 0)
-              @php($nonwashed = 0)
-              @php($washed_total_area = 0)
-              @php($nonwashed_total_area = 0)
-              
-              @forelse ($carpet_washes as $wash)
-                <?php
+                @php($washed = 0)
+                @php($nonwashed = 0)
+                @php($washed_total_area = 0)
+                @php($nonwashed_total_area = 0)
+
+                @forelse ($carpet_washes as $wash)
+                                <?php
                   $showRow = false;
                   if ($wash_check == 'washed') {
-                      if ($wash->carpet->status == 13 || $wash->carpet->status != 3) {
-                          $showRow = true;
-                      }
-                  } elseif ($wash_check == 'nonwashed') {
-                      if ($wash->carpet->status == 3) {
-                          $showRow = true;
-                      }
-                  } else {
+                    if ($wash->carpet->status == 13 || $wash->carpet->status != 3) {
                       $showRow = true;
+                    }
+                  } elseif ($wash_check == 'nonwashed') {
+                    if ($wash->carpet->status == 3) {
+                      $showRow = true;
+                    }
+                  } else {
+                    $showRow = true;
                   }
-                ?>
-                
-                @if($showRow)
+                                ?>
+
+                                @if($showRow)
+                                  <tr>
+                                    <td class="font-weight-bold text-dark">{{$wash->carpet->carpet_no}}</td>
+                                    <td><span class="badge badge-light border">{{$wash->carpet->type->carpet_type ?? '-'}}</span></td>
+
+                                    <td style="direction: ltr;">
+                                      {{$wash->height ?: ($wash->carpet->height ?? 0)}} m
+                                    </td>
+                                    <td style="direction: ltr;">
+                                      {{$wash->width ?: ($wash->carpet->width ?? 0)}} m
+                                    </td>
+
+                                    <td style="direction: ltr;">
+                                      @if($wash->area)
+                                        <span style="display: none">{{$washed_total_area += $wash->area}}</span>
+                                        {{$wash->area}} m<sup>2</sup>
+                                      @else
+                                        {{$wash->carpet->area ?? 0}} m<sup>2</sup>
+                                        <span style="display: none">{{$nonwashed_total_area += ($wash->carpet->area ?? 0)}}</span>
+                                      @endif
+                                    </td>
+
+                                    @if($wash->carpet->status == 13 || $wash->carpet->status != 3)
+                                      <span style="display: none;">{{$washed++}}</span>
+                                    @elseif($wash->carpet->status == 3)
+                                      <span style="display: none;">{{$nonwashed++}}</span>
+                                    @endif
+
+                                    <td style="direction: ltr;">{{$wash->carpet->field ?? '-'}}</td>
+
+                                    <!-- Wash Status / Action -->
+                                    <td class="hideOnPrint">
+                                      @if($wash->carpet->status == 13)
+                                        <span class="badge badge-success px-2 py-1"
+                                          style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Washed</span>
+                                      @elseif($wash->carpet->status == 3)
+                                        @can('create_carpet_wash')
+                                          <a href="/dashboard/carpet-wash/create/{{$wash->id}}" class="btn btn-sm btn-primary px-3"
+                                            style="border-radius: 8px;">
+                                            <i class="fa fa-pencil-alt mr-1"></i> Wash
+                                          </a>
+                                        @else
+                                          <span class="badge badge-warning px-2 py-1"
+                                            style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Unwashed</span>
+                                        @endcan
+                                      @else
+                                        <span class="badge badge-secondary px-2 py-1">Sent to Finish</span>
+                                      @endif
+                                    </td>
+
+                                    <!-- Return Action -->
+                                    <td>
+                                      @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
+                                          <?php        $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
+                                          @if($kachaee)
+                                            @can('send_carpet_to_kachaee')
+                                            <button type="button" class="btn btn-sm btn-outline-warning btn-confirm-action"
+                                              style="border-radius: 8px;"
+                                              data-action-url="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
+                                              data-carpet-no="{{$wash->carpet->carpet_no}}" data-action-label="بازگشت به کچایی"
+                                              data-action-sublabel="Return to Kachaee (Repair)" data-modal-icon="fa fa-reply"
+                                              data-btn-class="warning" data-needs-warehouse="1">
+                                              <i class="fa fa-reply mr-1" style="color:#d97706;"></i> بازگشت به کچایی
+                                            </button>
+                                            @else
+                                              <span class="text-muted">-</span>
+                                            @endcan
+                                          @else
+                                            @can('return_carpet_from_wash')
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action"
+                                              style="border-radius: 8px;"
+                                              data-action-url="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
+                                              data-carpet-no="{{$wash->carpet->carpet_no}}" data-action-label="بازگشت به مرکزی"
+                                              data-action-sublabel="Return to Central Warehouse" data-modal-icon="fa fa-reply-all"
+                                              data-btn-class="danger" data-needs-warehouse="0">
+                                              <i class="fa fa-reply-all mr-1" style="color:#dc2626;"></i> بازگشت به مرکزی
+                                            </button>
+                                            @else
+                                              <span class="text-muted">-</span>
+                                            @endcan
+                                          @endif
+                                      @else
+                                        <span class="text-muted">-</span>
+                                      @endif
+                                    </td>
+                                  </tr>
+                                @endif
+                @empty
                   <tr>
-                    <td class="font-weight-bold text-dark">{{$wash->carpet->carpet_no}}</td>
-                    <td><span class="badge badge-light border">{{$wash->carpet->type->carpet_type ?? '-'}}</span></td>
-                    
-                    <td style="direction: ltr;">
-                      {{$wash->height ?: ($wash->carpet->height ?? 0)}} m
-                    </td>
-                    <td style="direction: ltr;">
-                      {{$wash->width ?: ($wash->carpet->width ?? 0)}} m
-                    </td>
-                    
-                    <td style="direction: ltr;">
-                      @if($wash->area)
-                        <span style="display: none">{{$washed_total_area += $wash->area}}</span>
-                        {{$wash->area}} m<sup>2</sup>
-                      @else
-                        {{$wash->carpet->area ?? 0}} m<sup>2</sup>
-                        <span style="display: none">{{$nonwashed_total_area += ($wash->carpet->area ?? 0)}}</span>
-                      @endif
-                    </td>
-
-                    @if($wash->carpet->status == 13 || $wash->carpet->status != 3)
-                      <span style="display: none;">{{$washed ++}}</span>
-                    @elseif($wash->carpet->status == 3)
-                      <span style="display: none;">{{$nonwashed ++}}</span>
-                    @endif
-                    
-                    <td style="direction: ltr;">{{$wash->carpet->field ?? '-'}}</td>
-                    
-                    <!-- Wash Status / Action -->
-                    <td class="hideOnPrint">
-                      @if($wash->carpet->status == 13)
-                        <span class="badge badge-success px-2 py-1" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Washed</span>
-                      @elseif($wash->carpet->status == 3)
-                        @if(true || auth()->user()->role == 'SO' || auth()->user()->role == 'SCO')
-                          <a href="/dashboard/carpet-wash/create/{{$wash->id}}" class="btn btn-sm btn-primary px-3" style="border-radius: 8px;">
-                            <i class="fa fa-pencil-alt mr-1"></i> Wash
-                          </a>
-                        @else
-                          <span class="badge badge-warning px-2 py-1" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Unwashed</span>
-                        @endif
-                      @else
-                        <span class="badge badge-secondary px-2 py-1">Sent to Finish</span>
-                      @endif
-                    </td>
-
-                    <!-- Return Action -->
-                    <td>
-                      @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
-                        @if(auth()->user()->role == 'CO' || auth()->user()->role == 'CCO')
-                          <?php $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
-                          @if($kachaee)
-                            <button type="button" class="btn btn-sm btn-outline-warning btn-confirm-action" style="border-radius: 8px;"
-                                    data-action-url="/dashboard/carpet-wash/return-to-kachaee/{{$wash->id}}"
-                                    data-carpet-no="{{$wash->carpet->carpet_no}}"
-                                    data-action-label="بازگشت به کچایی"
-                                    data-action-sublabel="Return to Kachaee (Repair)"
-                                    data-modal-icon="fa fa-reply"
-                                    data-btn-class="warning"
-                                    data-needs-warehouse="1">
-                              <i class="fa fa-reply mr-1" style="color:#d97706;"></i> بازگشت به کچایی
-                            </button>
-                          @else
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action" style="border-radius: 8px;"
-                                    data-action-url="/dashboard/carpet-wash/return-to-center/{{$wash->id}}"
-                                    data-carpet-no="{{$wash->carpet->carpet_no}}"
-                                    data-action-label="بازگشت به مرکزی"
-                                    data-action-sublabel="Return to Central Warehouse"
-                                    data-modal-icon="fa fa-reply-all"
-                                    data-btn-class="danger"
-                                    data-needs-warehouse="0">
-                              <i class="fa fa-reply-all mr-1" style="color:#dc2626;"></i> بازگشت به مرکزی
-                            </button>
-                          @endif
-                        @else
-                          <span class="text-muted">-</span>
-                        @endif
-                      @else
-                        <span class="text-muted">-</span>
-                      @endif
-                    </td>
+                    <td colspan="8" class="text-center text-muted py-4">هنوز موردی ثبت نشده است</td>
                   </tr>
-                @endif
-              @empty
-                <tr>
-                  <td colspan="8" class="text-center text-muted py-4">هنوز موردی ثبت نشده است</td>
-                </tr>
-              @endforelse
+                @endforelse
               </tbody>
             </table>
           </div>
@@ -407,13 +419,13 @@
           <div class="row mt-4">
             <div class="col-md-5">
               <?php
-                if ($wash_check == 'washed') {
-                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', '!=', 3)->get();
-                } elseif ($wash_check == 'nonwashed') {
-                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', 3)->get();
-                } else {
-                    $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->get();
-                }
+if ($wash_check == 'washed') {
+  $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', '!=', 3)->get();
+} elseif ($wash_check == 'nonwashed') {
+  $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->where('carpets.status', 3)->get();
+} else {
+  $carpets = DB::table('carpets')->join('carpet_washes', 'carpets.carpet_id', 'carpet_washes.carpetId')->where('carpet_washes.team_id', $team->id)->where('carpet_washes.wash_number', $wash_number)->get();
+}
               ?>
               <div class="meta-box">
                 <div class="meta-title"><i class="fa fa-calculator mr-2"></i> خلاصه بل (Bill Summary)</div>
@@ -444,32 +456,30 @@
 </div>
 
 {{-- ============================================================
-     CONFIRMATION MODAL — shared for all status-changing actions
-     ============================================================ --}}
-<div class="modal fade" id="confirmActionModal" tabindex="-1" role="dialog"
-     aria-labelledby="confirmActionModalLabel" aria-hidden="true">
+CONFIRMATION MODAL — shared for all status-changing actions
+============================================================ --}}
+<div class="modal fade" id="confirmActionModal" tabindex="-1" role="dialog" aria-labelledby="confirmActionModalLabel"
+  aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px;">
     <div class="modal-content" style="border: none; border-radius: 20px; overflow: hidden;
          box-shadow: 0 25px 60px rgba(0,0,0,0.18);">
 
       {{-- Header --}}
-      <div class="modal-header" id="confirmModalHeader"
-           style="padding: 24px 28px 16px; border-bottom: none;">
+      <div class="modal-header" id="confirmModalHeader" style="padding: 24px 28px 16px; border-bottom: none;">
         <div class="d-flex align-items-center">
-          <div id="confirmModalIconWrap"
-               style="width:52px; height:52px; border-radius:14px; display:flex;
+          <div id="confirmModalIconWrap" style="width:52px; height:52px; border-radius:14px; display:flex;
                       align-items:center; justify-content:center; font-size:1.4rem;
                       margin-left:16px; flex-shrink:0;">
             <i id="confirmModalIcon"></i>
           </div>
           <div>
-            <h5 class="mb-0 font-weight-bold" id="confirmModalTitle"
-                style="font-size:1.1rem; color:#1e293b;">تأیید عملیات</h5>
+            <h5 class="mb-0 font-weight-bold" id="confirmModalTitle" style="font-size:1.1rem; color:#1e293b;">تأیید
+              عملیات</h5>
             <small id="confirmModalSubtitle" class="text-muted">لطفاً قبل از ادامه مطالعه کنید</small>
           </div>
         </div>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"
-                style="position:absolute; top:16px; left:20px; font-size:1.4rem; color:#94a3b8;">
+          style="position:absolute; top:16px; left:20px; font-size:1.4rem; color:#94a3b8;">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -483,7 +493,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <span class="text-muted" style="font-size:.85rem;">شماره قالین</span>
             <span class="font-weight-bold" id="confirmModalCarpetNo"
-                  style="font-size:1rem; color:#1e293b; letter-spacing:.5px;"></span>
+              style="font-size:1rem; color:#1e293b; letter-spacing:.5px;"></span>
           </div>
           <hr style="border-color:#e2e8f0; margin: 10px 0;">
           <div class="d-flex justify-content-between align-items-center">
@@ -499,8 +509,7 @@
             انتخاب انبار مقصد (Destination Warehouse)
             <span class="text-danger">*</span>
           </label>
-          <select id="confirmModalWarehouseSelect" name="warehouse_id"
-                  style="width:100%; border-radius:10px; border:2px solid #e2e8f0;
+          <select id="confirmModalWarehouseSelect" name="warehouse_id" style="width:100%; border-radius:10px; border:2px solid #e2e8f0;
                          padding:10px 14px; font-size:.9rem; color:#1e293b;
                          background:#fff; appearance:none; outline:none;
                          transition: border-color .2s;">
@@ -533,23 +542,20 @@
           <input type="hidden" id="confirmModalPostWarehouseId" name="warehouse_id" value="">
         </form>
 
-        <button type="button" class="btn btn-light" data-dismiss="modal"
-                style="border-radius:10px; padding:9px 22px; font-weight:600;
+        <button type="button" class="btn btn-light" data-dismiss="modal" style="border-radius:10px; padding:9px 22px; font-weight:600;
                        border: 1px solid #e2e8f0; color:#64748b;">
           <i class="fa fa-times mr-1"></i> انصراف
         </button>
 
         {{-- GET link (default: send-to-finish, return-to-center) --}}
-        <a href="#" id="confirmModalProceedBtn" class="btn btn-success"
-           style="border-radius:10px; padding:9px 24px; font-weight:600;
+        <a href="#" id="confirmModalProceedBtn" class="btn btn-success" style="border-radius:10px; padding:9px 24px; font-weight:600;
                   box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width:140px;">
           <i id="confirmModalBtnIcon" class="fa fa-check mr-1"></i>
           <span id="confirmModalBtnLabel">تأیید</span>
         </a>
 
         {{-- POST submit (return-to-kachaee only) --}}
-        <button type="button" id="confirmModalPostBtn" class="btn btn-warning"
-                style="display:none; border-radius:10px; padding:9px 24px; font-weight:600;
+        <button type="button" id="confirmModalPostBtn" class="btn btn-warning" style="display:none; border-radius:10px; padding:9px 24px; font-weight:600;
                        min-width:140px;">
           <i id="confirmModalPostBtnIcon" class="fa fa-reply mr-1"></i>
           <span id="confirmModalPostBtnLabel">تأیید</span>
@@ -566,20 +572,20 @@
   <script>
     /* ── Confirmation Modal Logic ── */
     var colorMap = {
-      success : { bg: 'rgba(16,185,129,.12)', color: '#10b981', btn: 'success' },
-      warning : { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b', btn: 'warning' },
-      danger  : { bg: 'rgba(239,68,68,.12)',   color: '#ef4444', btn: 'danger'  }
+      success: { bg: 'rgba(16,185,129,.12)', color: '#10b981', btn: 'success' },
+      warning: { bg: 'rgba(245,158,11,.12)', color: '#f59e0b', btn: 'warning' },
+      danger: { bg: 'rgba(239,68,68,.12)', color: '#ef4444', btn: 'danger' }
     };
 
     $(document).on('click', '.btn-confirm-action', function () {
-      var url           = $(this).data('action-url');
-      var carpetNo      = $(this).data('carpet-no');
-      var label         = $(this).data('action-label');
-      var sublabel      = $(this).data('action-sublabel');
-      var icon          = $(this).data('modal-icon');
-      var btnClass      = $(this).data('btn-class');
+      var url = $(this).data('action-url');
+      var carpetNo = $(this).data('carpet-no');
+      var label = $(this).data('action-label');
+      var sublabel = $(this).data('action-sublabel');
+      var icon = $(this).data('modal-icon');
+      var btnClass = $(this).data('btn-class');
       var needsWarehouse = parseInt($(this).data('needs-warehouse') || 0);
-      var palette       = colorMap[btnClass] || colorMap['success'];
+      var palette = colorMap[btnClass] || colorMap['success'];
 
       /* populate modal header */
       $('#confirmModalIconWrap').css({ background: palette.bg, color: palette.color });
@@ -651,4 +657,3 @@
     });
   </script>
 @endsection
-

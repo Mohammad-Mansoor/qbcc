@@ -33,9 +33,11 @@
                 <h5 class="mb-0 text-dark font-weight-bold">ثبت معامله فروش جدید</h5>
                 <small class="text-muted">جهت ثبت فاکتور فروش مواد خام (تار یا رنگ) کلیک کنید</small>
               </div>
+              @can('create_material_sale')
               <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#saleModal" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: none; box-shadow: 0 4px 12px rgba(5,150,105,0.3); border-radius: 8px; padding: 10px 20px; font-weight: 600;">
                 <i class="fa fa-plus-circle mr-2"></i> ثبت فروش جدید
               </button>
+              @endcan
             </div>
 
             <!-- Modal -->
@@ -366,9 +368,11 @@
                         @if($material->invoice && $material->invoice->status === 'closed')
                             <span class="text-muted small"><i class="fa fa-lock"></i> انوایس بسته شده</span>
                         @else
+                            @can('edit_material_sale')
                             <a class="btn btn-sm btn-outline-emerald py-0 px-2" href="/dashboard/material-sales/{{$material->id}}/edit">
                                 <i class="fa fa-edit"></i>
                             </a>
+                            @endcan
                         @endif
                     </td>
                   </tr>

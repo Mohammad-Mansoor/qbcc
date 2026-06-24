@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class StringSellerController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_string_sellers')->only(['index', 'search', 'accounts', 'show']);
+        $this->middleware('permission:create_string_seller')->only(['create', 'store']);
+        $this->middleware('permission:edit_string_seller')->only(['edit', 'update']);
+        $this->middleware('permission:delete_string_seller')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *

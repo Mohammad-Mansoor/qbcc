@@ -9,7 +9,11 @@ class FixCarpetsOrderIdForeignKey extends Migration
 {
     public function up()
     {
-        // The old FK was already dropped. Just need to:
+        // Drop the old FK before modifying the column
+        Schema::table('carpets', function (Blueprint $table) {
+            $table->dropForeign(['order_id']);
+        });
+
         // 1. Change column to bigint to match carpet_orders.id (was int unsigned)
         // 2. Add new FK pointing to carpet_orders.id
         DB::statement('ALTER TABLE carpets MODIFY order_id BIGINT UNSIGNED NULL');

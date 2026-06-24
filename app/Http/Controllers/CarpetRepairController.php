@@ -32,6 +32,11 @@ class CarpetRepairController extends Controller
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
         $this->inventoryService = $inventoryService;
+
+        $this->middleware('permission:view_carpet_repairs')->only(['index', 'show', 'repair_search', 'search_repaired', 'repair_date_search', 'search_kachaee_number']);
+        $this->middleware('permission:create_carpet_repair')->only(['createRepair', 'store', 'sending_to_repair', 'repair_team_selected']);
+        $this->middleware('permission:edit_carpet_repair')->only(['edit', 'update']);
+        $this->middleware('permission:return_carpet_from_repair')->only(['return_to_center_from_non_repair', 'return_to_center_from_repair']);
     }
     /**
      * Display a listing of the resource.
@@ -231,7 +236,7 @@ class CarpetRepairController extends Controller
             ->get()
             ->keyBy('kachaee_id');
 
-        if(Auth::user()->role != 'SO' && Auth::user()->role != 'SP'){
+        if(!Auth::user()->can('create_carpet_repair') && Auth::user()->role != 'SO' && Auth::user()->role != 'SP'){
             if(!empty($check)){
                 $okay = CarpetCheckBook::where('carpet_id',$carpetId->carpet_id)->first();
                 if($okay->kachaee_amount != 0 || $okay->kachaee_amount != null){

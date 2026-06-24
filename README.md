@@ -1,4 +1,4 @@
-# QBCC Carpet Manufacturing ERP
+# QBIC Carpet Manufacturing ERP
 
 A production-grade, forensic-first Enterprise Resource Planning (ERP) system designed specifically for the carpet manufacturing industry. This system integrates advanced double-entry accounting, real-time multi-currency (USD/AFN/EUR/PKR) normalization, weighted average cost (WAC) inventory tracking, and warehouse lifecycle operations.
 
@@ -51,8 +51,8 @@ This application is built upon a non-destructive, "Wrap and Extend" architecture
 ### Steps
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/Mohammad-Mansoor/qbcc.git
-   cd qbcc
+   git clone https://github.com/Mohammad-Mansoor/QBIC.git
+   cd QBIC
    ```
 
 2. **Configure Environment File**:

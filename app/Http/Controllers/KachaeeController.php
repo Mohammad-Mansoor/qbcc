@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Auth;
 
 class KachaeeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:create_kachaee_team')->only(['create', 'store']);
+        $this->middleware('permission:edit_kachaee_team')->only(['edit', 'update']);
+        $this->middleware('permission:view_kachaee_team_statement')->only(['accounts']);
+    }
     /**
      * Display a listing of the resource.
      *

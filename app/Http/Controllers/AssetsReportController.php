@@ -15,11 +15,13 @@ class AssetsReportController extends Controller
 
     public function exportExcel(Request $request)
     {
+        abort_if(!auth()->user()->can('export_assets_report_excel'), 403, 'شما اجازه دریافت فایل اکسل این گزارش را ندارید.');
         return $this->generateReport($request, 'excel');
     }
 
     public function exportPdf(Request $request)
     {
+        abort_if(!auth()->user()->can('export_assets_report_pdf'), 403, 'شما اجازه دریافت فایل PDF این گزارش را ندارید.');
         return $this->generateReport($request, 'pdf');
     }
 

@@ -11,6 +11,13 @@ use Auth;
 
 class MaterialCategoryController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:view_material_categories')->only(['index', 'show']);
+        $this->middleware('permission:create_material_category')->only(['create', 'store']);
+        $this->middleware('permission:edit_material_category')->only(['edit', 'update']);
+        $this->middleware('permission:delete_material_category')->only('destroy');
+    }
     /**
      * Display a listing of the resource.
      *
