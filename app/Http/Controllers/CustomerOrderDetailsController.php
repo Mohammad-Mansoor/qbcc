@@ -291,7 +291,7 @@ class CustomerOrderDetailsController extends Controller
 
         $updateData = ['current_status' => $request->status];
         
-        if ($request->status === 'ready' && $request->filled('carpet_number')) {
+        if ($request->status === 'off_loom' && $request->filled('carpet_number')) {
             $updateData['carpet_number'] = $request->carpet_number;
         }
 

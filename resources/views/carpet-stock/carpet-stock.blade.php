@@ -4,13 +4,24 @@
 
 <style>
   /* Premium Glassmorphism & Custom Elements */
+  /* Prevent dropdown clipping in responsive tables */
+  .table-responsive,
+  .modern-card,
+  .modern-table td {
+    overflow: visible !important;
+  }
+  .dropdown-menu {
+    position: absolute !important;
+    will-change: transform;
+    z-index: 999999 !important;
+  }
+  
   .modern-card {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 16px !important;
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06) !important;
     backdrop-filter: blur(12px);
-    overflow: hidden;
     margin-bottom: 30px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
@@ -428,7 +439,7 @@
                       </td>
                       <td class="text-primary font-weight-bold font-italic">{{ number_format($carpet->total_price, 2) }} $</td>
                       <td class="hideOnPrint">
-                         <div class="btn-group">
+                         <div class="btn-group align-items-center">
                              @can('view_carpet_stock_details')
                              <a class="btn-modern-action btn-view-details btn-sm" href="/dashboard/carpet-stock-details/{{ $carpet->carpet_id }}" title="مشاهده جزئیات">
                                  <i class="fa fa-eye"></i> جزئیات
@@ -452,6 +463,44 @@
                                  <i class="fa fa-shopping-cart"></i> فروش
                              </button>
                              @endcan
+
+                             @if(auth()->user()->can('send_carpet_to_kachaee') || auth()->user()->can('send_carpet_to_washing') || auth()->user()->can('send_carpet_to_finishing'))
+                             <div class="dropdown d-inline-block ml-1" style="position: static;">
+                                 <button class="btn-modern-action btn-sm p-2 no-caret"
+                                     style="background: #f1f5f9; color: #475569 !important; border: 1px solid #cbd5e1 !important; height: 33px; width: 33px; border-radius: 8px !important;"
+                                     data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true"
+                                     aria-expanded="false" title="بیشتر">
+                                     <i class="feather icon-more-vertical"></i>
+                                 </button>
+                                 <div class="dropdown-menu shadow-lg border-0 text-right"
+                                     style="min-width: 200px; border-radius: 12px; z-index: 1000001; margin-top: 5px;">
+                                     <h6 class="dropdown-header small text-muted font-weight-bold text-right">عملیات انتقال (Transfer)</h6>
+                                     
+                                     @if($carpet->status != 12)
+                                         @can('send_carpet_to_kachaee')
+                                         <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
+                                             href="/dashboard/carpet-repaire/sending-to-kachaee/{{$carpet->carpet_id}}">
+                                             <i class="feather icon-tool mr-2 text-warning"></i> ارسال به کچایی (Repair)
+                                         </a>
+                                         @endcan
+                                     @endif
+                                     
+                                     @can('send_carpet_to_washing')
+                                     <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
+                                         href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
+                                         <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
+                                     </a>
+                                     @endcan
+                                     
+                                     @can('send_carpet_to_finishing')
+                                     <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
+                                         href="/dashboard/carpet-wash/sent-to-finish/{{$carpet->carpet_id}}">
+                                         <i class="feather icon-check-circle mr-2 text-success"></i> ارسال به تیاری (Finish)
+                                     </a>
+                                     @endcan
+                                 </div>
+                             </div>
+                             @endif
                          </div>
                       </td>
                     </tr>

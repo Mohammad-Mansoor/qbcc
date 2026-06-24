@@ -402,8 +402,8 @@
                                             <select name="status" class="select-status-premium select-carpet-status-inline status-{{ $co->current_status }}" data-id="{{ $co->cod_id }}">
                                                 <option value="graphing" {{ $co->current_status == 'graphing' ? 'selected' : '' }}>نقشه کشی</option>
                                                 <option value="dyeing" {{ $co->current_status == 'dyeing' ? 'selected' : '' }}>رنگ ریزی</option>
-                                                <option value="on_loom" {{ $co->current_status == 'on_loom' ? 'selected' : '' }}>روی دار</option>
-                                                <option value="off_loom" {{ $co->current_status == 'off_loom' ? 'selected' : '' }}>پایین دار</option>
+                                                <option value="on_loom" {{ $co->current_status == 'on_loom' ? 'selected' : '' }}>در جریان بافت</option>
+                                                <option value="off_loom" {{ $co->current_status == 'off_loom' ? 'selected' : '' }}>ختمه بافت</option>
                                                 <option value="washing" {{ $co->current_status == 'washing' ? 'selected' : '' }}>شستشو</option>
                                                 <option value="finishing" {{ $co->current_status == 'finishing' ? 'selected' : '' }}>تیاری</option>
                                                 <option value="repairing" {{ $co->current_status == 'repairing' ? 'selected' : '' }}>ترمیم</option>
@@ -532,7 +532,7 @@
                             <div class="col-md-3 mb-3">
                                 <label class="small font-weight-bold text-dark">وضعیت تولید <span class="text-danger">*</span></label>
                                 <select name="current_status" class="form-control select2-modal">
-                                    @foreach(['graphing' => 'نقشه کشی', 'dyeing' => 'رنگ ریزی', 'on_loom' => 'روی دار', 'off_loom' => 'پایین دار', 'washing' => 'شستشو', 'finishing' => 'تیاری', 'repairing' => 'ترمیم', 'ready' => 'آماده (تکمیل)', 'shipped' => 'ارسال شده', 'paused' => 'متوقف', 'cancelled' => 'لغو شده'] as $val => $label)
+                                    @foreach(['graphing' => 'نقشه کشی', 'dyeing' => 'رنگ ریزی', 'on_loom' => 'در جریان بافت', 'off_loom' => 'ختمه بافت', 'washing' => 'شستشو', 'finishing' => 'تیاری', 'repairing' => 'ترمیم', 'ready' => 'آماده (تکمیل)', 'shipped' => 'ارسال شده', 'paused' => 'متوقف', 'cancelled' => 'لغو شده'] as $val => $label)
                                         <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
@@ -698,7 +698,7 @@
         var id = $(this).data('id');
         var val = $(this).val();
         
-        if(val === 'ready') {
+        if(val === 'off_loom') {
             // Open modal to get carpet number
             $('#pending_status_form_id').val(id);
             $('#pending_status_value').val(val);
