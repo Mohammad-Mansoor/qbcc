@@ -120,39 +120,48 @@
 
     <!-- KPI Cards Row -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card" style="border-right: 4px solid #00acc1;">
                 <div class="kpi-icon" style="background: linear-gradient(135deg, #00acc1, #00838f);"><i class="fa fa-cubes"></i></div>
                 <div class="kpi-details">
-                    <h6>کل قالین‌ها (تعداد/مساحت)</h6>
-                    <h3>{{ number_format($kpis['total_qty']) }} <small style="font-size: 1rem;">({{ number_format($kpis['total_area'], 2) }} M<sup>2</sup>)</small></h3>
+                    <h6 style="font-size: 0.85rem;">کل قالین‌ها (مساحت)</h6>
+                    <h3>{{ number_format($kpis['total_qty']) }} <small style="font-size: 0.8rem;">({{ number_format($kpis['total_area'], 2) }} M<sup>2</sup>)</small></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
+            <div class="kpi-card" style="border-right: 4px solid #6c757d;">
+                <div class="kpi-icon" style="background: linear-gradient(135deg, #9ca3af, #4b5563);"><i class="fa fa-home"></i></div>
+                <div class="kpi-details">
+                    <h6 style="font-size: 0.85rem;">خام / در گدام (Raw)</h6>
+                    <h3>{{ number_format($kpis['raw_qty']) }} <small style="font-size: 0.8rem;">تخته</small></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col">
             <div class="kpi-card" style="border-right: 4px solid #F59E0B;">
                 <div class="kpi-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);"><i class="fa fa-cogs"></i></div>
                 <div class="kpi-details">
-                    <h6>در حال پروسس (WIP)</h6>
-                    <h3>{{ number_format($kpis['wip_qty']) }} <small style="font-size: 1rem;">تخته</small></h3>
+                    <h6 style="font-size: 0.85rem;">در حال پروسس (WIP)</h6>
+                    <h3>{{ number_format($kpis['wip_qty']) }} <small style="font-size: 0.8rem;">تخته</small></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card" style="border-right: 4px solid #10B981;">
                 <div class="kpi-icon" style="background: linear-gradient(135deg, #10B981, #059669);"><i class="fa fa-check-circle"></i></div>
                 <div class="kpi-details">
-                    <h6>آماده فروش (Ready)</h6>
-                    <h3>{{ number_format($kpis['ready_qty']) }} <small style="font-size: 1rem;">تخته</small></h3>
+                    <h6 style="font-size: 0.85rem;">آماده فروش (Ready)</h6>
+                    <h3>{{ number_format($kpis['ready_qty']) }} <small style="font-size: 0.8rem;">تخته</small></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col">
             <div class="kpi-card" style="border-right: 4px solid #8B5CF6;">
                 <div class="kpi-icon" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9);"><i class="fa fa-shopping-cart"></i></div>
                 <div class="kpi-details">
-                    <h6>فروخته شده (Sold)</h6>
-                    <h3>{{ number_format($kpis['sold_qty']) }} <small style="font-size: 1rem;">تخته</small></h3>
+                    <h6 style="font-size: 0.85rem;">فروخته شده (Sold)</h6>
+                    <h3>{{ number_format($kpis['sold_qty']) }} <small style="font-size: 0.8rem;">تخته</small></h3>
                 </div>
             </div>
         </div>

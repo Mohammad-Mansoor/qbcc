@@ -12,6 +12,8 @@
                     <label class="mr-2">As Of:</label>
                     <input type="date" name="as_of" value="{{ $asOfDate }}" class="form-control form-control-sm mr-2">
                     <button type="submit" class="btn btn-sm btn-primary">بروزرسانی</button>
+                    <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-sm btn-danger ml-2"><i class="fa fa-file-pdf-o"></i> PDF</button>
+                    <button type="submit" name="export" value="excel" class="btn btn-sm btn-success ml-2"><i class="fa fa-file-excel-o"></i> EXCEL</button>
                     <button type="button" onclick="window.print()" class="btn btn-sm btn-info ml-2"><i class="fa fa-print"></i></button>
                 </form>
             </div>

@@ -283,33 +283,13 @@ class FinishingTeamPaymentController extends Controller
 
         $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', 1)->sum('price');
 
-        // Unified Ledger Audit Statement
-        $ledgerStatement = \DB::table('ledger_entries')
-            ->where('party_type', 'App\FinishingTeam')
-            ->where('party_id', $team_id)
-            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-            ->where('ledger_transactions.status', 'posted')
-            ->select(
-                'ledger_transactions.date',
-                'ledger_transactions.description',
-                'ledger_transactions.reference',
-                'ledger_entries.debit',
-                'ledger_entries.credit',
-                'ledger_entries.currency_code',
-                'ledger_entries.base_debit',
-                'ledger_entries.base_credit'
-            )
-            ->orderBy('ledger_transactions.date', 'ASC')
-            ->orderBy('ledger_transactions.id', 'ASC')
-            ->get();
-
         $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
         $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
 
         return view('finishing-center.finishing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement',
+            'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes',
             'finishingAdvances', 'finishingAllocations'
         ));
     }

@@ -97,7 +97,8 @@ class PurchasedCarpetReportController extends Controller
             DB::raw('SUM(area) as total_area'),
             DB::raw('SUM(CASE WHEN status = 5 THEN 1 ELSE 0 END) as ready_qty'),
             DB::raw('SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) as sold_qty'),
-            DB::raw('SUM(CASE WHEN status IN (2,12,3,13,4) THEN 1 ELSE 0 END) as wip_qty')
+            DB::raw('SUM(CASE WHEN status IN (2,12,3,13,4) THEN 1 ELSE 0 END) as wip_qty'),
+            DB::raw('SUM(CASE WHEN status IN (0,1) THEN 1 ELSE 0 END) as raw_qty')
         )->first();
 
         $kpis = [
@@ -106,6 +107,7 @@ class PurchasedCarpetReportController extends Controller
             'ready_qty' => $kpiData->ready_qty ?? 0,
             'sold_qty' => $kpiData->sold_qty ?? 0,
             'wip_qty' => $kpiData->wip_qty ?? 0,
+            'raw_qty' => $kpiData->raw_qty ?? 0,
         ];
 
         // Execute query

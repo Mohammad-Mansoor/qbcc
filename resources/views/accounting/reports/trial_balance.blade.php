@@ -15,16 +15,18 @@
                         <div class="col-md-6">
                             <form action="{{ route('accounting.reports.trial_balance') }}" method="GET">
                                 <div class="row no-gutters align-items-end justify-content-end">
-                                    <div class="col-md-4 px-1">
+                                    <div class="col-md-3 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">از تاریخ:</label>
                                         <input type="date" name="start_date" value="{{ $startDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-4 px-1">
+                                    <div class="col-md-3 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">الی تاریخ:</label>
                                         <input type="date" name="end_date" value="{{ $endDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-2 px-1">
-                                        <button type="submit" class="btn btn-primary btn-block rounded-pill shadow-sm">تایید</button>
+                                    <div class="col-md-6 px-1 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary rounded-pill shadow-sm flex-fill mr-2" style="height: 38px;">تایید</button>
+                                        <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-danger rounded-pill shadow-sm flex-fill mr-2" style="height: 38px;"><i class="feather icon-file"></i> PDF</button>
+                                        <button type="submit" name="export" value="excel" formtarget="_blank" class="btn btn-success rounded-pill shadow-sm flex-fill" style="height: 38px;"><i class="feather icon-file-text"></i> EXCEL</button>
                                     </div>
                                 </div>
                             </form>
@@ -94,43 +96,7 @@
 <script>
     $(document).ready(function() {
         $('#report-table').DataTable({
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="feather icon-file-text"></i> EXCEL',
-                    className: 'btn btn-success rounded-pill px-4 shadow-sm',
-                    title: 'QASIMI BROTHERS CARPET CO. - تراز آزمایشی',
-                    messageTop: 'گزارش بیلانس آزمایشی تمامی حسابات',
-                    footer: true, // Includes the total row
-                    customize: function(xlsx) {
-                        var sheet = xlsx.xl.worksheets['sheet1.xml'];
-                        $('row c[r^="A1"]', sheet).attr('s', '51');
-                    }
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="feather icon-file"></i> PDF',
-                    className: 'btn btn-danger rounded-pill px-4 shadow-sm',
-                    title: 'QASIMI BROTHERS CARPET CO. - تراز آزمایشی',
-                    footer: true,
-                    customize: function(doc) {
-                        doc.defaultStyle.font = 'Arial';
-                        doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
-                        doc.styles.tableHeader.fillColor = '#1a237e'; // Premium Blue
-                        doc.styles.tableHeader.color = 'white';
-                        doc.styles.tableHeader.alignment = 'center';
-                        doc.styles.tableFooter.fillColor = '#f5f5f5';
-                    }
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="feather icon-printer"></i> PRINT',
-                    className: 'btn btn-dark rounded-pill px-4 shadow-sm',
-                    title: 'QASIMI BROTHERS CARPET CO. - تراز آزمایشی',
-                    footer: true
-                }
-            ],
+            dom: 'frtip',
             paging: false,
             searching: true,
             info: false,

@@ -7,6 +7,9 @@ use App\CustomerOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\User;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NewCustomerOrderAlert;
 
 class CustomerOrderController extends Controller
 {
@@ -54,6 +57,7 @@ class CustomerOrderController extends Controller
         $data = $request->validate([
             'order_name' => 'required|unique:customer_orders,order_name',
             'order_date' => 'required|date',
+            'end_date' => 'nullable|date',
             'main_customer_id' => 'required|exists:customers,id',
             'status' => 'required|in:pending,in_progress,completed,cancel',
         ]);
@@ -65,6 +69,7 @@ class CustomerOrderController extends Controller
         $ord = CustomerOrder::create([
             'order_name' => $request->order_name,
             'order_date' => $request->order_date,
+            'end_date' => $request->end_date,
             'main_customer_id' => $request->main_customer_id,
             'status' => $request->status,
             'customer_order' => $request->order_name, // fallback for legacy column
@@ -72,6 +77,10 @@ class CustomerOrderController extends Controller
         ]);
 
         if ($ord) {
+            $receivers = User::permission('receive_customer_order_alerts')->get();
+            if ($receivers->isNotEmpty()) {
+                Notification::send($receivers, new NewCustomerOrderAlert($ord));
+            }
             return redirect('/dashboard/customer-orders/' . $request->main_customer_id)->with('status', 'Order Successfully Added!');
         } else {
             return redirect()->back()->with('error', 'Internal Server Error!');
@@ -128,6 +137,7 @@ class CustomerOrderController extends Controller
         $data = $request->validate([
             'order_name' => 'required|unique:customer_orders,order_name,' . $order_id . ',co_id',
             'order_date' => 'required|date',
+            'end_date' => 'nullable|date',
             'main_customer_id' => 'required|exists:customers,id',
             'status' => 'required|in:pending,in_progress,completed,cancel',
         ]);
@@ -151,6 +161,7 @@ class CustomerOrderController extends Controller
         $ord = $order->update([
             'order_name' => $request->order_name,
             'order_date' => $request->order_date,
+            'end_date' => $request->end_date,
             'main_customer_id' => $request->main_customer_id,
             'status' => $request->status,
             'customer_order' => $request->order_name

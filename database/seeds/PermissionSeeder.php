@@ -231,6 +231,7 @@ class PermissionSeeder extends Seeder
             'edit_customer_order',
             'delete_customer_order',
             'manage_customer_order_details',
+            'receive_customer_order_alerts',
 
             // Assets
             'view_assets_accounts',

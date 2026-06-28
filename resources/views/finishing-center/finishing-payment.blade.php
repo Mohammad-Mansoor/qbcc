@@ -397,9 +397,6 @@
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold" id="finishing-reconciliation-tab" data-toggle="tab" href="#finishing_reconciliation" role="tab"><i class="fa fa-undo mr-1"></i> تاریخچه تصفیه‌ها (Reconciliations)</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
-                </li>
             </ul>
 
             <div class="tab-content" id="finishingTabContent">
@@ -590,71 +587,7 @@
 
 
                 <!-- Tab 3: Unified Ledger Statement -->
-                <div class="tab-pane fade" id="statement" role="tabpanel">
-                    <div class="premium-card">
-                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #e65100 0%, #ff8f00 100%);">
-                            <h5><i class="fa fa-book mr-2"></i> صورت حساب مالی تفصیلی (GL Statement)</h5>
-                            <button type="button" class="btn btn-light btn-sm font-weight-bold text-dark" onclick="printStatement()">
-                                <i class="fa fa-print"></i> چاپ صورت حساب
-                            </button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" id="print-area">
-                                <!-- Print-only Header (Hidden on Screen) -->
-                                <div class="d-none print-header text-center mb-4 mt-3">
-                                    <h3 class="font-weight-bold">صورت حساب مالی آماده‌سازی (تیاری): {{ $team->name }}</h3>
-                                    <p>تاریخ گزارش: {{ date('Y-m-d') }} | اکونت نمبر: {{ $team->id }}</p>
-                                </div>
-                                <table class="table premium-table table-hover text-right">
-                                    <thead>
-                                        <tr>
-                                            <th>تاریخ</th>
-                                            <th>شرح معامله</th>
-                                            <th>مرجع (Ref)</th>
-                                            <th>بدهکار (Debit/Paid)</th>
-                                            <th>طلبکار (Credit/Cost)</th>
-                                            <th>بیلانس (Outstanding)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php $runningBalance = 0; @endphp
-                                        @forelse($ledgerStatement as $entry)
-                                            @php 
-                                                $debit = (float)$entry->base_debit;
-                                                $credit = (float)$entry->base_credit;
-                                                $runningBalance += ($credit - $debit);
-                                            @endphp
-                                            <tr>
-                                                <td>{{ $entry->date }}</td>
-                                                <td>{{ $entry->description }}</td>
-                                                <td><span class="badge badge-light border">{{ $entry->reference }}</span></td>
-                                                <td class="text-danger font-weight-bold">{{ $debit > 0 ? '$ ' . number_format($debit, 2) : '-' }}</td>
-                                                <td class="text-success font-weight-bold">{{ $credit > 0 ? '$ ' . number_format($credit, 2) : '-' }}</td>
-                                                <td class="font-weight-bold {{ $runningBalance >= 0 ? 'text-success' : 'text-danger' }}">
-                                                    $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? '(Cr)' : '(Dr)' }}
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">هیچ تراکنش حسابی یافت نشد.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                    <tfoot class="bg-light">
-                                        <tr>
-                                            <th colspan="3" class="text-right">بیلانس نهایی طلبات (Base USD)</th>
-                                            <th class="text-danger">$ {{ number_format($ledgerStatement->sum('base_debit'), 2) }}</th>
-                                            <th class="text-success">$ {{ number_format($ledgerStatement->sum('base_credit'), 2) }}</th>
-                                            <th class="font-weight-bold text-primary" style="font-size: 1.1rem;">
-                                                $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? 'باقی مانده (طلبکار)' : 'طلبکار (بدهکار)' }}
-                                            </th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Tab 4: Finishing Advances -->
                 <div class="tab-pane fade" id="finishing_advances" role="tabpanel">

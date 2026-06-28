@@ -180,7 +180,7 @@ class SaleController extends Controller
                 'warehouse_id' => $carpet_id->warehouse_id,
                 'area' => (float)($carpet_id->area ?? 0),
                 'unit_cost' => (float)($carpet_id->total_price ?? 0),
-                'reference' => 'SALE-' . $sale->id,
+                'reference' => $invoice_id->invoice_no,
                 'description' => "فروش قالین نمبر " . $carpet_id->carpet_no . " به مشتری " . ($invoice_id->customer->customer_code ?? ''),
                 'currency_code' => $sale->currency_code,
                 'exchange_rate' => $sale->exchange_rate,

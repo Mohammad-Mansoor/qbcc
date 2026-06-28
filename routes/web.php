@@ -643,11 +643,14 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     });
 });
 
-/** Accounting Modules */
-Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'permission:view_coa']], function () {
-    
+/** Accounting Dashboard */
+Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'permission:view_finance_dashboard']], function () {
     /** Dashboard */
     Route::get('/', 'Accounting\DashboardController@index')->name('accounting.dashboard');
+});
+
+/** Accounting Modules */
+Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'permission:view_coa']], function () {
     
     /** Chart of Accounts */
     Route::get('/chart-of-accounts', 'Accounting\ChartOfAccountController@index')->name('accounting.coa.index');
@@ -661,6 +664,7 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'perm
     Route::get('/journals/create', 'Accounting\JournalController@create')->name('accounting.journals.create');
     Route::get('/journals/api/parties', 'Accounting\JournalController@getParties')->name('accounting.journals.api.parties');
     Route::post('/journals', 'Accounting\JournalController@store')->name('accounting.journals.store');
+    Route::post('/journals/export', 'Accounting\JournalController@exportReport')->name('accounting.journals.export');
     Route::get('/journals/{id}', 'Accounting\JournalController@show')->name('accounting.journals.show');
     Route::get('/journals/{id}/print', 'Accounting\JournalController@print')->name('accounting.journals.print');
     Route::post('/journals/{id}/reverse', 'Accounting\JournalController@reverse')->name('accounting.journals.reverse');
@@ -858,6 +862,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
         ->middleware('permission:view_employee_statement')
         ->name('accounting.reports.employee_statement');
     Route::get('/batches/{type}', 'ProductionBatchController@index')->name('batches.index');
+    Route::get('/batches/api/{type}/open', 'ProductionBatchController@getOpenBatches')->name('batches.open');
     Route::post('/batches/{type}', 'ProductionBatchController@store')->name('batches.store');
     Route::post('/batches/{id}/toggle-status', 'ProductionBatchController@toggleStatus')->name('batches.toggle-status');
     Route::get('/batches/{id}/details', 'ProductionBatchController@details')->name('batches.details');

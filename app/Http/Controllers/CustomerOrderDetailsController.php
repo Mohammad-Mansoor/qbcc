@@ -25,16 +25,23 @@ class CustomerOrderDetailsController extends Controller
      */
     public function close_to_end_customer_order()
     {
-        $today = Carbon::today();
-        $today->modify('+31 days');
-        $modified_date = $today->format('Y-m-d');
+        if (auth()->check()) {
+            auth()->user()->unreadNotifications->markAsRead();
+        }
 
-        $orders = \Illuminate\Support\Facades\DB::table('customer_order_details')
+        $notifications = auth()->check() ? auth()->user()->notifications()->orderBy('created_at', 'desc')->take(50)->get() : collect();
+
+        $today = \Carbon\Carbon::today();
+        $modified_date = $today->copy()->addDays(31)->format('Y-m-d');
+
+        $orders = \App\CustomerOrder::with('customer')
+            ->where('status', '!=', 'completed')
+            ->whereNotNull('end_date')
             ->where('end_date', '<=', $modified_date)
-            ->whereIn('current_status', ['On loom', 'in_progress', 'in progress'])
+            ->orderBy('co_id', 'desc')
             ->get();
 
-        return view('customer-orders.close-to-end-order-list', compact('orders'));
+        return view('customer-orders.close-to-end-order-list', compact('orders', 'notifications'));
     }
 
     public function index()
@@ -138,8 +145,16 @@ class CustomerOrderDetailsController extends Controller
      */
     public function show($order_id)
     {
-        $customer_order = CustomerOrder::find($order_id);
+        $customer_order = CustomerOrder::with('customer')->find($order_id);
         $customer_order_details = DB::table('customer_order_details')->where('customer_order_id',$order_id)->orderBy('cod_id','DESC')->get();
+        
+        if (request()->export === 'pdf') {
+            $logoPath = public_path('images/logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+
+            return view('customer-orders.customer-order-details-pdf', compact('customer_order', 'customer_order_details', 'logoBase64'));
+        }
+
         $orderEdit = null;
         $currencies = \App\Currency::where('is_active', true)->get();
 

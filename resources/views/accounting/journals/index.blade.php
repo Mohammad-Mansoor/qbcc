@@ -271,6 +271,88 @@
         <div class="col-md-12">
             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                 <div class="card-body p-4">
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <div class="modal-header bg-light border-bottom-0" style="border-radius: 15px 15px 0 0;">
+                    <h5 class="modal-title font-weight-bold"><i class="feather icon-download text-primary mr-2"></i> استخراج راپور روزنامچه</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="{{ route('accounting.journals.export') }}" method="POST" target="_blank">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <div class="alert alert-info border-0 rounded-lg">
+                            <i class="feather icon-info mr-1"></i> برای جلوگیری از سنگینی سیستم، انتخاب <strong>تاریخ شروع و ختم</strong> الزامی است.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">از تاریخ <span class="text-danger">*</span></label>
+                                <input type="date" name="start_date" class="form-control" required value="{{ request('start_date') }}">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold">تا تاریخ <span class="text-danger">*</span></label>
+                                <input type="date" name="end_date" class="form-control" required value="{{ request('end_date') }}">
+                            </div>
+                        </div>
+
+                        <!-- Optional Filters -->
+                        <div class="form-group mt-3">
+                            <label class="text-muted small">حساب (اختیاری)</label>
+                            <select name="account_id" class="form-control select2">
+                                <option value="">همه حسابات</option>
+                                @foreach($accounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ request('account_id') == $acc->id ? 'selected' : '' }}>
+                                        {{ $acc->account_code }} - {{ $acc->name_da ?? $acc->name_en }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="text-muted small">وضعیت (اختیاری)</label>
+                                <select name="status" class="form-control">
+                                    <option value="">همه</option>
+                                    <option value="posted" {{ request('status') == 'posted' ? 'selected' : '' }}>تایید شده (Posted)</option>
+                                    <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>پیش‌نویس (Draft)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="text-muted small">نوعیت سند (اختیاری)</label>
+                                <select name="journal_type" class="form-control">
+                                    <option value="">همه</option>
+                                    <option value="journal" {{ request('journal_type') == 'journal' ? 'selected' : '' }}>روزنامچه عمومی</option>
+                                    <option value="payment" {{ request('journal_type') == 'payment' ? 'selected' : '' }}>رسید / پرداخت</option>
+                                    <option value="opening_balance" {{ request('journal_type') == 'opening_balance' ? 'selected' : '' }}>بیلانس افتتاحیه</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields to pass over remaining search filters -->
+                        <input type="hidden" name="search" value="{{ request('search') }}">
+                        <input type="hidden" name="min_amount" value="{{ request('min_amount') }}">
+                        <input type="hidden" name="max_amount" value="{{ request('max_amount') }}">
+                        <input type="hidden" name="party_type" value="{{ request('party_type') }}">
+                        <input type="hidden" name="party_id" value="{{ request('party_id') }}">
+
+                    </div>
+                    <div class="modal-footer border-top-0 bg-light" style="border-radius: 0 0 15px 15px;">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-dismiss="modal">لغو</button>
+                        <button type="submit" name="export_format" value="excel" class="btn btn-success rounded-pill px-4 shadow-sm">
+                            <i class="feather icon-file-text"></i> دانلود Excel
+                        </button>
+                        <button type="submit" name="export_format" value="pdf" class="btn btn-danger rounded-pill px-4 shadow-sm">
+                            <i class="feather icon-file"></i> دانلود PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
                     <div class="row align-items-center mb-4">
                         <div class="col-md-6">
                             <h3 class="font-weight-bold mb-1">روزنامچه کل (General Ledger)</h3>
@@ -278,6 +360,7 @@
                         </div>
                         <div class="col-md-6 text-right">
                             @can('create_journal')
+                            <button type="button" class="btn btn-secondary shadow-sm px-4 mr-2" style="border-radius: 10px;" data-toggle="modal" data-target="#exportModal"><i class="feather icon-download mr-2"></i>استخراج راپور</button>
                             <a href="{{ route('accounting.journals.create') }}" class="btn btn-primary shadow-sm px-4" style="border-radius: 10px;">
                                 <i class="feather icon-plus mr-2"></i>ثبت سند جدید (Journal Entry)
                             </a>

@@ -254,17 +254,13 @@
                                     </label>
                                     <div class="input-group">
                                         <select name="wash_number" id="wash_number" required
-                                            class="form-control form-control-modern select2 w-100">
-                                            <option value="">-- انتخاب نمبر شستشو --</option>
-                                            @foreach($openBatches as $batch)
-                                                <option value="{{ $batch->reference_number }}">{{ $batch->reference_number }}
-                                                </option>
-                                            @endforeach
+                                            class="form-control form-control-modern select2 w-100" disabled>
+                                            <option value="">-- لطفاً ابتدا تیم را انتخاب کنید --</option>
                                         </select>
                                         <div class="input-group-append">
                                             <button type="button" class="btn btn-success font-weight-bold"
                                                 id="btn_generate_wash_number" title="ایجاد نمبر جدید"
-                                                style="border-top-left-radius: var(--radius-md); border-bottom-left-radius: var(--radius-md); height: 50px;">
+                                                style="border-top-left-radius: var(--radius-md); border-bottom-left-radius: var(--radius-md); height: 50px;" disabled>
                                                 <i class="feather icon-plus"></i> ایجاد
                                             </button>
                                         </div>
@@ -395,8 +391,65 @@
                 });
             }
 
+            // Handle team change to load filtered batches
+            var $teamSelect = $('select[name="team_id"]');
+            var $washNumberSelect = $('#wash_number');
+            var $generateBtn = $('#btn_generate_wash_number');
+
+            $teamSelect.on('change', function() {
+                var teamId = $(this).val();
+                if (teamId) {
+                    $washNumberSelect.prop('disabled', true);
+                    $generateBtn.prop('disabled', true);
+                    $washNumberSelect.html('<option value="">در حال بارگذاری...</option>');
+                    if ($.fn.select2) { $washNumberSelect.trigger('change.select2'); }
+
+                    $.ajax({
+                        url: '/dashboard/batches/api/wash/open',
+                        type: 'GET',
+                        data: { team_id: teamId },
+                        success: function(response) {
+                            if (response.success) {
+                                $washNumberSelect.empty();
+                                $washNumberSelect.append('<option value="">-- انتخاب نمبر شستشو --</option>');
+                                $.each(response.batches, function(index, batch) {
+                                    $washNumberSelect.append('<option value="' + batch.reference_number + '">' + batch.reference_number + '</option>');
+                                });
+                                $washNumberSelect.prop('disabled', false);
+                                $generateBtn.prop('disabled', false);
+                                if ($.fn.select2) { $washNumberSelect.trigger('change.select2'); }
+                            }
+                        },
+                        error: function() {
+                            $washNumberSelect.empty();
+                            $washNumberSelect.append('<option value="">-- خطا در بارگذاری --</option>');
+                            if ($.fn.select2) { $washNumberSelect.trigger('change.select2'); }
+                        }
+                    });
+                } else {
+                    $washNumberSelect.empty().append('<option value="">-- لطفاً ابتدا تیم را انتخاب کنید --</option>');
+                    $washNumberSelect.prop('disabled', true);
+                    $generateBtn.prop('disabled', true);
+                    if ($.fn.select2) { $washNumberSelect.trigger('change.select2'); }
+                }
+            });
+
+            // Trigger on load if old value exists
+            if ($teamSelect.val()) {
+                $teamSelect.trigger('change');
+            }
+
             // AJAX Generate Wash Number
             $('#btn_generate_wash_number').on('click', function () {
+                var teamId = $('select[name="team_id"]').val();
+                if (!teamId) {
+                    if (typeof swal === 'function') {
+                        swal("خطا", "لطفاً ابتدا تیم شوینده را انتخاب کنید.", "warning");
+                    } else {
+                        alert("لطفاً ابتدا تیم شوینده را انتخاب کنید.");
+                    }
+                    return;
+                }
                 var $btn = $(this);
                 $btn.prop('disabled', true).html('<i class="feather icon-loader fa-spin"></i>');
 
@@ -404,7 +457,8 @@
                     url: '/dashboard/batches/wash',
                     type: 'POST',
                     data: {
-                        _token: '{{ csrf_token() }}'
+                        _token: '{{ csrf_token() }}',
+                        team_id: teamId
                     },
                     success: function (response) {
                         if (response.success && response.batch) {

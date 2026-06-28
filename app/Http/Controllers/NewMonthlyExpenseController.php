@@ -103,6 +103,16 @@ class NewMonthlyExpenseController extends Controller
             ->get()
             ->groupBy('category');
 
+        if (request()->export === 'pdf') {
+            $logoPath = public_path('images/logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+            return view('new-monthly-expense.summary-pdf', compact('month_obj', 'categoryTotals', 'logoBase64'));
+        }
+
+        if (request()->export === 'excel') {
+            return view('new-monthly-expense.summary-excel', compact('month_obj', 'categoryTotals'));
+        }
+
         $currencies = \App\Currency::all();
         $expenseEdit = '';
         $search = '';

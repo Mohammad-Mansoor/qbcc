@@ -365,6 +365,7 @@ class RoleController extends Controller
             'customer_orders' => 'سفارشات مشتری',
             'customer_order' => 'سفارش مشتری',
             'customer_order_details' => 'جزییات سفارش مشتری',
+            'receive_customer_order_alerts' => 'دریافت هشدارهای سفارش مشتری',
             'assets_accounts' => 'حسابات اجناس',
             'assets_account' => 'حساب اجناس',
             'assets_report' => 'گزارش اجناس ثابت',

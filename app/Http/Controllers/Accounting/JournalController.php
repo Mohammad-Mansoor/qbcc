@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers\Accounting;
 
 use App\Http\Controllers\Controller;
@@ -273,6 +274,82 @@ class JournalController extends Controller
         }
     }
 
+
+    public function exportReport(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ], [
+            'start_date.required' => 'انتخاب تاریخ شروع برای استخراج راپور الزامی است.',
+            'end_date.required' => 'انتخاب تاریخ ختم برای استخراج راپور الزامی است.',
+        ]);
+
+        $query = \App\LedgerTransaction::with(['entries.account'])
+            ->whereBetween('date', [$request->start_date, $request->end_date])
+            ->orderBy('date', 'asc');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('journal_id', 'like', "%{$search}%")
+                  ->orWhere('reference', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('journal_type')) {
+            $query->where('journal_type', $request->journal_type);
+        }
+        if ($request->filled('account_id')) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('account_id', $request->account_id);
+            });
+        }
+        if ($request->filled('min_amount')) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('debit', '>=', $request->min_amount)
+                  ->orWhere('credit', '>=', $request->min_amount);
+            });
+        }
+        if ($request->filled('max_amount')) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('debit', '<=', $request->max_amount)
+                  ->orWhere('credit', '<=', $request->max_amount);
+            });
+        }
+        if ($request->filled('party_id')) {
+            $query->whereHas('entries', function($q) use ($request) {
+                $q->where('party_id', $request->party_id);
+            });
+        }
+
+        $transactions = $query->get();
+        $accounts = \App\ChartOfAccount::orderBy('account_code')->get();
+
+        $topHeaderPath = public_path('images/header.png');
+        $bottomFooterPath = public_path('images/footer.png');
+        
+        $topHeaderBase64 = '';
+        if (file_exists($topHeaderPath)) {
+            $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+        }
+        
+        $bottomFooterBase64 = '';
+        if (file_exists($bottomFooterPath)) {
+            $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+        }
+
+        $data = compact('transactions', 'request', 'topHeaderBase64', 'bottomFooterBase64', 'accounts');
+
+        if ($request->export_format === 'pdf') {
+            return view('accounting.journals.report_pdf', $data);
+        } else {
+            return view('accounting.journals.report_excel', $data);
+        }
+    }
     public function show($id)
     {
         $transaction = LedgerTransaction::with('entries.account')->findOrFail($id);

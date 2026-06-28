@@ -186,7 +186,7 @@
               <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
               @endcan
               @can('view_finance_dashboard')
-              <li><a href="/dashboard/finance">داشبورد مالی (Finance)</a></li>
+              <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
               @endcan
               @can('view_sales_dashboard')
               <li><a href="/dashboard/sales">داشبورد فروشات (Sales)</a></li>
@@ -777,18 +777,12 @@
     <div style="position: absolute; left: 55px;">
       <a href="/dashboard/close-to-end-customer-order" title="لیست سفارشات رو به اتمام">
 
-        <?php
-$today = \Carbon\Carbon::today();
+        @php
+            $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
+        @endphp
 
-$today->modify('+31 days');
-$modified_date = $today->format('Y-m-d');
-
-$ord = \Illuminate\Support\Facades\DB::table('customer_order_details')->where('end_date', '<=', $modified_date)->where('current_status', 'On loom')->count();
-                ?>
-
-
-        @if($ord > 0)
-          <small style="position: absolute;margin-top: 16px;font-size: 17px;margin-left: 3px;color: red;">{{$ord}}</small>
+        @if($unreadCount > 0)
+          <span class="badge badge-danger" style="position: absolute; top: 20px; left: 15px; border-radius: 50%; padding: 4px 6px; font-size: 12px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.3);">{{$unreadCount}}</span>
         @endif
         <i class="fa fa-bell" style="font-size: 30px;margin-top: 30px;color: white;">
         </i></a>

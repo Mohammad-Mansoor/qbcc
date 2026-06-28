@@ -42,7 +42,7 @@ class PurchasesDashboardService
 
         // Top Carpet Suppliers
         $carpetSuppliersRaw = PurchaseInvoice::join('carpets', 'purchase_invoices.id', '=', 'carpets.purchase_invoice_id')
-            ->with('agent')
+            ->with('agent.user')
             ->select('purchase_invoices.agent_id', DB::raw('SUM(carpets.total_price) as total'))
             ->where('carpets.status', '!=', 6)
             ->groupBy('purchase_invoices.agent_id')
@@ -52,7 +52,7 @@ class PurchasesDashboardService
         
         $carpetSuppliers = ['labels' => [], 'data' => []];
         foreach ($carpetSuppliersRaw as $sup) {
-            $name = $sup->agent ? ($sup->agent->name ?? $sup->agent->company_name) : 'Supplier ' . $sup->agent_id;
+            $name = $sup->agent && $sup->agent->user ? $sup->agent->user->name : 'Supplier ' . $sup->agent_id;
             $carpetSuppliers['labels'][] = $name;
             $carpetSuppliers['data'][] = round($sup->total, 2);
         }
@@ -106,11 +106,11 @@ class PurchasesDashboardService
         }
 
         // Recent Purchases: Carpet
-        $recentCarpets = PurchaseInvoice::with('agent')->orderBy('date', 'desc')->take(5)->get()->map(function($inv) {
+        $recentCarpets = PurchaseInvoice::with('agent.user')->orderBy('date', 'desc')->take(5)->get()->map(function($inv) {
             return [
                 'id' => $inv->id,
                 'number' => $inv->invoice_number,
-                'supplier' => $inv->agent ? ($inv->agent->name ?? $inv->agent->company_name) : 'N/A',
+                'supplier' => $inv->agent && $inv->agent->user ? $inv->agent->user->name : 'N/A',
                 'date' => Carbon::parse($inv->date)->format('Y-m-d'),
                 'amount' => $inv->total_amount ?? 0,
                 'status' => $inv->status ?? 'open'

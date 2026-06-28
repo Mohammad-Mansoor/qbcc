@@ -79,6 +79,27 @@ class ReportController extends Controller
             $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
         }
 
+        $isSummary = $request->get('type') === 'summary';
+        if ($customerId && $isSummary) {
+            $entries = collect($entries)->groupBy(function($item) {
+                $groupRef = trim($item->reference);
+                return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;
+            })->map(function($group, $key) {
+                $sorted = $group->sortBy('date');
+                $earliest = $sorted->first();
+                return (object)[
+                    'transaction_id' => $earliest->transaction_id,
+                    'date' => $earliest->date,
+                    'reference' => $key,
+                    'description' => $earliest->description,
+                    'debit' => $group->sum('debit'),
+                    'credit' => $group->sum('credit'),
+                    'currency_code' => $earliest->currency_code,
+                    'original_amount' => $group->sum('original_amount')
+                ];
+            })->sortBy('date')->values();
+        }
+
         if ($customerId && $request->get('export') === 'excel') {
             abort_if(!auth()->user()->can('export_customer_statement_excel'), 403, 'Unauthorized.');
             return $this->exportCustomerExcel($entries, $customer, $openingBalance, $startDate, $endDate, $logoBase64, $topHeaderBase64);
@@ -86,10 +107,10 @@ class ReportController extends Controller
 
         if ($customerId && $request->get('export') === 'pdf') {
             abort_if(!auth()->user()->can('export_customer_statement_pdf'), 403, 'Unauthorized.');
-            return view('accounting.reports.customer_pdf', compact('entries', 'customer', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'));
+            return view('accounting.reports.customer_pdf', compact('entries', 'customer', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64', 'isSummary'));
         }
 
-        return view('accounting.reports.customer_statement', compact('entries', 'customer', 'customers', 'openingBalance', 'startDate', 'endDate', 'logoBase64'));
+        return view('accounting.reports.customer_statement', compact('entries', 'customer', 'customers', 'openingBalance', 'startDate', 'endDate', 'logoBase64', 'isSummary'));
     }
 
     protected function exportCustomerExcel($entries, $customer, $openingBalance, $startDate, $endDate, $logoBase64, $headerBase64)
@@ -568,6 +589,24 @@ class ReportController extends Controller
             ->groupBy('coa.id', 'coa.account_code', 'coa.account_name')
             ->get();
 
+        if ($request->export === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            return view('accounting.reports.trial_balance_pdf', compact('report', 'startDate', 'endDate', 'topHeaderBase64', 'bottomFooterBase64'));
+        } elseif ($request->export === 'excel') {
+            return view('accounting.reports.trial_balance_excel', compact('report', 'startDate', 'endDate'));
+        }
         return view('accounting.reports.trial_balance', compact('report', 'startDate', 'endDate'));
     }
 
@@ -591,6 +630,22 @@ class ReportController extends Controller
             $currencyCode = 'USD';
         }
 
+        if ($request->get('export') === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+            
+            return view('accounting.reports.profit_loss_pdf', compact('revenue', 'expenses', 'netProfit', 'startDate', 'endDate', 'currencies', 'currencyCode', 'rate', 'topHeaderBase64', 'bottomFooterBase64'));
+        }
         return view('accounting.reports.profit_loss', compact('revenue', 'expenses', 'netProfit', 'startDate', 'endDate', 'currencies', 'currencyCode', 'rate'));
     }
 
@@ -608,6 +663,24 @@ class ReportController extends Controller
         $expenses = $this->getAccountTypeBalance('Expense', null, $endDate);
         $currentNetProfit = $revenue->sum('balance') - $expenses->sum('balance');
 
+        if ($request->export === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            return view('accounting.reports.balance_sheet_pdf', compact('assets', 'liabilities', 'equity', 'currentNetProfit', 'endDate', 'topHeaderBase64', 'bottomFooterBase64'));
+        } elseif ($request->export === 'excel') {
+            return view('accounting.reports.balance_sheet_excel', compact('assets', 'liabilities', 'equity', 'currentNetProfit', 'endDate'));
+        }
         return view('accounting.reports.balance_sheet', compact('assets', 'liabilities', 'equity', 'currentNetProfit', 'endDate'));
     }
 

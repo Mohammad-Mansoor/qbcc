@@ -39,16 +39,17 @@ if (!function_exists('formatAccounting')) {
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="col-md-3 px-1">
+                                    <div class="col-md-2 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">از تاریخ:</label>
                                         <input type="date" name="start_date" value="{{ $startDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-3 px-1">
+                                    <div class="col-md-2 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">الی تاریخ:</label>
                                         <input type="date" name="end_date" value="{{ $endDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-3 px-1">
-                                        <button type="submit" class="btn btn-primary btn-block rounded-pill shadow-sm" style="height: 38px;">تایید</button>
+                                    <div class="col-md-5 px-1 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary rounded-pill shadow-sm flex-fill mr-2" style="height: 38px;">تایید</button>
+                                        <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-danger rounded-pill shadow-sm flex-fill" style="height: 38px;"><i class="feather icon-file"></i> دانلود PDF</button>
                                     </div>
                                 </div>
                             </form>
@@ -287,7 +288,7 @@ if (!function_exists('formatAccounting')) {
                     title: 'QASIMI BROTHERS - Profit and Loss Statement'
                 },
                 {
-                    extend: 'pdfHtml5',
+                    action: function ( e, dt, node, config ) { var url = new URL(window.location.href); url.searchParams.set('export', 'pdf'); window.open(url.toString(), '_blank'); },
                     text: '<i class="feather icon-file"></i> PDF',
                     className: 'btn btn-danger rounded-pill px-4 mr-2',
                     title: 'QASIMI BROTHERS - Profit and Loss Statement'

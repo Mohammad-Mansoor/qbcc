@@ -15,7 +15,7 @@ class ProductionBatch extends Model
         'status',
     ];
 
-    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status'];
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status', 'team_name'];
 
     /**
      * Scope to filter by type.
@@ -142,5 +142,25 @@ class ProductionBatch extends Model
             return 'unpaid';
         }
         return 'partially_paid';
+    }
+
+    public function getTeamNameAttribute()
+    {
+        if (!$this->team_id) {
+            return null;
+        }
+        
+        if ($this->type === 'kachaee') {
+            $team = \App\Kachaee::find($this->team_id);
+            return $team ? $team->name : null;
+        } elseif ($this->type === 'wash') {
+            $team = \App\WashingTeam::find($this->team_id);
+            return $team ? $team->name : null;
+        } elseif ($this->type === 'finish') {
+            $team = \App\FinishingTeam::find($this->team_id);
+            return $team ? $team->name : null;
+        }
+        
+        return null;
     }
 }

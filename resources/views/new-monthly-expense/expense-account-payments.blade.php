@@ -110,8 +110,14 @@
                 <a href="/dashboard/monthly-expense-accounts" class="btn btn-outline-light btn-sm rounded-pill px-3 text-white" style="border-color: white;">
                     <i class="fa fa-arrow-right"></i> لست حسابات
                 </a>
+                <a href="?export=pdf" target="_blank" class="btn btn-outline-light btn-sm rounded-pill px-3 ml-2 text-white" style="border-color: white;">
+                    <i class="fa fa-file-pdf-o"></i> PDF
+                </a>
+                <a href="?export=excel" class="btn btn-outline-light btn-sm rounded-pill px-3 ml-2 text-white" style="border-color: white;">
+                    <i class="fa fa-file-excel-o"></i> Excel
+                </a>
                 <button class="btn btn-outline-light btn-sm rounded-pill px-3 ml-2 text-white" onclick="window.print()" style="border-color: white;">
-                    <i class="fa fa-print"></i> چاپ گزارش
+                    <i class="fa fa-print"></i> چاپ
                 </button>
             </div>
         </div>

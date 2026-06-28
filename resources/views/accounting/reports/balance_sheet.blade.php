@@ -17,12 +17,14 @@
                         <div class="col-md-6">
                             <form action="{{ route('accounting.reports.balance_sheet') }}" method="GET">
                                 <div class="row no-gutters align-items-end justify-content-end">
-                                    <div class="col-md-5 px-1">
+                                    <div class="col-md-3 px-1">
                                         <label class="small font-weight-bold text-muted mb-1">تا تاریخ (As of Date):</label>
                                         <input type="date" name="end_date" value="{{ $endDate }}" class="form-control bg-light border-0 rounded-pill">
                                     </div>
-                                    <div class="col-md-3 px-1">
-                                        <button type="submit" class="btn btn-primary btn-block rounded-pill shadow-sm">مشاهده گزارش</button>
+                                    <div class="col-md-6 px-1 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary rounded-pill shadow-sm flex-fill mr-2" style="height: 38px;">تایید</button>
+                                        <button type="submit" name="export" value="pdf" formtarget="_blank" class="btn btn-danger rounded-pill shadow-sm flex-fill mr-2" style="height: 38px;"><i class="feather icon-file"></i> PDF</button>
+                                        <button type="submit" name="export" value="excel" formtarget="_blank" class="btn btn-success rounded-pill shadow-sm flex-fill" style="height: 38px;"><i class="feather icon-file-text"></i> EXCEL</button>
                                     </div>
                                 </div>
                             </form>
@@ -202,30 +204,12 @@
 
 <script>
     $(document).ready(function() {
-        var table = $('#assets-table').DataTable({
-            dom: 'B',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="feather icon-file-text"></i> EXCEL',
-                    className: 'btn btn-success rounded-pill px-4 mr-2',
-                    title: 'QASIMI BROTHERS - Balance Sheet'
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="feather icon-file"></i> PDF',
-                    className: 'btn btn-danger rounded-pill px-4 mr-2',
-                    title: 'QASIMI BROTHERS - Balance Sheet',
-                    orientation: 'landscape'
-                },
-                {
-                    text: '<i class="feather icon-printer"></i> PRINT',
-                    className: 'btn btn-dark rounded-pill px-4',
-                    action: function() { window.print(); }
-                }
-            ]
+        $('#assets-table').DataTable({
+            dom: 't',
+            paging: false,
+            searching: false,
+            info: false
         });
-        table.buttons().container().appendTo('#export-buttons');
     });
 </script>
 @endsection

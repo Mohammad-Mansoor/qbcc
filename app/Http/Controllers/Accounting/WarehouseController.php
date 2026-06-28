@@ -113,19 +113,19 @@ class WarehouseController extends Controller
 
     public function stockReport(Request $request, $id)
     {
-        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
+        abort_if(! (auth()->user()->can('view_warehouse_inventory_report') || auth()->user()->can('view_warehouse_available_stock')), 403);
         return $this->generateStockReport($request, $id, 'view');
     }
 
     public function stockReportPdf(Request $request, $id)
     {
-        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
+        abort_if(! (auth()->user()->can('view_warehouse_inventory_report') || auth()->user()->can('view_warehouse_available_stock')), 403);
         return $this->generateStockReport($request, $id, 'pdf');
     }
 
     public function stockReportExcel(Request $request, $id)
     {
-        abort_if(!auth()->user()->canAny(['view_warehouse_inventory_report', 'view_warehouse_available_stock']), 403);
+        abort_if(! (auth()->user()->can('view_warehouse_inventory_report') || auth()->user()->can('view_warehouse_available_stock')), 403);
         return $this->generateStockReport($request, $id, 'excel');
     }
 

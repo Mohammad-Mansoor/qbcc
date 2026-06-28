@@ -62,6 +62,18 @@ class ProductionBatchController extends Controller
                 ->keyBy('ref');
         }
 
+        // Fetch teams based on type
+        $teams = collect();
+        if ($type === 'kachaee') {
+            $teams = \App\Kachaee::orderBy('name')->get();
+        } elseif ($type === 'wash') {
+            $teams = \App\WashingTeam::orderBy('name')->get();
+        } elseif ($type === 'finish') {
+            $teams = \App\FinishingTeam::orderBy('name')->get();
+        }
+        
+        $nextNumber = ProductionBatch::generateNextNumber($type);
+
         // Define human-readable labels
         $labels = [
             'kachaee' => 'کچایی (Kachaee)',
@@ -71,7 +83,7 @@ class ProductionBatchController extends Controller
         
         $title = $labels[$type];
         
-        return view('batches.index', compact('batches', 'type', 'title', 'stats'));
+        return view('batches.index', compact('batches', 'type', 'title', 'stats', 'teams', 'nextNumber'));
     }
 
     /**
@@ -95,8 +107,13 @@ class ProductionBatchController extends Controller
 
         $nextNumber = ProductionBatch::generateNextNumber($type);
 
+        $request->validate([
+            'team_id' => 'required|integer'
+        ]);
+
         $batch = ProductionBatch::create([
             'reference_number' => $nextNumber,
+            'team_id' => $request->team_id,
             'type' => $type,
             'status' => 'open',
         ]);
@@ -134,6 +151,28 @@ class ProductionBatchController extends Controller
         $message = $batch->status === 'open' ? 'باز گردید' : 'بسته گردید';
 
         return redirect()->back()->with('status', "وضعیت نمبر {$batch->reference_number} با موفقیت تغییر کرد و {$message}");
+    }
+
+    public function getOpenBatches(Request $request, $type)
+    {
+        if (!in_array($type, ['kachaee', 'wash', 'finish'])) {
+            return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
+        }
+
+        $team_id = $request->query('team_id');
+
+        $query = ProductionBatch::where('type', $type)->where('status', 'open');
+        
+        if ($team_id) {
+            $query->where('team_id', $team_id);
+        }
+
+        $batches = $query->orderBy('id', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'batches' => $batches
+        ]);
     }
 
     public function details(Request $request, $id)

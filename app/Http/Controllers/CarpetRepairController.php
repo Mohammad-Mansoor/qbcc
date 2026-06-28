@@ -325,7 +325,10 @@ class CarpetRepairController extends Controller
      */
     public function createRepair(Carpet $id)
     {
-        $openBatches = \App\ProductionBatch::where('type', 'kachaee')->where('status', 'open')->get();
+        $openBatches = \App\ProductionBatch::where('type', 'kachaee')
+            ->where('status', 'open')
+            ->where('team_id', $id->kachaee_id)
+            ->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('kachaee_repair_cost', 'debit');

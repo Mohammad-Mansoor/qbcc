@@ -307,11 +307,11 @@ $none_washed_total = DB::table('carpets')
                                 <?php
                   $showRow = false;
                   if ($wash_check == 'washed') {
-                    if ($wash->carpet->status == 13 || $wash->carpet->status != 3) {
+                    if ($wash->total_price > 0 || $wash->carpet->status == 13 || $wash->carpet->status != 3) {
                       $showRow = true;
                     }
                   } elseif ($wash_check == 'nonwashed') {
-                    if ($wash->carpet->status == 3) {
+                    if ($wash->total_price <= 0 && $wash->carpet->status == 3) {
                       $showRow = true;
                     }
                   } else {
@@ -341,9 +341,9 @@ $none_washed_total = DB::table('carpets')
                                       @endif
                                     </td>
 
-                                    @if($wash->carpet->status == 13 || $wash->carpet->status != 3)
+                                    @if($wash->total_price > 0 || $wash->carpet->status == 13 || $wash->carpet->status != 3)
                                       <span style="display: none;">{{$washed++}}</span>
-                                    @elseif($wash->carpet->status == 3)
+                                    @else
                                       <span style="display: none;">{{$nonwashed++}}</span>
                                     @endif
 
@@ -351,7 +351,7 @@ $none_washed_total = DB::table('carpets')
 
                                     <!-- Wash Status / Action -->
                                     <td class="hideOnPrint">
-                                      @if($wash->carpet->status == 13)
+                                      @if($wash->total_price > 0 || $wash->carpet->status == 13)
                                         <span class="badge badge-success px-2 py-1"
                                           style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Washed</span>
                                       @elseif($wash->carpet->status == 3)
@@ -371,7 +371,7 @@ $none_washed_total = DB::table('carpets')
 
                                     <!-- Return Action -->
                                     <td>
-                                      @if($wash->carpet->status == 13 || $wash->carpet->status == 3)
+                                      @if(($wash->total_price > 0 || $wash->carpet->status == 13) || $wash->carpet->status == 3)
                                           <?php        $kachaee = \App\CarpetRepair::where('carpetId', $wash->carpetId)->first(); ?>
                                           @if($kachaee)
                                             @can('send_carpet_to_kachaee')

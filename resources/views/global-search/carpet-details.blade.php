@@ -214,31 +214,13 @@
                     
                     @if($carpet->sale)
                         <div class="mb-4">
-                            <div class="info-label">مشتری</div>
+                            <div class="info-label">کد مشتری (Customer Code)</div>
                             <div class="info-value text-primary">
-                                <i class="feather icon-user-check mr-1"></i> {{ $carpet->sale->customer ? $carpet->sale->customer->name : 'N/A' }}
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <div class="info-label">نمبر انوایس</div>
-                            <div class="info-value" style="direction: ltr; text-align: right;">
-                                <a href="/dashboard/invoices/{{ $carpet->sale->invoice_id }}" class="text-info text-decoration-underline">
-                                    {{ $carpet->sale->invoice->invoice_number ?? 'N/A' }}
-                                </a>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-6 mb-4">
-                                <div class="info-label">قیمت فروش فی متر</div>
-                                <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->price, 2) }}</div>
-                            </div>
-                            <div class="col-6 mb-4">
-                                <div class="info-label">مجموع فروش</div>
-                                <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->sale->sale_cost_total, 2) }}</div>
+                                <i class="feather icon-user mr-1"></i> {{ $carpet->sale->customer ? $carpet->sale->customer->customer_code : 'N/A' }}
                             </div>
                         </div>
                         <div class="mb-0">
-                            <div class="info-label">تاریخ فروش</div>
+                            <div class="info-label">تاریخ فروش (Sold Date)</div>
                             <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->sale->date }}</div>
                         </div>
                     @else
@@ -334,14 +316,7 @@
                                         <tr>
                                             <td>{{ $fw->team->name ?? 'N/A' }} <br><small class="text-muted" style="direction: ltr;">{{ $fw->date }}</small></td>
                                             <td>
-                                                @if($fw->sheeraza) شیرازه @endif
-                                                @if($fw->charman) چرمن @endif
-                                                @if($fw->raisha) ریشه @endif
-                                                @if($fw->darz) درز @endif
-                                                @if($fw->khak_giri) خاک گیری @endif
-                                                @if($fw->mush_khordagi) موش خوردگی @endif
-                                                @if($fw->sookhtagi) سوختگی @endif
-                                                @if($fw->kashkash) کش کش @endif
+                                                <span class="badge badge-light border">{{ $fw->category ? $fw->category->category : 'N/A' }}</span>
                                             </td>
                                             <td class="text-right font-weight-bold" style="direction: ltr;">${{ number_format($fw->price, 2) }}</td>
                                         </tr>
@@ -380,11 +355,14 @@
             </div>
 
             @php
-                $purchaseCost = $carpet->total_price;
                 $kachaeeCost = $carpet->repair ? $carpet->repair->sum('total_price') : 0;
                 $washCost = $carpet->carpet_wash ? $carpet->carpet_wash->total_price : 0;
                 $finishingCost = $carpet->finishing_works ? $carpet->finishing_works->sum('price') : 0;
-                $totalAssetValue = $purchaseCost + $kachaeeCost + $washCost + $finishingCost;
+                
+                // The database already accumulates all costs into total_price
+                $totalAssetValue = $carpet->total_price;
+                // Reverse-engineer the base purchase cost for visual display
+                $purchaseCost = $totalAssetValue - ($kachaeeCost + $washCost + $finishingCost);
             @endphp
 
             <div class="bg-light p-3 rounded-lg border">
@@ -409,6 +387,11 @@
                 <div class="d-flex justify-content-between mt-3 pt-2 border-top">
                     <span class="font-weight-bold text-primary">ارزش نهایی (COGS):</span>
                     <span class="font-weight-bold text-primary" style="direction: ltr; font-size: 16px;">${{ number_format($totalAssetValue, 2) }}</span>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                    <span class="font-weight-bold text-muted">Cost per m² (هزینه فی متر):</span>
+                    <span class="font-weight-bold text-muted" style="direction: ltr;">${{ $carpet->area > 0 ? number_format($totalAssetValue / $carpet->area, 2) : 0 }}</span>
                 </div>
                 
                 @if($carpet->sale)

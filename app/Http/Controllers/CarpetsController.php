@@ -1349,11 +1349,13 @@ class CarpetsController extends Controller
 
         $data = $this->Valid();
 
+        $glReference = null;
         if ($request->purchase_invoice_id) {
             $invoice = \App\PurchaseInvoice::findOrFail($request->purchase_invoice_id);
             if ($invoice->status === 'closed') {
                 return redirect()->back()->withErrors(['purchase_invoice_id' => 'این بل خرید بسته شده است و امکان اضافه کردن قالین جدید به آن وجود ندارد.'])->withInput();
             }
+            $glReference = $invoice->invoice_number;
         }
         $data['purchase_invoice_id'] = $request->purchase_invoice_id;
 
@@ -1397,7 +1399,7 @@ class CarpetsController extends Controller
             'total_amount' => $carpet->total_price,
             'party_type' => 'App\Agents',
             'party_id' => $carpet->agent_id,
-            'reference' => $carpet->carpet_no,
+            'reference' => $glReference ?? $carpet->carpet_no,
             'description' => "Direct Purchase of Carpet #" . $carpet->carpet_no,
             'override_debit_account_id' => $request->override_inventory_account_id,
             'override_credit_account_id' => $request->override_credit_account_id,

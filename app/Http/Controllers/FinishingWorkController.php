@@ -40,12 +40,21 @@ class FinishingWorkController extends Controller
     {
         $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
         
-        $openBatches = \App\ProductionBatch::where('type', 'finish')->where('status', 'open')->get();
+        $selected_team_id = $request->query('team_id');
+        $effective_team_id = $selected_team_id ?: $carpet->finishing_id;
+
+        $openBatches = \App\ProductionBatch::where('type', 'finish')
+            ->where('status', 'open')
+            ->where(function($q) use ($effective_team_id) {
+                if ($effective_team_id) {
+                    $q->where('team_id', $effective_team_id);
+                }
+            })
+            ->get();
 
         $done = FinishingWork::where('carpetId', $carpet->carpet_id)->pluck('category_id')->toArray();
         $teams = FinishingTeam::all();
         $team_categories = FinishingTeamCategory::whereNotIn('id', $done)->get();
-        $selected_team_id = $request->query('team_id');
         
         $qaitan_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 1)->first();
         $rofo_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 2)->first();

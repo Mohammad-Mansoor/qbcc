@@ -23,15 +23,22 @@
                     
                     <form action="{{ route('accounting.reports.customer_statement') }}" method="GET">
                         <div class="row align-items-end">
-                            <div class="col-md-4">
-                                <label class="small font-weight-bold text-muted mb-1">انتخاب مشتری (Search Customer):</label>
+                            <div class="col-md-3">
+                                <label class="small font-weight-bold text-muted mb-1">انتخاب مشتری (Customer):</label>
                                 <select name="customer_id" class="form-control select2 shadow-sm" required>
-                                    <option value="">-- نام یا نمبر مشتری را وارد کنید --</option>
+                                    <option value="">-- نام یا نمبر مشتری --</option>
                                     @foreach($customers as $c)
                                         <option value="{{ $c->id }}" {{ isset($customer) && $customer->id == $c->id ? 'selected' : '' }}>
                                             {{ $c->id }} - {{ $c->name }}
                                         </option>
                                     @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="small font-weight-bold text-muted mb-1">نوع گزارش (Type):</label>
+                                <select name="type" class="form-control border-0 bg-light rounded-pill px-3">
+                                    <option value="detailed" {{ request('type') !== 'summary' ? 'selected' : '' }}>تفصیلی (Detailed)</option>
+                                    <option value="summary" {{ request('type') === 'summary' ? 'selected' : '' }}>خلاصه (Summary)</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -42,13 +49,11 @@
                                 <label class="small font-weight-bold text-muted mb-1">الی تاریخ:</label>
                                 <input type="date" name="end_date" value="{{ $endDate }}" class="form-control border-0 bg-light rounded-pill px-3">
                             </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-indigo btn-block rounded-pill shadow-sm text-white" style="background: #3f51b5;">
-                                    <i class="feather icon-search mr-1"></i> مشاهده صورت حساب
+                            <div class="col-md-3 d-flex">
+                                <button type="submit" class="btn btn-indigo rounded-pill shadow-sm text-white flex-fill mr-1" style="background: #3f51b5;">
+                                    <i class="feather icon-search"></i>
                                 </button>
-                            </div>
-                            <div class="col-md-2">
-                                <a href="{{ route('accounting.reports.customer_statement') }}" class="btn btn-light btn-block rounded-pill text-muted">پاکسازی</a>
+                                <a href="{{ route('accounting.reports.customer_statement') }}" class="btn btn-light rounded-pill text-muted flex-fill">پاکسازی</a>
                             </div>
                         </div>
                     </form>

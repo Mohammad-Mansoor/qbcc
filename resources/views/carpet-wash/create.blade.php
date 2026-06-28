@@ -407,7 +407,8 @@
           url: '/dashboard/batches/wash',
           type: 'POST',
           data: {
-            _token: '{{ csrf_token() }}'
+            _token: '{{ csrf_token() }}',
+            team_id: '{{ $carpet_wash->team_id }}'
           },
           success: function (response) {
             if (response.success && response.batch) {

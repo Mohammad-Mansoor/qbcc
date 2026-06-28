@@ -44,6 +44,24 @@ class AccountingReportController extends Controller
             return abs($account->total_debit) > 0 || abs($account->total_credit) > 0;
         });
 
+        if ($request->export === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            return view('accounting.reports.trial-balance-pdf', compact('accounts', 'asOfDate', 'topHeaderBase64', 'bottomFooterBase64'));
+        } elseif ($request->export === 'excel') {
+            return view('accounting.reports.trial-balance-excel', compact('accounts', 'asOfDate'));
+        }
         return view('accounting.reports.trial-balance', compact('accounts', 'asOfDate'));
     }
 

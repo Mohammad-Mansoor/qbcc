@@ -916,11 +916,19 @@
               var $btn = $(this);
               $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
               
+              var teamId = $('#master_team_select').val();
+              if (!teamId) {
+                  swal("خطا", "لطفاً ابتدا یک تیم کاری را از لیست بالا انتخاب کنید.", "warning");
+                  $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> ایجاد');
+                  return;
+              }
+              
               $.ajax({
                   url: '/dashboard/batches/finish',
                   type: 'POST',
                   data: {
-                      _token: '{{ csrf_token() }}'
+                      _token: '{{ csrf_token() }}',
+                      team_id: teamId
                   },
                   success: function(response) {
                       if (response.success && response.batch) {

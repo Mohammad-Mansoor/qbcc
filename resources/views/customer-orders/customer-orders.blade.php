@@ -454,6 +454,11 @@
                             <small class="text-muted d-block mt-1">تاریخ رسمی ثبت سفارش.</small>
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">تاریخ پایان فرمایش (پیش‌بینی)</label>
+                            <input type="date" name="end_date" id="end_date" class="form-control form-control-premium" value="{{ optional($orderEdit)->end_date }}">
+                            <small class="text-muted d-block mt-1">تاریخی که انتظار می‌رود فرمایش تکمیل شود.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
                             <label class="small font-weight-bold">مشتری <span class="text-danger">*</span></label>
                             <input type="hidden" name="main_customer_id" value="{{ $customer->id }}">
                             <input type="text" class="form-control form-control-premium bg-light" value="{{ $customer->name }}{{ $customer->country ? " ($customer->country)" : '' }}" readonly>

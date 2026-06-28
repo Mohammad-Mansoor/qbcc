@@ -330,7 +330,8 @@
           url: '/dashboard/batches/kachaee',
           type: 'POST',
           data: {
-            _token: '{{ csrf_token() }}'
+            _token: '{{ csrf_token() }}',
+            team_id: '{{ $id->kachaee_id }}'
           },
           success: function (response) {
             if (response.success && response.batch) {

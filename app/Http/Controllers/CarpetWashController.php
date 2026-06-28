@@ -368,7 +368,10 @@ class CarpetWashController extends Controller
     {
         $carpet_wash = CarpetWash::find($id);
         
-        $openBatches = \App\ProductionBatch::where('type', 'wash')->where('status', 'open')->get();
+        $openBatches = \App\ProductionBatch::where('type', 'wash')
+            ->where('status', 'open')
+            ->where('team_id', $carpet_wash->team_id)
+            ->get();
         
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');

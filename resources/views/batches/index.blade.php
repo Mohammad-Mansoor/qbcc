@@ -106,7 +106,9 @@
                     </h4>
 
                     @php
-                        $uniqueTeams = $stats->pluck('team_name')->filter()->unique()->values();
+                        $statsTeams = $stats->pluck('team_name')->filter();
+                        $batchTeams = $batches->pluck('team_name')->filter();
+                        $uniqueTeams = $statsTeams->concat($batchTeams)->unique()->values();
                     @endphp
 
                     <div class="d-flex align-items-center flex-wrap" style="gap: 15px;">
@@ -146,12 +148,9 @@
                         @endphp
 
                         @can($createPermission)
-                            <form action="/dashboard/batches/{{ $type }}" method="post" class="m-0">
-                                @csrf
-                                <button type="submit" class="btn btn-success btn-premium shadow-sm m-0">
-                                    <i class="fa fa-plus mr-1"></i> ایجاد نمبر جدید (Generate Next)
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-success btn-premium shadow-sm m-0" data-toggle="modal" data-target="#createBatchModal">
+                                <i class="fa fa-plus mr-1"></i> ایجاد نمبر جدید (Generate Next)
+                            </button>
                         @endcan
                     </div>
                 </div>
@@ -177,7 +176,7 @@
                                         $batchStats = $stats->get($batch->reference_number);
                                         $totalCarpets = $batchStats ? $batchStats->total_carpets : 0;
                                         $totalArea = $batchStats ? $batchStats->total_area : 0.0;
-                                        $teamName = $batchStats ? $batchStats->team_name : '';
+                                        $teamName = $batch->team_name ?: ($batchStats ? $batchStats->team_name : '');
                                     @endphp
                                     <tr class="batch-row" data-ref="{{ strtolower($batch->reference_number) }}"
                                         data-team="{{ strtolower($teamName) }}">
@@ -260,6 +259,44 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Batch Modal -->
+    <div class="modal fade" id="createBatchModal" tabindex="-1" role="dialog" aria-labelledby="createBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title font-weight-bold text-dark" id="createBatchModalLabel">
+                        <i class="fa fa-plus-circle text-success mr-2"></i>ایجاد نمبر جدید برای {{ $title }}
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="padding: 1rem;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="/dashboard/batches/{{ $type }}" method="post">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold text-secondary mb-2">نمبر مسلسل (Batch Reference)</label>
+                            <input type="text" class="form-control" value="{{ $nextNumber }}" readonly style="background-color: #f1f5f9; font-size: 1.1rem; letter-spacing: 0.5px; direction: ltr; font-weight: bold;">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="font-weight-bold text-secondary mb-2">انتخاب تیم (Select Team) <span class="text-danger">*</span></label>
+                            <select name="team_id" class="form-control custom-select" required>
+                                <option value="" disabled selected>لطفاً یک تیم را انتخاب کنید</option>
+                                @foreach($teams as $team)
+                                    <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light" style="border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;">
+                        <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">انصراف (Cancel)</button>
+                        <button type="submit" class="btn btn-success font-weight-bold"><i class="fa fa-check mr-1"></i> ایجاد (Create)</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

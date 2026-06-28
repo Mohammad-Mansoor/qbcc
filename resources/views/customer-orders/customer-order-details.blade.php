@@ -262,6 +262,9 @@
                 <i class="fa fa-plus-circle ml-2"></i> ثبت مشخصات قالین جدید
             </button>
             @endcan
+            <a href="/dashboard/customer-order-details/{{ $customer_order->co_id }}?export=pdf" target="_blank" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
+                <i class="fa fa-print ml-1"></i> چاپ (PDF)
+            </a>
             <a href="/dashboard/customer-orders" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
                 <i class="fa fa-arrow-right ml-1"></i> بازگشت
             </a>
@@ -407,7 +410,7 @@
                                                 <option value="graphing" {{ $co->current_status == 'graphing' ? 'selected' : '' }}>نقشه کشی</option>
                                                 <option value="dyeing" {{ $co->current_status == 'dyeing' ? 'selected' : '' }}>رنگ ریزی</option>
                                                 <option value="on_loom" {{ $co->current_status == 'on_loom' ? 'selected' : '' }}>در جریان بافت</option>
-                                                <option value="off_loom" {{ $co->current_status == 'off_loom' ? 'selected' : '' }}>ختمه بافت</option>
+                                                <option value="off_loom" {{ $co->current_status == 'off_loom' ? 'selected' : '' }}>ختمِ بافت</option>
                                                 <option value="washing" {{ $co->current_status == 'washing' ? 'selected' : '' }}>شستشو</option>
                                                 <option value="finishing" {{ $co->current_status == 'finishing' ? 'selected' : '' }}>تیاری</option>
                                                 <option value="repairing" {{ $co->current_status == 'repairing' ? 'selected' : '' }}>ترمیم</option>
@@ -536,7 +539,7 @@
                             <div class="col-md-3 mb-3">
                                 <label class="small font-weight-bold text-dark">وضعیت تولید <span class="text-danger">*</span></label>
                                 <select name="current_status" class="form-control select2-modal">
-                                    @foreach(['graphing' => 'نقشه کشی', 'dyeing' => 'رنگ ریزی', 'on_loom' => 'در جریان بافت', 'off_loom' => 'ختمه بافت', 'washing' => 'شستشو', 'finishing' => 'تیاری', 'repairing' => 'ترمیم', 'ready' => 'آماده (تکمیل)', 'shipped' => 'ارسال شده', 'paused' => 'متوقف', 'cancelled' => 'لغو شده'] as $val => $label)
+                                    @foreach(['graphing' => 'نقشه کشی', 'dyeing' => 'رنگ ریزی', 'on_loom' => 'در جریان بافت', 'off_loom' => 'ختمِ بافت', 'washing' => 'شستشو', 'finishing' => 'تیاری', 'repairing' => 'ترمیم', 'ready' => 'آماده (تکمیل)', 'shipped' => 'ارسال شده', 'paused' => 'متوقف', 'cancelled' => 'لغو شده'] as $val => $label)
                                         <option value="{{ $val }}" {{ (is_object($orderEdit) && $orderEdit->current_status == $val) ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
