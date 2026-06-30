@@ -24,10 +24,10 @@ class CustomerController extends Controller
         $customers = Customer::paginate(30);
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
+        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
+        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
+        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
 
         // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
@@ -69,6 +69,7 @@ class CustomerController extends Controller
                 DB::raw("SUM(CASE WHEN type = 'رسید' THEN amount_af ELSE -amount_af END) as af_balance")
             )
             ->whereIn('customer_id', $customerIds)
+            ->where('status', 1)
             ->groupBy('customer_id')
             ->get()
             ->keyBy('customer_id');
@@ -127,10 +128,10 @@ class CustomerController extends Controller
 
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
+        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
+        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
+        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
 
         // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
@@ -146,10 +147,10 @@ class CustomerController extends Controller
         $customers = Customer::paginate(30);
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
+        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
+        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
+        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
 
         // Global Receivable Total from Ledger in Base Currency (USD)
         $total_receivable = DB::table('ledger_entries')
@@ -214,11 +215,11 @@ class CustomerController extends Controller
 
         $customerEdit = Customer::find($id);
         $customers = Customer::paginate(30);
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->sum('amount_af');
+        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
+        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
 
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->sum('amount_af');
+        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
+        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
         return view('customers.customers', compact('customers', 'customerEdit', 'credit_us', 'credit_af', 'debit_us', 'debit_af'));
 
     }

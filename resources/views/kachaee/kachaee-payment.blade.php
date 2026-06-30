@@ -350,8 +350,6 @@
                 <li class="nav-item">
                     <a class="nav-link font-weight-bold" id="kachaee-reconciliation-tab" data-toggle="tab" href="#kachaee_reconciliation" role="tab"><i class="fa fa-undo mr-1"></i> تاریخچه تصفیه‌ها (Reconciliations)</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
                 </li>
             </ul>
 
@@ -369,6 +367,7 @@
                                     <thead>
                                         <tr class="text-right">
                                             <th>تاریخ (Date)</th>
+                                            <th>نوعیت (Type)</th>
                                             <th>شرح (Description)</th>
                                             <th>کچایی نمبر (Ref)</th>
                                             <th>ارز (CCY)</th>
@@ -383,6 +382,11 @@
                                         @foreach($payments as $pa)
                                         <tr class="text-right ur{{$pa->id}}">
                                             <td class="font-weight-bold">{{ $pa->date }}</td>
+                                            <td>
+                                                <span class="badge {{ $pa->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-2 py-1">
+                                                    {{ $pa->type == 'رسید' ? 'رسید (In)' : 'گرفت (Out)' }}
+                                                </span>
+                                            </td>
                                             <td>{{ $pa->description }}</td>
                                             <td>
                                                 <span class="badge badge-light border p-2">
@@ -409,16 +413,16 @@
                                                 @endif
                                             </td>
                                             <td class="hideOnPrint text-center">
-                                                @if($pa->status == 0 || auth()->user()->role == 'SP')
                                                     <div class="btn-group">
                                                         <a href="/dashboard/kachaee-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-info">
                                                             <i class="fa fa-edit"></i>
                                                         </a>
+                                                        @can('cancel_kachaee_payment')
                                                         <button type="button" onclick="deletePayment({{$pa->id}}, {{$pa->team_id}})" class="btn btn-sm btn-outline-danger">
-                                                            <i class="fa fa-trash"></i>
+                                                            <i class="fa fa-times"></i> لغو
                                                         </button>
+                                                        @endcan
                                                     </div>
-                                                @endif
                                             </td>
                                         </tr>
                                         @endforeach
@@ -426,7 +430,7 @@
                                     <tfoot class="bg-light">
                                         @foreach($currencyTotals as $code => $totals)
                                         <tr>
-                                            <th colspan="3" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
+                                            <th colspan="4" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
                                             <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
                                             @php $balance = $totals->total_received - $totals->total_sent; @endphp
@@ -436,7 +440,7 @@
                                         </tr>
                                         @endforeach
                                         <tr style="background: #e8f5e9;">
-                                            <th colspan="3" class="text-right text-success"><b>مجموع کل بیلانس (Base USD)</b></th>
+                                            <th colspan="4" class="text-right text-success"><b>مجموع کل بیلانس (Base USD)</b></th>
                                             <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
                                             @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp
@@ -528,79 +532,12 @@
                     </div>
                 </div>
 
-
-                <!-- Tab 3: Unified Ledger Statement -->
-                <div class="tab-pane fade" id="statement" role="tabpanel">
-                    <div class="premium-card">
-                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);">
-                            <h5><i class="fa fa-book mr-2"></i> صورت حساب مالی تفصیلی (GL Statement)</h5>
-                            <button type="button" class="btn btn-light btn-sm font-weight-bold text-dark" onclick="printStatement()">
-                                <i class="fa fa-print"></i> چاپ صورت حساب
-                            </button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" id="print-area">
-                                <!-- Print-only Header (Hidden on Screen) -->
-                                <div class="d-none print-header text-center mb-4 mt-3">
-                                    <h3 class="font-weight-bold">صورت حساب مالی تیم کچایی: {{ $team->name }}</h3>
-                                    <p>تاریخ گزارش: {{ date('Y-m-d') }} | اکونت نمبر: {{ $team->id }}</p>
-                                </div>
-                                <table class="table premium-table table-hover text-right">
-                                    <thead>
-                                        <tr>
-                                            <th>تاریخ</th>
-                                            <th>شرح معامله</th>
-                                            <th>مرجع (Ref)</th>
-                                            <th>بدهکار (Debit/Paid)</th>
-                                            <th>طلبکار (Credit/Cost)</th>
-                                            <th>بیلانس (Outstanding)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php $runningBalance = 0; @endphp
-                                        @forelse($ledgerStatement as $entry)
-                                            @php 
-                                                $debit = (float)$entry->base_debit;
-                                                $credit = (float)$entry->base_credit;
-                                                $runningBalance += ($credit - $debit);
-                                            @endphp
-                                            <tr>
-                                                <td>{{ $entry->date }}</td>
-                                                <td>{{ $entry->description }}</td>
-                                                <td><span class="badge badge-light border">{{ $entry->reference }}</span></td>
-                                                <td class="text-danger font-weight-bold">{{ $debit > 0 ? '$ ' . number_format($debit, 2) : '-' }}</td>
-                                                <td class="text-success font-weight-bold">{{ $credit > 0 ? '$ ' . number_format($credit, 2) : '-' }}</td>
-                                                <td class="font-weight-bold {{ $runningBalance >= 0 ? 'text-success' : 'text-danger' }}">
-                                                    $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? '(Cr)' : '(Dr)' }}
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">هیچ تراکنش حسابی یافت نشد.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                    <tfoot class="bg-light">
-                                        <tr>
-                                            <th colspan="3" class="text-right">بیلانس نهایی طلبات (Base USD)</th>
-                                            <th class="text-danger">$ {{ number_format($ledgerStatement->sum('base_debit'), 2) }}</th>
-                                            <th class="text-success">$ {{ number_format($ledgerStatement->sum('base_credit'), 2) }}</th>
-                                            <th class="font-weight-bold text-primary" style="font-size: 1.1rem;">
-                                                $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? 'باقی مانده (طلبکار)' : 'طلبکار (بدهکار)' }}
-                                            </th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tab 4: Kachaee Advances -->
                 <div class="tab-pane fade" id="kachaee_advances" role="tabpanel">
                     @php
                         $advances = \App\KachaeePayment::where('team_id', $team->id)
                             ->where('is_advance', true)
+                            ->where('status', '!=', 2)
                             ->orderBy('date', 'DESC')
                             ->get();
                     @endphp
@@ -644,17 +581,25 @@
                                                 {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
                                             </td>
                                             <td class="hideOnPrint">
-                                                @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
-                                                <button type="button" class="btn btn-sm btn-success open-allocate-modal-btn" 
-                                                        data-payment-id="{{ $adv->id }}"
-                                                        data-currency="{{ $adv->currency_code }}"
-                                                        data-remaining="{{ $adv->remaining_unallocated_amount }}"
-                                                        data-exchange-rate="{{ $adv->exchange_rate }}">
-                                                    <i class="fa fa-share-square-o"></i> تخصیص به گروپ
-                                                </button>
-                                                @else
-                                                <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
-                                                @endif
+                                                <div class="btn-group">
+                                                    @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                    <button type="button" class="btn btn-sm btn-success open-allocate-modal-btn" 
+                                                            data-payment-id="{{ $adv->id }}"
+                                                            data-currency="{{ $adv->currency_code }}"
+                                                            data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                            data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                        <i class="fa fa-share-square-o"></i> تخصیص به گروپ
+                                                    </button>
+                                                    @else
+                                                    <span class="text-muted mr-2">کامل تخصیص شده / تایید نشده</span>
+                                                    @endif
+
+                                                    @can('cancel_kachaee_payment')
+                                                    <button type="button" onclick="deletePayment({{$adv->id}} ,{{$adv->team_id}})" class="btn btn-sm btn-outline-danger ml-1" title="لغو پیش‌پرداخت">
+                                                        <i class="fa fa-ban"></i> لغو
+                                                    </button>
+                                                    @endcan
+                                                </div>
                                             </td>
                                         </tr>
                                         @empty
@@ -673,8 +618,14 @@
                 <div class="tab-pane fade" id="kachaee_reconciliation" role="tabpanel">
                     @php
                         $kachaeeAllocations = \App\KachaeePaymentAllocation::whereHas('payment', function($q) use ($team) {
-                            $q->where('team_id', $team->id);
+                            $q->where('team_id', $team->id)->where('status', '!=', 2);
                         })->with(['payment', 'allocatable'])->orderBy('id', 'DESC')->get();
+
+                        $directPayments = \App\KachaeePayment::where('team_id', $team->id)
+                            ->where('kachaee_number', '!=', 'نقد')
+                            ->where('is_advance', 0)
+                            ->where('status', '!=', 2)
+                            ->orderBy('date', 'DESC')->get();
                     @endphp
                     <div class="premium-card">
                         <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);">
@@ -695,7 +646,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($kachaeeAllocations as $alloc)
+                                        @foreach($kachaeeAllocations as $alloc)
                                         <tr>
                                             <td>{{ $alloc->created_at ? $alloc->created_at->format('Y-m-d') : '---' }}</td>
                                             <td>
@@ -721,12 +672,49 @@
                                                 $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                             </td>
                                             <td class="hideOnPrint">
-                                                <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
-                                                    <i class="fa fa-undo"></i> لغو تصفیه
+                                                @can('cancel_kachaee_payment')
+                                                <button type="button" onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
+                                                    <i class="fa fa-undo"></i> لغو تخصیص
                                                 </button>
+                                                @endcan
                                             </td>
                                         </tr>
-                                        @empty
+                                        @endforeach
+
+                                        @foreach($directPayments as $dp)
+                                        <tr>
+                                            <td>{{ $dp->date ? \Carbon\Carbon::parse($dp->date)->format('Y-m-d') : '---' }}</td>
+                                            <td>
+                                                <a href="#" class="font-weight-bold">
+                                                    KCH-PAY-{{ $dp->id }}
+                                                </a>
+                                                <br>
+                                                <small class="text-info">پرداخت مستقیم (Direct Payment)</small>
+                                                <br>
+                                                <small class="text-muted">{{ $dp->description }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-warning text-dark">گروپ کچایی (مستقیم)</span>
+                                                <strong>{{ $dp->kachaee_number }}</strong>
+                                            </td>
+                                            <td class="font-weight-bold text-success" style="direction: ltr;">
+                                                {{ number_format($dp->original_amount, 2) }} {{ $dp->currency_code ?? 'USD' }}
+                                            </td>
+                                            <td class="text-muted small" style="direction: ltr;">{{ number_format($dp->exchange_rate, 4) }}</td>
+                                            <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                                $ {{ number_format($dp->base_amount, 2) }}
+                                            </td>
+                                            <td class="hideOnPrint">
+                                                @can('cancel_kachaee_payment')
+                                                <button type="button" onclick="deletePayment({{ $dp->id }}, {{ $team->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="لغو پرداخت مستقیم">
+                                                    <i class="fa fa-times"></i> ابطال
+                                                </button>
+                                                @endcan
+                                            </td>
+                                        </tr>
+                                        @endforeach
+
+                                        @if($kachaeeAllocations->isEmpty() && $directPayments->isEmpty())
                                         <tr>
                                             <td colspan="7" class="text-center py-4">هیچ تخصیص پیش‌پرداختی ثبت نشده است.</td>
                                         </tr>
@@ -865,18 +853,15 @@
         $buttons.appendTo('#exportButton');
     });
 
-    function printStatement() {
-        window.print();
-    }
 
     function deletePayment(id, team_id) {
         swal({
             title: "آیا مطمئن هستید؟",
-            text: "این سند و تراکنش مالی آن حذف خواهد شد!",
+            text: "این عملیات، پرداخت را لغو کرده و حسابات بانکی را معکوس می‌کند!",
             icon: "warning",
             buttons: {
-                cancel: "نخیر",
-                confirm: { text: "بلی، حذف شود", className: "btn-danger" }
+                cancel: "انصراف",
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
             },
             dangerMode: true,
         }).then((willDelete) => {
@@ -890,8 +875,11 @@
                             swal("موفقانه حذف شد!", { icon: "success" });
                             setTimeout(() => window.location = '/dashboard/kachaee-payments/' + team_id, 1000);
                         } else {
-                            swal("خطا در حذف!", { icon: "error" });
+                            swal("خطا در حذف!", res.message || "عملیات با خطا مواجه شد.", { icon: "error" });
                         }
+                    },
+                    error: function(err) {
+                        swal("خطا!", "ارتباط با سرور برقرار نشد یا خطای داخلی رخ داد.", "error");
                     }
                 });
             }

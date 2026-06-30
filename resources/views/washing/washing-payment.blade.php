@@ -392,10 +392,7 @@
                     <a class="nav-link font-weight-bold" id="washing-advances-tab" data-toggle="tab" href="#washing_advances" role="tab"><i class="fa fa-share-square-o mr-1"></i> پیش‌پرداخت‌ها (Advances)</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="washing-reconciliation-tab" data-toggle="tab" href="#washing_reconciliation" role="tab"><i class="fa fa-undo mr-1"></i> تاریخچه تصفیه‌ها (Reconciliations)</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link font-weight-bold" id="statement-tab" data-toggle="tab" href="#statement" role="tab"><i class="fa fa-file-text-o mr-1"></i> صورت حساب تفصیلی (GL Statement)</a>
+                    <a class="nav-link font-weight-bold" id="washing-reconciliation-tab" data-toggle="tab" href="#washing_reconciliation" role="tab"><i class="fa fa-undo mr-1"></i> تصفیه و پرداخت‌های مستقیم (Reconciliations)</a>
                 </li>
             </ul>
 
@@ -451,17 +448,15 @@
                                                 @endif
                                             </td>
                                             <td class="hideOnPrint text-center">
-                                                @can('manage_washing_payments')
-                                                @if($p->status == 0 || auth()->user()->role == 'SP')
-                                                    <div class="btn-group">
-                                                        <a href="/dashboard/washing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-info">
-                                                            <i class="fa fa-edit"></i>
-                                                        </a>
-                                                        <button type="button" onclick="deletePayment({{$p->id}}, {{$p->team_id}})" class="btn btn-sm btn-outline-danger">
-                                                            <i class="fa fa-trash"></i>
-                                                        </button>
-                                                    </div>
+                                                @if($p->status == 0)
+                                                    <a href="/dashboard/washing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-info">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
                                                 @endif
+                                                @can('cancel_washing_payment')
+                                                    <button type="button" onclick="deletePayment({{$p->id}}, {{$p->team_id}})" class="btn btn-sm btn-outline-danger" title="ابطال / حذف">
+                                                        <i class="fa fa-ban"></i>
+                                                    </button>
                                                 @endcan
                                             </td>
                                         </tr>
@@ -580,78 +575,14 @@
                 </div>
 
 
-                <!-- Tab 3: Unified Ledger Statement -->
-                <div class="tab-pane fade" id="statement" role="tabpanel">
-                    <div class="premium-card">
-                        <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);">
-                            <h5><i class="fa fa-book mr-2"></i> صورت حساب مالی تفصیلی (GL Statement)</h5>
-                            <button type="button" class="btn btn-light btn-sm font-weight-bold text-dark" onclick="printStatement()">
-                                <i class="fa fa-print"></i> چاپ صورت حساب
-                            </button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive" id="print-area">
-                                <!-- Print-only Header (Hidden on Screen) -->
-                                <div class="d-none print-header text-center mb-4 mt-3">
-                                    <h3 class="font-weight-bold">صورت حساب مالی تیم شست‌وشو: {{ $team->name }}</h3>
-                                    <p>تاریخ گزارش: {{ date('Y-m-d') }} | اکونت نمبر: {{ $team->id }}</p>
-                                </div>
-                                <table class="table premium-table table-hover text-right">
-                                    <thead>
-                                        <tr>
-                                            <th>تاریخ</th>
-                                            <th>شرح معامله</th>
-                                            <th>مرجع (Ref)</th>
-                                            <th>بدهکار (Debit/Paid)</th>
-                                            <th>طلبکار (Credit/Cost)</th>
-                                            <th>بیلانس (Outstanding)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php $runningBalance = 0; @endphp
-                                        @forelse($ledgerStatement as $entry)
-                                            @php 
-                                                $debit = (float)$entry->base_debit;
-                                                $credit = (float)$entry->base_credit;
-                                                $runningBalance += ($credit - $debit);
-                                            @endphp
-                                            <tr>
-                                                <td>{{ $entry->date }}</td>
-                                                <td>{{ $entry->description }}</td>
-                                                <td><span class="badge badge-light border">{{ $entry->reference }}</span></td>
-                                                <td class="text-danger font-weight-bold">{{ $debit > 0 ? '$ ' . number_format($debit, 2) : '-' }}</td>
-                                                <td class="text-success font-weight-bold">{{ $credit > 0 ? '$ ' . number_format($credit, 2) : '-' }}</td>
-                                                <td class="font-weight-bold {{ $runningBalance >= 0 ? 'text-success' : 'text-danger' }}">
-                                                    $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? '(Cr)' : '(Dr)' }}
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">هیچ تراکنش حسابی یافت نشد.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                    <tfoot class="bg-light">
-                                        <tr>
-                                            <th colspan="3" class="text-right">بیلانس نهایی طلبات (Base USD)</th>
-                                            <th class="text-danger">$ {{ number_format($ledgerStatement->sum('base_debit'), 2) }}</th>
-                                            <th class="text-success">$ {{ number_format($ledgerStatement->sum('base_credit'), 2) }}</th>
-                                            <th class="font-weight-bold text-primary" style="font-size: 1.1rem;">
-                                                $ {{ number_format(abs($runningBalance), 2) }} {{ $runningBalance >= 0 ? 'باقی مانده (طلبکار)' : 'طلبکار (بدهکار)' }}
-                                            </th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Tab 4: Washing Advances -->
                 <div class="tab-pane fade" id="washing_advances" role="tabpanel">
                     @php
                         $advances = \App\WashingPayment::where('team_id', $team->id)
                             ->where('is_advance', true)
+                            ->where('status', '!=', 2)
                             ->orderBy('date', 'DESC')
                             ->get();
                     @endphp
@@ -726,8 +657,14 @@
                 <div class="tab-pane fade" id="washing_reconciliation" role="tabpanel">
                     @php
                         $washingAllocations = \App\WashingPaymentAllocation::whereHas('payment', function($q) use ($team) {
-                            $q->where('team_id', $team->id);
+                            $q->where('team_id', $team->id)->where('status', '!=', 2);
                         })->with(['payment', 'allocatable'])->orderBy('id', 'DESC')->get();
+
+                        $directPayments = \App\WashingPayment::where('team_id', $team->id)
+                            ->where('wash_number', '!=', 'General')
+                            ->where('is_advance', 0)
+                            ->where('status', '!=', 2)
+                            ->orderBy('date', 'DESC')->get();
                     @endphp
                     <div class="premium-card">
                         <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #01579b 0%, #0277bd 100%);">
@@ -748,7 +685,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($washingAllocations as $alloc)
+                                        @foreach($washingAllocations as $alloc)
                                         <tr>
                                             <td>{{ $alloc->created_at ? $alloc->created_at->format('Y-m-d') : '---' }}</td>
                                             <td>
@@ -774,18 +711,57 @@
                                                 $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                             </td>
                                             <td class="hideOnPrint">
-                                                @can('manage_washing_payments')
+                                                @can('cancel_washing_payment')
                                                 <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
-                                                    <i class="fa fa-undo"></i> لغو تصفیه
+                                                    <i class="fa fa-undo"></i> لغو تخصیص
                                                 </button>
                                                 @endcan
                                             </td>
                                         </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="7" class="text-center py-4">هیچ تخصیص پیش‌پرداختی ثبت نشده است.</td>
+                                        @endforeach
+
+                                        @if(count($directPayments) > 0)
+                                        <tr class="bg-light">
+                                            <td colspan="7" class="text-center font-weight-bold text-primary py-3">
+                                                <i class="fa fa-arrow-down mr-1"></i> پرداخت‌های مستقیم به گروپ‌های شست‌وشو (Direct Payments) <i class="fa fa-arrow-down ml-1"></i>
+                                            </td>
                                         </tr>
-                                        @endforelse
+                                        @endif
+
+                                        @foreach($directPayments as $dp)
+                                        <tr>
+                                            <td>{{ $dp->date }}</td>
+                                            <td>
+                                                <span class="badge badge-secondary">پرداخت مستقیم</span>
+                                                <br>
+                                                <small class="text-muted">{{ $dp->description }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-info text-white">گروپ شست‌وشو</span>
+                                                <strong>{{ $dp->wash_number }}</strong>
+                                            </td>
+                                            <td class="font-weight-bold text-success" style="direction: ltr;">
+                                                {{ number_format($dp->original_amount, 2) }} {{ $dp->currency_code ?? 'USD' }}
+                                            </td>
+                                            <td class="text-muted small" style="direction: ltr;">{{ number_format($dp->exchange_rate, 4) }}</td>
+                                            <td class="font-weight-bold text-dark" style="direction: ltr;">
+                                                $ {{ number_format($dp->base_amount, 2) }}
+                                            </td>
+                                            <td class="hideOnPrint">
+                                                @can('cancel_washing_payment')
+                                                <button onclick="deletePayment({{ $dp->id }}, {{ $dp->team_id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="ابطال پرداخت مستقیم">
+                                                    <i class="fa fa-ban"></i> ابطال
+                                                </button>
+                                                @endcan
+                                            </td>
+                                        </tr>
+                                        @endforeach
+
+                                        @if(count($washingAllocations) == 0 && count($directPayments) == 0)
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">هیچ تصفیه یا پرداخت مستقیمی ثبت نشده است.</td>
+                                        </tr>
+                                        @endif
                                     </tbody>
                                 </table>
                             </div>
@@ -1008,10 +984,6 @@
             @endif
         @endforeach
     ];
-
-    function printStatement() {
-        window.print();
-    }
 
     function deletePayment(id, team_id) {
         swal({

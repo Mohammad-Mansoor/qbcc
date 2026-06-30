@@ -505,14 +505,16 @@
                                             @endif
                                         </td>
                                         <td class="hideOnPrint text-center">
-                                            @if(auth()->user()->role != 'AO' && ($pa->status == 0 || auth()->user()->role == 'SP'))
+                                            @if(auth()->user()->role != 'AO')
                                                 <div class="btn-group">
                                                     <a href="/dashboard/agent-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-info" title="ویرایش">
                                                         <i class="fa fa-edit"></i>
                                                     </a>
-                                                    <button onclick="deletePayment({{$pa->id}} ,{{$pa->agent_id}})" class="btn btn-sm btn-outline-danger" title="حذف">
-                                                        <i class="fa fa-trash"></i>
+                                                    @can('cancel_agent_payment')
+                                                    <button onclick="deletePayment({{$pa->id}} ,{{$pa->agent_id}})" class="btn btn-sm btn-outline-danger" title="لغو پرداخت">
+                                                        <i class="fa fa-ban"></i>
                                                     </button>
+                                                    @endcan
                                                 </div>
                                             @endif
                                         </td>
@@ -716,17 +718,25 @@
                                             {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
                                         </td>
                                         <td class="hideOnPrint">
-                                            @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
-                                            <button class="btn btn-sm btn-premium btn-premium-primary open-allocate-modal-btn" 
-                                                    data-payment-id="{{ $adv->id }}"
-                                                    data-currency="{{ $adv->currency_code }}"
-                                                    data-remaining="{{ $adv->remaining_unallocated_amount }}"
-                                                    data-exchange-rate="{{ $adv->exchange_rate }}">
-                                                <i class="fa fa-share-square-o"></i> تخصیص به سند
-                                            </button>
-                                            @else
-                                            <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
-                                            @endif
+                                            <div class="btn-group">
+                                                @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                <button class="btn btn-sm btn-premium btn-premium-primary open-allocate-modal-btn" 
+                                                        data-payment-id="{{ $adv->id }}"
+                                                        data-currency="{{ $adv->currency_code }}"
+                                                        data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                        data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                    <i class="fa fa-share-square-o"></i> تخصیص
+                                                </button>
+                                                @else
+                                                <span class="text-muted mr-2">کامل تخصیص شده / تایید نشده</span>
+                                                @endif
+                                                
+                                                @can('cancel_agent_payment')
+                                                <button onclick="deletePayment({{$adv->id}} ,{{$adv->agent_id}})" class="btn btn-sm btn-outline-danger ml-1" title="لغو پیش‌پرداخت">
+                                                    <i class="fa fa-ban"></i> لغو
+                                                </button>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                     @empty
@@ -791,9 +801,11 @@
                                             $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                         </td>
                                         <td class="hideOnPrint">
+                                            @can('cancel_agent_payment')
                                             <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                 <i class="fa fa-undo"></i> لغو تصفیه
                                             </button>
+                                            @endcan
                                         </td>
                                     </tr>
                                     @empty
@@ -942,7 +954,7 @@
             $('#is_advance').prop('checked', false);
 
             // Set transaction type and description note
-            if (type === 'App\PurchaseInvoice') {
+            if (type.indexOf('PurchaseInvoice') !== -1) {
                 $('#payment_type').val('گرفت').trigger('change'); // Payment Sent
                 $('#payment_description').val(`بابت تصفیه بل خرید قالین شماره ${docNo}`);
                 $('#allocation_doc_display').text(`بل خرید قالین شماره ${docNo} (باقیمانده: $${balanceUsd.toFixed(2)})`);
@@ -1081,11 +1093,11 @@
     function deletePayment(id, agent_id) {
         swal({
             title: "آیا مطمئن هستید؟",
-            text: "این عمل قابل بازگشت نیست!",
+            text: "این عمل پرداخت را لغو کرده و سند مرتبط در روزنامه کل (GL) معکوس می‌گردد.",
             icon: "warning",
             buttons: {
                 cancel: "نخیر",
-                confirm: { text: "بلی، حذف شود", className: "btn-danger" }
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
             },
             dangerMode: true,
         }).then((willDelete) => {

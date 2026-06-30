@@ -26,6 +26,10 @@ class SaleController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
+
+        $this->middleware('permission:create_sale')->only(['create', 'store']);
+        $this->middleware('permission:edit_sale')->only(['edit', 'update']);
+        $this->middleware('permission:delete_sale')->only('destroy');
     }
 
     /**
@@ -148,7 +152,8 @@ class SaleController extends Controller
             $sale = new Sale();
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
             $sale->sale_cost_total = $request->sale_cost_total;
-            $sale->profit = $request->sale_cost_total - $request->total_price_cost;
+            $total_price_cost = $request->total_price_cost ?? $carpet_id->total_price;
+            $sale->profit = $request->sale_cost_total - $total_price_cost;
             $sale->type = $request->carpet_type;
             $sale->quality = $request->carpet_quality;
             $sale->carpet_id = $request->carpet_id;
@@ -288,7 +293,8 @@ class SaleController extends Controller
 
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
             $sale->sale_cost_total = $request->sale_cost_total;
-            $sale->profit = $request->sale_cost_total - $request->total_price_cost;
+            $total_price_cost = $request->total_price_cost ?? $carpet_id->total_price;
+            $sale->profit = $request->sale_cost_total - $total_price_cost;
             $sale->type = $request->carpet_type;
             $sale->quality = $request->carpet_quality;
             $sale->carpet_id = $request->carpet_id;

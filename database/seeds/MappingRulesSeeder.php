@@ -607,6 +607,16 @@ class MappingRulesSeeder extends Seeder
             );
 
             MappingRule::updateOrCreate(
+                ['transaction_type' => 'vendor_advance_settlement', 'condition' => 'ADVANCE_SETTLEMENT'],
+                [
+                    'mapping_key' => 'VENDOR_ADVANCE_SETTLEMENT',
+                    'debit_account_id' => $payableAccount->id,
+                    'credit_account_id' => $advancesAccount->id,
+                    'description_template' => 'تصفیه بل مواد از پیش‌پرداخت (Vendor Advance Settlement): {reference}'
+                ]
+            );
+
+            MappingRule::updateOrCreate(
                 ['transaction_type' => 'kachaee_payment', 'condition' => 'KACHAEE_ADVANCE_OUT'],
                 [
                     'mapping_key' => 'KACHAEE_ADVANCE_OUT',

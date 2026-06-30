@@ -146,7 +146,7 @@ class CustomerOrderController extends Controller
             $totalCarpets = DB::table('customer_order_details')->where('customer_order_id', $order_id)->count();
             $nonCompleted = DB::table('customer_order_details')
                 ->where('customer_order_id', $order_id)
-                ->where('current_status', '!=', 'completed')
+                ->whereNotIn('current_status', ['ready', 'shipped', 'cancelled'])
                 ->count();
 
             if ($totalCarpets == 0) {

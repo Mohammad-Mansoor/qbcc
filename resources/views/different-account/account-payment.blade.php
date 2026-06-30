@@ -235,7 +235,7 @@
                                     <td class="text-center hideOnPrint">
                                         <div class="btn-group">
                                             @can('manage_different_account_payments')
-                                            @if($pa->status == 0 || auth()->user()->role == 'SP')
+                                            @if($pa->status == 0 || auth()->user()->can('edit_approved_different_account_payments'))
                                                 <a href="/dashboard/different-account-payments/{{$pa->id}}/edit"
                                                     class="btn btn-sm btn-light-info text-info mr-1">
                                                     <i class="feather icon-edit-2"></i>

@@ -82,7 +82,7 @@
     </div>
 
     @if(isset($sale) && $sale)
-    @can('create_sale')
+    @can('edit_sale')
     <!-- Edit Sale Modal-like Section -->
     <div class="card border-0 shadow-sm rounded-lg mb-4 border-top-primary" style="border-top: 4px solid #007bff !important;">
         <div class="card-header bg-white py-3">
@@ -313,7 +313,7 @@
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right shadow-sm border-0 py-2" style="border-radius: 10px;">
                                         @if(!($sale->invoice && $sale->invoice->status === 'closed'))
-                                        @can('create_sale')
+                                        @can('edit_sale')
                                         <a class="dropdown-item py-2 px-3 small text-primary" href="/dashboard/sales/{{$sale->id}}/edit">
                                             <i class="fa fa-edit mr-2"></i> ویرایش فروش
                                         </a>

@@ -496,9 +496,14 @@
                                 <i class="fa fa-money"></i> معاملات نقدی (Cash Ledger)
                             </a>
                         </li>
-                        <li class="nav-item">
+                                                <li class="nav-item">
                             <a class="nav-link font-weight-bold text-white-50" id="sales-tab" data-toggle="tab" href="#sales-invoices" role="tab" style="background: transparent; border: none; padding: 15px 20px;">
                                 <i class="fa fa-shopping-cart"></i> انوایس‌های فروش قالین (Sales Invoices)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link font-weight-bold text-white-50" id="recon-tab" data-toggle="tab" href="#customer-reconciliation" role="tab" style="background: transparent; border: none; padding: 15px 20px;">
+                                <i class="fa fa-undo"></i> تصفیه‌ها (Reconciliations)
                             </a>
                         </li>
                     </ul>
@@ -560,17 +565,19 @@
                                             @endif
                                         </td>
                                         <td class="hideOnPrint text-center">
-                                            @if($pa->status == 0 || auth()->user()->role == 'SP')
+                                            @can('manage_customer_payments')
                                                 @if(Carbon\Carbon::parse($pa->date)->gt(Carbon\Carbon::parse($lockDate)))
                                                     <a href="/dashboard/customer-payments/{{$pa->id}}/edit" class="btn btn-sm btn-info">ویرایش</a>
+                                                    @can('cancel_customer_payment')
                                                     <button onclick="deletePayment({{$pa->id}}, {{$pa->customer_id}})" class="btn btn-danger btn-sm">حذف</button>
+                                                    @endcan
                                                 @else
                                                     <span class="badge badge-secondary"><i class="fa fa-lock"></i> قفل شده</span>
                                                 @endif
                                                 @if($pa->ledger_transaction_id)
                                                     <a href="{{ route('accounting.journals.show', $pa->ledger_transaction_id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-book"></i> روزنامچه مالی</a>
                                                 @endif
-                                            @endif
+                                            @endcan
                                         </td>
                                     </tr>
                                     @endforeach
@@ -658,8 +665,61 @@
                             </table>
                         </div>
                     </div>
-                </div>
 
+                    <!-- Tab 3: Reconciliations -->
+                    <div class="tab-pane fade" id="customer-reconciliation" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table premium-table table-hover mb-0 text-right">
+                                <thead>
+                                    <tr class="text-right">
+                                        <th>تاریخ (Date)</th>
+                                        <th>سند پرداخت (Payment)</th>
+                                        <th>تخصیص به انوایس (Allocated Invoice)</th>
+                                        <th>مبلغ پرداختی (Amount)</th>
+                                        <th>ارز (Currency)</th>
+                                        <th>نرخ ارز (Exchange Rate)</th>
+                                        <th>معادل دالر (Base USD)</th>
+                                        <th class="hideOnPrint text-center">عملیات (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($allocatedPayments as $allocPay)
+                                    <tr class="text-right">
+                                        <td>{{ $allocPay->date }}</td>
+                                        <td>
+                                            <span class="font-weight-bold">PAY-{{ $allocPay->id }}</span><br>
+                                            <small class="text-muted">{{ $allocPay->description }}</small>
+                                        </td>
+                                        <td>
+                                            @foreach($allocPay->allocations as $allocation)
+                                                <span class="badge badge-info mb-1">
+                                                    انوایس {{ $allocation->invoice->invoice_no ?? 'N/A' }} 
+                                                    ($ {{ number_format($allocation->amount_applied, 2) }})
+                                                </span><br>
+                                            @endforeach
+                                        </td>
+                                        <td class="font-weight-bold" style="direction: ltr;">{{ number_format($allocPay->original_amount ?? ($allocPay->amount > 0 ? $allocPay->amount : $allocPay->amount_af), 2) }}</td>
+                                        <td><span class="badge badge-light border text-dark">{{ $allocPay->currency_code ?? ($allocPay->amount > 0 ? 'USD' : 'AFN') }}</span></td>
+                                        <td class="text-muted" style="direction: ltr;">{{ number_format($allocPay->exchange_rate ?? ($allocPay->amount > 0 ? 1.0 : (1 / ($allocPay->dollar_rate > 0 ? $allocPay->dollar_rate : 1))), 4) }}</td>
+                                        <td class="font-weight-bold text-primary" style="direction: ltr;">$ {{ number_format($allocPay->base_amount ?? ($allocPay->amount > 0 ? $allocPay->amount : ($allocPay->amount_af * ($allocPay->exchange_rate ?? 1.0))), 2) }}</td>
+                                        <td class="hideOnPrint text-center">
+                                            @can('cancel_customer_payment')
+                                            <button type="button" onclick="deletePayment({{$allocPay->id}}, {{$allocPay->customer_id}})" class="btn btn-sm btn-outline-danger">
+                                                <i class="fa fa-trash"></i> ابطال
+                                            </button>
+                                            @endcan
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4 text-muted">هیچ پرداخت تخصیص یافته‌ای یافت نشد.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
                 <div class="p-3">
                     @if(!isset($all))
                         {{$payments->links()}}
@@ -677,6 +737,68 @@
         $('.select2-simple').select2({ width: '100%' });
 
         // TAB SWITCHING WORKFLOW
+                // Accounting Data injected from backend
+        const accountsData = {
+            'رسید': {
+                debit: [
+                    @foreach($allowedDebitAccounts as $acc)
+                    { id: {{ $acc->id }}, text: "بدهکار: {{ $acc->account_name }}", selected: {{ ($mapping && $mapping->debit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @endforeach
+                ],
+                credit: [
+                    @foreach($allowedCreditAccounts as $acc)
+                    { id: {{ $acc->id }}, text: "بستانکار: {{ $acc->account_name }}", selected: {{ ($mapping && $mapping->credit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @endforeach
+                ]
+            },
+            'گرفت': {
+                debit: [
+                    @foreach($allowedDebitAccountsOut as $acc)
+                    { id: {{ $acc->id }}, text: "بدهکار: {{ $acc->account_name }}", selected: {{ ($mappingOut && $mappingOut->debit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @endforeach
+                ],
+                credit: [
+                    @foreach($allowedCreditAccountsOut as $acc)
+                    { id: {{ $acc->id }}, text: "بستانکار: {{ $acc->account_name }}", selected: {{ ($mappingOut && $mappingOut->credit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @endforeach
+                ]
+            }
+        };
+
+        function updateAccountingDropdowns(type, isEdit = false) {
+            const data = accountsData[type];
+            if (!data) return;
+
+            const debitSelect = isEdit ? $('#override_debit_account_id_edit') : $('#override_debit_account_id');
+            const creditSelect = isEdit ? $('#override_credit_account_id_edit') : $('#override_credit_account_id');
+
+            debitSelect.empty();
+            data.debit.forEach(acc => {
+                debitSelect.append(new Option(acc.text, acc.id, false, acc.selected));
+            });
+
+            creditSelect.empty();
+            data.credit.forEach(acc => {
+                creditSelect.append(new Option(acc.text, acc.id, false, acc.selected));
+            });
+            
+            debitSelect.trigger('change.select2');
+            creditSelect.trigger('change.select2');
+        }
+
+        $('#payment_type').on('change', function() {
+            updateAccountingDropdowns($(this).val(), false);
+        });
+        
+        $('#payment_type_edit').on('change', function() {
+            updateAccountingDropdowns($(this).val(), true);
+        });
+
+        // Initialize on load
+        if ($('#payment_type').length) {
+            updateAccountingDropdowns($('#payment_type').val(), false);
+        }
+
         $('#customerDetailTabs a').on('click', function (e) {
             e.preventDefault();
             $(this).tab('show');
@@ -867,7 +989,12 @@
             // 1. Check if an invoice is explicitly selected from the dropdown
             const selectedInvoiceNo = $('#invoice_number_select').val();
             
-            if (selectedInvoiceNo && selectedInvoiceNo !== 'نقد') {
+            // If Cash (نقد) is selected, DO NOT auto-allocate to any invoices. It should remain a pure cash ledger entry.
+            if (selectedInvoiceNo === 'نقد') {
+                return;
+            }
+
+            if (selectedInvoiceNo) {
                 const specificInput = $(`.allocation-input[data-invoiceno="${selectedInvoiceNo}"]`);
                 if (specificInput.length > 0) {
                     const maxBalance = parseFloat(specificInput.attr('max')) || 0;

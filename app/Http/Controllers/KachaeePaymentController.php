@@ -123,7 +123,7 @@ class KachaeePaymentController extends Controller
                     
                     $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
                         ->where('kachaee_number', $request->kachaee_number)
-                        ->where('status', 1)
+                        ->where('status', '!=', 2)
                         ->select(
                             \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                             \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -217,12 +217,12 @@ class KachaeePaymentController extends Controller
             return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
         }
 
-        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->get();
+        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -234,13 +234,13 @@ class KachaeePaymentController extends Controller
         // Total in Base Currency (USD)
         $totalBaseReceived = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'رسید')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $totalBaseSent = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'گرفت')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
@@ -267,7 +267,7 @@ class KachaeePaymentController extends Controller
 
         // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('kachaee_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -338,12 +338,12 @@ class KachaeePaymentController extends Controller
             return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
         }
 
-        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->paginate(30);
+        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -355,13 +355,13 @@ class KachaeePaymentController extends Controller
         // Total in Base Currency (USD)
         $totalBaseReceived = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'رسید')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $totalBaseSent = KachaeePayment::where('team_id', $team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'گرفت')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
@@ -387,7 +387,7 @@ class KachaeePaymentController extends Controller
 
         // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('kachaee_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -489,12 +489,12 @@ class KachaeePaymentController extends Controller
     {
         $paymentEdit = KachaeePayment::find($payment_id);
         $team = Kachaee::find($paymentEdit->team_id);
-        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->where('kachaee_number', 'نقد')->orderBy('date','DESC')->paginate(30);
+        $payments = KachaeePayment::where('team_id',$paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $paymentEdit->team_id)
             ->where('kachaee_number', 'نقد')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent")
@@ -504,8 +504,8 @@ class KachaeePaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'رسید')->sum('base_amount');
-        $totalBaseSent = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', 1)->where('type', 'گرفت')->sum('base_amount');
+        $totalBaseReceived = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->where('type', 'رسید')->sum('base_amount');
+        $totalBaseSent = KachaeePayment::where('team_id', $paymentEdit->team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->where('type', 'گرفت')->sum('base_amount');
 
         $kachaee_numbers = CarpetRepair::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['kachaee_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -544,7 +544,7 @@ class KachaeePaymentController extends Controller
 
         // Fetch all payments for this team grouped by kachaee_number to calculate partial payment metrics
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team->id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('kachaee_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -631,7 +631,7 @@ class KachaeePaymentController extends Controller
                     $otherPayments = \App\KachaeePayment::where('team_id', $request->team_id)
                         ->where('kachaee_number', $request->kachaee_number)
                         ->where('id', '!=', $payment_id)
-                        ->where('status', 1)
+                        ->where('status', '!=', 2)
                         ->select(
                             \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                             \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -730,15 +730,43 @@ class KachaeePaymentController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->can('cancel_kachaee_payment')) {
+            return response()->json(['status' => 'error', 'message' => 'شما صلاحیت لغو پرداخت را ندارید.']);
+        }
+
         return DB::transaction(function () use ($id) {
             $payment = KachaeePayment::find($id);
+
+            // Check if it's an advance with active allocations
+            if ($payment->is_advance == 1 && bccomp($payment->remaining_unallocated_amount, $payment->original_amount, 4) !== 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'این پیش‌پرداخت دارای تخصیص‌های فعال می‌باشد. لطفاً ابتدا تخصیص‌های آن را لغو کنید.'
+                ]);
+            }
 
             // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payment->status == 1) {
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Kachaee Record Deleted', get_class($payment));
             }
+            $payment->status = 2; // 2 = Cancelled
+            $payment->save();
 
-            $payment->delete();
+            // Remove allocations if it's a direct payment
+            if (!$payment->is_advance) {
+                $allocations = \App\KachaeePaymentAllocation::where('kachaee_payment_id', $payment->id)->get();
+                foreach ($allocations as $alloc) {
+                    $alloc->delete();
+                }
+            }
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "لغو پرداخت کچایی به مبلغ " . $payment->original_amount;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
             return response()->json(['status' => 'success']);
         });
     }
@@ -826,11 +854,18 @@ class KachaeePaymentController extends Controller
                 $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
             }
 
-            // Reverse the accounting transaction
-            $this->accountingService->reverseTransactionBySource($allocation->id, 'Kachaee Allocation Deleted', 'App\KachaeePaymentAllocation');
+            if (!$payment->is_advance) {
+                // IT IS A DIRECT PAYMENT
+                if ($payment->status == 1) {
+                    $this->accountingService->reverseTransactionBySource($payment->id, 'Kachaee Record Cancelled via Reconciliation', get_class($payment));
+                }
+                $payment->status = 2; // 2 = Cancelled
+                $payment->save();
+            } else {
+                // Reverse the accounting transaction
+                $this->accountingService->reverseTransactionBySource($allocation->id, 'Kachaee Allocation Deleted', 'App\KachaeePaymentAllocation');
 
-            // Restore the payment's unallocated amount
-            if ($payment->is_advance) {
+                // Restore the payment's unallocated amount
                 $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
                 $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
                 $payment->save();

@@ -469,9 +469,9 @@
                                                             <i class="fa fa-book"></i>
                                                         </a>
                                                     @endif
-                                                    @can('manage_seller_payments')
+                                                    @can('cancel_seller_payment')
                                                     <button onclick="deletePayment({{$pa->id}}, {{$pa->seller_id}})" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fa fa-trash"></i>
+                                                        <i class="fa fa-times"></i> لغو
                                                     </button>
                                                     @endcan
                                                 </div>
@@ -646,19 +646,27 @@
                                             {{ number_format($adv->remaining_unallocated_amount, 2) }} {{ $adv->currency_code }}
                                         </td>
                                         <td class="hideOnPrint">
-                                            @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
-                                            @can('manage_seller_payments')
-                                            <button class="btn btn-sm btn-primary open-allocate-modal-btn" 
-                                                    data-payment-id="{{ $adv->id }}"
-                                                    data-currency="{{ $adv->currency_code }}"
-                                                    data-remaining="{{ $adv->remaining_unallocated_amount }}"
-                                                    data-exchange-rate="{{ $adv->exchange_rate }}">
-                                                <i class="fa fa-share-square-o"></i> تخصیص به سند
-                                            </button>
-                                            @endcan
-                                            @else
-                                            <span class="text-muted">کامل تخصیص شده / تایید نشده</span>
-                                            @endif
+                                            <div class="btn-group">
+                                                @if($adv->status == 1 && $adv->remaining_unallocated_amount > 0.01)
+                                                @can('manage_seller_payments')
+                                                <button class="btn btn-sm btn-primary open-allocate-modal-btn" 
+                                                        data-payment-id="{{ $adv->id }}"
+                                                        data-currency="{{ $adv->currency_code }}"
+                                                        data-remaining="{{ $adv->remaining_unallocated_amount }}"
+                                                        data-exchange-rate="{{ $adv->exchange_rate }}">
+                                                    <i class="fa fa-share-square-o"></i> تخصیص به سند
+                                                </button>
+                                                @endcan
+                                                @else
+                                                <span class="text-muted mr-2">کامل تخصیص شده / تایید نشده</span>
+                                                @endif
+                                                
+                                                @can('cancel_seller_payment')
+                                                <button onclick="deletePayment({{$adv->id}} ,{{$adv->seller_id}})" class="btn btn-sm btn-outline-danger ml-1" title="لغو پیش‌پرداخت">
+                                                    <i class="fa fa-ban"></i> لغو
+                                                </button>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                     @empty
@@ -718,7 +726,7 @@
                                             $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                         </td>
                                         <td class="hideOnPrint">
-                                            @can('manage_seller_payments')
+                                            @can('cancel_seller_payment')
                                             <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                 <i class="fa fa-undo"></i> لغو تصفیه
                                             </button>
@@ -989,11 +997,11 @@
     function deletePayment(id, seller_id) {
         swal({
             title: "آیا مطمئن هستید؟",
-            text: "این سند و تراکنش مالی آن حذف خواهد شد!",
+            text: "این عملیات، پرداخت را لغو کرده و حسابات بانکی را معکوس می‌کند!",
             icon: "warning",
             buttons: {
-                cancel: "نخیر",
-                confirm: { text: "بلی، حذف شود", className: "btn-danger" }
+                cancel: "انصراف",
+                confirm: { text: "بلی، لغو شود", className: "btn-danger" }
             },
             dangerMode: true,
         }).then((willDelete) => {

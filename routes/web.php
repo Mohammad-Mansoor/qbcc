@@ -784,10 +784,11 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
 
 });
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
+    Route::get('/profile', 'ProfileController@index')->name('profile');
     Route::get('/', 'EnterpriseDashboardController@index')->middleware('permission:view_production_dashboard');
     Route::get('/production', 'EnterpriseDashboardController@production')->middleware('permission:view_production_dashboard');
     Route::get('/inventory', 'EnterpriseDashboardController@inventory')->middleware('permission:view_inventory_dashboard');
-    Route::get('/sales', 'EnterpriseDashboardController@sales')->middleware('permission:view_sales_dashboard');
+    Route::get('/sales-dashboard', 'EnterpriseDashboardController@sales')->middleware('permission:view_sales_dashboard');
     Route::get('/purchases', 'EnterpriseDashboardController@purchases')->middleware('permission:view_purchases_dashboard');
     Route::get('/finance', 'EnterpriseDashboardController@finance')->middleware('permission:view_finance_dashboard');
     Route::get('/cost-analytics', 'EnterpriseDashboardController@costAnalytics')->middleware('permission:view_cost_analytics');

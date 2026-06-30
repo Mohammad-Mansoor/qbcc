@@ -189,7 +189,7 @@
               <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
               @endcan
               @can('view_sales_dashboard')
-              <li><a href="/dashboard/sales">داشبورد فروشات (Sales)</a></li>
+              <li><a href="/dashboard/sales-dashboard">داشبورد فروشات (Sales)</a></li>
               @endcan
               @can('view_purchases_dashboard')
               <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>

@@ -60,6 +60,7 @@ class CustomerPaymentController extends Controller
                 'reference' => 'PAY-' . $payment->id,
                 'description' => $payment->description,
                 'source_id' => $payment->id,
+                'source_type' => 'App\CustomerPayment',
                 'override_debit_account_id' => $overrides['override_debit_account_id'] ?? $payment->override_debit_account_id ?? null,
                 'override_credit_account_id' => $overrides['override_credit_account_id'] ?? $payment->override_credit_account_id ?? null,
             ]);
@@ -241,6 +242,7 @@ class CustomerPaymentController extends Controller
         // Fetch unallocated payments for the cash ledger
         $payments = CustomerPayment::where('customer_id', $customer_id)
             ->doesntHave('allocations')
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->paginate(30);
 
@@ -260,7 +262,7 @@ class CustomerPaymentController extends Controller
 
         // FORENSIC DYNAMIC TOTALS for unallocated cash ledger payments
         $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -272,13 +274,13 @@ class CustomerPaymentController extends Controller
 
         // Total in Base Currency (USD) for unallocated cash ledger payments
         $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'رسید')
             ->sum('base_amount');
 
         $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'گرفت')
             ->sum('base_amount');
@@ -290,13 +292,26 @@ class CustomerPaymentController extends Controller
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        
+        $allowedDebitAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        
         $currencies = \App\Currency::where('is_active', true)->get();
+
+        $allocatedPayments = CustomerPayment::where('customer_id', $customer_id)
+            ->has('allocations')
+            ->where('status', '!=', 2)
+            ->with(['allocations.invoice', 'allocations'])
+            ->orderBy('date', 'DESC')
+            ->get();
 
         return view('customers.customer-payment', compact(
             'customer', 'payments', 'paymentEdit', 'currencyTotals', 
             'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
-            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
-            'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
+            'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping',
+            'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut', 
+            'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales', 'allocatedPayments'
         ));
     }
 
@@ -310,6 +325,7 @@ class CustomerPaymentController extends Controller
         // Fetch all unallocated payments
         $payments = CustomerPayment::where('customer_id', $customer_id)
             ->doesntHave('allocations')
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
 
@@ -329,7 +345,7 @@ class CustomerPaymentController extends Controller
 
         // FORENSIC DYNAMIC TOTALS for unallocated
         $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -341,13 +357,13 @@ class CustomerPaymentController extends Controller
 
         // Total in Base Currency (USD) for unallocated
         $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'رسید')
             ->sum('base_amount');
 
         $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'گرفت')
             ->sum('base_amount');
@@ -387,6 +403,7 @@ class CustomerPaymentController extends Controller
 
         $payments = CustomerPayment::where('customer_id', $customer_id)
             ->doesntHave('allocations')
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->paginate(30);
 
@@ -406,7 +423,7 @@ class CustomerPaymentController extends Controller
 
         // FORENSIC DYNAMIC TOTALS for unallocated
         $currencyTotals = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received"),
@@ -418,13 +435,13 @@ class CustomerPaymentController extends Controller
 
         // Total in Base Currency (USD) for unallocated
         $totalBaseReceived = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'رسید')
             ->sum('base_amount');
 
         $totalBaseSent = CustomerPayment::where('customer_id', $customer_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->doesntHave('allocations')
             ->where('type', 'گرفت')
             ->sum('base_amount');
@@ -584,18 +601,30 @@ class CustomerPaymentController extends Controller
             // Track affected invoices before deleting
             $affectedInvoices = \App\InvoicePayment::where('payment_id', $payment->id)->pluck('invoice_id')->unique()->toArray();
 
+            // Check Permissions
+            if (!Auth::user()->can('cancel_customer_payment')) {
+                abort(403, 'شما صلاحیت ابطال پرداخت‌های مشتری را ندارید.');
+            }
+
             // Reverse Accounting Entry (Only if approved)
             if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Payment Record Deleted');
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Payment Record Deleted', 'App\CustomerPayment');
             }
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = "حذف پرداخت مشتری " . $customer_name->name . " اکونت نمبر " . $customer_name->id;
+            $activity->description = "ابطال پرداخت مشتری " . $customer_name->name . " اکونت نمبر " . $customer_name->id;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payment->delete();
+            $payment->status = 2; // Cancelled
+            $payment->save();
+
+            // Reverse Invoice Payments (remove allocations to invoices)
+            $invoicePayments = \App\InvoicePayment::where('payment_id', $payment->id)->get();
+            foreach ($invoicePayments as $invPay) {
+                $invPay->delete();
+            }
 
             // Recalculate status for affected invoices
             foreach ($affectedInvoices as $invId) {
@@ -616,7 +645,7 @@ class CustomerPaymentController extends Controller
                 }
             }
 
-            return response()->json(['status' => 'success']);
+            return response()->json(['status' => 'success', 'message' => 'پرداخت موفقانه ابطال گردید!']);
         });
     }
 }

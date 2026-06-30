@@ -278,7 +278,7 @@ class AccountingService
             $this->failIfLocked($original->date);
 
             // 1. Check if already reversed
-            if ($original->status === 'reversed' || $original->status === 0) {
+            if ($original->reversed_transaction_id !== null || $original->status === 0) {
                 throw new Exception("Transaction ID {$transactionId} has already been reversed.");
             }
 
@@ -317,11 +317,12 @@ class AccountingService
             }
 
             // 4. Link reversal to original (Bi-directional linkage via reversed_transaction_id on both records)
-            // We update the original status to 'reversed', store the reversal ID, and append '-REV' to mapping_key to release unique key constraints.
+            // We store the reversal ID, and append '-REV' to mapping_key to release unique key constraints.
+            // NOTE: We MUST keep the original status as 'posted' so that BOTH the original and reversal 
+            // are included in standard balance queries (summing to 0).
             DB::table('ledger_transactions')
                 ->where('id', $original->id)
                 ->update([
-                    'status' => 'reversed',
                     'reversed_transaction_id' => $reversal->id,
                     'mapping_key' => $original->mapping_key ? $original->mapping_key . '-REV-' . $original->id : null
                 ]);

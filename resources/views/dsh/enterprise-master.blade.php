@@ -109,7 +109,7 @@
                 <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}"><i class="fa-solid fa-chart-pie me-2"></i> Executive</a>
                 <a href="/dashboard/production" class="{{ request()->is('dashboard/production') ? 'active' : '' }}"><i class="fa-solid fa-cogs me-2"></i> Production</a>
                 <a href="/dashboard/inventory" class="{{ request()->is('dashboard/inventory') ? 'active' : '' }}"><i class="fa-solid fa-boxes-stacked me-2"></i> Inventory</a>
-                <a href="/dashboard/sales" class="{{ request()->is('dashboard/sales') ? 'active' : '' }}"><i class="fa-solid fa-cart-shopping me-2"></i> Sales</a>
+                <a href="/dashboard/sales-dashboard" class="{{ request()->is('dashboard/sales-dashboard') ? 'active' : '' }}"><i class="fa-solid fa-cart-shopping me-2"></i> Sales</a>
                 <a href="/dashboard/purchases" class="{{ request()->is('dashboard/purchases') ? 'active' : '' }}"><i class="fa-solid fa-truck-fast me-2"></i> Purchases</a>
                 <a href="/dashboard/finance" class="{{ request()->is('dashboard/finance') ? 'active' : '' }}"><i class="fa-solid fa-file-invoice-dollar me-2"></i> Finance</a>
                 <a href="/dashboard/cost-analytics" class="{{ request()->is('dashboard/cost-analytics') ? 'active' : '' }}"><i class="fa-solid fa-chart-pie me-2"></i> Cost Analytics</a>

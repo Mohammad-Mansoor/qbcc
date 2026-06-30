@@ -638,14 +638,28 @@ class SellerPaymentController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->can('cancel_seller_payment')) {
+            return response()->json(['status' => 'error', 'message' => 'شما صلاحیت لغو پرداخت را ندارید.']);
+        }
+
         return DB::transaction(function () use ($id) {
             $payment = SellerPayment::find($id);
             $seller_name = DB::table('string_sellers')->where('id', $payment->seller_id)->first();
 
+            // Check if it's an advance with active allocations
+            if ($payment->is_advance == 1 && bccomp($payment->remaining_unallocated_amount, $payment->original_amount, 4) !== 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'این پیش‌پرداخت دارای تخصیص‌های فعال می‌باشد. لطفاً ابتدا تخصیص‌های آن را لغو کنید.'
+                ]);
+            }
+
             // Reverse Accounting Entry (Only if approved)
             if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Vendor Payment Deleted');
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Vendor Payment Cancelled');
             }
+            $payment->status = 2; // 2 = Cancelled
+            $payment->save();
 
             // Remove allocations and update document statuses
             $allocations = \App\SellerPaymentAllocation::where('seller_payment_id', $payment->id)->get();
@@ -669,11 +683,10 @@ class SellerPaymentController extends Controller
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = "حذف پرداخت فروشنده مواد " . $seller_name->name . " اکونت نمبر " . $seller_name->id;
+            $activity->description = "لغو پرداخت فروشنده مواد " . $seller_name->name . " اکونت نمبر " . $seller_name->id;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payment->delete();
             return response()->json(['status' => 'success']);
         });
     }
@@ -772,11 +785,20 @@ class SellerPaymentController extends Controller
                 $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
             }
 
-            // Reverse the accounting transaction
-            $this->accountingService->reverseTransactionBySource($allocation->id, 'Vendor Allocation Deleted', 'Vendor_advance_settlement');
+            if (!$payment->is_advance) {
+                // IT IS A DIRECT PAYMENT
+                // We MUST fully cancel the payment because it is strictly bound to this allocation.
+                if ($payment->status == 1) {
+                    $this->accountingService->reverseTransactionBySource($payment->id, 'Vendor Payment Cancelled via Reconciliation Tab');
+                }
+                $payment->status = 2; // 2 = Cancelled
+                $payment->save();
+            } else {
+                // IT IS AN ADVANCE ALLOCATION
+                // Reverse the accounting transaction
+                $this->accountingService->reverseTransactionBySource($allocation->id, 'Vendor Allocation Deleted', 'Vendor_advance_settlement');
 
-            // Restore the payment's unallocated amount
-            if ($payment->is_advance) {
+                // Restore the payment's unallocated amount
                 $payment->remaining_unallocated_amount = bcadd($payment->remaining_unallocated_amount, $allocation->allocated_amount, 4);
                 $payment->payment_status = $payment->remaining_unallocated_amount >= $payment->original_amount - 0.01 ? 'unallocated' : 'partially_allocated';
                 $payment->save();

@@ -88,20 +88,7 @@ class LoginController extends Controller
         if ($user->hasPermissionTo('view_purchases_dashboard')) return '/dashboard/purchases';
         if ($user->hasPermissionTo('view_cost_analytics')) return '/dashboard/cost-analytics';
         
-        if ($user->hasPermissionTo('view_coa')) return '/dashboard/accounting/chart-of-accounts';
-        if ($user->hasPermissionTo('view_sales')) return '/dashboard/sales';
-        if ($user->hasPermissionTo('view_orders')) return '/dashboard/customer-orders';
-        if ($user->hasPermissionTo('view_buy_carpets')) return '/dashboard/list-buy-carpet';
-        if ($user->hasPermissionTo('view_material_purchases')) return '/dashboard/material-purchase';
-        if ($user->hasPermissionTo('view_material_stock')) return '/dashboard/accounting/warehouses';
-        if ($user->hasPermissionTo('view_different_accounts')) return '/dashboard/different-account';
-        if ($user->hasPermissionTo('view_carpet_repairs')) return '/dashboard/carpet-repair';
-        if ($user->hasPermissionTo('view_carpet_washes')) return '/dashboard/carpet-wash';
-        if ($user->hasPermissionTo('view_finishing_centers')) return '/dashboard/finishing-center';
-        if ($user->hasPermissionTo('view_customers')) return '/dashboard/customers';
-        if ($user->hasPermissionTo('view_users')) return '/dashboard/office-employee';
-        if ($user->hasPermissionTo('view_agents')) return '/dashboard/agents';
-        
-        return '/dashboard'; // Fallback
+
+        return '/dashboard/profile'; // Fallback
     }
 }

@@ -60,6 +60,7 @@ class FinishingTeamPaymentController extends Controller
                 'reference' => 'F-PAY-' . $payment->id,
                 'description' => "پرداخت بخش تیاری: " . $payment->description,
                 'source_id' => $payment->id,
+                'source_type' => 'App\FinishingTeamPayment',
             ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Finishing Payment #" . $payment->id . ": " . $e->getMessage());
@@ -185,12 +186,12 @@ class FinishingTeamPaymentController extends Controller
             return redirect('/dashboard/finishing-team')->with('error', 'تیم تیاری یافت نشد (Team not found).');
         }
 
-        $payments = FinishingTeamPayment::where('team_id',$team_id)->where('finish_number', 'General')->orderBy('date','DESC')->paginate(30);
+        $payments = FinishingTeamPayment::where('team_id',$team_id)->where('finish_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
             ->where('finish_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -200,8 +201,8 @@ class FinishingTeamPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
@@ -216,12 +217,12 @@ class FinishingTeamPaymentController extends Controller
         // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $team_id)
             ->with(['carpet', 'category'])
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
 
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('finish_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -281,9 +282,9 @@ class FinishingTeamPaymentController extends Controller
         }
         unset($group);
 
-        $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', 1)->sum('price');
+        $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', '!=', 2)->sum('price');
 
-        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', '!=', 2)->orderBy('date', 'DESC')->get();
         $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
 
         return view('finishing-center.finishing-payment',compact(
@@ -306,7 +307,7 @@ class FinishingTeamPaymentController extends Controller
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
             ->where('finish_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -316,8 +317,8 @@ class FinishingTeamPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $paymentEdit = '';
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
@@ -333,12 +334,12 @@ class FinishingTeamPaymentController extends Controller
         // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $team_id)
             ->with(['carpet', 'category'])
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
 
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('finish_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -398,7 +399,7 @@ class FinishingTeamPaymentController extends Controller
         }
         unset($group);
 
-        $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', 1)->sum('price');
+        $totalBaseFinishes = \App\FinishingWork::where('team_id', $team_id)->where('status', '!=', 2)->sum('price');
 
         // Unified Ledger Audit Statement
         $ledgerStatement = \DB::table('ledger_entries')
@@ -420,7 +421,7 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $team_id)->where('is_advance', 1)->where('status', '!=', 2)->orderBy('date', 'DESC')->get();
         $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
 
         return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','finish_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement', 'finishingAdvances', 'finishingAllocations'));
@@ -430,12 +431,12 @@ class FinishingTeamPaymentController extends Controller
     {
         $paymentEdit = FinishingTeamPayment::find($payment_id);
         $team = FinishingTeam::find($paymentEdit->team_id);
-        $payments = FinishingTeamPayment::where('team_id',$paymentEdit->team_id)->where('finish_number', 'General')->orderBy('date','DESC')->paginate(30);
+        $payments = FinishingTeamPayment::where('team_id',$paymentEdit->team_id)->where('finish_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)
             ->where('finish_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -445,8 +446,8 @@ class FinishingTeamPaymentController extends Controller
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
-        $totalBaseSent = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', 1)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseReceived = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'رسید')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('finish_number', 'General')->where('status', '!=', 2)->where('type', 'گرفت')->sum(\DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $finish_numbers = FinishingWork::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['finish_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -460,12 +461,12 @@ class FinishingTeamPaymentController extends Controller
         // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $paymentEdit->team_id)
             ->with(['carpet', 'category'])
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
 
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $paymentEdit->team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('finish_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -525,7 +526,7 @@ class FinishingTeamPaymentController extends Controller
         }
         unset($group);
 
-        $totalBaseFinishes = \App\FinishingWork::where('team_id', $paymentEdit->team_id)->where('status', 1)->sum('price');
+        $totalBaseFinishes = \App\FinishingWork::where('team_id', $paymentEdit->team_id)->where('status', '!=', 2)->sum('price');
 
         // Unified Ledger Audit Statement
         $ledgerStatement = \DB::table('ledger_entries')
@@ -547,7 +548,7 @@ class FinishingTeamPaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('is_advance', 1)->where('status', 1)->orderBy('date', 'DESC')->get();
+        $finishingAdvances = \App\FinishingTeamPayment::where('team_id', $paymentEdit->team_id)->where('is_advance', 1)->where('status', '!=', 2)->orderBy('date', 'DESC')->get();
         $finishingAllocations = \App\FinishingPaymentAllocation::whereHas('payment', function($q) use ($team_id) { $q->where('team_id', $team_id); })->with(['payment', 'allocatable'])->orderBy('created_at', 'DESC')->get();
 
         return view('finishing-center.finishing-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent', 'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes', 'ledgerStatement', 'finishingAdvances', 'finishingAllocations'));
@@ -753,18 +754,34 @@ class FinishingTeamPaymentController extends Controller
             $payment = FinishingTeamPayment::find($id);
             $team_name = DB::table('finishing_teams')->where('id', $payment->team_id)->first();
 
-            // Reverse Accounting Entry (Only if approved) - pass class name to avoid ID collision reversals with other models
-            if ($payment->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted', 'Finishing_payment');
+            // Check Permissions
+            if (!Auth::user()->can('cancel_finishing_payment')) {
+                abort(403, 'شما صلاحیت ابطال پرداخت‌های بخش تیاری را ندارید.');
             }
+
+            // Reverse Accounting Entry (Only if approved)
+            if ($payment->status == 1) {
+                $this->accountingService->reverseTransactionBySource($payment->id, 'Finishing Team Payment Deleted', 'App\FinishingTeamPayment');
+            }
+
+            // Reverse Allocations
+            if ($payment->is_advance) {
+                $allocations = \App\FinishingPaymentAllocation::where('finishing_payment_id', $payment->id)->get();
+                foreach ($allocations as $allocation) {
+                    $this->accountingService->reverseTransactionBySource($allocation->id, 'Finishing Allocation Deleted', 'App\FinishingPaymentAllocation');
+                    $allocation->delete();
+                }
+            }
+
+            $payment->status = 2; // 2 = Cancelled
+            $payment->save();
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = "حذف پرداخت تیم تیاری " . $team_name->name . " اکونت نمبر " . $team_name->id;
+            $activity->description = "ابطال پرداخت تیاری: " . $team_name->name . " مبلغ " . $payment->original_amount . " " . $payment->currency_code;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payment->delete();
             return response()->json(['status' => 'success']);
         });
     }

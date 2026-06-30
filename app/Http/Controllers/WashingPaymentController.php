@@ -59,6 +59,7 @@ class WashingPaymentController extends Controller
                 'reference' => 'W-PAY-' . $payment->id,
                 'description' => "پرداخت بخش شست‌وشو: " . $payment->description,
                 'source_id' => $payment->id,
+                'source_type' => 'App\WashingPayment',
             ], $overrides));
         } catch (\Exception $e) {
             \Log::error("Accounting posting failed for Washing Payment #" . $payment->id . ": " . $e->getMessage());
@@ -184,12 +185,12 @@ class WashingPaymentController extends Controller
             return redirect('/dashboard/washing-team')->with('error', 'تیم شست‌وشو یافت نشد (Team not found).');
         }
 
-        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->paginate(30);
+        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -201,13 +202,13 @@ class WashingPaymentController extends Controller
         // Total in Base Currency (USD)
         $totalBaseReceived = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'رسید')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $totalBaseSent = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'گرفت')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
@@ -233,7 +234,7 @@ class WashingPaymentController extends Controller
             ->get();
 
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('wash_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -340,7 +341,7 @@ class WashingPaymentController extends Controller
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -352,13 +353,13 @@ class WashingPaymentController extends Controller
         // Total in Base Currency (USD)
         $totalBaseReceived = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'رسید')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $totalBaseSent = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'گرفت')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
@@ -385,7 +386,7 @@ class WashingPaymentController extends Controller
             ->get();
 
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('wash_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -485,12 +486,12 @@ class WashingPaymentController extends Controller
         $paymentEdit = WashingPayment::find($payment_id);
         $team = WashingTeam::find($paymentEdit->team_id);
         $team_id = $paymentEdit->team_id;
-        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->paginate(30);
+        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('currency_code', 
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
@@ -502,13 +503,13 @@ class WashingPaymentController extends Controller
         // Total in Base Currency (USD)
         $totalBaseReceived = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'رسید')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
         $totalBaseSent = WashingPayment::where('team_id', $team_id)
             ->where('wash_number', 'General')
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->where('type', 'گرفت')
             ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
 
@@ -533,7 +534,7 @@ class WashingPaymentController extends Controller
             ->get();
 
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
-            ->where('status', 1)
+            ->where('status', '!=', 2)
             ->select('wash_number', 
                 \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
                 \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
@@ -720,6 +721,10 @@ class WashingPaymentController extends Controller
     public function destroy($id)
     {
         return DB::transaction(function () use ($id) {
+            if (!Auth::user()->can('cancel_washing_payment')) {
+                return response()->json(['status' => 'error', 'message' => 'شما صلاحیت لغو این پرداخت را ندارید.']);
+            }
+
             $payment = WashingPayment::find($id);
             $team_name = DB::table('washing_teams')->where('id', $payment->team_id)->first();
 
@@ -728,20 +733,23 @@ class WashingPaymentController extends Controller
                 $this->accountingService->reverseTransactionBySource($payment->id, 'Washing Payment Deleted', get_class($payment));
             }
 
-            // Reverse allocations if any exist
-            if ($payment->allocations) {
-                foreach ($payment->allocations as $alloc) {
-                    $this->accountingService->reverseTransactionBySource($alloc->id, 'Parent Washing Payment Deleted', get_class($alloc));
+            $payment->status = 2; // 2 = Cancelled
+            $payment->save();
+
+            // Remove allocations if it's a direct payment
+            if (!$payment->is_advance) {
+                $allocations = \App\WashingPaymentAllocation::where('washing_payment_id', $payment->id)->get();
+                foreach ($allocations as $alloc) {
+                    $alloc->delete();
                 }
             }
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = "حذف پرداخت شست‌گر " . $team_name->name . " اکونت نمبر " . $team_name->id;
+            $activity->description = "حذف/ابطال پرداخت شست‌گر " . $team_name->name . " اکونت نمبر " . $team_name->id;
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
-            $payment->delete();
             return response()->json(['status' => 'success']);
         });
     }
