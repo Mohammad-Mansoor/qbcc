@@ -6,7 +6,7 @@
         $totalDebit += $tx->debit;
         $totalCredit += $tx->credit;
     }
-    $finalBalance = $openingBalance + ($totalDebit - $totalCredit);
+    $finalBalance = $openingBalance + ($totalCredit - $totalDebit);
 @endphp
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
@@ -305,7 +305,7 @@
             <!-- Transaction rows with alternating backgrounds -->
             @foreach($entries as $tx)
                 @php
-                    $runningBalance += ($tx->debit - $tx->credit);
+                    $runningBalance += ($tx->credit - $tx->debit);
                     $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff';
                 @endphp
                 <tr style="background-color: {{ $rowBgColor }};">

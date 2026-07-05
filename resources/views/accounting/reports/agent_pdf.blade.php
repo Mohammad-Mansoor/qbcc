@@ -205,7 +205,7 @@
                             <div class="small-title text-success">کریدیت / رسید (Credit)</div>
                             <p class="card-val text-success">${{ number_format($entries->sum('credit'), 2) }}</p>
                         </div>
-                        @php $closing = $openingBalance + $entries->sum('debit') - $entries->sum('credit'); @endphp
+                        @php $closing = $openingBalance + $entries->sum('credit') - $entries->sum('debit'); @endphp
                         <div class="dashboard-col card-blue">
                             <div class="small-title" style="color: #2563eb;">بیلانس نهایی (Closing)</div>
                             <p class="card-val" style="color: #2563eb;">${{ number_format($closing, 2) }}</p>
@@ -231,7 +231,7 @@
                             </tr>
 
                             @foreach($entries as $entry)
-                                @php $currentRunning += ($entry->debit - $entry->credit); @endphp
+                                @php $currentRunning += ($entry->credit - $entry->debit); @endphp
                             <tr>
                                 <td class="text-center">{{ $entry->date }}</td>
                                 <td class="text-center font-bold">{{ $entry->reference ?: '-' }}</td>
@@ -250,7 +250,7 @@
                                     {{ $entry->credit > 0 ? '$' . number_format($entry->credit, 2) : '-' }}
                                 </td>
                                 <td class="text-left font-bold" style="direction: ltr; {{ $currentRunning < 0 ? 'color: #dc2626;' : 'color: #0f172a;' }}">
-                                    ${{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? '(Dr)' : '(Cr)' }}
+                                    ${{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? '(Cr)' : '(Dr)' }}
                                 </td>
                             </tr>
                             @endforeach
