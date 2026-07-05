@@ -81,11 +81,14 @@ class InventoryService
             }
         }
 
-        // 1. Idempotency Check
+        // 1. Get/Register Item
+        $item = $this->getOrRegisterItem($parentModel);
 
+        // 2. Idempotency Check
         $exists = DB::table('inventory_transactions')
             ->where('reference_type', get_class($model))
             ->where('reference_id', $model->getKey())
+            ->where('item_id', $item->id)
             ->where('type', $type)
             ->where('direction', $direction)
             ->where('status', 1)
@@ -94,9 +97,6 @@ class InventoryService
         if ($exists) {
             return null;
         }
-
-        // 2. Get/Register Item
-        $item = $this->getOrRegisterItem($parentModel);
 
         // 3. Calculate WAC
         if ($direction === 'IN' || $isValueAdjustment) {

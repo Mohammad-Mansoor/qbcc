@@ -497,11 +497,14 @@ class CarpetWashController extends Controller
                 'area' => $request->area,
             ], function () use ($request, $carpet_wash, $carpet, $baseAmount) {
                 // Legacy Data Sync + New ERP Fields
+                $carpet = Carpet::where('carpet_id', '=', $request->carpetId)->first(); // Query first to get original area
+
                 $carpet_wash->wash_number = $request->wash_number;
                 $carpet_wash->wash_number_sh = $request->wash_number_sh;
                 $carpet_wash->height = $request->height;
                 $carpet_wash->width = $request->width;
                 $carpet_wash->area = $request->area;
+                $carpet_wash->area_difference = $request->area - ($carpet->area ?? 0);
                 $carpet_wash->price = $request->price;
                 $carpet_wash->af_total_price = $request->af_total_price;
                 $carpet_wash->total_price = $request->total_price;
@@ -512,7 +515,6 @@ class CarpetWashController extends Controller
                 $carpet_wash->description = $request->description;
                 $carpet_wash->update();
 
-                $carpet = Carpet::where('carpet_id', '=', $request->carpetId)->first();
                 $carpet->status = 13;
                 // Sync carpet dimensions in warehouse
                 $carpet->height = $request->height;
@@ -690,6 +692,7 @@ class CarpetWashController extends Controller
             }
 
             // Sync carpet pricing and dimensions
+            $originalArea = $carpet->area ?? 0;
             $carpet->total_price = $carpet->total_price - $wash->af_total_price + $request->af_total_price;
             $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + ($request->af_total_price * ($request->exchange_rate ?? 1));
             $carpet->washing_id = $request->team_id;
@@ -707,6 +710,7 @@ class CarpetWashController extends Controller
             $wash->height = $request->height;
             $wash->width = $request->width;
             $wash->area = $request->area;
+            $wash->area_difference = $request->area - $originalArea;
             $wash->price = $request->price;
             $wash->af_total_price = $request->af_total_price;
             $wash->total_price = $request->total_price;

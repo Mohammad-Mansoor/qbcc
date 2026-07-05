@@ -333,6 +333,7 @@
                             <thead>
                                 <tr style="direction: rtl; text-align: right;">
                                     <th class="pr-4">نام / نمبر فرمایش</th>
+                                    <th>نمبر فرمایش مشتری</th>
                                     <th>تاریخ ثبت</th>
                                     <th>میزان پیشرفت</th>
                                     <th>وضعیت</th>
@@ -365,6 +366,7 @@
                                         <td class="pr-4 font-weight-bold text-dark">
                                             <i class="fa fa-folder-open text-muted ml-2"></i> {{ $co->order_name }}
                                         </td>
+                                        <td class="text-muted">{{ $co->customer_order_number ?? '---' }}</td>
                                         <td class="text-muted">{{ $co->order_date }}</td>
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
@@ -381,6 +383,7 @@
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="order_name" value="{{ $co->order_name }}">
+                                                <input type="hidden" name="customer_order_number" value="{{ $co->customer_order_number }}">
                                                 <input type="hidden" name="order_date" value="{{ $co->order_date }}">
                                                 <input type="hidden" name="main_customer_id" value="{{ $co->main_customer_id }}">
                                                 <select name="status" class="select-status-premium select-order-status-inline status-{{ $co->status }}" data-id="{{ $co->co_id }}">
@@ -444,9 +447,14 @@
                 <div class="modal-body modal-body-premium" style="direction: rtl; text-align: right;">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="small font-weight-bold">نمبر/نام فرمایش</label>
+                            <label class="small font-weight-bold">نمبر/نام فرمایش (سیستم)</label>
                             <input type="text" name="order_name" id="order_name" class="form-control form-control-premium bg-light" value="{{ $nextOrderNumber }}" readonly>
-                            <small class="text-muted d-block mt-1">این شناسه به صورت خودکار و منحصر به فرد در سیستم ایجاد می‌شود.</small>
+                            <small class="text-muted d-block mt-1">این شناسه به صورت خودکار ایجاد می‌شود.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="small font-weight-bold">نمبر فرمایش مشتری (اختیاری)</label>
+                            <input type="text" name="customer_order_number" id="customer_order_number" class="form-control form-control-premium" value="{{ optional($orderEdit)->customer_order_number }}">
+                            <small class="text-muted d-block mt-1">شماره سفارش در سیستم مشتری.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="small font-weight-bold">تاریخ فرمایش <span class="text-danger">*</span></label>

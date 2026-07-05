@@ -60,6 +60,7 @@ class CustomerOrderController extends Controller
             'end_date' => 'nullable|date',
             'main_customer_id' => 'required|exists:customers,id',
             'status' => 'required|in:pending,in_progress,completed,cancel',
+            'customer_order_number' => 'nullable|string|max:255',
         ]);
 
         if ($request->status == 'completed') {
@@ -72,6 +73,7 @@ class CustomerOrderController extends Controller
             'end_date' => $request->end_date,
             'main_customer_id' => $request->main_customer_id,
             'status' => $request->status,
+            'customer_order_number' => $request->customer_order_number,
             'customer_order' => $request->order_name, // fallback for legacy column
             'customer_id' => null, // null out legacy c_id
         ]);
@@ -140,6 +142,7 @@ class CustomerOrderController extends Controller
             'end_date' => 'nullable|date',
             'main_customer_id' => 'required|exists:customers,id',
             'status' => 'required|in:pending,in_progress,completed,cancel',
+            'customer_order_number' => 'nullable|string|max:255',
         ]);
 
         if ($request->status == 'completed') {
@@ -164,6 +167,7 @@ class CustomerOrderController extends Controller
             'end_date' => $request->end_date,
             'main_customer_id' => $request->main_customer_id,
             'status' => $request->status,
+            'customer_order_number' => $request->customer_order_number,
             'customer_order' => $request->order_name
         ]);
 

@@ -221,7 +221,7 @@
                         </div>
                         <div class="mb-0">
                             <div class="info-label">تاریخ فروش (Sold Date)</div>
-                            <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->sale->date }}</div>
+                            <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->sale->sale_date }}</div>
                         </div>
                     @else
                         <div class="text-center py-5">
@@ -394,12 +394,6 @@
                     <span class="font-weight-bold text-muted" style="direction: ltr;">${{ $carpet->area > 0 ? number_format($totalAssetValue / $carpet->area, 2) : 0 }}</span>
                 </div>
                 
-                @if($carpet->sale)
-                <div class="d-flex justify-content-between mt-3 pt-2 border-top bg-success text-white p-2 rounded">
-                    <span class="font-weight-bold">سود خالص (Gross Profit):</span>
-                    <span class="font-weight-bold" style="direction: ltr; font-size: 16px;">${{ number_format($carpet->sale->sale_cost_total - $totalAssetValue, 2) }}</span>
-                </div>
-                @endif
             </div>
 
         </div>

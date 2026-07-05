@@ -251,6 +251,9 @@
     <div class="order-header-premium d-flex justify-content-between align-items-center flex-wrap gap-3" style="direction: rtl; text-align: right;">
         <div>
             <h2 class="text-white mb-2 font-weight-bold">فرمایش: #{{$customer_order->order_name}}</h2>
+            @if($customer_order->customer_order_number)
+            <p class="mb-1 text-white font-weight-bold" style="font-size: 1.1rem;">نمبر فرمایش مشتری: {{$customer_order->customer_order_number}}</p>
+            @endif
             <p class="mb-1 opacity-75">مشتری: <strong>{{$customer_order->customer->name ?? 'N/A'}} ({{$customer_order->customer->country ?? 'N/A'}})</strong></p>
             <p class="mb-0 opacity-75">تاریخ ثبت: {{ $customer_order->order_date }} | وضعیت کلی: 
                 <span class="badge badge-light text-dark font-weight-bold" style="text-transform: uppercase;">{{ $customer_order->status }}</span>

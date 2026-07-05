@@ -423,6 +423,7 @@
                       <th>شست نمبر (فروشات)</th>
                       <th>قیمت فی متر</th>
                       <th>قیمت مجموع</th>
+                      <th>تفاوت مساحت</th>
                       <th>تاریخ شست</th>
                       <th>تیم شوینده</th>
                       <th>شرح</th>
@@ -449,6 +450,15 @@
                               {{ $washed->currency_code ?: 'USD' }}</span>
                             @if($washed->currency_code && $washed->currency_code != 'USD')
                               <br><small class="text-muted">({{ number_format($washed->total_price, 2) }} USD)</small>
+                            @endif
+                          </td>
+                          <td style="direction: ltr">
+                            @if($washed->area_difference < -0.001)
+                              <span class="text-danger font-weight-bold" title="Lost"><i class="fa fa-arrow-down mr-1"></i>{{ number_format(abs($washed->area_difference), 3) }}</span>
+                            @elseif($washed->area_difference > 0.001)
+                              <span class="text-success font-weight-bold" title="Gained"><i class="fa fa-arrow-up mr-1"></i>{{ number_format($washed->area_difference, 3) }}</span>
+                            @else
+                              <span class="text-muted">-</span>
                             @endif
                           </td>
                           <td>{{$washed->date}}</td>
@@ -562,6 +572,16 @@
                       <td colspan="4" class="text-right">مجموع:</td>
                       <td style="direction: ltr">${{ number_format($washeds->sum('total_price'), 2) }}</td>
                       <td style="direction: ltr">{{$washeds->sum('area')}} m<sup>2</sup></td>
+                      <td style="direction: ltr">
+                        @php $total_diff = $washeds->sum('area_difference'); @endphp
+                        @if($total_diff < -0.001)
+                          <span class="text-danger"><i class="fa fa-arrow-down mr-1"></i>{{ number_format(abs($total_diff), 3) }}</span>
+                        @elseif($total_diff > 0.001)
+                          <span class="text-success"><i class="fa fa-arrow-up mr-1"></i>{{ number_format($total_diff, 3) }}</span>
+                        @else
+                          -
+                        @endif
+                      </td>
                       <td>{{$washeds->count()}} قالین</td>
                       <td class="hideOnPrint"></td>
                       <td class="hideOnPrint"></td>

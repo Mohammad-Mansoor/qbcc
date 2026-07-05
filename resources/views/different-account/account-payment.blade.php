@@ -448,14 +448,6 @@
                 creditSelect.find('option').prop('disabled', false);
 
                 if (type === 'رسید') {
-                    // Receipt (رسید): Debit side must be Cash. Credit side is arbitrary.
-                    debitSelect.find('option').each(function () {
-                        let isCash = $(this).data('cash') == 1;
-                        if (!isCash) {
-                            $(this).prop('disabled', true);
-                        }
-                    });
-
                     // Set defaults if currently selected is disabled or if opening a new form
                     if (debitSelect.find('option:selected').is(':disabled') || !debitSelect.val()) {
                         debitSelect.val(mappingInDebit);
@@ -464,14 +456,6 @@
                         creditSelect.val(mappingInCredit);
                     }
                 } else {
-                    // Payment (گرفت): Credit side must be Cash. Debit side is arbitrary.
-                    creditSelect.find('option').each(function () {
-                        let isCash = $(this).data('cash') == 1;
-                        if (!isCash) {
-                            $(this).prop('disabled', true);
-                        }
-                    });
-
                     // Set defaults if currently selected is disabled or if opening a new form
                     if (creditSelect.find('option:selected').is(':disabled') || !creditSelect.val()) {
                         creditSelect.val(mappingOutCredit);

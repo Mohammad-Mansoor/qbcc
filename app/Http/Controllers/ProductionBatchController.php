@@ -243,6 +243,12 @@ class ProductionBatchController extends Controller
                 ->with(['carpet.type', 'carpet.quality', 'washing_team'])
                 ->get();
             
+            if ($request->get('export') === 'pdf') {
+                $carpets = $carpets->filter(function($w) {
+                    return $w->total_price > 0 || $w->af_total_price > 0;
+                })->values();
+            }
+            
             $payments = \App\WashingPayment::where('wash_number', $ref)
                 ->orderBy('date', 'desc')
                 ->get();

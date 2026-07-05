@@ -140,7 +140,19 @@
                                 لیست تراکنش‌ها بر اساس: <span class="badge badge-info px-3">منبع انتخابی (Audit Filter)</span>
                             @endif
                         </div>
-                        <div id="export-buttons"></div>
+                        <div>
+                            @if(isset($account))
+                            <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $account->id, 'start_date' => $startDate, 'end_date' => $endDate, 'export' => 'excel']) }}" class="btn btn-success rounded-pill px-4 mr-2 shadow-sm" style="font-weight: 500;">
+                                <i class="feather icon-file-text mr-1"></i> EXCEL
+                            </a>
+                            <a href="{{ route('accounting.reports.account_ledger', ['account_id' => $account->id, 'start_date' => $startDate, 'end_date' => $endDate, 'export' => 'pdf']) }}" target="_blank" class="btn btn-danger rounded-pill px-4 mr-2 shadow-sm" style="font-weight: 500; background-color: #dc2626; border-color: #dc2626;">
+                                <i class="feather icon-file mr-1"></i> PDF
+                            </a>
+                            @endif
+                            <button onclick="window.print()" class="btn btn-dark rounded-pill px-4 shadow-sm" style="font-weight: 500;">
+                                <i class="feather icon-printer mr-1"></i> PRINT
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -298,30 +310,9 @@
         $('.select2').select2();
         
         var table = $('#ledger-table').DataTable({
-            dom: 'B',
             paging: false,
-            searching: true,
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="feather icon-file-text"></i> EXCEL',
-                    className: 'btn btn-success rounded-pill px-4 mr-2 shadow-sm',
-                    title: 'Account Ledger - {{ isset($account) ? $account->account_name : "" }}'
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: '<i class="feather icon-file"></i> PDF',
-                    className: 'btn btn-danger rounded-pill px-4 mr-2 shadow-sm',
-                    title: 'Account Ledger - {{ isset($account) ? $account->account_name : "" }}'
-                },
-                {
-                    text: '<i class="feather icon-printer"></i> PRINT',
-                    className: 'btn btn-dark rounded-pill px-4 shadow-sm',
-                    action: function() { window.print(); }
-                }
-            ]
+            searching: true
         });
-        table.buttons().container().appendTo('#export-buttons');
     });
 </script>
 @endsection

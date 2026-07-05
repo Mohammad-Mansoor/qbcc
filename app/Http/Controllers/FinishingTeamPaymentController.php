@@ -766,7 +766,7 @@ class FinishingTeamPaymentController extends Controller
 
             // Reverse Allocations
             if ($payment->is_advance) {
-                $allocations = \App\FinishingPaymentAllocation::where('finishing_payment_id', $payment->id)->get();
+                $allocations = \App\FinishingPaymentAllocation::where('finishing_team_payment_id', $payment->id)->get();
                 foreach ($allocations as $allocation) {
                     $this->accountingService->reverseTransactionBySource($allocation->id, 'Finishing Allocation Deleted', 'App\FinishingPaymentAllocation');
                     $allocation->delete();

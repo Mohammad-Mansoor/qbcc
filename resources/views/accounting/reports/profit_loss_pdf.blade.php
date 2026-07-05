@@ -113,7 +113,7 @@
 @php
 if (!function_exists('formatAccounting')) {
     function formatAccounting($val, $rate, $currencyCode = '') {
-        $amount = floatval($val) * floatval($rate);
+        $amount = floatval($rate) > 0 ? (floatval($val) / floatval($rate)) : 0;
         if ($amount < 0) {
             $formatted = '(' . number_format(abs($amount), 2) . ')';
         } else {

@@ -957,6 +957,25 @@
               let val = $(this).val();
               if (val) {
                   $('select[name^="team_id_"]').val(val).trigger('change');
+                  
+                  $.ajax({
+                      url: '/batches/api/finish/open',
+                      type: 'GET',
+                      data: { team_id: val },
+                      success: function(response) {
+                          if (response.success) {
+                              var $finishNumberSelect = $('#global_finish_number');
+                              $finishNumberSelect.empty();
+                              $finishNumberSelect.append(new Option('-- انتخاب نمبر تیاری --', ''));
+                              
+                              $.each(response.batches, function(index, batch) {
+                                  var option = new Option(batch.reference_number, batch.reference_number);
+                                  $finishNumberSelect.append(option);
+                              });
+                              $finishNumberSelect.trigger('change');
+                          }
+                      }
+                  });
               }
           });
 

@@ -50,7 +50,7 @@ class ReportController extends Controller
             // 2. Get Transactions for the period
             $entries = DB::table('ledger_entries as le')
                 ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.base_debit as debit', 'le.base_credit as credit', 'le.currency_code', 'le.original_amount')
+                ->select('lt.id as transaction_id', 'lt.date', 'lt.reference', 'lt.description', 'le.base_debit as debit', 'le.base_credit as credit', 'le.currency_code', 'le.original_amount', 'lt.source_type', 'lt.source_id')
                 ->where('le.party_type', 'App\Customer')
                 ->where('le.party_id', $customerId)
                 ->whereBetween('lt.date', [$startDate, $endDate])
@@ -81,8 +81,29 @@ class ReportController extends Controller
 
         $isSummary = $request->get('type') === 'summary';
         if ($customerId && $isSummary) {
-            $entries = collect($entries)->groupBy(function($item) {
+            // Batch pre-fetch relationships to avoid N+1 queries
+            $paymentIds = [];
+            foreach ($entries as $item) {
+                $srcType = strtolower($item->source_type);
+                if ($srcType === 'app\customerpayment' || $srcType === 'customer_payment') {
+                    $paymentIds[] = $item->source_id;
+                }
+            }
+
+            $payments = \App\CustomerPayment::whereIn('id', array_unique($paymentIds))->with(['allocations.invoice'])->get()->keyBy('id');
+
+            $entries = collect($entries)->groupBy(function($item) use ($payments) {
                 $groupRef = trim($item->reference);
+                $srcType = strtolower($item->source_type);
+                if ($srcType === 'app\customerpayment' || $srcType === 'customer_payment') {
+                    $pay = $payments->get($item->source_id);
+                    if ($pay) {
+                        $alloc = $pay->allocations->first();
+                        if ($alloc && $alloc->invoice) {
+                            $groupRef = $alloc->invoice->invoice_no;
+                        }
+                    }
+                }
                 return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;
             })->map(function($group, $key) {
                 $sorted = $group->sortBy('date');
@@ -91,7 +112,7 @@ class ReportController extends Controller
                     'transaction_id' => $earliest->transaction_id,
                     'date' => $earliest->date,
                     'reference' => $key,
-                    'description' => $earliest->description,
+                    'description' => ($group->sum('debit') > 0) ? 'بابت خرید قالین' : $earliest->description,
                     'debit' => $group->sum('debit'),
                     'credit' => $group->sum('credit'),
                     'currency_code' => $earliest->currency_code,
@@ -508,6 +529,28 @@ class ReportController extends Controller
             'reconciled' => abs($netChangeInCash - $actualNetCashChange) < 0.01,
         ];
 
+        if ($request->export === 'pdf') {
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $topHeaderBase64 = '';
+            if (file_exists($topHeaderPath)) {
+                $topHeaderBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath));
+            }
+            
+            $bottomFooterBase64 = '';
+            if (file_exists($bottomFooterPath)) {
+                $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+            }
+
+            return view('accounting.reports.cash_flow_pdf', array_merge($data, [
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'topHeaderBase64' => $topHeaderBase64,
+                'bottomFooterBase64' => $bottomFooterBase64
+            ]));
+        }
+
         return view('accounting.reports.cash_flow', array_merge($data, [
             'startDate' => $startDate,
             'endDate' => $endDate
@@ -566,6 +609,40 @@ class ReportController extends Controller
         }
 
         $currencies = \App\Currency::all()->keyBy('code');
+
+        if ($request->get('export') === 'excel') {
+            $logoPath = public_path('images/logo.png');
+            $topHeaderPath = public_path('images/header.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            $topHeaderBase64 = file_exists($topHeaderPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath)) : '';
+
+            $filename = 'account_ledger_' . ($account ? $account->account_code : 'all') . '_' . date('Y_m_d_His') . '.xls';
+            header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Pragma: public');
+
+            echo view('accounting.reports.account_ledger_excel', compact(
+                'entries', 'account', 'openingBalance', 'startDate', 'endDate', 'currencies', 'logoBase64', 'topHeaderBase64'
+            ))->render();
+            exit;
+        }
+
+        if ($request->get('export') === 'pdf') {
+            $logoPath = public_path('images/logo.png');
+            $topHeaderPath = public_path('images/header.png');
+            $bottomFooterPath = public_path('images/footer.png');
+            
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+            $topHeaderBase64 = file_exists($topHeaderPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath)) : '';
+            $bottomFooterBase64 = file_exists($bottomFooterPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath)) : '';
+
+            return view('accounting.reports.account_ledger_pdf', compact(
+                'entries', 'account', 'openingBalance', 'startDate', 'endDate', 'currencies', 'logoBase64', 'topHeaderBase64', 'bottomFooterBase64'
+            ));
+        }
+
         return view('accounting.reports.account_ledger', compact('entries', 'account', 'accounts', 'openingBalance', 'startDate', 'endDate', 'currencies'));
     }
 

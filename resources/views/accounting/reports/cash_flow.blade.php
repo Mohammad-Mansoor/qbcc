@@ -10,14 +10,14 @@
             <div class="card border-0 shadow-sm" style="border-radius: 15px; background: linear-gradient(45deg, #006064, #00838f);">
                 <div class="card-body p-4 text-white">
                     <div class="row align-items-center">
-                        <div class="col-md-8">
+                        <div class="col-md-7">
                             <h3 class="text-white font-weight-bold mb-1">گزارش جریان وجوه نقد (Cash Flow)</h3>
                             <p class="mb-0 opacity-80">روش غیر مستقیم - تحلیل منابع و مصارف نقدینگی شرکت</p>
                         </div>
-                        <div class="col-md-4 text-right">
-                            <button type="button" onclick="window.print()" class="btn btn-white text-info font-weight-bold px-4 rounded-pill shadow">
-                                <i class="feather icon-printer mr-2"></i> چاپ گزارش (Print)
-                            </button>
+                        <div class="col-md-5 text-right">
+                            <a href="{{ route('accounting.reports.cash_flow', request()->merge(['export' => 'pdf'])->all()) }}" target="_blank" class="btn btn-white text-danger font-weight-bold px-4 rounded-pill shadow">
+                                <i class="feather icon-file-text mr-2"></i> خروجی PDF (Export PDF)
+                            </a>
                         </div>
                     </div>
                 </div>

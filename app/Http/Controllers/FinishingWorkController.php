@@ -40,8 +40,8 @@ class FinishingWorkController extends Controller
     {
         $newCarpet = CarpetWash::where('carpetId', $carpet->carpet_id)->first() ?? $carpet;
         
-        $selected_team_id = $request->query('team_id');
-        $effective_team_id = $selected_team_id ?: $carpet->finishing_id;
+        $selected_team_id = $request->query('team_id') ?: $carpet->finishing_id;
+        $effective_team_id = $selected_team_id;
 
         $openBatches = \App\ProductionBatch::where('type', 'finish')
             ->where('status', 'open')

@@ -1061,7 +1061,7 @@
 
             // Set transaction type and description note
             $('#payment_type').val('رسید').trigger('change'); // Payment Received
-            $('#payment_description').val(`بابت دریافت پول انوایس فروش قالین شماره ${docNo}`);
+            $('#payment_description').val(`بابت دریافت پول انوایس فروش شماره ${docNo}`);
             
             // Try to fill allocation input immediately if already loaded, otherwise reload them
             const allocationInput = $(`input[name="allocations[${docId}]"]`);

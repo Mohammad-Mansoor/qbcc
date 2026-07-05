@@ -238,6 +238,10 @@
             <td style="width:25%;">
                 <span class="meta-label">نمبر / نام سفارش</span>
                 <span class="meta-val" style="direction: ltr; font-family: monospace; color: #fde68a;">#{{ $customer_order->order_name }}</span>
+                @if($customer_order->customer_order_number)
+                <span class="meta-label" style="margin-top: 4px;">نمبر فرمایش مشتری</span>
+                <span class="meta-val" style="direction: ltr; font-family: monospace; color: #fde68a;">{{ $customer_order->customer_order_number }}</span>
+                @endif
             </td>
             <td style="width:30%;">
                 <span class="meta-label">مشتری</span>

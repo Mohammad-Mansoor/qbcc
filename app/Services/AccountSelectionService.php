@@ -122,12 +122,12 @@ class AccountSelectionService
             'credit' => ['report_group' => 'Inventory']
         ],
         'DIFF_IN' => [
-            'debit' => ['is_cash_account' => 1],
+            'debit' => [],
             'credit' => []
         ],
         'DIFF_OUT' => [
             'debit' => [],
-            'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ]
     ];
 

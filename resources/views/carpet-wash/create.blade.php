@@ -216,8 +216,10 @@
               <div class="col-md-3 col-sm-6 mb-3">
                 <div class="form-group">
                   <label class="pull-right">مساحت قالین (Area)</label>
-                  <input type="text" id="warea" name="area" required readonly class="form-control"
+                  <input type="hidden" id="original_area" value="{{$carpet_wash->carpet->area}}">
+                  <input type="text" id="warea" name="area" required readonly class="form-control mb-1"
                     placeholder="مساحت محاسبه شده">
+                  <small id="area_difference_msg" class="font-weight-bold d-block"></small>
                   @error('area') <p class="text-danger mt-1">{{trans('message.' . $message)}}</p> @enderror
                 </div>
               </div>
@@ -377,8 +379,30 @@
 
       // Recalculate correctly for any currency
       $("#wprice, #wheight, #wwidth, #exchange_rate, #currency_code").on('blur change keyup', function () {
-        var unitPrice = parseFloat($('#wprice').val()) || 0;
+        var h = parseFloat($('#wheight').val()) || 0;
+        var w = parseFloat($('#wwidth').val()) || 0;
+        var newArea = h * w;
+        if (newArea > 0) {
+            $('#warea').val(newArea.toFixed(4));
+        }
+
         var area = parseFloat($('#warea').val()) || 0;
+        var originalArea = parseFloat($('#original_area').val()) || 0;
+
+        if (area > 0 && originalArea > 0) {
+            var diff = area - originalArea;
+            if (diff < -0.001) {
+                $('#area_difference_msg').html('<i class="fa fa-arrow-down"></i> مساحت از دست رفته: ' + Math.abs(diff).toFixed(3) + ' متر مربع (Lost)').removeClass('text-success text-muted').addClass('text-danger');
+            } else if (diff > 0.001) {
+                $('#area_difference_msg').html('<i class="fa fa-arrow-up"></i> مساحت اضافه شده: ' + diff.toFixed(3) + ' متر مربع (Gained)').removeClass('text-danger text-muted').addClass('text-success');
+            } else {
+                $('#area_difference_msg').html('<i class="fa fa-minus"></i> بدون تغییر مساحت (No Lost)').removeClass('text-danger text-success').addClass('text-muted');
+            }
+        } else {
+            $('#area_difference_msg').html('');
+        }
+
+        var unitPrice = parseFloat($('#wprice').val()) || 0;
         var exchangeRate = parseFloat($('#exchange_rate').val()) || 1;
         var currencyCode = $('#currency_code').val();
 
