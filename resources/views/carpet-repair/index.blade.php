@@ -313,8 +313,8 @@
           <div>
             <div class="stat-card-val">
               {{number_format($repaireds->sum(function ($r) {
-    return $r->carpet->area ?? 0; }), 2)}} <span
-                style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span></div>
+    return $r->carpet->area ?? 0; }), 2)}} <span style="font-size: 1rem; font-weight: normal;">متر مربع (m²)</span>
+            </div>
             <div class="stat-card-lbl">مساحت ترمیم شده (Completed Area)</div>
           </div>
           <div class="stat-card-icon">
@@ -421,22 +421,22 @@
                             <div class="dropdown-menu dropdown-menu-right dropdown-menu-action">
                               <h6 class="dropdown-header text-muted text-right">عملیات ترمیم</h6>
                               @can('create_carpet_repair')
-                              <a class="dropdown-item text-right"
-                                href="/dashboard/carpet-repair-create/{{$nonrepaired->carpet_id}}">
-                                <i class="feather icon-tool text-primary"></i>
-                                ثبت ترمیم (Repair)
-                              </a>
+                                <a class="dropdown-item text-right"
+                                  href="/dashboard/carpet-repair-create/{{$nonrepaired->carpet_id}}">
+                                  <i class="feather icon-tool text-primary"></i>
+                                  ثبت ترمیم (Repair)
+                                </a>
                               @endcan
                               <div class="dropdown-divider"></div>
                               @can('return_carpet_from_repair')
-                              <a class="dropdown-item text-right text-warning btn-return-to-center"
-                                href="javascript:void(0)" data-carpet-id="{{$nonrepaired->carpet_id}}"
-                                data-carpet-no="{{$nonrepaired->carpet_no}}"
-                                data-current-warehouse-id="{{$nonrepaired->warehouse_id}}"
-                                data-action-url="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}">
-                                <i class="feather icon-corner-up-right"></i>
-                                بازگشت به مرکزی
-                              </a>
+                                <a class="dropdown-item text-right text-warning btn-return-to-center"
+                                  href="javascript:void(0)" data-carpet-id="{{$nonrepaired->carpet_id}}"
+                                  data-carpet-no="{{$nonrepaired->carpet_no}}"
+                                  data-current-warehouse-id="{{$nonrepaired->warehouse_id}}"
+                                  data-action-url="/dashboard/return-to-center-from-non-repair/{{$nonrepaired->carpet_id}}">
+                                  <i class="feather icon-corner-up-right"></i>
+                                  بازگشت به مرکزی
+                                </a>
                               @endcan
                             </div>
                           </div>
@@ -538,7 +538,8 @@
 
                         <td style="direction: ltr" class="text-muted">{{ number_format($repaired->price, 2) }}</td>
                         <td style="direction: ltr" class="font-weight-bold text-primary">
-                          {{ number_format($repaired->af_total_price, 2) }}</td>
+                          {{ number_format($repaired->af_total_price, 2) }}
+                        </td>
                         <td>{{$repaired->date}}</td>
                         <td>{{$repaired->team->name}}</td>
                         <td><small>{{ Str::limit($repaired->description, 20) }}</small></td>
@@ -559,37 +560,37 @@
                               </a>
 
                               @can('edit_carpet_repair')
-                              <a class="dropdown-item text-right" href="/dashboard/carpet-repair/{{$repaired->id}}/edit">
-                                <i class="feather icon-edit-2 text-warning"></i>
-                                ویرایش مالی (Edit)
-                              </a>
+                                <a class="dropdown-item text-right" href="/dashboard/carpet-repair/{{$repaired->id}}/edit">
+                                  <i class="feather icon-edit-2 text-warning"></i>
+                                  ویرایش مالی (Edit)
+                                </a>
                               @endcan
 
                               <div class="dropdown-divider"></div>
 
                               @if ($repaired->carpet->status == 12)
                                 @can('send_carpet_to_washing')
-                                <a class="dropdown-item text-right text-success font-weight-bold"
-                                  href="/dashboard/washing-team/sending-to-washing/{{$repaired->carpet->carpet_id}}">
-                                  <i class="feather icon-send"></i>
-                                  ارسال به شست (Send to Wash)
-                                </a>
+                                  <a class="dropdown-item text-right text-success font-weight-bold"
+                                    href="/dashboard/washing-team/sending-to-washing/{{$repaired->carpet->carpet_id}}">
+                                    <i class="feather icon-send"></i>
+                                    ارسال به شست (Send to Wash)
+                                  </a>
                                 @endcan
                                 @can('send_carpet_to_finishing')
-                                <a class="dropdown-item text-right text-info font-weight-bold"
-                                  href="/dashboard/carpet-wash/sent-to-finish/{{$repaired->carpet->carpet_id}}?redirect_to=/dashboard/carpet-repair">
-                                  <i class="feather icon-check-circle"></i>
-                                  ارسال به تیاری (Send to Finish)
-                                </a>
+                                  <a class="dropdown-item text-right text-info font-weight-bold"
+                                    href="/dashboard/carpet-wash/sent-to-finish/{{$repaired->carpet->carpet_id}}?redirect_to=/dashboard/carpet-repair">
+                                    <i class="feather icon-check-circle"></i>
+                                    ارسال به تیاری (Send to Finish)
+                                  </a>
                                 @endcan
                                 @can('return_carpet_from_repair')
-                                <a class="dropdown-item text-right text-danger btn-return-to-center" href="javascript:void(0)"
-                                  data-carpet-id="{{$repaired->carpetId}}" data-carpet-no="{{$repaired->carpet->carpet_no}}"
-                                  data-current-warehouse-id="{{$repaired->carpet->warehouse_id}}"
-                                  data-action-url="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
-                                  <i class="feather icon-corner-up-right"></i>
-                                  بازگشت به مرکزی
-                                </a>
+                                  <a class="dropdown-item text-right text-danger btn-return-to-center" href="javascript:void(0)"
+                                    data-carpet-id="{{$repaired->carpetId}}" data-carpet-no="{{$repaired->carpet->carpet_no}}"
+                                    data-current-warehouse-id="{{$repaired->carpet->warehouse_id}}"
+                                    data-action-url="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
+                                    <i class="feather icon-corner-up-right"></i>
+                                    بازگشت به مرکزی
+                                  </a>
                                 @endcan
                               @else
                                 <div class="dropdown-item text-right text-muted" style="cursor: not-allowed; opacity: 0.6;">

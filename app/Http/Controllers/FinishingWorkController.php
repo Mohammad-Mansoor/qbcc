@@ -157,17 +157,38 @@ class FinishingWorkController extends Controller
 
     public function return_to_center($carpet_id)
     {
-        $carpet = Carpet::find($carpet_id);
-        $carpet->status = 1;
-        $carpet->update();
+        return DB::transaction(function () use ($carpet_id) {
+            $carpet = Carpet::find($carpet_id);
+            
+            // Get original source warehouse from the latest active Finishing Transfer OUT transaction for this carpet
+            $originalTransaction = DB::table('inventory_transactions')
+                ->where('reference_type', get_class($carpet))
+                ->where('reference_id', $carpet->carpet_id)
+                ->where('type', 'Finishing Transfer')
+                ->where('direction', 'OUT')
+                ->where('status', 1)
+                ->orderByDesc('id')
+                ->first();
+                
+            $originalWarehouseId = $originalTransaction ? $originalTransaction->warehouse_id : ($carpet->warehouse_id ?? 1);
 
-        $activity = new Activity();
-        $activity->date = Carbon::today()->format('Y-m-d');
-        $activity->description = " قالین نمبر " . $carpet->carpet_no . " از بخش تیاری به دفتر مرکزی بازگشت داده شد ";
-        $activity->user_id = Auth::user()->id;
-        $activity->save();
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از بخش تیاری به دفتر مرکزی بازگشت داده شد ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
 
-        return back()->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد');
+            $carpet->status = 1;
+            $carpet->finishing_id = null;
+            $carpet->warehouse_id = $originalWarehouseId;
+            $carpet->update();
+
+            // Reverse physical transfer using the new safe transactionType parameter
+            $inventoryService = app(\App\Services\InventoryService::class);
+            $inventoryService->reverseMovement($carpet, 'Returned from Finishing', 'Finishing Transfer');
+
+            return back()->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد');
+        });
     }
 
     public function index()

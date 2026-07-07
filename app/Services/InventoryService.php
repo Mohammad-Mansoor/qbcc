@@ -301,14 +301,19 @@ class InventoryService
     /**
      * Reverse all movements for a specific source
      */
-    public function reverseMovement($model, $reason = null)
+    public function reverseMovement($model, $reason = null, $transactionType = null)
     {
-        return DB::transaction(function () use ($model) {
-            $transactions = DB::table('inventory_transactions')
+        return DB::transaction(function () use ($model, $transactionType) {
+            $query = DB::table('inventory_transactions')
                 ->where('reference_type', get_class($model))
                 ->where('reference_id', $model->getKey())
-                ->where('status', 1)
-                ->get();
+                ->where('status', 1);
+
+            if ($transactionType) {
+                $query->where('type', $transactionType);
+            }
+
+            $transactions = $query->get();
 
             foreach ($transactions as $tx) {
                 // Insert a reversing entry

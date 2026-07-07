@@ -341,6 +341,11 @@ class EntityStatementController extends Controller
 
             $entries = $query->get();
 
+            if ($request->get('export') === 'pdf') {
+                $pdfFilter = new \App\Services\Accounting\PdfStatementFilter();
+                $entries = $pdfFilter->collapse(collect($entries));
+            }
+
             if ($isSummary) {
                 // Batch pre-fetch relationships to avoid N+1 queries
                 $allocationIds = [];

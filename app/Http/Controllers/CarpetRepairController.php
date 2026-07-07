@@ -72,7 +72,7 @@ class CarpetRepairController extends Controller
             $carpet->update();
 
             // Reverse inventory movement
-            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Non-Repair)');
+            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Non-Repair)', 'Kachaee Transfer');
 
             // If target warehouse is different, record transfer to it
             if ($targetWarehouseId != $originalWarehouseId) {
@@ -151,7 +151,7 @@ class CarpetRepairController extends Controller
             $carpet->update();
 
             // Reverse the physical transfer
-            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Repaired)');
+            $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Repaired)', 'Kachaee Transfer');
 
             // If target warehouse is different, record transfer to it
             if ($targetWarehouseId != $originalWarehouseId) {

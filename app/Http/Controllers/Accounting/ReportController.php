@@ -79,6 +79,11 @@ class ReportController extends Controller
             $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
         }
 
+        if ($customerId && $request->get('export') === 'pdf' && !empty($entries)) {
+            $pdfFilter = new \App\Services\Accounting\PdfStatementFilter();
+            $entries = $pdfFilter->collapse(collect($entries));
+        }
+
         $isSummary = $request->get('type') === 'summary';
         if ($customerId && $isSummary) {
             // Batch pre-fetch relationships to avoid N+1 queries
@@ -220,6 +225,11 @@ class ReportController extends Controller
         $bottomFooterBase64 = '';
         if (file_exists($bottomFooterPath)) {
             $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
+        }
+
+        if ($request->get('export') === 'pdf' && !empty($entries)) {
+            $pdfFilter = new \App\Services\Accounting\PdfStatementFilter();
+            $entries = $pdfFilter->collapse(collect($entries));
         }
 
         $isSummary = $request->get('type') === 'summary';
