@@ -204,6 +204,28 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Financial Period Lock Card -->
+            <div class="card border-0 shadow-sm mt-3" style="border-radius: 20px; background: #fff;">
+                <div class="card-header bg-white border-0 py-3 px-4">
+                    <h5 class="font-weight-bold text-danger mb-0">بستن دوره مالی (Lock Period)</h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <form action="{{ route('accounting.close_period') }}" method="POST">
+                        @csrf
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-muted">تاریخ بسته شدن حسابات</label>
+                            <input type="date" name="lock_date" class="form-control rounded-pill bg-light border-0" value="{{ $lockDate ?? '' }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-block rounded-pill shadow-sm">
+                            <i class="fa fa-lock mr-2"></i> قفل کردن حسابات
+                        </button>
+                    </form>
+                    <p class="small text-muted mt-3 text-center mb-0">
+                        معاملات ثبت شده قبل از این تاریخ قابل ویرایش نخواهند بود.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 

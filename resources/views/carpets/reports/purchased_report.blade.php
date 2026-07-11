@@ -265,8 +265,8 @@
                             <div class="text-muted" style="font-size: 0.85rem;">{{ $carpet->quality->quality ?? 'نامشخص' }}</div>
                         </td>
                         <td class="font-weight-bold text-secondary">{{ $carpet->map_number ?? '---' }}</td>
-                        <td dir="ltr" class="text-right">{{ $carpet->width }} × {{ $carpet->height }}</td>
-                        <td class="font-weight-bold text-success">{{ number_format($carpet->area, 2) }}</td>
+                        <td dir="ltr" class="text-right">{{ $carpet->buying_width ?? $carpet->width }} × {{ $carpet->buying_height ?? $carpet->height }}</td>
+                        <td class="font-weight-bold text-success">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
                         <td>
                             <div>{{ number_format($carpet->price) }} $</div>
                             <div class="text-danger" style="font-weight: 700;">{{ number_format($carpet->total_price) }} $</div>

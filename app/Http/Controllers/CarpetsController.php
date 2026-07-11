@@ -1386,11 +1386,16 @@ class CarpetsController extends Controller
         $data['carpet_price_us'] = $request->total_price;
         $data['carpet_price'] = $request->total_price_af;
         $data['dollar_rate'] = ($afnCurrency && $afnCurrency->exchange_rate > 0) ? (1 / $afnCurrency->exchange_rate) : 1;
+        
+        $data['buying_width'] = $request->width ?? 0;
+        $data['buying_height'] = $request->height ?? 0;
+        $data['buying_area'] = $request->area ?? 0;
 
         // Wrap legacy creation and ERP logic in a single atomic transaction via the Manager
         $carpet = new Carpet($data);
 
         $this->inventoryManager->processPurchase($carpet, [
+            'transaction_type' => 'carpet_purchase',
             'quantity' => 1,
             'unit_cost' => $carpet->total_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
@@ -1623,6 +1628,10 @@ class CarpetsController extends Controller
         $data['total_price_af'] = $data['total_price'] * $data['dollar_rate'];
         $data['carpet_price_us'] = $data['total_price'];
         $data['carpet_price'] = $data['total_price_af'];
+        
+        $data['buying_width'] = $request->width ?? 0;
+        $data['buying_height'] = $request->height ?? 0;
+        $data['buying_area'] = $request->area ?? 0;
 
         // Wrap legacy creation and ERP logic in a single atomic transaction via the Manager
         $carpet = new Carpet($data);
@@ -1633,6 +1642,7 @@ class CarpetsController extends Controller
         $exchangeRate = $currency ? $currency->exchange_rate : 1.0;
 
         $this->inventoryManager->processPurchase($carpet, [
+            'transaction_type' => 'carpet_purchase',
             'quantity' => 1,
             'unit_cost' => $carpet->total_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
@@ -2000,6 +2010,7 @@ class CarpetsController extends Controller
                     $this->inventoryManager->reverseTransactions($carpet, 'Correction: Warehouse/Account/Detail change');
                     if ($carpet->agent && $carpet->agent->contract_type == 'carpet seller') {
                         $this->inventoryManager->processPurchase($carpet, [
+                            'transaction_type' => 'carpet_purchase',
                             'quantity' => 1,
                             'unit_cost' => $carpet->total_price,
                             'warehouse_id' => $carpet->warehouse_id,
@@ -2061,5 +2072,34 @@ class CarpetsController extends Controller
             'allowedCogsCredit',
             'mappingCogs'
         );
+    }
+
+    public function update_dimensions(Request $request)
+    {
+        $request->validate([
+            'carpet_id' => 'required',
+            'height' => 'required|numeric|min:0',
+            'width' => 'required|numeric|min:0',
+            'area' => 'required|numeric|min:0'
+        ]);
+
+        $carpet = Carpet::where('carpet_id', $request->carpet_id)->firstOrFail();
+        
+        $old_width = $carpet->width;
+        $old_height = $carpet->height;
+        $old_area = $carpet->area;
+
+        $carpet->width = $request->width;
+        $carpet->height = $request->height;
+        $carpet->area = $request->area;
+        $carpet->save();
+
+        $activity = new \App\Activity();
+        $activity->user_id = auth()->user()->id;
+        $activity->date = \Carbon\Carbon::today()->format('Y-m-d');
+        $activity->description = "ابعاد قالین {$carpet->carpet_no} از {$old_height}x{$old_width} ({$old_area}m²) به {$request->height}x{$request->width} ({$request->area}m²) تغییر یافت.";
+        $activity->save();
+
+        return redirect()->back()->with('status', 'ابعاد نهایی قالین با موفقیت بروزرسانی شد.');
     }
 }

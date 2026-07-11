@@ -177,7 +177,7 @@ class RoleController extends Controller
                 $groups['washing']['perms'][] = $p;
             } elseif (strpos($p->name, 'finish') !== false || strpos($p->name, 're_saving_the_work') !== false) {
                 $groups['finishing']['perms'][] = $p;
-            } elseif (strpos($p->name, 'sale') !== false || strpos($p->name, 'sell') !== false || strpos($p->name, 'invoice') !== false || strpos($p->name, 'carpet_stock') !== false) {
+            } elseif (strpos($p->name, 'sale') !== false || strpos($p->name, 'sell') !== false || strpos($p->name, 'invoice') !== false || strpos($p->name, 'carpet_stock') !== false || strpos($p->name, 'carpet_dimensions') !== false) {
                 $groups['sales']['perms'][] = $p;
             } elseif (strpos($p->name, 'customer_order') !== false) {
                 $groups['customer_orders']['perms'][] = $p;
@@ -366,6 +366,7 @@ class RoleController extends Controller
             'finishing_money_requests' => 'درخواست پول تیاری',
             'carpet_stock' => 'قالین آماده فروش',
             'carpet_stock_details' => 'جزییات قالین آماده فروش',
+            'carpet_dimensions' => 'ابعاد قالین آماده فروش',
             'carpet_from_stock' => 'قالین از گدام',
             'sales' => 'فروشات',
             'sale' => 'فروش',

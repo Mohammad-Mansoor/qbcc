@@ -325,10 +325,12 @@ $none_washed_total = DB::table('carpets')
                                     <td><span class="badge badge-light border">{{$wash->carpet->type->carpet_type ?? '-'}}</span></td>
 
                                     <td style="direction: ltr;">
-                                      {{$wash->height ?: ($wash->carpet->height ?? 0)}} m
+                                      <div>{{$wash->height ?: ($wash->carpet->height ?? 0)}} m</div>
+                                      <small class="text-muted" title="Buying Height">{{$wash->carpet->buying_height ?? $wash->carpet->height ?? 0}} m</small>
                                     </td>
                                     <td style="direction: ltr;">
-                                      {{$wash->width ?: ($wash->carpet->width ?? 0)}} m
+                                      <div>{{$wash->width ?: ($wash->carpet->width ?? 0)}} m</div>
+                                      <small class="text-muted" title="Buying Width">{{$wash->carpet->buying_width ?? $wash->carpet->width ?? 0}} m</small>
                                     </td>
 
                                     <td style="direction: ltr;">

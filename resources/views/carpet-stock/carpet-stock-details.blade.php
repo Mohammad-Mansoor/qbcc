@@ -35,12 +35,22 @@
                   <td class="py-2"><span class="badge badge-soft-primary">{{ $carpet->type->carpet_type ?? '---' }}</span></td>
                 </tr>
                 <tr class="border-bottom">
-                  <td class="py-2 text-muted">ابعاد (طول × عرض):</td>
-                  <td class="py-2" style="direction: ltr; text-align: right;">{{ $carpet->height }}m × {{ $carpet->width }}m</td>
+                  <td class="py-2 text-muted">ابعاد زمان خرید:</td>
+                  <td class="py-2" style="direction: ltr; text-align: right;">{{ $carpet->buying_width ?? $carpet->width }}m × {{ $carpet->buying_height ?? $carpet->height }}m <span class="badge badge-light border ml-1">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</span></td>
                 </tr>
                 <tr class="border-bottom">
-                  <td class="py-2 text-muted">مساحت کل:</td>
-                  <td class="py-2 font-weight-bold text-dark">{{ $carpet->area }} m²</td>
+                  <td class="py-2 text-muted">ابعاد شستشو:</td>
+                  <td class="py-2" style="direction: ltr; text-align: right;">
+                    @if($carpet->washed_width)
+                        {{ $carpet->washed_width }}m × {{ $carpet->washed_height }}m <span class="badge badge-light border ml-1">{{ number_format($carpet->washed_area, 2) }} m²</span>
+                    @else
+                        <span class="text-muted">ثبت نشده</span>
+                    @endif
+                  </td>
+                </tr>
+                <tr class="border-bottom">
+                  <td class="py-2 text-primary font-weight-bold">ابعاد نهایی فعلی:</td>
+                  <td class="py-2 font-weight-bold text-primary" style="direction: ltr; text-align: right;">{{ $carpet->height }}m × {{ $carpet->width }}m <span class="badge badge-soft-primary ml-1">{{ number_format($carpet->area, 2) }} m²</span></td>
                 </tr>
                 <tr class="border-bottom">
                   <td class="py-2 text-muted">نقشه / کوالتی:</td>
@@ -122,7 +132,7 @@
                     @foreach($history as $act)
                         <li class="mb-4 position-relative pl-4" style="border-right: 2px solid #e9ecef; padding-right: 20px;">
                             <div class="d-flex justify-content-between">
-                                <span class="font-weight-bold text-dark">{{ $act->action }}</span>
+                                <span class="font-weight-bold text-dark">ثبت در تاریخچه (Activity Log)</span>
                                 <small class="text-muted">{{ \Carbon\Carbon::parse($act->created_at)->format('Y-m-d H:i') }}</small>
                             </div>
                             <p class="mb-1 text-muted small">{{ $act->description }}</p>

@@ -210,8 +210,9 @@ class AgentPaymentController extends Controller
             $payed->save();
 
             // Store allocation if linked
+            // Store allocation if linked
             if ($document) {
-                \App\AgentPaymentAllocation::create([
+                $allocation = \App\AgentPaymentAllocation::create([
                     'agent_payment_id' => $payed->id,
                     'allocatable_type' => $request->allocatable_type,
                     'allocatable_id' => $request->allocatable_id,
@@ -232,6 +233,19 @@ class AgentPaymentController extends Controller
 
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
+                if ($isAdvance && $document) {
+                    $this->accountingService->postAutoTransaction('agent_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                        'date' => $payed->date,
+                        'amount' => $request->amount,
+                        'currency_code' => $payed->currency_code,
+                        'exchange_rate' => $payed->exchange_rate,
+                        'party_type' => 'App\Agents',
+                        'party_id' => $payed->agent_id,
+                        'reference' => $document->invoice_no ?? $document->invoice_number ?? $document->bill_number,
+                        'description' => "تصفیه بل خرید " . ($document->invoice_number ?? $document->invoice_no) . " از پیش‌پرداخت شماره " . $payed->id,
+                        'source_id' => $allocation->id,
+                    ]);
+                }
             }
 
             $agent_name = DB::table('agents')

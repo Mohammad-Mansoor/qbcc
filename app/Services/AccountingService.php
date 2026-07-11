@@ -56,12 +56,14 @@ class AccountingService
         $debitAccountId = $params['override_debit_account_id'] ?? $rule->debit_account_id;
         $creditAccountId = $params['override_credit_account_id'] ?? $rule->credit_account_id;
 
-        // Validate Overrides
-        if (isset($params['override_debit_account_id'])) {
-            $selectionService->validate($rule->mapping_key, $debitAccountId, 'debit');
-        }
-        if (isset($params['override_credit_account_id'])) {
-            $selectionService->validate($rule->mapping_key, $creditAccountId, 'credit');
+        // Validate Overrides (Skip strict validation for employee_payment as per user request)
+        if ($type !== 'employee_payment') {
+            if (isset($params['override_debit_account_id'])) {
+                $selectionService->validate($rule->mapping_key, $debitAccountId, 'debit');
+            }
+            if (isset($params['override_credit_account_id'])) {
+                $selectionService->validate($rule->mapping_key, $creditAccountId, 'credit');
+            }
         }
 
         $debitAcc = ChartOfAccount::find($debitAccountId);

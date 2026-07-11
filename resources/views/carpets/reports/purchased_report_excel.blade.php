@@ -212,9 +212,9 @@ header("Cache-Control: private",false);
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->type->carpet_type ?? '-' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->quality->quality ?? '-' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->map_number ?? '-' }}</td>
-                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->height }}</td>
-                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->width }}</td>
-                <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($carpet->area, 2) }}</td>
+                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->buying_height ?? $carpet->height }}</td>
+                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->buying_width ?? $carpet->width }}</td>
+                <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($carpet->total_price, 2) }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $repair_cost > 0 ? '$'.number_format($repair_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $wash_cost > 0 ? '$'.number_format($wash_cost, 2) : '-' }}</td>

@@ -26,7 +26,8 @@ class PurchaseInvoice extends Model
 
     public function getTotalAmountAttribute()
     {
-        return $this->carpets()->sum('total_price') ?? 0;
+        // Use static original purchase price instead of dynamic total_price
+        return $this->carpets()->sum('carpet_price_us') ?? 0;
     }
 
     public function getPaidAmountAttribute()

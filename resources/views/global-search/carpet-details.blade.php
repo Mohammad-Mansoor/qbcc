@@ -116,7 +116,7 @@
                     <i class="feather icon-activity mr-2"></i> {{ $carpet->status_string }}
                 </span>
                 <h3 class="text-white font-weight-bold" style="direction: ltr;">{{ number_format($carpet->area, 2) }} m²</h3>
-                <small class="text-white-50">{{ $carpet->width }}m × {{ $carpet->height }}m</small>
+                <small class="text-white-50">ابعاد نهایی فعلی</small>
             </div>
         </div>
     </div>
@@ -147,9 +147,30 @@
                             <div class="info-label">سیستم/ID</div>
                             <div class="info-value text-primary" style="direction: ltr;">{{ $carpet->carpet_id }}</div>
                         </div>
-                        <div class="col-12 mb-4">
-                            <div class="info-label">تاریخ ثبت سیستم</div>
-                            <div class="info-value" style="direction: ltr; text-align: right;">{{ $carpet->date }}</div>
+                        <div class="col-12 mb-3">
+                            <div class="info-label text-secondary" style="font-size: 0.8rem;">ابعاد زمان خرید</div>
+                            <div class="info-value text-dark" style="direction: ltr; font-size: 0.95rem;">
+                                {{ $carpet->buying_width ?? $carpet->width }} × {{ $carpet->buying_height ?? $carpet->height }} 
+                                <span class="badge badge-light text-muted">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</span>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <div class="info-label text-secondary" style="font-size: 0.8rem;">ابعاد شستشو</div>
+                            <div class="info-value text-dark" style="direction: ltr; font-size: 0.95rem;">
+                                @if($carpet->washed_width)
+                                    {{ $carpet->washed_width }} × {{ $carpet->washed_height }} 
+                                    <span class="badge badge-light text-muted">{{ number_format($carpet->washed_area, 2) }} m²</span>
+                                @else
+                                    <span class="text-muted" style="font-size: 0.8rem;">ثبت نشده</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <div class="info-label text-success font-weight-bold" style="font-size: 0.8rem;">ابعاد نهایی فعلی</div>
+                            <div class="info-value text-success font-weight-bold" style="direction: ltr; font-size: 1.05rem;">
+                                {{ $carpet->width }} × {{ $carpet->height }} 
+                                <span class="badge badge-success">{{ number_format($carpet->area, 2) }} m²</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -201,7 +222,7 @@
                         </div>
                         <div class="col-6 mb-4">
                             <div class="info-label">قیمت کل خرید</div>
-                            <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->total_price, 2) }}</div>
+                            <div class="info-value text-success" style="direction: ltr; text-align: right;">${{ number_format($carpet->carpet_price_us, 2) }}</div>
                         </div>
                     </div>
                 </div>
@@ -361,8 +382,8 @@
                 
                 // The database already accumulates all costs into total_price
                 $totalAssetValue = $carpet->total_price;
-                // Reverse-engineer the base purchase cost for visual display
-                $purchaseCost = $totalAssetValue - ($kachaeeCost + $washCost + $finishingCost);
+                // Get the base purchase cost directly from the static column
+                $purchaseCost = $carpet->carpet_price_us ?? 0;
             @endphp
 
             <div class="bg-light p-3 rounded-lg border">

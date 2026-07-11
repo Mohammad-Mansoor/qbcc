@@ -225,6 +225,7 @@ class PermissionSeeder extends Seeder
             // Carpet Stock & Sales
             'view_carpet_stock',
             'view_carpet_stock_details',
+            'edit_carpet_dimensions',
             'sell_carpet_from_stock',
             'view_sales',
             'create_sale',

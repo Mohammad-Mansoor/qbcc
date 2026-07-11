@@ -272,7 +272,7 @@ class SellerPaymentController extends Controller
 
             // Store allocation if linked
             if ($document) {
-                \App\SellerPaymentAllocation::create([
+                $allocation = \App\SellerPaymentAllocation::create([
                     'seller_payment_id' => $payed->id,
                     'raw_material_purchase_bill_id' => $request->raw_material_purchase_bill_id,
                     'allocated_amount' => $request->amount,
@@ -292,6 +292,19 @@ class SellerPaymentController extends Controller
 
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
+                if ($isAdvance && $document) {
+                    $this->accountingService->postAutoTransaction('vendor_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                        'date' => $payed->date,
+                        'amount' => $request->amount,
+                        'currency_code' => $payed->currency_code,
+                        'exchange_rate' => $payed->exchange_rate,
+                        'party_type' => 'App\StringSeller',
+                        'party_id' => $payed->seller_id,
+                        'reference' => $document->bill_number,
+                        'description' => "تصفیه بل خرید " . $document->bill_number . " از پیش‌پرداخت شماره " . $payed->id,
+                        'source_id' => $allocation->id,
+                    ]);
+                }
             }
 
             $seller_name = DB::table('string_sellers')->where('id', $request->seller_id)->first();
@@ -597,7 +610,7 @@ class SellerPaymentController extends Controller
 
             // Store allocation if linked
             if ($document) {
-                \App\SellerPaymentAllocation::create([
+                $allocation = \App\SellerPaymentAllocation::create([
                     'seller_payment_id' => $payed->id,
                     'raw_material_purchase_bill_id' => $request->raw_material_purchase_bill_id,
                     'allocated_amount' => $request->amount,
@@ -618,6 +631,19 @@ class SellerPaymentController extends Controller
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {
                 $this->postPaymentToAccounting($payed);
+                if ($isAdvance && $document) {
+                    $this->accountingService->postAutoTransaction('vendor_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                        'date' => $payed->date,
+                        'amount' => $request->amount,
+                        'currency_code' => $payed->currency_code,
+                        'exchange_rate' => $payed->exchange_rate,
+                        'party_type' => 'App\StringSeller',
+                        'party_id' => $payed->seller_id,
+                        'reference' => $document->bill_number,
+                        'description' => "تصفیه بل خرید " . $document->bill_number . " از پیش‌پرداخت شماره " . $payed->id,
+                        'source_id' => $allocation->id,
+                    ]);
+                }
             }
 
             $activity = new Activity();

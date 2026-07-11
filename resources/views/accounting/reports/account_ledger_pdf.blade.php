@@ -38,7 +38,7 @@
         .fixed-footer img { width: 100%; display: block; }
 
         .header-space { height: 85px; }
-        .footer-space { height: 60px; }
+        .footer-space { height: 149px; }
 
         .content-wrapper {
             padding-left: 2mm;
@@ -277,7 +277,7 @@
     <tfoot>
         <tr>
             <td style="border: none; padding: 0;">
-                <div class="footer-space"></div>
+                <div class="footer-space">&nbsp;</div>
             </td>
         </tr>
     </tfoot>

@@ -230,9 +230,9 @@
                 <td>{{ $carpet->type->carpet_type ?? '-' }}</td>
                 <td>{{ $carpet->quality->quality ?? '-' }}</td>
                 <td>{{ $carpet->map_number ?? '-' }}</td>
-                <td class="text-center" style="direction:ltr;">{{ $carpet->height }}</td>
-                <td class="text-center" style="direction:ltr;">{{ $carpet->width }}</td>
-                <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->area, 2) }}</td>
+                <td class="text-center" style="direction:ltr;">{{ $carpet->buying_height ?? $carpet->height }}</td>
+                <td class="text-center" style="direction:ltr;">{{ $carpet->buying_width ?? $carpet->width }}</td>
+                <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
                 <td class="text-center font-bold" style="direction:ltr;">${{ number_format($carpet->total_price, 2) }}</td>
                 <td class="text-center" style="direction:ltr;">{{ $repair_cost > 0 ? '$'.number_format($repair_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction:ltr;">{{ $wash_cost > 0 ? '$'.number_format($wash_cost, 2) : '-' }}</td>

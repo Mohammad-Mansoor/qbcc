@@ -155,7 +155,7 @@
 
     <!-- ROW 1: Executive KPIs -->
     <div class="row g-4 mb-4">
-        <div class="col-xl-3 col-lg-6">
+        <div class="col-xl-4 col-lg-4">
             <div class="glass-card p-4 h-100">
                 <div class="d-flex justify-content-between">
                     <div class="kpi-title">موجودی قالین (Carpet Stock)</div>
@@ -173,7 +173,7 @@
             </div>
         </div>
         
-        <div class="col-xl-3 col-lg-6">
+        <div class="col-xl-4 col-lg-4">
             <div class="glass-card p-4 h-100">
                 <div class="d-flex justify-content-between">
                     <div class="kpi-title">موجودی مواد خام (Materials)</div>
@@ -192,7 +192,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-lg-6">
+        <div class="col-xl-4 col-lg-4">
             <div class="glass-card p-4 h-100">
                 <div class="d-flex justify-content-between">
                     <div class="kpi-title">مصارف عملیاتی (Costs)</div>
@@ -207,24 +207,6 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="d-flex justify-content-between">
-                    <div class="kpi-title">فروشات و مفاد (Revenue & Profit)</div>
-                    <div class="icon-box bg-success-subtle text-success rounded-circle p-2"><i class="fas fa-chart-line"></i></div>
-                </div>
-                <div class="kpi-value mt-3 text-success-gradient">${{ number_format($data['revenueData']->total_revenue) }}</div>
-                <div class="d-flex justify-content-between mt-2 text-sm">
-                    <span class="secondary-text">مفاد خالص (Net Profit):</span>
-                    <span class="text-success fw-bold">+${{ number_format($data['revenueData']->net_profit) }}</span>
-                </div>
-                <div class="progress mt-3" style="height: 6px; background: rgba(0,0,0,0.1);">
-                    @php $margin = $data['revenueData']->total_revenue > 0 ? ($data['revenueData']->net_profit / $data['revenueData']->total_revenue) * 100 : 0; @endphp
-                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ $margin }}%"></div>
-                </div>
-                <div class="text-end text-xs secondary-text mt-1">{{ number_format($margin, 1) }}% Margin</div>
-            </div>
-        </div>
     </div>
 
     <!-- ROW 2: Funnel & WIP Queues -->

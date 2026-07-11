@@ -195,6 +195,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
 
     /** Route For Carpet Stock Details  */
     Route::get('/carpet-stock-details/{carpet_id}', 'CarpetsController@carpet_stock_details')->middleware('permission:view_carpet_stock_details');
+    Route::post('/carpet-stock/update-dimensions', 'CarpetsController@update_dimensions')->middleware('permission:edit_carpet_dimensions');
     Route::get('carpets-in-sales-office', 'CarpetsController@carpets_in_sales_office');
 });
 

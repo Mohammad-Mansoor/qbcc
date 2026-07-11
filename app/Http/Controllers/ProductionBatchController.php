@@ -53,11 +53,16 @@ class ProductionBatchController extends Controller
                 ->get()
                 ->keyBy('ref');
         } elseif ($type === 'finish') {
-            $stats = \DB::table('finishing_works')
-                ->join('carpets', 'finishing_works.carpetId', '=', 'carpets.carpet_id')
-                ->leftJoin('finishing_teams', 'finishing_works.team_id', '=', 'finishing_teams.id')
-                ->select('finishing_works.finish_number as ref', \DB::raw('count(*) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'), \DB::raw('MAX(finishing_teams.name) as team_name'))
-                ->groupBy('finishing_works.finish_number')
+            $subquery = \DB::table('finishing_works')
+                ->select('finish_number', 'carpetId', \DB::raw('MAX(team_id) as team_id'))
+                ->groupBy('finish_number', 'carpetId');
+
+            $stats = \DB::table(\DB::raw("({$subquery->toSql()}) as unique_finishing_works"))
+                ->mergeBindings($subquery)
+                ->join('carpets', 'unique_finishing_works.carpetId', '=', 'carpets.carpet_id')
+                ->leftJoin('finishing_teams', 'unique_finishing_works.team_id', '=', 'finishing_teams.id')
+                ->select('unique_finishing_works.finish_number as ref', \DB::raw('count(unique_finishing_works.carpetId) as total_carpets'), \DB::raw('sum(carpets.area) as total_area'), \DB::raw('MAX(finishing_teams.name) as team_name'))
+                ->groupBy('unique_finishing_works.finish_number')
                 ->get()
                 ->keyBy('ref');
         }
@@ -221,14 +226,27 @@ class ProductionBatchController extends Controller
         $remaining = 0.0;
         $team = null;
 
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
         if ($type === 'kachaee') {
-            $carpets = \App\CarpetRepair::where('kachaee_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'team'])
-                ->get();
+            $query = \App\CarpetRepair::where('kachaee_number', $ref)
+                ->with(['carpet.type', 'carpet.quality', 'team']);
             
-            $payments = \App\KachaeePayment::where('kachaee_number', $ref)
-                ->orderBy('date', 'desc')
-                ->get();
+            if ($startDate && $endDate) {
+                $query->whereBetween('repair_date', [$startDate, $endDate]);
+            }
+            
+            $carpets = $query->get();
+            
+            $paymentsQuery = \App\KachaeePayment::where('kachaee_number', $ref)
+                ->orderBy('date', 'desc');
+                
+            if ($startDate && $endDate) {
+                $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+            }
+            
+            $payments = $paymentsQuery->get();
                 
             $totalCost = (float)$carpets->sum('total_price');
             
@@ -239,9 +257,14 @@ class ProductionBatchController extends Controller
             $team = $carpets->first() ? $carpets->first()->team : null;
 
         } elseif ($type === 'wash') {
-            $carpets = \App\CarpetWash::where('wash_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'washing_team'])
-                ->get();
+            $query = \App\CarpetWash::where('wash_number', $ref)
+                ->with(['carpet.type', 'carpet.quality', 'washing_team']);
+                
+            if ($startDate && $endDate) {
+                $query->whereBetween('date', [$startDate, $endDate]);
+            }
+            
+            $carpets = $query->get();
             
             if ($request->get('export') === 'pdf') {
                 $carpets = $carpets->filter(function($w) {
@@ -249,9 +272,14 @@ class ProductionBatchController extends Controller
                 })->values();
             }
             
-            $payments = \App\WashingPayment::where('wash_number', $ref)
-                ->orderBy('date', 'desc')
-                ->get();
+            $paymentsQuery = \App\WashingPayment::where('wash_number', $ref)
+                ->orderBy('date', 'desc');
+                
+            if ($startDate && $endDate) {
+                $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+            }
+            
+            $payments = $paymentsQuery->get();
                 
             $totalCost = (float)$carpets->sum(function($w) {
                 return $w->total_price ?: $w->af_total_price;
@@ -264,13 +292,23 @@ class ProductionBatchController extends Controller
             $team = $carpets->first() ? $carpets->first()->washing_team : null;
 
         } elseif ($type === 'finish') {
-            $carpets = \App\FinishingWork::where('finish_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'team', 'category'])
-                ->get();
+            $query = \App\FinishingWork::where('finish_number', $ref)
+                ->with(['carpet.type', 'carpet.quality', 'team', 'category']);
+                
+            if ($startDate && $endDate) {
+                $query->whereBetween('date', [$startDate, $endDate]);
+            }
             
-            $payments = \App\FinishingTeamPayment::where('finish_number', $ref)
-                ->orderBy('date', 'desc')
-                ->get();
+            $carpets = $query->get();
+            
+            $paymentsQuery = \App\FinishingTeamPayment::where('finish_number', $ref)
+                ->orderBy('date', 'desc');
+                
+            if ($startDate && $endDate) {
+                $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+            }
+            
+            $payments = $paymentsQuery->get();
                 
             $totalCost = (float)$carpets->sum('price');
             

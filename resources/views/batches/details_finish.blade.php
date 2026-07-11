@@ -19,7 +19,20 @@
                 </span>
             @endif
         </div>
-        <div class="col-md-6 text-left d-flex align-items-center justify-content-end">
+        <div class="col-md-7 text-left d-flex align-items-center justify-content-end">
+            <!-- Date Filter Form -->
+            <form method="GET" action="{{ route('batches.details', $batch->id) }}" class="form-inline ml-3 hideOnPrint" style="border: 1px solid #ddd; padding: 5px; border-radius: 12px; background: #fff;">
+                <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-control form-control-sm border-0" title="از تاریخ">
+                <span class="mx-1 text-muted">-</span>
+                <input type="date" name="end_date" value="{{ request('end_date') }}" class="form-control form-control-sm border-0" title="تا تاریخ">
+                <button type="submit" class="btn btn-sm btn-info rounded px-3 ml-2 shadow-sm font-weight-bold">
+                    <i class="fa fa-filter"></i> فیلتر
+                </button>
+                @if(request('start_date') || request('end_date'))
+                    <a href="{{ route('batches.details', $batch->id) }}" class="btn btn-sm btn-light text-danger ml-1 shadow-sm rounded px-2" title="پاک کردن فیلتر"><i class="fa fa-times"></i></a>
+                @endif
+            </form>
+
             <div class="dropdown">
                 <button class="btn btn-primary rounded-lg shadow px-4 dropdown-toggle font-weight-bold" type="button" id="printExportDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <i class="fa fa-print mr-1"></i> خروجی و چاپ
@@ -30,12 +43,12 @@
                         $excelPermission = 'export_' . ($batch->type == 'wash' ? 'washing' : ($batch->type == 'finish' ? 'finishing' : 'kachaee')) . '_batches_excel';
                     @endphp
                     @can($pdfPermission)
-                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=pdf" target="_blank">
+                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=pdf&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}" target="_blank">
                         <i class="fa fa-file-pdf-o mr-2 text-danger"></i> خروجی PDF
                     </a>
                     @endcan
                     @can($excelPermission)
-                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=excel">
+                    <a class="dropdown-item py-2" href="{{ route('batches.details', $batch->id) }}?export=excel&start_date={{ request('start_date') }}&end_date={{ request('end_date') }}">
                         <i class="fa fa-file-excel-o mr-2 text-success"></i> خروجی Excel
                     </a>
                     @endcan

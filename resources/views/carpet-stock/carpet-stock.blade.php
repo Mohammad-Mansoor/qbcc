@@ -445,6 +445,21 @@
                                  <i class="fa fa-eye"></i> جزئیات
                              </a>
                              @endcan
+                             @if($carpet->status != 6)
+                             @can('edit_carpet_dimensions')
+                             <button class="btn-modern-action btn-sm ml-1" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;" 
+                                 data-toggle="modal" data-target="#edit_dimensions_modal"
+                                 onclick="
+                                 $('#dim_carpet_id').val('{{$carpet->carpet_id}}');
+                                 $('#dim_carpet_no').val('{{$carpet->carpet_no}}');
+                                 $('#dim_current_width').val('{{$carpet->width}}');
+                                 $('#dim_current_height').val('{{$carpet->height}}');
+                                 $('#dim_current_area').val('{{$carpet->area}}');
+                                 " title="تنظیم ابعاد نهایی">
+                                 <i class="fa fa-crop"></i> ابعاد
+                             </button>
+                             @endcan
+                             @endif
                              @can('sell_carpet_from_stock')
                              <button class="btn-modern-action btn-sell btn-sm ml-1" data-toggle="modal" data-target="#sale_modal"
                                  onclick="
@@ -603,14 +618,14 @@
             <div class="col col-lg-4 col-md-4 col-sm-4 col-6">
               <div class="form-group fill">
                 <label>طول قالین</label>
-                <input type="text" name="carpet_height" id="carpet_height" class="form-control">
+                <input type="text" name="carpet_height" id="carpet_height" class="form-control bg-light" readonly>
               </div>
             </div>
     
             <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
               <div class="form-group fill">
                 <label>عرض قالین</label>
-                <input type="text" name="carpet_width" id="carpet_width" class="form-control">
+                <input type="text" name="carpet_width" id="carpet_width" class="form-control bg-light" readonly>
               </div>
             </div>
             <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
@@ -622,14 +637,14 @@
     
             <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
               <div class="form-group fill">
-                <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (USD)</label>
+                <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (COGS / m²)</label>
                 <input type="text" name="price_per_meter" id="price_per_meter" class="form-control bg-light" readonly>
               </div>
             </div>
     
             <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
               <div class="form-group fill">
-                <label class="font-weight-bold text-muted">قیمت مجموع تمام شد (USD)</label>
+                <label class="font-weight-bold text-muted">مجموع قیمت تمام شد (COGS Total)</label>
                 <input type="text" name="total_price_cost" id="total_price_cost" class="form-control bg-light font-weight-bold text-danger" readonly>
               </div>
             </div>
@@ -761,6 +776,60 @@
     </div>
   </div>
 </div>
+
+<!-- EDIT DIMENSIONS MODAL -->
+<div class="modal fade" id="edit_dimensions_modal" role="dialog" aria-labelledby="editDimensionsModalLabel" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title font-weight-bold" id="editDimensionsModalLabel"><i class="fa fa-crop"></i> تنظیم ابعاد نهایی (Final Size Adjustment)</h5>
+        <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+      </div>
+      <form action="/dashboard/carpet-stock/update-dimensions" method="post" id="dimensions_form">
+        <div class="modal-body">
+          @csrf
+          <input type="hidden" name="carpet_id" id="dim_carpet_id">
+          
+          <div class="alert alert-info border-0 bg-soft-info py-2" style="font-size: 0.85rem;">
+              <i class="fa fa-info-circle"></i> این تغییرات فقط ابعاد نهایی فعلی را آپدیت می‌کند. ابعاد خرید و شستشو در دیتابیس محفوظ می‌ماند.
+          </div>
+
+          <div class="form-group fill">
+            <label class="font-weight-bold text-muted small">شماره قالین</label>
+            <input type="text" id="dim_carpet_no" class="form-control bg-light" readonly>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group fill">
+                <label class="font-weight-bold">طول نهایی (Height)</label>
+                <input type="number" step="any" name="height" id="dim_current_height" class="form-control border-warning" required>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-group fill">
+                <label class="font-weight-bold">عرض نهایی (Width)</label>
+                <input type="number" step="any" name="width" id="dim_current_width" class="form-control border-warning" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group fill mt-2">
+            <label class="font-weight-bold text-primary">مساحت نهایی (Total Area m²)</label>
+            <input type="number" step="any" name="area" id="dim_current_area" class="form-control bg-light font-weight-bold text-primary" style="font-size: 1.1rem;" readonly>
+          </div>
+          
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="submit" class="btn btn-warning shadow-sm font-weight-bold text-dark" id="dim_submit_btn">
+            <i class="fa fa-save mr-1"></i> بروزرسانی ابعاد
+          </button>
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -811,6 +880,20 @@
                 $(this).remove();
             });
         }, 2000);
+        
+        // Auto-calculate area on dimension edit
+        $('#dim_current_width, #dim_current_height').on('keyup change', function() {
+            var width = parseFloat($('#dim_current_width').val()) || 0;
+            var height = parseFloat($('#dim_current_height').val()) || 0;
+            var area = (width * height).toFixed(2);
+            $('#dim_current_area').val(area);
+        });
+        
+        // Prevent double submit on dimensions form
+        $('#dimensions_form').on('submit', function() {
+            var $btn = $('#dim_submit_btn');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> در حال بروزرسانی...');
+        });
     });
   </script>
 

@@ -520,6 +520,9 @@ class CarpetWashController extends Controller
                 $carpet->height = $request->height;
                 $carpet->width = $request->width;
                 $carpet->area = $request->area;
+                $carpet->washed_width = $request->width;
+                $carpet->washed_height = $request->height;
+                $carpet->washed_area = $request->area;
                 $carpet->total_price = $carpet->total_price + $request->af_total_price;
                 $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->exchange_rate ?? 1));
                 $carpet->warehouse_id = $request->warehouse_id;
@@ -699,6 +702,9 @@ class CarpetWashController extends Controller
             $carpet->height = $request->height;
             $carpet->width = $request->width;
             $carpet->area = $request->area;
+            $carpet->washed_width = $request->width;
+            $carpet->washed_height = $request->height;
+            $carpet->washed_area = $request->area;
             $carpet->update();
 
             $baseAmount = ($request->currency_code === 'USD') 

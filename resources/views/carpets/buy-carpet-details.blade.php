@@ -131,12 +131,12 @@
                         <td class="text-right font-weight-bold">{{ $carpet->quality->quality ?? 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted small">مساحت:</td>
-                        <td class="text-right font-weight-bold">{{ $carpet->area }} m²</td>
+                        <td class="text-muted small">مساحت زمان خرید:</td>
+                        <td class="text-right font-weight-bold">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</td>
                     </tr>
                     <tr>
-                        <td class="text-muted small">ابعاد:</td>
-                        <td class="text-right font-weight-bold" dir="ltr">{{ $carpet->height }} x {{ $carpet->width }}</td>
+                        <td class="text-muted small">ابعاد زمان خرید:</td>
+                        <td class="text-right font-weight-bold" dir="ltr">{{ $carpet->buying_height ?? $carpet->height }} x {{ $carpet->buying_width ?? $carpet->width }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted small">نقشه:</td>

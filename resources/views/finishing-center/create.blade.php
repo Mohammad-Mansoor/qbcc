@@ -959,7 +959,7 @@
                   $('select[name^="team_id_"]').val(val).trigger('change');
                   
                   $.ajax({
-                      url: '/batches/api/finish/open',
+                      url: '/dashboard/batches/api/finish/open',
                       type: 'GET',
                       data: { team_id: val },
                       success: function(response) {

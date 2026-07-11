@@ -95,51 +95,144 @@
                 <input type="hidden" name="old_invoice" value="{{$sale->invoice_id}}">
                 
                 <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label class="small font-weight-bold">نمبر انوایس</label>
-                        <select name="invoice_id" id="invoice_id" required class="form-control form-control-sm select2">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-12">
+                      <div class="form-group fill">
+                        <label class=""> نمبر انوایس</label>
+                        <select name="invoice_id" id="invoice_id" required class="form-control select2">
                             @foreach($invoices as $invoice)
                                 <option {{ ($sale->invoice_id == $invoice->id ? 'selected' : '') }} value="{{$invoice->id}}"
                                         customer_name="{{$invoice->customer->name}}"
+                                        customer_code="{{$invoice->customer->customer_code}}"
                                         customer_company="{{$invoice->customer->company_name}}"
                                         customer_address="{{$invoice->customer->company_address}}">{{$invoice->invoice_no}}</option>
                             @endforeach
                         </select>
+                      </div>
                     </div>
-                    <div class="col-md-3 form-group">
-                        <label class="small font-weight-bold">پکینگ نمبر</label>
-                        <select name="packing_id" id="packing_id" required class="form-control form-control-sm select2">
-                            <option value="">انتخاب کنید</option>
-                            @foreach($packing_list as $pack)
-                                <option {{ (isset($package) && $package->packing_id == $pack->id ? 'selected' : '') }} value="{{$pack->id}}">{{$pack->packing_no}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label class="small font-weight-bold">پکیج نمبر</label>
-                        <select name="package_id" id="package_id" required class="form-control form-control-sm select2">
-                            <option value="{{$sale->carpet->package_id ?? ''}}">{{$sale->carpet->package->package_no ?? '---'}}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label class="small font-weight-bold">قیمت فروش فی متر ($)</label>
-                        <input type="number" step="0.01" name="sale_cost_per_meter" value="{{$sale->sale_cost_per_meter}}" id="sale_cost_per_meter" class="form-control form-control-sm">
-                    </div>
-                </div>
 
-                <div class="row bg-light p-3 rounded-lg mx-0 mb-3 border">
-                    <div class="col-md-4">
-                        <p class="mb-0 text-muted small">مشتری:</p>
-                        <h6 class="mb-0 font-weight-bold" id="display_customer_name">---</h6>
+                    <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>نام مشتری</label>
+                        <input type="text" name="customer_name" id="customer_name" value="{{$sale->customer->name ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
                     </div>
-                    <div class="col-md-4">
-                        <p class="mb-0 text-muted small">نمبر قالین:</p>
-                        <h6 class="mb-0 font-weight-bold text-primary">{{$sale->carpet->carpet_no}}</h6>
+                    <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>کود مشتری</label>
+                        <input type="text" name="customer_code" id="customer_code" value="{{$sale->customer->customer_code ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
                     </div>
-                    <div class="col-md-4">
-                        <p class="mb-0 text-muted small">مجموع قیمت فروش:</p>
-                        <h6 class="mb-0 font-weight-bold text-success" id="display_total_sale">$ {{ number_format($sale->sale_cost_total, 2) }}</h6>
-                        <input type="hidden" name="sale_cost_total" id="sale_cost_total" value="{{$sale->sale_cost_total}}">
+                    <div class="col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="login2 pull-right pull-right-pro">نام کمپنی</label>
+                        <input type="text" name="company_name" id="company_name" value="{{$sale->customer->company_name ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-12">
+                      <div class="form-group fill">
+                        <label>ادرس کمپنی</label>
+                        <input type="text" name="company_address" id="company_address" value="{{$sale->customer->company_address ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>نمبر قالین</label>
+                        <input type="text" name="carpet_no" id="carpet_no" value="{{$sale->carpet->carpet_no}}" class="form-control bg-light" readonly>
+                        <input type="hidden" name="carpet_id" id="carpet_id" value="{{$sale->carpet_id}}">
+                      </div>
+                    </div>
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>نوعیت قالین</label>
+                        <input type="text" name="carpet_type" id="carpet_type" value="{{$sale->carpet->type->carpet_type ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>کوالتی</label>
+                        <input type="text" name="carpet_quality" id="carpet_quality" value="{{$sale->carpet->quality->quality ?? ''}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-6">
+                      <div class="form-group fill">
+                        <label>طول قالین</label>
+                        <input type="text" name="carpet_height" id="carpet_height" value="{{$sale->carpet->height}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+            
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>عرض قالین</label>
+                        <input type="text" name="carpet_width" id="carpet_width" value="{{$sale->carpet->width}}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label>سایز قالین</label>
+                        <input type="text" name="carpet_area" readonly id="carpet_area" value="{{$sale->carpet->area}}" class="form-control bg-light">
+                      </div>
+                    </div>
+            
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-muted">قیمت تمام شد فی متر (COGS / m²)</label>
+                        <input type="text" name="price_per_meter" id="price_per_meter" value="{{ $sale->carpet->area > 0 ? number_format($sale->carpet->total_price / $sale->carpet->area, 2) : 0 }}" class="form-control bg-light" readonly>
+                      </div>
+                    </div>
+            
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-muted">مجموع قیمت تمام شد (COGS Total)</label>
+                        <input type="hidden" name="total_price_cost" value="{{$sale->carpet->total_price}}">
+                        <input type="text" id="total_price_cost_display" value="{{$sale->carpet->total_price}}" class="form-control bg-light font-weight-bold text-danger" readonly>
+                      </div>
+                    </div>
+                    
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12"></div> <!-- Spacer -->
+
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-success">اسعار فروش (Currency)</label>
+                        <select name="currency_id" id="sale_currency_id" class="form-control font-weight-bold border-success select2" style="border: 2px solid #28a745;" required>
+                          @foreach($currencies as $curr)
+                            <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" data-code="{{ $curr->code }}" {{ $sale->currency_id == $curr->id ? 'selected' : ($curr->code == 'USD' && !$sale->currency_id ? 'selected' : '') }}>
+                              {{ $curr->code }} ({{ $curr->symbol }}) - Rate: {{ $curr->exchange_rate }}
+                            </option>
+                          @endforeach
+                        </select>
+                      </div>
+                    </div>
+        
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-success">نرخ تبادله (Exchange Rate)</label>
+                        <input type="number" step="any" name="exchange_rate" id="sale_exchange_rate" class="form-control border-success font-weight-bold" style="border: 2px solid #28a745;" value="{{$sale->exchange_rate ?? 1.0}}" required>
+                      </div>
+                    </div>
+        
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-success">قیمت فروش فی متر (به اسعار انتخابی)</label>
+                        <input type="number" step="any" required name="sale_cost_per_meter" id="sale_cost_per_meter" value="{{$sale->sale_cost_per_meter}}" class="form-control border-primary font-weight-bold">
+                      </div>
+                    </div>
+        
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-primary">قیمت مجموع فروش (به اسعار انتخابی)</label>
+                        <input type="text" name="sale_cost_total" id="sale_cost_total" value="{{$sale->sale_cost_total}}" class="form-control bg-light font-weight-bold text-primary" readonly>
+                      </div>
+                    </div>
+        
+                    <div class="col col-lg-4 col-md-4 col-sm-4 col-12">
+                      <div class="form-group fill">
+                        <label class="font-weight-bold text-danger">مجموع فروش به دالر (Total Sale USD)</label>
+                        <input type="text" name="sale_cost_total_usd" id="sale_cost_total_usd" class="form-control bg-light font-weight-bold text-danger" readonly>
+                        <div id="margin-warning" class="text-danger font-weight-bold mt-1" style="display:none; font-size: 0.82rem;">
+                          <i class="fa fa-exclamation-triangle"></i> هشدار: قیمت فروش کمتر از قیمت تمام‌شد است! (Negative Margin)
+                        </div>
+                      </div>
                     </div>
                 </div>
 
@@ -398,13 +491,68 @@
         $('#invoice_id').on('change', updateEditFormLabels);
         updateEditFormLabels();
 
-        $('#sale_cost_per_meter').on('input', function() {
-            let rate = parseFloat($(this).val()) || 0;
-            let area = parseFloat('{{ $sale->carpet_area ?? ($sale->carpet->area ?? 0) }}');
-            let total = rate * area;
-            $('#display_total_sale').text('$ ' + total.toLocaleString(undefined, {minimumFractionDigits: 2}));
-            $('#sale_cost_total').val(total);
+        function calculateSalePrices() {
+            var carpet_area = parseFloat($('#carpet_area').val()) || 0;
+            var sale_cost_per_meter = parseFloat($('#sale_cost_per_meter').val()) || 0;
+            var exchange_rate = parseFloat($('#sale_exchange_rate').val()) || 1.0;
+            var cost_total = parseFloat($('#total_price_cost').val()) || 0;
+            
+            if (carpet_area > 0 && sale_cost_per_meter > 0) {
+                var total_cost = (sale_cost_per_meter * carpet_area).toFixed(2);
+                $('#sale_cost_total').val(total_cost);
+                
+                // Total in USD
+                var total_usd = (total_cost * (exchange_rate > 0 ? 1/exchange_rate : 1)).toFixed(2);
+                if ($('#sale_currency_id').find(':selected').data('rate') == 1 || $('#sale_currency_id').find(':selected').text().includes('USD')) {
+                    total_usd = (total_cost * exchange_rate).toFixed(2); // If they input differently, but typically rate is 1 for USD. Let's stick to exchange logic
+                    // Wait, standard logic in Create form was: total_usd = (total_cost * exchange_rate) if exchange_rate was direct. 
+                    // Let's use the exact create form logic:
+                    total_usd = (total_cost * exchange_rate).toFixed(2);
+                } else {
+                    total_usd = (total_cost / exchange_rate).toFixed(2);
+                }
+                
+                // Wait, standard Create form logic:
+                // var total_usd = (total_cost * exchange_rate).toFixed(2);
+                // Actually if AFN is 70, they should divide. The user's original logic in create form was: `(total_cost * exchange_rate).toFixed(2)`. Let's stick to the original if they had it that way, OR I can just use the controller's logic:
+                // saleCostUsd = (currency == 'USD') ? total_cost : (total_cost / exchange_rate)
+                var currencyCode = $('#sale_currency_id').find(':selected').text();
+                if (currencyCode.includes('USD')) {
+                    total_usd = total_cost;
+                } else {
+                    total_usd = (exchange_rate > 0 ? total_cost / exchange_rate : 0).toFixed(2);
+                }
+                
+                $('#sale_cost_total_usd').val(total_usd);
+                
+                if (parseFloat(total_usd) < cost_total) {
+                    $('#margin-warning').show();
+                    $('#sale_cost_total_usd').addClass('is-invalid border-danger text-danger');
+                } else {
+                    $('#margin-warning').hide();
+                    $('#sale_cost_total_usd').removeClass('is-invalid border-danger text-danger');
+                }
+            } else {
+                $('#sale_cost_total').val('0.00');
+                $('#sale_cost_total_usd').val('0.00');
+                $('#margin-warning').hide();
+                $('#sale_cost_total_usd').removeClass('is-invalid border-danger text-danger');
+            }
+        }
+
+        $('#sale_currency_id').change(function () {
+            var selected = $(this).find(':selected');
+            var rate = parseFloat(selected.data('rate')) || 1.0;
+            $('#sale_exchange_rate').val(rate);
+            calculateSalePrices();
         });
+
+        $('#sale_exchange_rate, #sale_cost_per_meter').on('input change keyup', function() {
+            calculateSalePrices();
+        });
+        
+        // Initial Calculation on load
+        calculateSalePrices();
 
         $("#packing_id").change(function () {
             $.ajax({

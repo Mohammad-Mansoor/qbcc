@@ -94,8 +94,8 @@ class AccountSelectionService
             'credit' => ['is_cash_account' => 1]
         ],
         'PAYROLL_ACCRUAL' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['account_type' => 'Liability']
+            'debit' => ['account_type' => ['Expense', 'Asset', 'Liability']],
+            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
         ],
         'PAYROLL_PAYMENT' => [
             'debit' => ['account_type' => ['Liability', 'Expense']],

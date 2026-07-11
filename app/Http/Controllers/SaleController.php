@@ -153,7 +153,12 @@ class SaleController extends Controller
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
             $sale->sale_cost_total = $request->sale_cost_total;
             $total_price_cost = $request->total_price_cost ?? $carpet_id->total_price;
-            $sale->profit = $request->sale_cost_total - $total_price_cost;
+            
+            $currencyCode = \App\Currency::find($request->currency_id)->code ?? 'USD';
+            $exchangeRate = $request->exchange_rate ?? 1.0;
+            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : ($exchangeRate > 0 ? $sale->sale_cost_total / $exchangeRate : 0);
+            
+            $sale->profit = $saleCostUsd - $total_price_cost;
             $sale->type = $request->carpet_type;
             $sale->quality = $request->carpet_quality;
             $sale->carpet_id = $request->carpet_id;
@@ -253,11 +258,13 @@ class SaleController extends Controller
         $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
         $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
         $mappingCogs = \App\MappingRule::where('mapping_key', 'SALES_COGS')->first();
+        
+        $currencies = \App\Currency::all();
 
         return view('sales.sales-list', compact(
             'carpets', 'invoices', 'sale', 'carpet', 'packing_list', 'package', 'sales',
             'allowedRevenueDebit', 'allowedRevenueCredit', 'mappingRevenue',
-            'allowedCogsDebit', 'allowedCogsCredit', 'mappingCogs'
+            'allowedCogsDebit', 'allowedCogsCredit', 'mappingCogs', 'currencies'
         ));
     }
 
@@ -294,7 +301,13 @@ class SaleController extends Controller
             $sale->sale_cost_per_meter = $request->sale_cost_per_meter;
             $sale->sale_cost_total = $request->sale_cost_total;
             $total_price_cost = $request->total_price_cost ?? $carpet_id->total_price;
-            $sale->profit = $request->sale_cost_total - $total_price_cost;
+            
+            $currencyCode = \App\Currency::find($request->currency_id)->code ?? 'USD';
+            $exchangeRate = $request->exchange_rate ?? 1.0;
+            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : ($exchangeRate > 0 ? $sale->sale_cost_total / $exchangeRate : 0);
+            
+            $sale->profit = $saleCostUsd - $total_price_cost;
+            
             $sale->type = $request->carpet_type;
             $sale->quality = $request->carpet_quality;
             $sale->carpet_id = $request->carpet_id;

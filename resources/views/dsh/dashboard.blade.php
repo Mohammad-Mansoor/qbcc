@@ -682,8 +682,8 @@
                           @endif
                           <td>{{$carpet->map_number}}</td>
                           <td style="direction: ltr">{{$carpet->price}} $</td>
-                          <td style="direction: ltr">{{$carpet->total_price_af}} AF</td>
-                          <td style="direction: ltr">{{$carpet->total_price}} $</td>
+                          <td style="direction: ltr">{{$carpet->carpet_price}} AF</td>
+                          <td style="direction: ltr">{{$carpet->carpet_price_us}} $</td>
                           
                           <td>{{$carpet->margin}}</td>
                           <td>{{$carpet->field}}</td>

@@ -193,9 +193,8 @@ class EmployeePaymentController extends Controller
             $paymentEdit      = '';
             $currencies       = \App\Currency::where('is_active', 1)->get();
             $baseCurrency     = \App\Currency::where('is_base_currency', 1)->first();
-            $selectionService = new AccountSelectionService();
-            $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'debit');
-            $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'credit');
+            $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
+            $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
             $mappingPayroll   = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
 
             return view('office-employee.employee-payment', compact(
@@ -220,9 +219,8 @@ class EmployeePaymentController extends Controller
         $currencies          = \App\Currency::where('is_active', 1)->get();
         $baseCurrency        = \App\Currency::where('is_base_currency', 1)->first();
 
-        $selectionService    = new AccountSelectionService();
-        $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'credit');
+            $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
+            $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
 
         return view('office-employee.employee-payment', compact(
@@ -258,9 +256,8 @@ class EmployeePaymentController extends Controller
         $contract_number_list = $employee->employee_salary;
         $currencies          = \App\Currency::where('is_active', 1)->get();
         $baseCurrency        = \App\Currency::where('is_base_currency', 1)->first();
-        $selectionService    = new AccountSelectionService();
-        $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'credit');
+        $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
 
         return view('office-employee.employee-payment', compact(
@@ -295,9 +292,8 @@ class EmployeePaymentController extends Controller
         $check_contract      = true;
         $currencies          = \App\Currency::where('is_active', 1)->get();
         $baseCurrency        = \App\Currency::where('is_base_currency', 1)->first();
-        $selectionService    = new AccountSelectionService();
-        $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'credit');
+        $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
 
         return view('office-employee.employee-payment', compact(
@@ -333,9 +329,8 @@ class EmployeePaymentController extends Controller
         $contract_number_list = $employee->employee_salary;
         $currencies           = \App\Currency::where('is_active', 1)->get();
         $baseCurrency         = \App\Currency::where('is_base_currency', 1)->first();
-        $selectionService     = new AccountSelectionService();
-        $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_PAYMENT', 'credit');
+        $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $mappingPayroll       = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
 
         return view('office-employee.employee-payment', compact(

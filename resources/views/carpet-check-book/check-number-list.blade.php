@@ -349,11 +349,11 @@
                             <td class="font-weight-bold text-dark">{{ $carpet->carpet_no }}</td>
                             <td>{{ $carpet->type->carpet_type ?? 'N/A' }}</td>
                             <td>{{ $carpet->quality->quality ?? 'N/A' }}</td>
-                            <td>{{ number_format($carpet->height, 2) }} m</td>
-                            <td>{{ number_format($carpet->width, 2) }} m</td>
-                            <td>{{ number_format($carpet->area, 2) }} m²</td>
+                            <td>{{ number_format($carpet->buying_height ?? $carpet->height, 2) }} m</td>
+                            <td>{{ number_format($carpet->buying_width ?? $carpet->width, 2) }} m</td>
+                            <td>{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</td>
                             <td>${{ number_format($carpet->price, 2) }}</td>
-                            <td class="font-weight-bold text-dark">${{ number_format($carpet->total_price, 2) }}</td>
+                            <td class="font-weight-bold text-dark">${{ number_format($carpet->carpet_price_us, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -378,7 +378,7 @@
                             <td class="font-weight-bold text-muted">مجموع مساحت (Total Area):</td>
                         </tr>
                         <tr class="grand-total">
-                            <td class="text-left font-weight-bold">${{ number_format($carpets->sum('total_price'), 2) }}
+                            <td class="text-left font-weight-bold">${{ number_format($carpets->sum('carpet_price_us'), 2) }}
                             </td>
                             <td class="font-weight-bold">مبلغ کل قابل تادیه (Grand Total USD):</td>
                         </tr>

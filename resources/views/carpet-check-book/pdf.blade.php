@@ -214,7 +214,7 @@
 
     @php
         $sum_area = $carpets->sum('area');
-        $sum_purchase = $carpets->sum('total_price');
+        $sum_purchase = $carpets->sum('carpet_price_us');
     @endphp
 
     <!-- Header -->
@@ -290,13 +290,13 @@
                     <td class="text-center">{{ $carpet->type->carpet_type ?? '-' }}</td>
                     <td class="text-center">{{ $carpet->quality->quality ?? '-' }}</td>
                     <td class="text-center">{{ $carpet->map_number ?? '-' }}</td>
-                    <td class="text-center" style="direction:ltr;">{{ $carpet->height }}</td>
-                    <td class="text-center" style="direction:ltr;">{{ $carpet->width }}</td>
-                    <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->area, 2) }}</td>
+                    <td class="text-center" style="direction:ltr;">{{ $carpet->buying_height ?? $carpet->height }}</td>
+                    <td class="text-center" style="direction:ltr;">{{ $carpet->buying_width ?? $carpet->width }}</td>
+                    <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
                     <td class="text-center" style="direction:ltr;">
-                        ${{ number_format($carpet->area > 0 ? $carpet->total_price / $carpet->area : 0, 2) }}</td>
+                        ${{ number_format($carpet->area > 0 ? $carpet->carpet_price_us / $carpet->area : 0, 2) }}</td>
                     <td class="text-center font-bold" style="direction:ltr; color:#059669;">
-                        ${{ number_format($carpet->total_price, 2) }}</td>
+                        ${{ number_format($carpet->carpet_price_us, 2) }}</td>
                 </tr>
             @empty
                 <tr>
