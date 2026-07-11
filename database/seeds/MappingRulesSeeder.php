@@ -50,13 +50,20 @@ class MappingRulesSeeder extends Seeder
                 'template' => 'پرداخت پول به نماینده (Agent Payment)'
             ],
 
-            // --- Material Purchases ---
+            // --- Purchases (Material & Carpet) ---
             [
                 'transaction_type' => 'material_purchase',
                 'condition' => 'credit',
                 'debit_code' => '5000', // COGS
                 'credit_code' => '2100', // Accounts Payable
                 'template' => 'خریداری مواد (Material Purchase)'
+            ],
+            [
+                'transaction_type' => 'carpet_purchase',
+                'condition' => 'credit',
+                'debit_code' => '1400', // Inventory
+                'credit_code' => '2100', // Accounts Payable
+                'template' => 'خرید قالین (Carpet Purchase)'
             ],
 
             // --- Production Costs ---
