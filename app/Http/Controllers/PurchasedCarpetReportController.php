@@ -94,7 +94,7 @@ class PurchasedCarpetReportController extends Controller
         $cloneQuery = clone $query;
         $kpiData = $cloneQuery->select(
             DB::raw('COUNT(*) as total_qty'),
-            DB::raw('SUM(area) as total_area'),
+            DB::raw('SUM(COALESCE(NULLIF(buying_area, 0), area)) as total_area'),
             DB::raw('SUM(CASE WHEN status = 5 THEN 1 ELSE 0 END) as ready_qty'),
             DB::raw('SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) as sold_qty'),
             DB::raw('SUM(CASE WHEN status IN (2,12,3,13,4) THEN 1 ELSE 0 END) as wip_qty'),

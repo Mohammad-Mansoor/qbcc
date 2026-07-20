@@ -398,7 +398,6 @@
                   <th>شماره تماس</th>
                   <th>شخص تضمین کننده</th>
                   <th>باقیات (USD $)</th>
-                  <th>باقیات (AFN ؋)</th>
                   <th class="hideOnPrint text-center">عملیات</th>
                 </tr>
               </thead>
@@ -427,12 +426,6 @@
                     <td style="direction: ltr;"
                       class="font-weight-bold {{ $total_usd > 0 ? 'text-success' : ($total_usd < 0 ? 'text-danger' : '') }}">
                       {{ number_format($total_usd, 2) }}
-                    </td>
-
-                    <!-- AFN Balance -->
-                    <td style="direction: ltr;"
-                      class="font-weight-bold {{ $total_af > 0 ? 'text-success' : ($total_af < 0 ? 'text-danger' : '') }}">
-                      {{ number_format($total_af, 2) }}
                     </td>
 
                     <td class="hideOnPrint text-center">
@@ -466,10 +459,6 @@
                     <td style="direction: ltr;"
                       class="{{ ($credit_us - $debit_us) >= 0 ? 'text-success' : 'text-danger' }}">
                       {{ number_format($credit_us - $debit_us, 2) }}
-                    </td>
-                    <td style="direction: ltr;"
-                      class="{{ ($credit_af - $debit_af) >= 0 ? 'text-success' : 'text-danger' }}">
-                      {{ number_format($credit_af - $debit_af, 2) }}
                     </td>
                     <td class="hideOnPrint"></td>
                   </tr>

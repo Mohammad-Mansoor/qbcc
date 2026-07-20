@@ -162,7 +162,9 @@ class WashingTeamController extends Controller
             'warehouse_id' => 'required'
         ]);
 
-        return DB::transaction(function () use ($request, $carpetId) {
+        $previousStatus = $carpetId->status;
+
+        return DB::transaction(function () use ($request, $carpetId, $previousStatus) {
             $lastId = CarpetWash::where('team_id',$request->team_id)->latest()->first();
 
             $WashNo = '';
@@ -236,6 +238,10 @@ class WashingTeamController extends Controller
             ]);
 
             if($upd){
+                if ($previousStatus == 2 || $previousStatus == 12) {
+                    return redirect('dashboard/carpet-repair')->with('status', 'موفقانه ارسال شد');
+                }
+                
                 if ($carpetId->agent->contract_type == 'contractional') {
                     return redirect('dashboard/contract-carpet')->with('status', 'موفقانه ارسال شد');
 

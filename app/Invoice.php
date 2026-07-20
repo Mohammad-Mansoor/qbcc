@@ -42,9 +42,27 @@ class Invoice extends Model
     public function getTotalAmountAttribute()
     {
         if ($this->type === 'carpet') {
-            return $this->sale()->sum('sale_cost_total') ?? 0;
+            // FORENSIC RULE: Calculate Base USD dynamically since sales table lacks base_amount column
+            return $this->sale->where('is_returned', 0)->sum(function($sale) {
+                if ($sale->currency_code === 'USD' || !$sale->exchange_rate) {
+                    return (float)$sale->sale_cost_total;
+                }
+                return (float)bcmul((string)$sale->sale_cost_total, (string)$sale->exchange_rate, 4);
+            });
         } else {
-            return $this->material_sales()->sum('total_price') ?? 0;
+            // FORENSIC RULE: Use the base_currency_amount from material_sales table, fallback to bcmul if missing for legacy
+            return $this->material_sales->sum(function($sale) {
+                if ($sale->base_currency_amount && $sale->base_currency_amount > 0) {
+                    return (float)$sale->base_currency_amount;
+                }
+                
+                $rate = $sale->exchange_rate ?? 1.0;
+                $code = $sale->currency_code ?? 'USD';
+                $amount = $sale->original_amount ?? $sale->total_price ?? 0;
+                
+                if ($code === 'USD' || !$rate) return (float)$amount;
+                return (float)bcmul((string)$amount, (string)$rate, 4);
+            });
         }
     }
 

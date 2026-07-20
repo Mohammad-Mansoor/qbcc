@@ -236,8 +236,8 @@ class WashingPaymentController extends Controller
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('wash_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('wash_number')
             ->get()
@@ -248,7 +248,7 @@ class WashingPaymentController extends Controller
             ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -260,7 +260,7 @@ class WashingPaymentController extends Controller
             $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
             $totalPaid = $directPaid + $allocatedPaid;
             
-            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_cost = (float)($w->total_price);
             $w->total_paid = (float)$totalPaid;
             $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             
@@ -388,8 +388,8 @@ class WashingPaymentController extends Controller
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('wash_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('wash_number')
             ->get()
@@ -400,7 +400,7 @@ class WashingPaymentController extends Controller
             ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -412,7 +412,7 @@ class WashingPaymentController extends Controller
             $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
             $totalPaid = $directPaid + $allocatedPaid;
             
-            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_cost = (float)($w->total_price);
             $w->total_paid = (float)$totalPaid;
             $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             
@@ -536,8 +536,8 @@ class WashingPaymentController extends Controller
         $paymentsByRef = \App\WashingPayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('wash_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('wash_number')
             ->get()
@@ -548,7 +548,7 @@ class WashingPaymentController extends Controller
             ->join('production_batches', 'washing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('washing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -560,7 +560,7 @@ class WashingPaymentController extends Controller
             $allocatedPaid = $allocationsByRef->get($w->wash_number_sh) ?? 0.0;
             $totalPaid = $directPaid + $allocatedPaid;
             
-            $w->total_cost = (float)($w->total_price ?: $w->af_total_price);
+            $w->total_cost = (float)($w->total_price);
             $w->total_paid = (float)$totalPaid;
             $w->remaining_balance = max(0, $w->total_cost - $w->total_paid);
             

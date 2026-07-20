@@ -296,3 +296,10 @@
 </body>
 
 </html>
+<li><i class="fas fa-globe"></i> <span>Real-time Global Operations Management</span></li>
+</ul>
+</div>
+</div>
+</body>
+
+</html>

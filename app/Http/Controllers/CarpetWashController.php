@@ -485,7 +485,9 @@ class CarpetWashController extends Controller
 
             $result = $this->inventoryManager->recordProductionService($carpet_wash, $carpet, [
                 'type' => 'WASHING',
-                'amount' => $baseAmount,
+                'amount' => ($request->currency_code === 'USD') ? $request->total_price : $request->af_total_price,
+                'currency_code' => $request->currency_code,
+                'exchange_rate' => $request->exchange_rate,
                 'date' => $request->date,
                 'party_type' => 'App\WashingTeam',
                 'party_id' => $carpet_wash->team_id,
@@ -521,10 +523,13 @@ class CarpetWashController extends Controller
                 $carpet->width = $request->width;
                 $carpet->area = $request->area;
                 $carpet->washed_width = $request->width;
+                $carpet->washed_width = $request->width;
                 $carpet->washed_height = $request->height;
                 $carpet->washed_area = $request->area;
-                $carpet->total_price = $carpet->total_price + $request->af_total_price;
-                $carpet->total_price_af = $carpet->total_price_af + ($request->af_total_price * ($request->exchange_rate ?? 1));
+                
+                $carpet->total_price = $carpet->total_price + $baseAmount;
+                // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+                $carpet->total_price_af = $carpet->total_price_af + $request->af_total_price;
                 $carpet->warehouse_id = $request->warehouse_id;
                 $carpet->update();
 
@@ -695,9 +700,16 @@ class CarpetWashController extends Controller
             }
 
             // Sync carpet pricing and dimensions
+            // Sync carpet pricing and dimensions
             $originalArea = $carpet->area ?? 0;
-            $carpet->total_price = $carpet->total_price - $wash->af_total_price + $request->af_total_price;
-            $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + ($request->af_total_price * ($request->exchange_rate ?? 1));
+            
+            $baseAmount = ($request->currency_code === 'USD') 
+                ? $request->total_price 
+                : $request->total_price;
+                
+            $carpet->total_price = $carpet->total_price - $wash->base_currency_amount + $baseAmount;
+            // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+            $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + $request->af_total_price;
             $carpet->washing_id = $request->team_id;
             $carpet->height = $request->height;
             $carpet->width = $request->width;
@@ -706,10 +718,6 @@ class CarpetWashController extends Controller
             $carpet->washed_height = $request->height;
             $carpet->washed_area = $request->area;
             $carpet->update();
-
-            $baseAmount = ($request->currency_code === 'USD') 
-                ? $request->total_price 
-                : $request->total_price;
 
             $wash->wash_number = $request->wash_number;
             $wash->wash_number_sh = $request->wash_number_sh;
@@ -732,7 +740,9 @@ class CarpetWashController extends Controller
             $result = $this->inventoryManager->recordProductionService($wash, $carpet, [
                 'type' => 'WASHING',
                 'mapping_key' => 'WASHING_CREDIT',
-                'amount' => $baseAmount,
+                'amount' => ($request->currency_code === 'USD') ? $request->total_price : $request->af_total_price,
+                'currency_code' => $request->currency_code,
+                'exchange_rate' => $request->exchange_rate,
                 'date' => $wash->date,
                 'party_type' => 'App\WashingTeam',
                 'party_id' => $wash->team_id,
@@ -935,6 +945,12 @@ class CarpetWashController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $wash = CarpetWash::find($id);
+            if ($wash && $wash->carpet) {
+                $carpet = $wash->carpet;
+                $carpet->total_price -= $wash->base_currency_amount;
+                $carpet->total_price_af -= $wash->af_total_price;
+                $carpet->update();
+            }
             // Reverse Accounting - pass class name to avoid ID collision reversals with other models
             $this->accountingService->reverseTransactionBySource($wash->id, 'Wash Record Deleted', get_class($wash));
             $wash->delete();

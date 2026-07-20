@@ -6,27 +6,35 @@
 
     <!-- Header & Search Section -->
     <div class="row align-items-center mb-4">
-        <div class="col-md-6">
-            <h3 class="mb-0 font-weight-bold text-dark"><i class="fa fa-shopping-cart text-primary mr-2"></i> مدیریت فروشات</h3>
-            <p class="text-muted small mb-0">لیست تمامی قالین‌های فروخته شده و تحلیل مفاد</p>
+        <div class="col-md-4">
+            <h3 class="mb-0 font-weight-bold text-white"><i class="fa fa-shopping-cart mr-2 text-white"></i> مدیریت فروشات</h3>
+            <p class="small mb-0 text-white" style="opacity: 0.9;">لیست تمامی قالین‌های فروخته شده و تحلیل مفاد</p>
         </div>
-        <div class="col-md-6 text-right">
+        <div class="col-md-8 text-right">
             <div class="d-flex justify-content-end align-items-center">
-                <form action="/dashboard/search-carpet-from-sales" method="post" class="mr-2">
+                <form action="/dashboard/search-carpet-from-sales" method="post" class="mr-2 mb-0">
                     @csrf
-                    <div class="input-group">
-                        <input type="text" name="search" class="form-control form-control-sm border-0 shadow-sm px-3" 
-                               placeholder="جستجوی نمبر قالین، انوایس یا مشتری..." style="border-radius: 20px; width: 250px;">
+                    <div class="input-group shadow-sm" style="border-radius: 25px; overflow: hidden; border: 1px solid #e2e8f0; background: #fff;">
+                        <input type="text" name="search" class="form-control border-0 px-4" 
+                               value="{{ request('search', $search ?? '') }}"
+                               placeholder="جستجوی نمبر قالین، انوایس یا مشتری..." style="width: 280px; box-shadow: none !important; font-size: 0.9rem; height: auto; padding-top: 8px; padding-bottom: 8px;">
                         <div class="input-group-append">
-                            <button class="btn btn-primary btn-sm px-3 shadow-sm" type="submit" style="border-radius: 0 20px 20px 0;">
-                                <i class="fa fa-search"></i>
+                            <button class="btn btn-primary px-4 font-weight-bold" type="submit" style="border-radius: 0; box-shadow: none;">
+                                <i class="fa fa-search mr-1"></i> جستجو
                             </button>
                         </div>
                     </div>
                 </form>
-                <button class="btn btn-outline-primary btn-sm px-3 shadow-sm" onclick="printPage('salesTableCard')">
-                    <i class="fa fa-print mr-1"></i> چاپ لیست
-                </button>
+                
+                @if(request('search') || (isset($search) && $search != ''))
+                <a href="/dashboard/sales" class="btn btn-light shadow-sm mr-2" style="border-radius: 20px; border: 1px solid #cbd5e1; font-weight: 600; padding: 6px 16px;">
+                    <i class="fa fa-times-circle text-danger mr-1"></i> پاک کردن
+                </a>
+                @endif
+
+                <a href="{{ route('sales.pdf_export', ['search' => request('search', $search ?? '')]) }}" target="_blank" class="btn btn-danger shadow-sm mr-2" style="border-radius: 20px; font-weight: 600; padding: 6px 16px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none;">
+                    <i class="fa fa-file-pdf-o mr-1"></i> خروجی PDF
+                </a>
             </div>
         </div>
     </div>
@@ -297,7 +305,7 @@
     @endif
 
     <!-- Main Table Card -->
-    <div class="card border-0 shadow-sm rounded-lg overflow-hidden" id="salesTableCard">
+    <div class="card border-0 shadow-sm rounded-lg" id="salesTableCard">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
@@ -308,6 +316,8 @@
                             <th class="border-0 py-3">مشخصات قالین</th>
                             <th class="border-0 py-3 text-center">ابعاد (m)</th>
                             <th class="border-0 py-3 text-center">مساحت (m²)</th>
+                            <th class="border-0 py-3 text-center">قیمت خرید</th>
+                            <th class="border-0 py-3 text-center">قیمت تمام شد (COGS)</th>
                             <th class="border-0 py-3 text-center">قیمت فی متر</th>
                             <th class="border-0 py-3 text-center">مجموع فروش</th>
                             @if(auth()->user()->role == 'SP')
@@ -374,18 +384,51 @@
                                     {{ round($sale->carpet_area ?? ($sale->carpet->area ?? 0), 2) }}
                                 @endif
                             </td>
-                            <td class="text-center font-weight-bold text-info">
+                            <td class="text-center font-weight-bold text-muted">
                                 @if($sale->is_returned)
-                                    <del>${{ number_format($sale->sale_cost_per_meter, 2) }}</del>
+                                    <del>${{ number_format($sale->carpet->carpet_price_us ?? $sale->carpet->original_price, 2) }}</del>
                                 @else
-                                    ${{ number_format($sale->sale_cost_per_meter, 2) }}
+                                    ${{ number_format($sale->carpet->carpet_price_us ?? $sale->carpet->original_price, 2) }}
+                                @endif
+                            </td>
+                            <td class="text-center font-weight-bold text-danger">
+                                @if($sale->is_returned)
+                                    <del>${{ number_format($sale->carpet->total_price ?? 0, 2) }}</del>
+                                @else
+                                    ${{ number_format($sale->carpet->total_price ?? 0, 2) }}
+                                @endif
+                            </td>
+                            <td class="text-center font-weight-bold text-info">
+                                <?php
+                                    $saleUsdPerMeter = $sale->sale_cost_per_meter;
+                                    $saleUsdTotal = $sale->sale_cost_total;
+                                    if ($sale->currency_code !== 'USD' && $sale->exchange_rate > 0) {
+                                        if ($sale->exchange_rate > 1) {
+                                            $saleUsdPerMeter = $sale->sale_cost_per_meter / $sale->exchange_rate;
+                                            $saleUsdTotal = $sale->sale_cost_total / $sale->exchange_rate;
+                                        } else {
+                                            $saleUsdPerMeter = $sale->sale_cost_per_meter * $sale->exchange_rate;
+                                            $saleUsdTotal = $sale->sale_cost_total * $sale->exchange_rate;
+                                        }
+                                    }
+                                ?>
+                                @if($sale->is_returned)
+                                    <del>${{ number_format($saleUsdPerMeter, 2) }} <br><span class="small text-muted">({{ $sale->currency_code }} {{ number_format($sale->sale_cost_per_meter, 2) }})</span></del>
+                                @else
+                                    ${{ number_format($saleUsdPerMeter, 2) }} 
+                                    @if($sale->currency_code !== 'USD')
+                                        <br><span class="small text-muted">({{ $sale->currency_code }} {{ number_format($sale->sale_cost_per_meter, 2) }})</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-center">
                                 @if($sale->is_returned)
-                                    <del class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</del>
+                                    <del class="font-weight-bold text-success">${{ number_format($saleUsdTotal, 2) }} <br><span class="small text-muted">({{ $sale->currency_code }} {{ number_format($sale->sale_cost_total, 2) }})</span></del>
                                 @else
-                                    <span class="font-weight-bold text-success">${{ number_format($sale->sale_cost_total, 2) }}</span>
+                                    <span class="font-weight-bold text-success">${{ number_format($saleUsdTotal, 2) }}</span>
+                                    @if($sale->currency_code !== 'USD')
+                                        <br><span class="small text-muted">({{ $sale->currency_code }} {{ number_format($sale->sale_cost_total, 2) }})</span>
+                                    @endif
                                 @endif
                             </td>
                             @if(auth()->user()->role == 'SP')
@@ -468,6 +511,9 @@
     .shadow-sm { box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important; }
     .rounded-lg { border-radius: 0.75rem !important; }
     .dropdown-item:hover { background-color: #f8f9fa; }
+    /* Fix for dropdowns inside table-responsive getting clipped */
+    .table-responsive { padding-bottom: 150px; }
+    .table-responsive .dropdown-menu { z-index: 9999 !important; }
     @media print {
         .hideOnPrint { display: none !important; }
         .card { border: none !important; shadow: none !important; }
@@ -501,26 +547,14 @@
                 var total_cost = (sale_cost_per_meter * carpet_area).toFixed(2);
                 $('#sale_cost_total').val(total_cost);
                 
-                // Total in USD
-                var total_usd = (total_cost * (exchange_rate > 0 ? 1/exchange_rate : 1)).toFixed(2);
-                if ($('#sale_currency_id').find(':selected').data('rate') == 1 || $('#sale_currency_id').find(':selected').text().includes('USD')) {
-                    total_usd = (total_cost * exchange_rate).toFixed(2); // If they input differently, but typically rate is 1 for USD. Let's stick to exchange logic
-                    // Wait, standard logic in Create form was: total_usd = (total_cost * exchange_rate) if exchange_rate was direct. 
-                    // Let's use the exact create form logic:
-                    total_usd = (total_cost * exchange_rate).toFixed(2);
-                } else {
-                    total_usd = (total_cost / exchange_rate).toFixed(2);
-                }
-                
-                // Wait, standard Create form logic:
-                // var total_usd = (total_cost * exchange_rate).toFixed(2);
-                // Actually if AFN is 70, they should divide. The user's original logic in create form was: `(total_cost * exchange_rate).toFixed(2)`. Let's stick to the original if they had it that way, OR I can just use the controller's logic:
-                // saleCostUsd = (currency == 'USD') ? total_cost : (total_cost / exchange_rate)
+                // FORENSIC RULE: Use mathematical multiplication to match backend AccountingService
                 var currencyCode = $('#sale_currency_id').find(':selected').text();
+                var total_usd = 0;
+                
                 if (currencyCode.includes('USD')) {
                     total_usd = total_cost;
                 } else {
-                    total_usd = (exchange_rate > 0 ? total_cost / exchange_rate : 0).toFixed(2);
+                    total_usd = (total_cost * exchange_rate).toFixed(2);
                 }
                 
                 $('#sale_cost_total_usd').val(total_usd);
@@ -562,6 +596,12 @@
                     $('#package_id').html(data.html).trigger('change');
                 }
             });
+        });
+        // Dynamic fix for dropdowns getting clipped inside table-responsive
+        $('.table-responsive').on('show.bs.dropdown', function () {
+            $(this).css('overflow', 'visible');
+        }).on('hide.bs.dropdown', function () {
+            $(this).css('overflow', 'auto');
         });
     });
 </script>

@@ -233,7 +233,7 @@ class PurchaseMaterialController extends Controller
                 'exchange_rate' => $rate,
                 'warehouse_id' => $purchase->warehouse_id ?? 1,
                 'date' => $purchase->purchase_date,
-                'total_amount' => $data['base_currency_amount'], // Use USD for ledger
+                'total_amount' => $data['original_amount'], // Pass the exact original currency amount
                 'party_type' => 'App\StringSeller',
                 'party_id' => $purchase->seller_id,
                 'reference' => $billNumber,
@@ -358,7 +358,7 @@ class PurchaseMaterialController extends Controller
                     'exchange_rate' => $rate,
                     'warehouse_id' => $request->warehouse_id ?? 1,
                     'date' => $purchaseMaterial->purchase_date,
-                    'total_amount' => $data['base_currency_amount'], // Use USD for ledger
+                    'total_amount' => $data['original_amount'], // Pass the exact original currency amount
                     'party_type' => 'App\StringSeller',
                     'party_id' => $purchaseMaterial->seller_id,
                     'reference' => $billNumber,

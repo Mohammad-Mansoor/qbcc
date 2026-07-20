@@ -29,10 +29,21 @@ class NewDifferentAccountPaymentController extends Controller
     {
         try {
             $condition = $payment->type; // 'رسید' or 'گرفت'
+
+            $currencyMap = [
+                1 => 'AFN',
+                2 => 'USD',
+                3 => 'PKR'
+            ];
+            $currencyCode = $currencyMap[$payment->currency] ?? 'USD';
+            $dbCurrency = \App\Currency::where('code', $currencyCode)->first();
+            $exchangeRate = $dbCurrency ? $dbCurrency->exchange_rate : 1.0;
             
             $this->accountingService->postAutoTransaction('different_account', $condition, [
                 'date' => $payment->date,
                 'amount' => $payment->amount,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'party_type' => 'App\NewDifferentAccount',
                 'party_id' => $payment->account_id,
                 'reference' => 'MISC-PAY-' . $payment->id,

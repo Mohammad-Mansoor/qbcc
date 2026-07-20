@@ -27,12 +27,13 @@ class EmployeePaymentController extends Controller
     private function postPaymentToAccounting($payment)
     {
         try {
-            // Always use USD-normalized base amount for GL
-            $baseAmount = $payment->base_currency_amount ?? $payment->amount ?? 0;
+            $amount = $payment->original_amount ?? $payment->amount ?? 0;
 
             $this->accountingService->postAutoTransaction('employee_payment', 'PAYROLL_PAYMENT', [
                 'date'         => $payment->date,
-                'amount'       => $baseAmount,
+                'amount'       => $amount,
+                'currency_code'=> $payment->currency_code,
+                'exchange_rate'=> $payment->exchange_rate,
                 'party_type'   => 'App\OfficeEmployee',
                 'party_id'     => $payment->employee_id,
                 'reference'    => 'EMP-PAY-' . $payment->id,

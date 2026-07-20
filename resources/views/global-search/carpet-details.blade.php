@@ -327,23 +327,42 @@
                                         <tr>
                                             <th>تیم/تاریخ</th>
                                             <th>عملیات</th>
+                                            <th class="text-center">نرخ واحد (Rate)</th>
                                             <th class="text-right">هزینه ($)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @php $totalFinishCost = 0; @endphp
                                         @foreach($carpet->finishing_works as $fw)
-                                        @php $totalFinishCost += $fw->price; @endphp
+                                        @php 
+                                            $totalFinishCost += $fw->price;
+                                            $unitPrice = 0;
+                                            $unitLabel = '';
+                                            $categoryId = $fw->category_id;
+                                            if (in_array($categoryId, [1, 3, 5, 6, 7, 9])) {
+                                                $unitPrice = $carpet->area > 0 ? ($fw->price / $carpet->area) : 0;
+                                                $unitLabel = '/m²';
+                                            } elseif (in_array($categoryId, [4, 8])) {
+                                                $unitPrice = $carpet->height > 0 ? ($fw->price / ($carpet->height * 2)) : 0;
+                                                $unitLabel = '/m';
+                                            } elseif ($categoryId == 2) {
+                                                $unitPrice = $fw->price;
+                                                $unitLabel = '(ثابت)';
+                                            }
+                                        @endphp
                                         <tr>
                                             <td>{{ $fw->team->name ?? 'N/A' }} <br><small class="text-muted" style="direction: ltr;">{{ $fw->date }}</small></td>
                                             <td>
                                                 <span class="badge badge-light border">{{ $fw->category ? $fw->category->category : 'N/A' }}</span>
                                             </td>
+                                            <td class="text-center text-muted" style="direction: ltr;">
+                                                <small>${{ number_format($unitPrice, 2) }} {{ $unitLabel }}</small>
+                                            </td>
                                             <td class="text-right font-weight-bold" style="direction: ltr;">${{ number_format($fw->price, 2) }}</td>
                                         </tr>
                                         @endforeach
                                         <tr class="border-top">
-                                            <td colspan="2" class="text-left font-weight-bold text-dark">مجموع هزینه تیاری:</td>
+                                            <td colspan="3" class="text-left font-weight-bold text-dark">مجموع هزینه تیاری:</td>
                                             <td class="text-right font-weight-bold text-success" style="direction: ltr;">${{ number_format($totalFinishCost, 2) }}</td>
                                         </tr>
                                     </tbody>

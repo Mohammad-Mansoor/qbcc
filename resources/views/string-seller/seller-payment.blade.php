@@ -273,6 +273,7 @@
 
                                 <div class="form-group mb-4" id="is_advance_container">
                                     <div class="custom-control custom-checkbox text-right" style="direction: rtl;">
+                                        <input type="hidden" name="is_advance" value="0">
                                         <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" {{ ($paymentEdit && !$paymentEdit->is_advance) ? '' : 'checked' }}>
                                         <label class="custom-control-label field-label pr-4" for="is_advance" style="cursor: pointer;">به عنوان پیش‌پرداخت (As Advance Payment)</label>
                                     </div>

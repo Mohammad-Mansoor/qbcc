@@ -138,9 +138,9 @@ class EntityStatementController extends Controller
             ->where('ledger_transactions.date', '<', $from_date);
 
         if ($entityKey === 'customer') {
-            $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(debit - credit) as balance'))->value('balance') ?? 0;
+            $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(base_debit - base_credit) as balance'))->value('balance') ?? 0;
         } else {
-            $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(credit - debit) as balance'))->value('balance') ?? 0;
+            $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(base_credit - base_debit) as balance'))->value('balance') ?? 0;
         }
 
         // 2. Query Ledger Transactions
@@ -173,6 +173,8 @@ class EntityStatementController extends Controller
             'ledger_transactions.description',
             'ledger_entries.debit',
             'ledger_entries.credit',
+            'ledger_entries.base_debit',
+            'ledger_entries.base_credit',
             'ledger_entries.currency_code',
             'ledger_entries.exchange_rate',
             'ledger_entries.base_currency_amount'
@@ -283,9 +285,9 @@ class EntityStatementController extends Controller
                 ->where('ledger_transactions.date', '<', $startDate);
 
             if ($entityKey === 'customer') {
-                $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(debit - credit) as balance'))->value('balance') ?? 0;
+                $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(base_debit - base_credit) as balance'))->value('balance') ?? 0;
             } else {
-                $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(credit - debit) as balance'))->value('balance') ?? 0;
+                $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(base_credit - base_debit) as balance'))->value('balance') ?? 0;
             }
 
             $query = DB::table('ledger_entries')
@@ -313,6 +315,8 @@ class EntityStatementController extends Controller
                 'ledger_transactions.source_id',
                 'ledger_entries.debit',
                 'ledger_entries.credit',
+                'ledger_entries.base_debit',
+                'ledger_entries.base_credit',
                 'ledger_entries.currency_code',
                 'ledger_entries.exchange_rate',
                 'ledger_entries.base_currency_amount',
@@ -400,6 +404,8 @@ class EntityStatementController extends Controller
                         'description' => $earliest->description,
                         'debit' => $group->sum('debit'),
                         'credit' => $group->sum('credit'),
+                        'base_debit' => $group->sum('base_debit'),
+                        'base_credit' => $group->sum('base_credit'),
                         'currency_code' => $earliest->currency_code,
                         'exchange_rate' => $earliest->exchange_rate,
                         'base_currency_amount' => $group->sum('base_currency_amount'),

@@ -111,6 +111,9 @@
                 <td><b>کش</b></td>
                   <td><b>نرخ</b></td>
                                 <td><b>شیرازه</b></td>
+                                <td><b>نرخ</b></td>
+                                <td><b>کنترول کیفیت</b></td>
+                                <td><b>نرخ</b></td>
 
 
               </tr>
@@ -129,6 +132,7 @@
               @php($total_kash = 0)
               @php($total_rang = 0)
                 @php($total_shiraza = 0)
+                @php($total_quality = 0)
 
               @forelse ($finishing_works as $finish)
 
@@ -142,6 +146,7 @@
                   $kash = \App\FinishingWork::where('carpetId', $finish->carpetId)->where('team_id', $team->id)->where('finish_number', $finish_number)->where('category_id', 6)->get();
                   $rang = \App\FinishingWork::where('carpetId', $finish->carpetId)->where('team_id', $team->id)->where('finish_number', $finish_number)->where('category_id', 7)->get();
                   $shiraza = \App\FinishingWork::where('carpetId', $finish->carpetId)->where('team_id', $team->id)->where('finish_number', $finish_number)->where('category_id', 8)->get();
+                  $quality = \App\FinishingWork::where('carpetId', $finish->carpetId)->where('team_id', $team->id)->where('finish_number', $finish_number)->where('category_id', 9)->get();
 
                   ?>
                   <span style="display: none">
@@ -376,6 +381,32 @@
                                         </td>
                                     @else
                                         <td></td>
+                                        <td></td>
+                                    @endif
+
+                                     @if($quality)
+                                        <td>
+                                            @foreach($quality as $qa)
+                                                @if($qa->carpet->carpet_wash)
+                                                    <span style="display: none">{{$total_quality += $qa->carpet->carpet_wash->area }}</span>
+                                                    {{round($qa->price_af / $qa->carpet->carpet_wash->area , 2)}} |
+                                                @else
+                                                    <span style="display: none">{{$total_quality += $qa->carpet->area }}</span>
+                                                    {{round($qa->price_af / $qa->carpet->area , 2)}} |
+                                                @endif
+                                            @endforeach
+                                        </td>
+                                        <td>
+                                            @foreach($quality as $qa)
+                                                <span style="display: none">
+                                                    {{$total_amount += $qa->price_af}}
+                                                </span>
+                                                {{$qa->price_af}} |
+                                            @endforeach
+                                        </td>
+                                    @else
+                                        <td></td>
+                                        <td></td>
                                     @endif
 
                   </tr>
@@ -407,6 +438,8 @@
                   
                    <td>جمله متراژ شیرازه</td>
                                 <td>{{$total_shiraza}}</td>
+                   <td>جمله متراژ کنترول کیفیت</td>
+                                <td>{{$total_quality}}</td>
 
 
               </tr>

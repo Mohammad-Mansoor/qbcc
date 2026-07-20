@@ -71,9 +71,8 @@ class PayrollController extends Controller
             ->get()
             ->unique('id'); // One row per employee (latest salary)
 
-        $selectionService      = new AccountSelectionService();
-        $allowedDebitAccounts  = $selectionService->getValidAccounts('PAYROLL_ACCRUAL', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PAYROLL_ACCRUAL', 'credit');
+        $allowedDebitAccounts  = \App\ChartOfAccount::all();
+        $allowedCreditAccounts = \App\ChartOfAccount::all();
         $mapping               = \App\MappingRule::where('mapping_key', 'PAYROLL_ACCRUAL')->first();
         $currencies            = \App\Currency::where('is_active', 1)->get();
 
@@ -164,19 +163,51 @@ class PayrollController extends Controller
             DB::table('payroll_items')->insert($items);
 
             // POST TO ACCOUNTING (ACCRUAL: DR Salary Expense / CR Salary Payable)
-            // Amount is the total USD-normalized figure for balanced GL entry
-            $this->accountingService->postAutoTransaction('payroll', 'PAYROLL_ACCRUAL', [
-                'date'                       => $request->run_date,
-                'amount'                     => $totalAmountUSD,
-                'currency_code'              => 'USD',
-                'exchange_rate'              => 1,
-                'reference'                  => 'PAY-' . $request->month_year,
-                'description'                => 'Salary Accrual for ' . $request->month_year,
-                'source_type'                => 'PayrollRun',
-                'source_id'                  => $runId,
-                'override_debit_account_id'  => $request->override_debit_account_id,
-                'override_credit_account_id' => $request->override_credit_account_id,
+            // Instead of a lump sum, we create individual entries per employee for their statement.
+            $rule = \App\MappingRule::where('mapping_key', 'PAYROLL_ACCRUAL')->first();
+            $debitAccountId = $request->override_debit_account_id ?? $rule->debit_account_id;
+            $creditAccountId = $request->override_credit_account_id ?? $rule->credit_account_id;
+
+            $debitAcc = \App\ChartOfAccount::find($debitAccountId);
+            $creditAcc = \App\ChartOfAccount::find($creditAccountId);
+
+            $ledgerEntries = [];
+
+            foreach ($items as $item) {
+                // Debit Entry (Expense)
+                $ledgerEntries[] = [
+                    'account_id' => $debitAccountId,
+                    'debit' => $item['net_salary'],
+                    'credit' => 0,
+                    'currency_code' => $item['currency_code'],
+                    'exchange_rate' => $item['exchange_rate'],
+                    'party_type' => 'App\OfficeEmployee',
+                    'party_id' => $item['employee_id'],
+                ];
+
+                // Credit Entry (Payable/Cash)
+                $ledgerEntries[] = [
+                    'account_id' => $creditAccountId,
+                    'debit' => 0,
+                    'credit' => $item['net_salary'],
+                    'currency_code' => $item['currency_code'],
+                    'exchange_rate' => $item['exchange_rate'],
+                    'party_type' => 'App\OfficeEmployee',
+                    'party_id' => $item['employee_id'],
+                ];
+            }
+
+            $this->accountingService->postTransaction([
+                'date' => $request->run_date,
+                'reference' => 'PAY-' . $request->month_year,
+                'description' => 'Salary Accrual for ' . $request->month_year,
+                'source_type' => 'PayrollRun',
+                'source_id' => $runId,
+                'mapping_key' => 'PAYROLL_ACCRUAL',
+                'journal_type' => 'payment',
+                'entries' => $ledgerEntries
             ]);
+
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');

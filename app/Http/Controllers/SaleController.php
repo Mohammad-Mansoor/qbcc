@@ -106,6 +106,43 @@ class SaleController extends Controller
         $all = '';
         return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','all'));
     }
+    public function exportPdf(Request $request)
+    {
+        $search = $request->search;
+
+        $query = Sale::with(['carpet', 'invoice', 'customer']);
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('type', 'like', '%' . $search . '%')
+                  ->orWhere('quality', 'like', '%' . $search . '%')
+                  ->orWhereHas('carpet', function($q2) use ($search) {
+                      $q2->where('carpet_no', 'like', '%' . $search . '%')
+                        ->orWhere('width', 'like', '%' . $search . '%')
+                        ->orWhere('height', 'like', '%' . $search . '%')
+                        ->orWhere('area', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('invoice', function($q3) use ($search) {
+                      $q3->where('invoice_no', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('customer', function($q4) use ($search) {
+                      $q4->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('customer_code', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+        
+        $sales = $query->orderBy('created_at', 'DESC')->get();
+        
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        return view('sales.pdf_sales', compact('sales', 'search', 'logoBase64'));
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -156,7 +193,8 @@ class SaleController extends Controller
             
             $currencyCode = \App\Currency::find($request->currency_id)->code ?? 'USD';
             $exchangeRate = $request->exchange_rate ?? 1.0;
-            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : ($exchangeRate > 0 ? $sale->sale_cost_total / $exchangeRate : 0);
+            // FORENSIC RULE: Use safe BCMath multiplication to match AccountingService
+            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : bcmul((string)$sale->sale_cost_total, (string)$exchangeRate, 4);
             
             $sale->profit = $saleCostUsd - $total_price_cost;
             $sale->type = $request->carpet_type;
@@ -304,7 +342,8 @@ class SaleController extends Controller
             
             $currencyCode = \App\Currency::find($request->currency_id)->code ?? 'USD';
             $exchangeRate = $request->exchange_rate ?? 1.0;
-            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : ($exchangeRate > 0 ? $sale->sale_cost_total / $exchangeRate : 0);
+            // FORENSIC RULE: Use safe BCMath multiplication to match AccountingService
+            $saleCostUsd = ($currencyCode == 'USD') ? $sale->sale_cost_total : bcmul((string)$sale->sale_cost_total, (string)$exchangeRate, 4);
             
             $sale->profit = $saleCostUsd - $total_price_cost;
             

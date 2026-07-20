@@ -5,10 +5,12 @@
 <style>
   /* Premium Glassmorphism & Custom Elements */
   /* Prevent dropdown clipping in responsive tables */
-  .table-responsive,
   .modern-card,
   .modern-table td {
     overflow: visible !important;
+  }
+  .table-responsive {
+    overflow-x: auto !important;
   }
   .dropdown-menu {
     position: absolute !important;
@@ -712,8 +714,9 @@
                   <div class="form-group fill">
                       <label class="text-info font-weight-bold small">حساب دریافتنی/نقد (Revenue Debit)</label>
                       <select name="override_debit_account_id" id="override_debit_account_id" class="form-control select2-modal">
+                          <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                           @foreach($allowedRevenueDebit as $acc)
-                              <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                              <option value="{{ $acc->id }}">
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                               </option>
                           @endforeach
@@ -724,8 +727,9 @@
                   <div class="form-group fill">
                       <label class="text-info font-weight-bold small">حساب فروش/عاید (Revenue Credit)</label>
                       <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2-modal">
+                          <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                           @foreach($allowedRevenueCredit as $acc)
-                              <option value="{{ $acc->id }}" {{ ($mappingRevenue && $mappingRevenue->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                              <option value="{{ $acc->id }}">
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                               </option>
                           @endforeach
@@ -738,8 +742,9 @@
                   <div class="form-group fill">
                       <label class="text-warning font-weight-bold small">حساب هزینه تمام شد (COGS Debit)</label>
                       <select name="override_cogs_debit_id" id="override_cogs_debit_id" class="form-control select2-modal">
+                          <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                           @foreach($allowedCogsDebit as $acc)
-                              <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->debit_account_id == $acc->id) ? 'selected' : '' }}>
+                              <option value="{{ $acc->id }}">
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                               </option>
                           @endforeach
@@ -750,8 +755,9 @@
                   <div class="form-group fill">
                       <label class="text-warning font-weight-bold small">حساب موجودی گدام (Inventory Credit)</label>
                       <select name="override_cogs_credit_id" id="override_cogs_credit_id" class="form-control select2-modal">
+                          <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                           @foreach($allowedCogsCredit as $acc)
-                              <option value="{{ $acc->id }}" {{ ($mappingCogs && $mappingCogs->credit_account_id == $acc->id) ? 'selected' : '' }}>
+                              <option value="{{ $acc->id }}">
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                               </option>
                           @endforeach

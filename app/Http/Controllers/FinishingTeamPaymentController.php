@@ -224,8 +224,8 @@ class FinishingTeamPaymentController extends Controller
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('finish_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('finish_number')
             ->get()
@@ -236,7 +236,7 @@ class FinishingTeamPaymentController extends Controller
             ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -341,8 +341,8 @@ class FinishingTeamPaymentController extends Controller
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('finish_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('finish_number')
             ->get()
@@ -353,7 +353,7 @@ class FinishingTeamPaymentController extends Controller
             ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -468,8 +468,8 @@ class FinishingTeamPaymentController extends Controller
         $paymentsByRef = \App\FinishingTeamPayment::where('team_id', $paymentEdit->team_id)
             ->where('status', '!=', 2)
             ->select('finish_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('finish_number')
             ->get()
@@ -480,7 +480,7 @@ class FinishingTeamPaymentController extends Controller
             ->join('production_batches', 'finishing_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('finishing_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 

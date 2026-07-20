@@ -198,7 +198,7 @@
                                         if ($workForCat && $workPrice > 0) {
                                             $totalOrig = ($workForCat->currency_code == 'AFN') ? $workForCat->price_af : $workForCat->price;
                                             $uPrice = 0;
-                                            if (in_array($cat->id, [1, 3, 5, 6, 7])) {
+                                            if (in_array($cat->id, [1, 3, 5, 6, 7, 9])) {
                                                 $uPrice = $area > 0 ? ($totalOrig / $area) : 0;
                                             } elseif (in_array($cat->id, [4, 8])) {
                                                 $uPrice = ($carpet->height > 0) ? ($totalOrig / ($carpet->height * 2)) : 0;

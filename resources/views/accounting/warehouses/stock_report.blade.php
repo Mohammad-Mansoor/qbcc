@@ -57,8 +57,99 @@
             <p class="mb-0 text-white-50">رهگیری و تحلیل تمام موجودی داخل این گدام</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('accounting.warehouses.stock_report_excel', $warehouse->id) }}" class="btn btn-success btn-export"><i class="fa fa-file-excel-o"></i> خروجی اکسل (Excel)</a>
-            <a href="{{ route('accounting.warehouses.stock_report_pdf', $warehouse->id) }}" target="_blank" class="btn btn-danger btn-export"><i class="fa fa-file-pdf-o"></i> خروجی پی‌دی‌اف (PDF)</a>
+            <a href="{{ route('accounting.warehouses.stock_report_excel', array_merge(['id' => $warehouse->id], request()->query())) }}" class="btn btn-success btn-export"><i class="fa fa-file-excel-o"></i> خروجی اکسل (Excel)</a>
+            <a href="{{ route('accounting.warehouses.stock_report_pdf', array_merge(['id' => $warehouse->id], request()->query())) }}" target="_blank" class="btn btn-danger btn-export"><i class="fa fa-file-pdf-o"></i> خروجی پی‌دی‌اف (PDF)</a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card border-0 shadow-sm rounded-lg mb-4" style="background: white;">
+        <div class="card-body p-4">
+            <form action="{{ route('accounting.warehouses.stock_report', $warehouse->id) }}" method="GET">
+                <div class="row align-items-end">
+                    @if($warehouse->subtype === 'carpet')
+                        <div class="col-md-3 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">جستجو (شماره، نقشه، رنگ)</label>
+                            <input type="text" name="search" class="form-control" style="border-radius: 10px; background: #f8fafc;" placeholder="جستجو..." value="{{ request('search') }}">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">نوعیت قالین</label>
+                            <select name="type_id" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="">همه نوعیت‌ها</option>
+                                @foreach($carpetTypes as $type)
+                                    <option value="{{ $type->carpet_type_id }}" {{ request()->filled('type_id') && request('type_id') == $type->carpet_type_id ? 'selected' : '' }}>{{ $type->carpet_type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">کوالیتی</label>
+                            <select name="quality_id" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="">همه کیفیت‌ها</option>
+                                @foreach($qualities as $quality)
+                                    <option value="{{ $quality->quality_id }}" {{ request()->filled('quality_id') && request('quality_id') == $quality->quality_id ? 'selected' : '' }}>{{ $quality->quality }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">وضعیت</label>
+                            <select name="status" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="all">همه بجز فروخته شده</option>
+                                @foreach($statuses as $key => $statusName)
+                                    @if($key != 6)
+                                    <option value="{{ $key }}" {{ request()->filled('status') && request('status') != 'all' && request('status') == $key ? 'selected' : '' }}>{{ $statusName }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">عاملیت (Agent)</label>
+                            <select name="agent_id" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="">همه عاملیت‌ها</option>
+                                @foreach($agents as $agent)
+                                    <option value="{{ $agent->id }}" {{ request()->filled('agent_id') && request('agent_id') == $agent->id ? 'selected' : '' }}>{{ $agent->user->name ?? '' }} {{ $agent->user->last_name ?? '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">جستجوی مواد</label>
+                            <input type="text" name="search" class="form-control" style="border-radius: 10px; background: #f8fafc;" placeholder="نام مواد..." value="{{ request('search') }}">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">کتگوری</label>
+                            <select name="category_id" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="">همه کتگوری‌ها</option>
+                                @foreach($materialCategories as $cat)
+                                    <option value="{{ $cat->material_category_id }}" {{ request()->filled('category_id') && request('category_id') == $cat->material_category_id ? 'selected' : '' }}>{{ $cat->material_category }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">نوعیت مواد</label>
+                            <select name="material_type_id" class="form-control" style="border-radius: 10px; background: #f8fafc;">
+                                <option value="">همه نوعیت‌ها</option>
+                                @foreach($materialTypes as $mat)
+                                    <option value="{{ $mat->material_type_id }}" {{ request()->filled('material_type_id') && request('material_type_id') == $mat->material_type_id ? 'selected' : '' }}>{{ $mat->material_type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">حداقل موجودی (KG)</label>
+                            <input type="number" step="0.01" name="min_qty" class="form-control" style="border-radius: 10px; background: #f8fafc;" placeholder="Min" value="{{ request('min_qty') }}">
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label class="font-weight-bold text-muted small mb-1">حداکثر موجودی (KG)</label>
+                            <input type="number" step="0.01" name="max_qty" class="form-control" style="border-radius: 10px; background: #f8fafc;" placeholder="Max" value="{{ request('max_qty') }}">
+                        </div>
+                    @endif
+                    <div class="col-md-12 text-left">
+                        @if(request()->except('id'))
+                            <a href="{{ route('accounting.warehouses.stock_report', $warehouse->id) }}" class="btn btn-light shadow-sm" style="border-radius: 10px; font-weight: 600;"><i class="fa fa-times text-danger mr-1"></i> پاک کردن</a>
+                        @endif
+                        <button type="submit" class="btn btn-primary shadow-sm px-4" style="border-radius: 10px; font-weight: 600;"><i class="fa fa-filter mr-1"></i> فیلتر اعمال کن</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 

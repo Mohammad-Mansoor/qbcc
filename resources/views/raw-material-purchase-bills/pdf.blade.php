@@ -339,8 +339,8 @@
                                     <th style="width: 15%">دسته‌بندی</th>
                                     <th style="width: 15%">گدام</th>
                                     <th style="width: 10%">مقدار (KG)</th>
-                                    <th style="width: 10%">نرخ فی کیلو</th>
-                                    <th style="width: 10%">مجموع</th>
+                                    <th style="width: 10%">نرخ فی کیلو (ارز خرید)</th>
+                                    <th style="width: 10%">مجموع (Base USD)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -355,7 +355,7 @@
                                         <td class="text-center font-bold" style="direction: ltr;">
                                             {{ number_format($purchase->quantity, 2) }} kg</td>
                                         <td class="text-center" style="direction: ltr;">
-                                            ${{ number_format($purchase->price_per_kilo, 2) }}</td>
+                                            {{ number_format($purchase->price_per_kilo, 2) }} {{ $purchase->currency_code ?? 'USD' }}</td>
                                         <td class="text-center font-bold text-dark" style="direction: ltr;">
                                             ${{ number_format($purchase->total, 2) }}</td>
                                     </tr>

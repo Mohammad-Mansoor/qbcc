@@ -174,7 +174,6 @@
                   <th class="border-0 py-3">شماره تماس</th>
                   <th class="border-0 py-3">آدرس</th>
                   <th class="border-0 py-3">باقیات (USD - معادل)</th>
-                  <th class="border-0 py-3">باقیات بر اساس اسعار</th>
                   <th class="border-0 py-3 hideOnPrint">عملیات سیستم</th>
                 </tr>
               </thead>
@@ -205,19 +204,6 @@
                         <span class="text-muted font-weight-bold">$0.00</span>
                       @endif
                     </td>
-
-                    <!-- Selected Currencies Breakdown -->
-                    <td class="align-middle" style="font-size: 0.9rem; direction: ltr;">
-                      @if($usd_bal != 0)
-                        <div class="font-weight-bold" style="color: {{ $usd_bal > 0 ? '#10b981' : '#ef4444' }};">{{ number_format($usd_bal, 2) }} USD</div>
-                      @endif
-                      @if($af_bal != 0)
-                        <div class="font-weight-bold" style="color: {{ $af_bal > 0 ? '#10b981' : '#ef4444' }};">{{ number_format($af_bal, 2) }} AFN</div>
-                      @endif
-                      @if($usd_bal == 0 && $af_bal == 0)
-                        <span class="badge badge-secondary px-2 py-1 rounded-pill">تصفیه (Cleared)</span>
-                      @endif
-                    </td>
                     
                     <!-- Action Buttons -->
                     <td class="align-middle hideOnPrint">
@@ -237,35 +223,7 @@
                   @endif
                 @endforeach
                 
-                @if(!isset($search))
-                  @php
-                      $total_base_rec = \App\WashingPayment::where('type', 'رسید')->sum('base_amount');
-                      $total_base_sent = \App\WashingPayment::where('type', 'گرفت')->sum('base_amount');
-                      $total_normalized_sum = $total_base_rec - $total_base_sent;
-                  @endphp
-                  <tr style="background-color: #f8fafc; border-top: 2px solid #cbd5e1;">
-                    <td colspan="4" class="text-left font-weight-bold text-dark align-middle" style="font-size: 1.1rem;">مجموعه کل (Grand Total):</td>
 
-                    <!-- Total Normalized USD Balance -->
-                    <td class="align-middle" style="direction: ltr;">
-                      @if($total_normalized_sum > 0)
-                        <span class="text-success font-weight-bold" style="font-size: 1.1rem;">+ ${{ number_format($total_normalized_sum, 2) }}</span>
-                      @elseif($total_normalized_sum < 0)
-                        <span class="text-danger font-weight-bold" style="font-size: 1.1rem;">- ${{ number_format(abs($total_normalized_sum), 2) }}</span>
-                      @else
-                        <span class="text-dark font-weight-bold" style="font-size: 1.1rem;">$0.00</span>
-                      @endif
-                    </td>
-                    
-                    <!-- Total Selected Currencies Breakdown -->
-                    <td class="align-middle" style="direction: ltr; font-size: 1rem;">
-                      <div class="font-weight-bold" style="color: {{ ($credit_us - $debit_us) >= 0 ? '#10b981' : '#ef4444' }};">{{ number_format($credit_us - $debit_us, 2) }} USD</div>
-                      <div class="font-weight-bold" style="color: {{ ($credit_af - $debit_af) >= 0 ? '#10b981' : '#ef4444' }};">{{ number_format($credit_af - $debit_af, 2) }} AFN</div>
-                    </td>
-                    
-                    <td class="hideOnPrint"></td>
-                  </tr>
-                @endif
               </tbody>
             </table>
           </div>

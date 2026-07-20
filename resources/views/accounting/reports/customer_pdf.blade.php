@@ -47,8 +47,8 @@
         }
 
         /* Spacers to prevent content from hiding behind fixed header/footer */
-        .header-space { height: 75px; }
-        .footer-space { height: 60px; }
+        .header-space { height: 85px; }
+        .footer-space { height: 70px; }
 
         /* Container for actual text to give it safe padding from page edges */
         .content-wrapper {

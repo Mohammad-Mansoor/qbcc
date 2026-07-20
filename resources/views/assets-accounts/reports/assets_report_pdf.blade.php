@@ -107,8 +107,9 @@
                                     <th style="width: 15%;">حساب / کتگوری</th>
                                     <th style="width: 12%;">کلاس</th>
                                     <th style="width: 12%;">تاریخ خرید</th>
-                                    <th class="text-center" style="width: 15%;">قیمت خرید</th>
-                                    <th class="text-center" style="width: 16%;">اسقاط / عمر مفید</th>
+                                    <th class="text-center" style="width: 12%;">قیمت اصلی</th>
+                                    <th class="text-center" style="width: 12%;">قیمت خرید (Base)</th>
+                                    <th class="text-center" style="width: 15%;">اسقاط / عمر مفید</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -120,21 +121,22 @@
                                     <td>{{ $asset->aa_name }}</td>
                                     <td>{{ $asset->asset_class }}</td>
                                     <td>{{ \Carbon\Carbon::parse($asset->acquisition_date)->format('Y-m-d') }}</td>
-                                    <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($asset->acquisition_cost, 2) }} {{ $asset->currency_code ?? '$' }}</td>
+                                    <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($asset->original_amount ?? $asset->acquisition_cost, 2) }} {{ $asset->currency_code ?? '$' }}</td>
+                                    <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($asset->acquisition_cost, 2) }} USD</td>
                                     <td class="text-center">
                                         {{ number_format($asset->estimated_salvage_value, 2) }} / {{ $asset->estimated_useful_life }} سال
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center" style="padding: 20px;">هیچ جنسی مطابق با فیلترهای اعمال شده یافت نشد.</td>
+                                    <td colspan="9" class="text-center" style="padding: 20px;">هیچ جنسی مطابق با فیلترهای اعمال شده یافت نشد.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                             @if($assets->count() > 0)
                             <tfoot>
                                 <tr class="total-row">
-                                    <td colspan="6" class="text-center">مجموع کلی (Grand Total)</td>
+                                    <td colspan="7" class="text-center">مجموع کلی (Grand Total)</td>
                                     <td class="text-center" style="direction: ltr;">${{ number_format($assets->sum('acquisition_cost'), 2) }}</td>
                                     <td></td>
                                 </tr>

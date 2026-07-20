@@ -137,8 +137,8 @@
             : 'تمامی حالت‌ها';
 
         // Pre-calculate all totals
-        $sum_area     = $carpets->sum('area');
-        $sum_purchase = $carpets->sum('total_price');
+        $sum_area     = $carpets->sum(function($c) { return $c->buying_area > 0 ? $c->buying_area : $c->area; });
+        $sum_purchase = $carpets->sum(function($c) { return $c->carpet_price_us > 0 ? $c->carpet_price_us : $c->total_price; });
         $sum_repair   = $carpets->sum(fn($c) => $c->repair ? $c->repair->sum('total_price') : 0);
         $sum_wash     = $carpets->sum(fn($c) => $c->carpet_wash ? $c->carpet_wash->total_price : 0);
         $sum_finish   = $carpets->sum(fn($c) => $c->finishing_works ? $c->finishing_works->sum('price') : 0);
@@ -219,6 +219,10 @@
         <tbody>
             @forelse($carpets as $index => $carpet)
             @php
+                $origWidth = $carpet->buying_width > 0 ? $carpet->buying_width : $carpet->width;
+                $origHeight = $carpet->buying_height > 0 ? $carpet->buying_height : $carpet->height;
+                $origArea = $carpet->buying_area > 0 ? $carpet->buying_area : $carpet->area;
+                $origTotalPriceUsd = $carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price;
                 $repair_cost  = $carpet->repair ? $carpet->repair->sum('total_price') : 0;
                 $wash_cost    = $carpet->carpet_wash ? $carpet->carpet_wash->total_price : 0;
                 $finish_cost  = $carpet->finishing_works ? $carpet->finishing_works->sum('price') : 0;
@@ -230,10 +234,10 @@
                 <td>{{ $carpet->type->carpet_type ?? '-' }}</td>
                 <td>{{ $carpet->quality->quality ?? '-' }}</td>
                 <td>{{ $carpet->map_number ?? '-' }}</td>
-                <td class="text-center" style="direction:ltr;">{{ $carpet->buying_height ?? $carpet->height }}</td>
-                <td class="text-center" style="direction:ltr;">{{ $carpet->buying_width ?? $carpet->width }}</td>
-                <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
-                <td class="text-center font-bold" style="direction:ltr;">${{ number_format($carpet->total_price, 2) }}</td>
+                <td class="text-center" style="direction:ltr;">{{ $origHeight }}</td>
+                <td class="text-center" style="direction:ltr;">{{ $origWidth }}</td>
+                <td class="text-center font-bold" style="direction:ltr;">{{ number_format($origArea, 2) }}</td>
+                <td class="text-center font-bold" style="direction:ltr;">${{ number_format($origTotalPriceUsd, 2) }}</td>
                 <td class="text-center" style="direction:ltr;">{{ $repair_cost > 0 ? '$'.number_format($repair_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction:ltr;">{{ $wash_cost > 0 ? '$'.number_format($wash_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction:ltr;">{{ $finish_cost > 0 ? '$'.number_format($finish_cost, 2) : '-' }}</td>

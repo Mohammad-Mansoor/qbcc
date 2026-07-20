@@ -116,7 +116,14 @@ class CarpetRepairController extends Controller
         return DB::transaction(function () use ($carpet_id) {
             $carpet_repair = CarpetRepair::where('carpetId',$carpet_id)->first();
             
+            $carpet = Carpet::find($carpet_id);
             if ($carpet_repair) {
+                // Deduct from carpet
+                if ($carpet) {
+                    $carpet->total_price -= $carpet_repair->base_currency_amount;
+                    $carpet->total_price_af -= $carpet_repair->af_total_price;
+                }
+                
                 // Reverse Accounting - pass class name to avoid ID collision reversals with other models
                 $this->accountingService->reverseTransactionBySource($carpet_repair->id, 'Returned to center from repair', get_class($carpet_repair));
                 // Reverse Value Adjustment
@@ -359,7 +366,8 @@ class CarpetRepairController extends Controller
                 $rate = 1;
             } else {
                 $rate = $request->exchange_rate ?? 1;
-                $base_amount = $request->af_total_price / ($rate > 0 ? $rate : 1);
+                // FORENSIC RULE: Use safe BCMath division to correctly convert to base USD amount
+                $base_amount = bcdiv((string)$request->af_total_price, (string)$rate, 4);
             }
 
             $data['currency_code'] = $currency;
@@ -379,13 +387,18 @@ class CarpetRepairController extends Controller
             $activity->save();
             
             $finish->status = 12;
+            $finish->total_price += $base_amount;
+            // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+            $finish->total_price_af += $request->af_total_price;
             $finish->update();
 
             // ERP Integration: Capitalize Cost and Post Payable
             $this->inventoryManager->recordProductionService($record, $finish, [
                 'type' => 'KACHAEE',
                 'mapping_key' => 'kachaee_repair_cost',
-                'amount' => $base_amount,
+                'amount' => ($currency == 'USD') ? $request->total_price : $request->af_total_price,
+                'currency_code' => $currency,
+                'exchange_rate' => $rate,
                 'date' => $request->date,
                 'party_type' => 'App\Kachaee',
                 'party_id' => $request->team_id,
@@ -453,7 +466,8 @@ class CarpetRepairController extends Controller
                 $rate = 1;
             } else {
                 $rate = $request->exchange_rate ?? 1;
-                $base_amount = $request->af_total_price / ($rate > 0 ? $rate : 1);
+                // FORENSIC RULE: Use safe BCMath division to correctly convert to base USD amount
+                $base_amount = bcdiv((string)$request->af_total_price, (string)$rate, 4);
             }
 
             $data['currency_code'] = $currency;
@@ -463,9 +477,16 @@ class CarpetRepairController extends Controller
             // account_id is used for ledger entry mapping, not stored directly in carpet_repairs
             unset($data['account_id']);
             
+            $carpet = Carpet::find($request->carpetId);
+            if ($carpet) {
+                $carpet->total_price = $carpet->total_price - $carpetRepair->base_currency_amount + $base_amount;
+                // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+                $carpet->total_price_af = $carpet->total_price_af - $carpetRepair->af_total_price + $request->af_total_price;
+                $carpet->update();
+            }
+
             $carpetRepair->update($data);
 
-            $carpet = Carpet::find($request->carpetId);
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
             $activity->description = "کچایی قالین نمبر  " . $carpet->carpet_no . " ویرایش شد ";
@@ -476,7 +497,9 @@ class CarpetRepairController extends Controller
             $this->inventoryManager->recordProductionService($carpetRepair, $carpet, [
                 'type' => 'KACHAEE',
                 'mapping_key' => 'kachaee_repair_cost',
-                'amount' => $base_amount,
+                'amount' => ($currency == 'USD') ? $request->total_price : $request->af_total_price,
+                'currency_code' => $currency,
+                'exchange_rate' => $rate,
                 'date' => $request->date,
                 'party_type' => 'App\Kachaee',
                 'party_id' => $request->team_id,

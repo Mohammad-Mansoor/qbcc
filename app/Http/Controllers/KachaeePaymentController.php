@@ -269,8 +269,8 @@ class KachaeePaymentController extends Controller
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('kachaee_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('kachaee_number')
             ->get()
@@ -281,7 +281,7 @@ class KachaeePaymentController extends Controller
             ->join('production_batches', 'kachaee_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('kachaee_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -292,7 +292,7 @@ class KachaeePaymentController extends Controller
             $allocatedPaid = $allocationsByRef->get($rep->kachaee_number) ?? 0.0;
             $totalPaid = $directPaid + $allocatedPaid;
             
-            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_cost = (float)($rep->total_price);
             $rep->total_paid = (float)$totalPaid;
             $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
             
@@ -389,8 +389,8 @@ class KachaeePaymentController extends Controller
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team_id)
             ->where('status', '!=', 2)
             ->select('kachaee_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('kachaee_number')
             ->get()
@@ -401,7 +401,7 @@ class KachaeePaymentController extends Controller
             ->join('production_batches', 'kachaee_payment_allocations.allocatable_id', '=', 'production_batches.id')
             ->where('kachaee_payment_allocations.allocatable_type', 'App\ProductionBatch')
             ->whereIn('production_batches.reference_number', $batchRefs)
-            ->select('production_batches.reference_number', \DB::raw('SUM(allocated_amount) as total_allocated'))
+            ->select('production_batches.reference_number', \DB::raw('SUM(base_allocated_amount) as total_allocated'))
             ->groupBy('production_batches.reference_number')
             ->pluck('total_allocated', 'reference_number');
 
@@ -413,7 +413,7 @@ class KachaeePaymentController extends Controller
             $allocatedPaid = $allocationsByRef->get($rep->kachaee_number) ?? 0.0;
             $totalPaid = $directPaid + $allocatedPaid;
             
-            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_cost = (float)($rep->total_price);
             $rep->total_paid = (float)$totalPaid;
             $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
             
@@ -546,8 +546,8 @@ class KachaeePaymentController extends Controller
         $paymentsByRef = \App\KachaeePayment::where('team_id', $team->id)
             ->where('status', '!=', 2)
             ->select('kachaee_number', 
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN original_amount ELSE 0 END) as total_sent"),
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN original_amount ELSE 0 END) as total_received")
+                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN base_amount ELSE 0 END) as total_sent"),
+                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN base_amount ELSE 0 END) as total_received")
             )
             ->groupBy('kachaee_number')
             ->get()
@@ -558,7 +558,7 @@ class KachaeePaymentController extends Controller
             $refPayments = $paymentsByRef->get($rep->kachaee_number);
             $totalPaid = $refPayments ? ($refPayments->total_sent - $refPayments->total_received) : 0;
             
-            $rep->total_cost = (float)($rep->total_price ?: $rep->af_total_price);
+            $rep->total_cost = (float)($rep->total_price);
             $rep->total_paid = (float)$totalPaid;
             $rep->remaining_balance = max(0, $rep->total_cost - $rep->total_paid);
             

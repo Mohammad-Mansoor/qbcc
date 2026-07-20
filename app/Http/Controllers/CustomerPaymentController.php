@@ -176,7 +176,7 @@ class CustomerPaymentController extends Controller
                 foreach ($request->allocations as $invoiceId => $amount) {
                     if ($amount > 0) {
                         $invoice = \App\Invoice::with(['sale', 'payments'])->find($invoiceId);
-                        $totalAmount = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
+                        $totalAmount = $invoice->total_amount;
                         $paidAmount = $invoice->payments->sum('amount_applied');
                         $remaining = $totalAmount - $paidAmount;
 
@@ -527,7 +527,7 @@ class CustomerPaymentController extends Controller
                 foreach ($request->allocations as $invoiceId => $amount) {
                     if ($amount > 0) {
                         $invoice = \App\Invoice::with(['sale', 'payments'])->find($invoiceId);
-                        $totalAmount = $invoice->sale->where('is_returned', 0)->sum('sale_cost_total');
+                        $totalAmount = $invoice->total_amount;
                         $paidAmount = $invoice->payments->sum('amount_applied');
                         $remaining = $totalAmount - $paidAmount;
 
@@ -556,7 +556,7 @@ class CustomerPaymentController extends Controller
             foreach ($affectedInvoiceIds as $invId) {
                 $inv = \App\Invoice::with(['sale', 'payments'])->find($invId);
                 if ($inv) {
-                    $total = $inv->sale->where('is_returned', 0)->sum('sale_cost_total');
+                    $total = $inv->total_amount;
                     $paid = \App\InvoicePayment::where('invoice_id', $invId)->sum('amount_applied') ?? 0;
                     $rem = $total - $paid;
                     
@@ -630,7 +630,7 @@ class CustomerPaymentController extends Controller
             foreach ($affectedInvoices as $invId) {
                 $inv = \App\Invoice::with(['sale', 'payments'])->find($invId);
                 if ($inv) {
-                    $total = $inv->sale->where('is_returned', 0)->sum('sale_cost_total');
+                    $total = $inv->total_amount;
                     $paid = \App\InvoicePayment::where('invoice_id', $invId)->sum('amount_applied') ?? 0;
                     $rem = $total - $paid;
                     

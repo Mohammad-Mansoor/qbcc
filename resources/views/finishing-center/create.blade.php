@@ -849,6 +849,98 @@
                         </div>
                     </div>
                 @endif
+                @if(!$quality_check)
+                    <div class="row">
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                            <div class="form-group fill">
+                                <label class="pull-right">نمبر قالین</label>
+                                <input type="text" value="{{$carpet->carpet_no}}" readonly
+                                       class="form-control">
+
+                            </div>
+                        </div>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                            <div class="form-group fill">
+                                <label class="pull-right">نوعیت</label>
+                                <input type="text" value="{{$carpet->type->carpet_type}}" readonly
+                                       class="form-control">
+
+                            </div>
+                        </div>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                            <div class="form-group fill">
+                                <label class="pull-right">تیاری نمبر</label>
+                                <input type="text" name="finish_number_quality" id="finish_number_quality" value="" readonly
+                                       class="form-control class_finish_number_input">
+
+                                @if(session("finish_number_quality"))
+                                    <small class="text-danger">{{session("finish_number_quality")}}
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                            <div class="form-group fill">
+                                <label class="pull-right">تیم تیاری</label>
+                                <select name="team_id_quality" class="form-control">
+                                    @foreach($teams as $team)
+                                        <option value="{{$team->id}}" {{ (old('team_id_quality', isset($selected_team_id) ? $selected_team_id : '') == $team->id)?'selected':''}}>{{$team->name}}</option>
+                                    @endforeach
+                                </select>
+                                <small class="text-danger">@error('team_id') {{ __('message.'.$message) }} @enderror</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                            <div class="form-group fill">
+                                <label class="pull-right">نوع تیاری</label>
+                                <select name="category_id_quality" id="category_id_quality" class="form-control">
+                                    <option {{ (Request::old('category_id'))}} value="9">کنترول کیفیت</option>
+                                </select>
+
+                                <small class="text-danger">@error('category_id') {{ __('message.'.$message) }} @enderror</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                            <div class="form-group fill">
+                                <label class="pull-right">مصرف فی متر یا متر مربع</label>
+                                <input type="text" placeholder="مصرف تیاری به دالر"
+                                       class="form-control price_af_quality" name="price_af_quality" id="fpqa"
+                                       value="{{old('price_af')?old('price_af'): ''}}">
+                                <input type="hidden" id="mainPqa" value="{{old('price')}}" name="price_quality">
+                                <input type="hidden" id="currencyqa" value="{{$currency}}">
+                                <input type="hidden" value="{{$carpet->carpet_id}}"
+                                       name="carpetId">
+                                @if(session("price_af_quality"))
+                                    <small class="text-danger">{{session("price_af_quality")}}
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                            <div class="form-group fill">
+                                <label class="pull-right">تاریخ تیاری قالین</label>
+                                <input type="date" id="date_quality"  name="date_quality"
+                                       placeholder="تاریخ را وارد کنید" class="form-control"
+                                       value="{{old('date')}}">
+                                @if(session("date_quality"))
+                                    <small class="text-danger">{{session("date_quality")}}
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1">
+                            <div class="form-group fill" style="margin-top: 35px;">
+
+                                <div class="switch switch-primary d-inline m-r-10">
+                                    <input type="checkbox" id="switch-p-9" class="quality_checkbox" name="quality_checkbox">
+                                    <label for="switch-p-9" class="cr"></label>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                @endif
               <div class="row">
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
                   <div class="form-group fill" style="margin-top: 50px;">
@@ -997,7 +1089,7 @@
               }
               
               // Update placeholders next to expense inputs dynamically based on selected currency
-              $('.price_af_qaitan, .price_af_rofo, .price_af_cheet, .price_af_labaki, .price_af_popak, .price_af_kash, .price_af_rang, .price_af_shiraza').each(function() {
+              $('.price_af_qaitan, .price_af_rofo, .price_af_cheet, .price_af_labaki, .price_af_popak, .price_af_kash, .price_af_rang, .price_af_shiraza, .price_af_quality').each(function() {
                   $(this).attr('placeholder', 'مصرف به ' + code);
               });
           }
@@ -1133,7 +1225,21 @@
               $('#finish_number_shiraza').removeAttr('required');
           }
 
-          if(qaitan_checkbox == true && rofo_checkbox == true && cheet_checkbox == true && labaki_checkbox == true && popak_checkbox == true && popak_checkbox == true && kash_checkbox == true && rang_checkbox == true && shiraza_checkbox == true){
+          var quality_checkbox = $('.quality_checkbox').prop('checked');
+          if (quality_checkbox){
+
+              $('.price_af_quality').attr('required','required');
+              $('#date_quality').attr('required','required');
+              $('#finish_number_quality').attr('required','required');
+
+          }else{
+
+              $('.price_af_quality').removeAttr('required');
+              $('#date_quality').removeAttr('required');
+              $('#finish_number_quality').removeAttr('required');
+          }
+
+          if(qaitan_checkbox == true && rofo_checkbox == true && cheet_checkbox == true && labaki_checkbox == true && popak_checkbox == true && kash_checkbox == true && rang_checkbox == true && shiraza_checkbox == true && quality_checkbox == true){
               $('.finished').val(1)
           }
       }

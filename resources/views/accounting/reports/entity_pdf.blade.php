@@ -204,18 +204,18 @@
                         </div>
                         <div class="dashboard-col card-red">
                             <div class="small-title text-danger">دیبت / فروش (Debit)</div>
-                            <p class="card-val text-danger">${{ number_format($entries->sum('debit'), 2) }}</p>
+                            <p class="card-val text-danger">${{ number_format($entries->sum('base_debit'), 2) }}</p>
                         </div>
                         <div class="dashboard-col card-green">
                             <div class="small-title text-success">کریدیت / رسید (Credit)</div>
-                            <p class="card-val text-success">${{ number_format($entries->sum('credit'), 2) }}</p>
+                            <p class="card-val text-success">${{ number_format($entries->sum('base_credit'), 2) }}</p>
                         </div>
                         @php 
                             $isCustomer = ($entityKey === 'customer');
                             if ($isCustomer) {
-                                $closing = $openingBalance + $entries->sum('debit') - $entries->sum('credit'); 
+                                $closing = $openingBalance + $entries->sum('base_debit') - $entries->sum('base_credit'); 
                             } else {
-                                $closing = $openingBalance + $entries->sum('credit') - $entries->sum('debit'); 
+                                $closing = $openingBalance + $entries->sum('base_credit') - $entries->sum('base_debit'); 
                             }
                         @endphp
                         <div class="dashboard-col card-blue">
@@ -246,9 +246,9 @@
                             @foreach($entries as $entry)
                                 @php 
                                     if ($isCustomer) {
-                                        $currentRunning += ($entry->debit - $entry->credit);
+                                        $currentRunning += ($entry->base_debit - $entry->base_credit);
                                     } else {
-                                        $currentRunning += ($entry->credit - $entry->debit);
+                                        $currentRunning += ($entry->base_credit - $entry->base_debit);
                                     }
                                 @endphp
                             <tr>
@@ -256,17 +256,17 @@
                                 <td class="text-center font-bold">{{ $entry->reference ?: '-' }}</td>
                                 <td>
                                     {{ $entry->description ?: 'بدون توضیحات' }}
-                                    @if($entry->currency_code != \App\Currency::getBase()->code && ($entry->debit > 0 || $entry->credit > 0))
+                                    @if($entry->currency_code != \App\Currency::getBase()->code && ($entry->base_debit > 0 || $entry->base_credit > 0))
                                         <div style="font-size: 8pt; color: #64748b; margin-top: 3px;" dir="ltr">
-                                            Original: {{ number_format($entry->original_amount, 2) }} {{ $entry->currency_code }}
+                                            Original: {{ number_format($entry->debit > 0 ? $entry->debit : $entry->credit, 2) }} {{ $entry->currency_code }}
                                         </div>
                                     @endif
                                 </td>
                                 <td class="text-left text-danger" style="direction: ltr;">
-                                    {{ $entry->debit > 0 ? '$' . number_format($entry->debit, 2) : '-' }}
+                                    {{ $entry->base_debit > 0 ? '$' . number_format($entry->base_debit, 2) : '-' }}
                                 </td>
                                 <td class="text-left text-success" style="direction: ltr;">
-                                    {{ $entry->credit > 0 ? '$' . number_format($entry->credit, 2) : '-' }}
+                                    {{ $entry->base_credit > 0 ? '$' . number_format($entry->base_credit, 2) : '-' }}
                                 </td>
                                 <td class="text-center font-bold" dir="ltr" style="{{ $currentRunning < 0 ? 'color: #e53935;' : '' }}">
                                     {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? ($isCustomer ? '(Dr)' : '(Cr)') : ($isCustomer ? '(Cr)' : '(Dr)') }}
@@ -277,8 +277,8 @@
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-center">خلاصه این دوره (Period Totals):</td>
-                                <td class="text-left text-danger" style="direction: ltr;">${{ number_format($entries->sum('debit'), 2) }}</td>
-                                <td class="text-left text-success" style="direction: ltr;">${{ number_format($entries->sum('credit'), 2) }}</td>
+                                <td class="text-left text-danger" style="direction: ltr;">${{ number_format($entries->sum('base_debit'), 2) }}</td>
+                                <td class="text-left text-success" style="direction: ltr;">${{ number_format($entries->sum('base_credit'), 2) }}</td>
                                 <td class="text-left font-bold" style="direction: ltr; font-size: 11pt; color: #1e3a8a;">
                                     {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? ($isCustomer ? '(Dr)' : '(Cr)') : ($isCustomer ? '(Cr)' : '(Dr)') }}
                                 </td>

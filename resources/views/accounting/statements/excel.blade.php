@@ -126,12 +126,12 @@
 
             @foreach($entries as $tx)
                 @php
-                    $totalDebit += $tx->debit;
-                    $totalCredit += $tx->credit;
+                    $totalDebit += $tx->base_debit;
+                    $totalCredit += $tx->base_credit;
                     if ($entityKey === 'customer') {
-                        $runningBalance += ($tx->debit - $tx->credit);
+                        $runningBalance += ($tx->base_debit - $tx->base_credit);
                     } else {
-                        $runningBalance += ($tx->credit - $tx->debit);
+                        $runningBalance += ($tx->base_credit - $tx->base_debit);
                     }
                 @endphp
                 <tr>
@@ -139,8 +139,8 @@
                     <td class="font-bold text-center">{{ $tx->journal_id }}</td>
                     <td class="text-center">{{ $tx->reference ?: '-' }}</td>
                     <td>{{ $tx->description ?: 'بدون توضیحات' }}</td>
-                    <td class="text-left text-danger">{{ $tx->debit > 0 ? '$' . number_format($tx->debit, 2) : '-' }}</td>
-                    <td class="text-left text-success">{{ $tx->credit > 0 ? '$' . number_format($tx->credit, 2) : '-' }}</td>
+                    <td class="text-left text-danger">{{ $tx->base_debit > 0 ? '$' . number_format($tx->base_debit, 2) : '-' }}</td>
+                    <td class="text-left text-success">{{ $tx->base_credit > 0 ? '$' . number_format($tx->base_credit, 2) : '-' }}</td>
                     <td class="text-left font-bold" style="direction: ltr;">${{ number_format($runningBalance, 2) }}</td>
                 </tr>
             @endforeach

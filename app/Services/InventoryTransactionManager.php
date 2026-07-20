@@ -50,6 +50,8 @@ class InventoryTransactionManager
                 [
                     'date' => $params['date'] ?? now()->format('Y-m-d'),
                     'amount' => $params['total_amount'] ?? ($params['quantity'] * $params['unit_cost']),
+                    'currency_code' => $params['currency_code'] ?? null,
+                    'exchange_rate' => $params['exchange_rate'] ?? null,
                     'party_type' => $params['party_type'] ?? null,
                     'party_id' => $params['party_id'] ?? null,
                     'reference' => $params['reference'] ?? null,
@@ -255,6 +257,18 @@ class InventoryTransactionManager
             $unitCost = $params['unit_cost'] ?? $wacUnitCost;
             $currencyCode = isset($params['unit_cost']) ? ($params['currency_code'] ?? 'USD') : 'USD';
             $exchangeRate = isset($params['unit_cost']) ? ($params['exchange_rate'] ?? 1.0) : 1.0;
+            
+            // Normalize exchange rate to database format (1 Local = X USD) if user-facing rate was passed
+            if ($currencyCode !== 'USD') {
+                $dbCurrency = \App\Currency::where('code', $currencyCode)->first();
+                if ($dbCurrency && $dbCurrency->exchange_rate > 0) {
+                    if (($dbCurrency->exchange_rate < 1.0 && $exchangeRate > 1.0) || 
+                        ($dbCurrency->exchange_rate > 1.0 && $exchangeRate < 1.0)) {
+                        $exchangeRate = 1.0 / $exchangeRate;
+                    }
+                }
+            }
+
             $quantity = $params['quantity'] ?? 1;
 
             // 1. Record Inventory Movement (Physical OUT)
@@ -287,8 +301,13 @@ class InventoryTransactionManager
                 ->where('ref_id', $itemRefId)
                 ->first();
             
-            // WAC is already in USD base
-            $actualCost = $item ? (bcmul($item->current_cost, ($params['quantity'] ?? 1), 8)) : 0;
+            // For Carpets (Specific Identification), use the exact total price of the unique asset.
+            // For Bulk Materials (Yarn/Dyes), use the Weighted Average Cost (WAC) from the items table.
+            if ($model instanceof \App\Carpet) {
+                $actualCost = $model->total_price ?? 0;
+            } else {
+                $actualCost = $item ? (bcmul($item->current_cost, ($params['quantity'] ?? 1), 8)) : 0;
+            }
 
             // 3. Post Revenue Entry (DR Receivable / CR Revenue)
             $revenueTx = $this->accountingService->postAutoTransaction(

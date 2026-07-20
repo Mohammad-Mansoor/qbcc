@@ -66,14 +66,14 @@
     <div class="row mb-4 no-print">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: #fff; border-bottom: 4px solid #3f51b5 !important;">
-                <span class="text-muted small font-weight-bold text-uppercase">مجموع کل مصارف / دیبت (Total Debits)</span>
-                <h3 class="font-weight-bold text-indigo mt-2 mb-0" style="color: #3f51b5;">{{ number_format($entries->sum('debit'), 2) }}</h3>
+                <span class="text-muted small font-weight-bold text-uppercase">مجموع بردگی (Total Debit)</span>
+                <h3 class="font-weight-bold text-indigo mt-2 mb-0" style="color: #3f51b5;">{{ number_format($entries->sum('base_debit'), 2) }}</h3>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: #fff; border-bottom: 4px solid #2ed8b6 !important;">
-                <span class="text-muted small font-weight-bold text-uppercase">مجموع کل رسید / کریدت (Total Credits)</span>
-                <h3 class="font-weight-bold text-success mt-2 mb-0">{{ number_format($entries->sum('credit'), 2) }}</h3>
+                <span class="text-muted small font-weight-bold text-uppercase">مجموع رسیدگی (Total Credit)</span>
+                <h3 class="font-weight-bold text-success mt-2 mb-0">{{ number_format($entries->sum('base_credit'), 2) }}</h3>
             </div>
         </div>
         @php 
@@ -81,9 +81,9 @@
             $runningBalance = $openingBalance;
             foreach($entries as $entry) { 
                 if ($isCustomer) {
-                    $runningBalance += ($entry->debit - $entry->credit);
+                    $runningBalance += ($entry->base_debit - $entry->base_credit);
                 } else {
-                    $runningBalance += ($entry->credit - $entry->debit);
+                    $runningBalance += ($entry->base_credit - $entry->base_debit);
                 }
             }
         @endphp
@@ -212,9 +212,9 @@
                                 @foreach($entries as $entry)
                                     @php 
                                         if ($isCustomer) {
-                                            $currentRunning += ($entry->debit - $entry->credit);
+                                            $currentRunning += ($entry->base_debit - $entry->base_credit);
                                         } else {
-                                            $currentRunning += ($entry->credit - $entry->debit);
+                                            $currentRunning += ($entry->base_credit - $entry->base_debit);
                                         }
                                     @endphp
                                 <tr>
@@ -224,18 +224,18 @@
                                     </td>
                                     <td class="py-3 text-muted small">{{ $entry->description }}</td>
                                     <td class="py-3 text-right text-dark">
-                                        {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
-                                        @if($entry->debit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                        {{ $entry->base_debit > 0 ? number_format($entry->base_debit, 2) : '-' }}
+                                        @if($entry->base_debit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
                                             <div class="small text-muted font-weight-normal" dir="ltr">
-                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->base_currency_amount / $entry->exchange_rate, 2) }} {{ $entry->currency_code }}
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->debit, 2) }} {{ $entry->currency_code }}
                                             </div>
                                         @endif
                                     </td>
                                     <td class="py-3 text-right text-success font-weight-bold">
-                                        {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
-                                        @if($entry->credit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
+                                        {{ $entry->base_credit > 0 ? number_format($entry->base_credit, 2) : '-' }}
+                                        @if($entry->base_credit > 0 && $entry->currency_code != \App\Currency::getBase()->code)
                                             <div class="small text-muted font-weight-normal" dir="ltr">
-                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->base_currency_amount / $entry->exchange_rate, 2) }} {{ $entry->currency_code }}
+                                                <i class="feather icon-repeat x-small"></i> {{ number_format($entry->credit, 2) }} {{ $entry->currency_code }}
                                             </div>
                                         @endif
                                     </td>
@@ -248,8 +248,8 @@
                             <tfoot class="bg-light font-weight-bold">
                                 <tr>
                                     <td colspan="3" class="py-4 px-4 text-right border-0">خلاصه این دوره:</td>
-                                    <td class="py-4 text-right border-0">{{ number_format($entries->sum('debit'), 2) }}</td>
-                                    <td class="py-4 text-right text-success border-0">{{ number_format($entries->sum('credit'), 2) }}</td>
+                                    <td class="py-4 text-right border-0">{{ number_format($entries->sum('base_debit'), 2) }}</td>
+                                    <td class="py-4 text-right text-success border-0">{{ number_format($entries->sum('base_credit'), 2) }}</td>
                                     <td class="py-4 text-right px-4 border-0 text-indigo" style="font-size: 1.2rem; color: #3f51b5;">
                                         {{ number_format($currentRunning, 2) }}
                                     </td>

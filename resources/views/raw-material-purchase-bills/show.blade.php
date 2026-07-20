@@ -361,8 +361,8 @@
                         <th style="width: 20%">دسته‌بندی (Subtype)</th>
                         <th style="width: 15%">گدام (Warehouse)</th>
                         <th style="width: 10%">مقدار (KG)</th>
-                        <th style="width: 10%">نرخ فی کیلو (USD)</th>
-                        <th style="width: 15%">مجموع قیمت (USD)</th>
+                        <th style="width: 10%">نرخ فی کیلو (ارز خرید)</th>
+                        <th style="width: 15%">مجموع قیمت (Base USD)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -382,7 +382,7 @@
                             <td>{{ $purchase->warehouse->name ?? 'N/A' }}</td>
                             <td class="font-weight-bold" style="direction: ltr;">{{ number_format($purchase->quantity, 2) }}
                                 kg</td>
-                            <td style="direction: ltr;">${{ number_format($purchase->price_per_kilo, 2) }}</td>
+                            <td style="direction: ltr;">{{ number_format($purchase->price_per_kilo, 2) }} {{ $purchase->currency_code ?? 'USD' }}</td>
                             <td class="font-weight-bold text-dark" style="direction: ltr;">
                                 ${{ number_format($purchase->total, 2) }}</td>
                         </tr>

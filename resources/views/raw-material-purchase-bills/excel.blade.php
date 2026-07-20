@@ -168,8 +168,8 @@
                 <th style="height: 32pt;">دسته‌بندی (Subtype)</th>
                 <th style="height: 32pt;">گدام (Warehouse)</th>
                 <th style="height: 32pt;">مقدار (KG)</th>
-                <th style="height: 32pt;">نرخ فی کیلو (USD)</th>
-                <th style="height: 32pt;">مجموع قیمت (USD)</th>
+                <th style="height: 32pt;">نرخ فی کیلو (ارز خرید)</th>
+                <th style="height: 32pt;">مجموع قیمت (Base USD)</th>
             </tr>
         </thead>
         <tbody>
@@ -189,7 +189,7 @@
                         style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">
                         {{ number_format($purchase->quantity, 2) }}</td>
                     <td class="text-left" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">
-                        ${{ number_format($purchase->price_per_kilo, 2) }}</td>
+                        {{ number_format($purchase->price_per_kilo, 2) }} {{ $purchase->currency_code ?? 'USD' }}</td>
                     <td class="text-left font-bold"
                         style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">
                         ${{ number_format($purchase->total, 2) }}</td>

@@ -538,16 +538,24 @@
           filterOptions($('#sale_subtype').val());
 
           // Currency Handling
-          function updateRate() {
+          function updateRate(isUserAction = false) {
               var selected = $('#currency_id').find(':selected');
               var rate = selected.data('rate');
-              $('#exchange_rate').val(parseFloat(rate).toFixed(8));
+              
+              // FORENSIC SAFEGUARD: Only apply live rate if user changed currency OR if field is empty (New Sale)
+              if (isUserAction || !$('#exchange_rate').val()) {
+                  $('#exchange_rate').val(parseFloat(rate).toFixed(8));
+              }
+              
               updateWacHint();
               calculateTruth();
           }
 
-          $('#currency_id').on('change', updateRate);
-          updateRate(); // Initial run
+          $('#currency_id').on('change', function() {
+              updateRate(true);
+          });
+          
+          updateRate(false); // Initial run
 
           // Fetch WAC, Available Stock and Agent Balance
           $('#agent_id, #category_id, #type_id, #warehouse_id').on('change', fetchContext);

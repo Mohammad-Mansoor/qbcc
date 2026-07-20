@@ -38,7 +38,7 @@ class DifferentAccountPaymentController extends Controller
                 'currency_code' => $payment->currency_code ?: 'AFN',
                 'exchange_rate' => $payment->exchange_rate ?: 1,
                 'reference' => 'DIFF-' . $payment->id,
-                'description' => "تراکنش حساب متفرقه: " . ($account->name ?? 'N/A') . " - " . $payment->description,
+                'description' => $payment->description,
                 'source_type' => 'DifferentAccountPayment',
                 'source_id' => $payment->id,
                 'override_debit_account_id' => $payment->override_debit_account_id ?? null,
@@ -60,7 +60,8 @@ class DifferentAccountPaymentController extends Controller
     private function recalculateTotals($accountId)
     {
         $totals = DB::table('different_account_payments')
-            ->select('currency_code', 
+            ->select(
+                'currency_code',
                 DB::raw("SUM(CASE WHEN type = 'رسید' THEN amount ELSE 0 END) as total_receipts"),
                 DB::raw("SUM(CASE WHEN type = 'گرفت' THEN amount ELSE 0 END) as total_payments")
             )
@@ -135,7 +136,7 @@ class DifferentAccountPaymentController extends Controller
             // FORENSIC PILLAR 5: Multiplication for USD Normalization
             $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
             $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
-            
+
             $payment = DifferentAccountPayment::create($data);
 
             $this->recalculateTotals($request->account_id);
@@ -158,7 +159,7 @@ class DifferentAccountPaymentController extends Controller
     public function edit($id)
     {
         $paymentEdit = DifferentAccountPayment::find($id);
-        $payments = DifferentAccountPayment::where('account_id', $paymentEdit->account_id)->orderBy('created_at','DESC')->paginate(30);
+        $payments = DifferentAccountPayment::where('account_id', $paymentEdit->account_id)->orderBy('created_at', 'DESC')->paginate(30);
         $account = DifferentAccount::find($paymentEdit->account_id);
         $totals = DifferentAccountTotal::where('account_id', $paymentEdit->account_id)->get();
         $currencies = \App\Currency::all();

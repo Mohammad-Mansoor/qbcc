@@ -561,7 +561,7 @@
                     <tr class="ur{{ $finish->id  ?? ''}}">
                       <td>{{$finish->carpet->carpet_no ?? ''}}</td>
                       <td>
-                        <a href="/dashboard/finishing-center/search-finish-number/{{$finish->finish_number}},{{$finish->team_id}}"
+                        <a href="/dashboard/batches/{{$finish->finish_number}}/details"
                            style="font-weight: 600; color: #2a5298;"
                         >&nbsp; {{$finish->finish_number}}</a></td>
                       <td style="direction: ltr; font-weight: bold;">

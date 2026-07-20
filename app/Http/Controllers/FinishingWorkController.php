@@ -64,6 +64,7 @@ class FinishingWorkController extends Controller
         $kash_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 6)->first();
         $rang_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 7)->first();
         $shiraza_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 8)->first();
+        $quality_check = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', 9)->first();
 
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'debit');
@@ -80,7 +81,7 @@ class FinishingWorkController extends Controller
             'carpet', 'teams', 'newCarpet', 'openBatches', 'team_categories', 
             'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currency', 'currencies',
             'qaitan_check', 'rofo_check', 'cheet_check', 'labaki_check', 
-            'popak_check', 'kash_check', 'rang_check', 'shiraza_check',
+            'popak_check', 'kash_check', 'rang_check', 'shiraza_check', 'quality_check',
             'warehouses', 'selected_team_id'
         ));
     }
@@ -269,7 +270,7 @@ class FinishingWorkController extends Controller
         $selected_team_id = $request->query('team_id');
         
         $checks = [];
-        for($i=1; $i<=8; $i++) {
+        for($i=1; $i<=9; $i++) {
             $checks[$i] = FinishingWork::where('carpetId', $carpet->carpet_id)->where('category_id', $i)->first();
         }
 
@@ -301,7 +302,7 @@ class FinishingWorkController extends Controller
             $unitPrice = $request->input('price_af_' . $field_suffix);
             $totalAmount = 0;
             
-            if (in_array($category_id, [1, 3, 5, 6, 7])) { 
+            if (in_array($category_id, [1, 3, 5, 6, 7, 9])) { 
                 $totalAmount = $newCarpet->area * $unitPrice;
             } elseif (in_array($category_id, [4, 8])) { 
                 $totalAmount = $newCarpet->height * $unitPrice * 2;
@@ -309,21 +310,15 @@ class FinishingWorkController extends Controller
                 $totalAmount = $unitPrice;
             }
 
-            // Calculate Base USD amount (division by exchange rate)
+            // FORENSIC RULE: Calculate Base USD amount using safe division to get correct USD equivalent
             if ($currencyCode == 'USD') {
                 $baseUsdAmount = $totalAmount;
             } else {
-                $baseUsdAmount = $exchangeRate > 0 ? ($totalAmount / $exchangeRate) : 0.0;
+                $baseUsdAmount = bcdiv((string)$totalAmount, (string)$exchangeRate, 4);
             }
 
-            // Calculate AFN Alternative Amount for legacy reporting (multiplication of USD by active AFN exchange rate)
-            if ($currencyCode == 'AFN') {
-                $priceAf = $totalAmount;
-            } else {
-                $afnCurrency = \App\Currency::where('code', 'AFN')->first();
-                $afnRate = ($afnCurrency && $afnCurrency->exchange_rate > 0) ? (1 / $afnCurrency->exchange_rate) : 70.0;
-                $priceAf = $baseUsdAmount * $afnRate;
-            }
+            // price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+            $priceAf = $totalAmount;
 
             $finish->currency_code = $currencyCode;
             $finish->exchange_rate = $exchangeRate;
@@ -377,7 +372,7 @@ class FinishingWorkController extends Controller
 
             $categories = [
                 1 => 'qaitan', 2 => 'rofo', 3 => 'cheet', 4 => 'labaki',
-                5 => 'popak', 6 => 'kash', 7 => 'rang', 8 => 'shiraza'
+                5 => 'popak', 6 => 'kash', 7 => 'rang', 8 => 'shiraza', 9 => 'quality'
             ];
 
             foreach ($categories as $id => $suffix) {
@@ -398,7 +393,7 @@ class FinishingWorkController extends Controller
 
             $categories = [
                 1 => 'qaitan', 2 => 'rofo', 3 => 'cheet', 4 => 'labaki',
-                5 => 'popak', 6 => 'kash', 7 => 'rang', 8 => 'shiraza'
+                5 => 'popak', 6 => 'kash', 7 => 'rang', 8 => 'shiraza', 9 => 'quality'
             ];
 
             $lastSavedFinish = null;
@@ -483,8 +478,8 @@ class FinishingWorkController extends Controller
 
         $currency = $finish->currency_code ?? 'USD';
         
-        // Calculate unit price instead of using the total amount
-        $totalAmountInOriginalCurrency = ($finish->currency_code == 'AFN') ? $finish->price_af : $finish->price;
+        // FORENSIC RULE: Use price_af to retrieve the original raw local currency (PKR, EUR, AFN), fallback to price for USD
+        $totalAmountInOriginalCurrency = ($finish->currency_code == 'USD') ? $finish->price : $finish->price_af;
         $unitPrice = 0;
         $category_id = $finish->category_id;
         
@@ -542,8 +537,10 @@ class FinishingWorkController extends Controller
             $currencyCode = $finish->currency_code ?? 'USD';
             $exchangeRate = $finish->exchange_rate ?? 1.0;
 
-            $newPriceUsd = ($currencyCode == 'USD') ? $totalAmount : ($totalAmount / $exchangeRate);
-            $newPriceAfn = ($currencyCode == 'AFN') ? $totalAmount : ($totalAmount * $exchangeRate);
+            // FORENSIC RULE: Use safe BCMath division to get correct USD equivalent
+            $newPriceUsd = ($currencyCode == 'USD') ? $totalAmount : bcdiv((string)$totalAmount, (string)$exchangeRate, 4);
+            // price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
+            $newPriceAfn = $totalAmount;
 
             // Update Carpet total (subtract old, add new)
             $carpet->total_price = $carpet->total_price - $finish->price + $newPriceUsd;
@@ -649,6 +646,15 @@ class FinishingWorkController extends Controller
     {
         return DB::transaction(function () use ($id) {
             $work = FinishingWork::find($id);
+            if ($work) {
+                $carpetToUpdate = Carpet::find($work->carpetId);
+                if ($carpetToUpdate) {
+                    $carpetToUpdate->total_price -= $work->price;
+                    $carpetToUpdate->total_price_af -= $work->price_af;
+                    $carpetToUpdate->update();
+                }
+            }
+            
             // Reverse Accounting - pass class name to avoid ID collision reversals with other models
             $this->accountingService->reverseTransactionBySource($work->id, 'Finishing Work Deleted', get_class($work));
             

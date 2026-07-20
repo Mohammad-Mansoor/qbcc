@@ -421,6 +421,7 @@
                       <th>نوعیت قالین</th>
                       <th>شست نمبر (مرکزی)</th>
                       <th>شست نمبر (فروشات)</th>
+                      <th>مساحت</th>
                       <th>قیمت فی متر</th>
                       <th>قیمت مجموع</th>
                       <th>تفاوت مساحت</th>
@@ -444,7 +445,8 @@
                               {{$washed->wash_number_sh}}
                             </a>
                           </td>
-                          <td style="direction: ltr">${{ number_format($washed->price, 2) }}</td>
+                          <td style="direction: ltr">{{ $washed->area }} m<sup>2</sup></td>
+                          <td style="direction: ltr">{{ number_format($washed->price, 2) }} {{ $washed->currency_code ?: 'USD' }}</td>
                           <td style="direction: ltr">
                             <span class="font-weight-bold text-success">{{ number_format($washed->af_total_price, 2) }}
                               {{ $washed->currency_code ?: 'USD' }}</span>
@@ -570,8 +572,9 @@
 
                     <tr style="background: #f8fafc;" class="font-weight-bold">
                       <td colspan="4" class="text-right">مجموع:</td>
-                      <td style="direction: ltr">${{ number_format($washeds->sum('total_price'), 2) }}</td>
                       <td style="direction: ltr">{{$washeds->sum('area')}} m<sup>2</sup></td>
+                      <td class="hideOnPrint"></td>
+                      <td style="direction: ltr">${{ number_format($washeds->sum('total_price'), 2) }}</td>
                       <td style="direction: ltr">
                         @php $total_diff = $washeds->sum('area_difference'); @endphp
                         @if($total_diff < -0.001)

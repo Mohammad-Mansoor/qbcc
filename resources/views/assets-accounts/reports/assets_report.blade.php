@@ -204,7 +204,8 @@
                         <th>حساب (کتگوری)</th>
                         <th>موقعیت فزیکی</th>
                         <th>تاریخ خرید</th>
-                        <th>قیمت خرید</th>
+                        <th>قیمت اصلی</th>
+                        <th>قیمت خرید (Base)</th>
                         <th>اسقاط / عمر مفید</th>
                     </tr>
                 </thead>
@@ -225,7 +226,10 @@
                             <td class="text-muted"><i class="fa fa-map-marker text-danger"></i> {{ $asset->physical_location }}</td>
                             <td class="text-muted"><i class="fa fa-calendar"></i> {{ $asset->acquisition_date }}</td>
                             <td>
-                                <div class="font-weight-bold text-success">{{ number_format($asset->acquisition_cost, 2) }} {{ $asset->currency_code ?? '$' }}</div>
+                                <div class="font-weight-bold text-primary">{{ number_format($asset->original_amount ?? $asset->acquisition_cost, 2) }} {{ $asset->currency_code ?? '$' }}</div>
+                            </td>
+                            <td>
+                                <div class="font-weight-bold text-success">{{ number_format($asset->acquisition_cost, 2) }} USD</div>
                             </td>
                             <td>
                                 <div class="text-danger small font-weight-bold">اسقاط: {{ number_format($asset->estimated_salvage_value, 2) }}</div>
@@ -234,7 +238,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="9" class="text-center py-5">
                                 <div class="text-muted" style="font-size: 1.1rem;">
                                     <i class="fa fa-folder-open-o mb-3" style="font-size: 3rem; color: #cbd5e1;"></i><br>
                                     هیچ جنسی با این مشخصات یافت نشد

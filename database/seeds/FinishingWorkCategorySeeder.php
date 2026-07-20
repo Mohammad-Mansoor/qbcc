@@ -21,6 +21,7 @@ class FinishingWorkCategorySeeder extends Seeder
             ['id' => 6, 'category' => 'کش'],
             ['id' => 7, 'category' => 'رنگ'],
             ['id' => 8, 'category' => 'شیرازه'],
+            ['id' => 9, 'category' => 'کنترول کیفیت'],
         ];
 
         foreach ($categories as $category) {

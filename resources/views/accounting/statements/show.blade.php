@@ -123,8 +123,8 @@
             $pageDebit = 0;
             $pageCredit = 0;
             foreach ($entries as $e) {
-                $pageDebit += $e->debit;
-                $pageCredit += $e->credit;
+                $pageDebit += $e->base_debit;
+                $pageCredit += $e->base_credit;
             }
         @endphp
         <div class="col-md-4">
@@ -221,7 +221,7 @@
                                         });
                                     }
                                     
-                                    $prevItems = $prevQuery->select('ledger_entries.debit', 'ledger_entries.credit')
+                                    $prevItems = $prevQuery->select('ledger_entries.base_debit', 'ledger_entries.base_credit')
                                         ->orderBy('ledger_transactions.date', 'ASC')
                                         ->orderBy('ledger_transactions.id', 'ASC')
                                         ->limit($offset)
@@ -230,9 +230,9 @@
                                     $prevSum = 0;
                                     foreach ($prevItems as $pi) {
                                         if ($entityKey === 'customer') {
-                                            $prevSum += ($pi->debit - $pi->credit);
+                                            $prevSum += ($pi->base_debit - $pi->base_credit);
                                         } else {
-                                            $prevSum += ($pi->credit - $pi->debit);
+                                            $prevSum += ($pi->base_credit - $pi->base_debit);
                                         }
                                     }
                                     
@@ -254,9 +254,9 @@
                                 @forelse($entries as $tx)
                                     @php
                                         if ($entityKey === 'customer') {
-                                            $runningBalance += ($tx->debit - $tx->credit);
+                                            $runningBalance += ($tx->base_debit - $tx->base_credit);
                                         } else {
-                                            $runningBalance += ($tx->credit - $tx->debit);
+                                            $runningBalance += ($tx->base_credit - $tx->base_debit);
                                         }
                                     @endphp
                                     <tr class="text-right">
@@ -275,10 +275,10 @@
                                         </td>
                                         <td class="text-dark">{{ $tx->description ?: 'بدون توضیحات' }}</td>
                                         <td class="text-left text-danger font-weight-bold font-mono" dir="ltr">
-                                            {{ $tx->debit > 0 ? '$' . number_format($tx->debit, 2) : '-' }}
+                                            {{ $tx->base_debit > 0 ? '$' . number_format($tx->base_debit, 2) : '-' }}
                                         </td>
                                         <td class="text-left text-success font-weight-bold font-mono" dir="ltr">
-                                            {{ $tx->credit > 0 ? '$' . number_format($tx->credit, 2) : '-' }}
+                                            {{ $tx->base_credit > 0 ? '$' . number_format($tx->base_credit, 2) : '-' }}
                                         </td>
                                         <td class="text-left font-weight-bold font-mono {{ $runningBalance >= 0 ? 'text-dark' : 'text-danger' }}" dir="ltr">
                                             ${{ number_format($runningBalance, 2) }}

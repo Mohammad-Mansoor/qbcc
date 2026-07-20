@@ -265,11 +265,18 @@
                             <div class="text-muted" style="font-size: 0.85rem;">{{ $carpet->quality->quality ?? 'نامشخص' }}</div>
                         </td>
                         <td class="font-weight-bold text-secondary">{{ $carpet->map_number ?? '---' }}</td>
-                        <td dir="ltr" class="text-right">{{ $carpet->buying_width ?? $carpet->width }} × {{ $carpet->buying_height ?? $carpet->height }}</td>
-                        <td class="font-weight-bold text-success">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
+                        @php
+                            $origWidth = $carpet->buying_width > 0 ? $carpet->buying_width : $carpet->width;
+                            $origHeight = $carpet->buying_height > 0 ? $carpet->buying_height : $carpet->height;
+                            $origArea = $carpet->buying_area > 0 ? $carpet->buying_area : $carpet->area;
+                            $origUnitPrice = $carpet->original_price > 0 ? $carpet->original_price : $carpet->price;
+                            $origTotalPriceUsd = $carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price;
+                        @endphp
+                        <td dir="ltr" class="text-right">{{ $origWidth }} × {{ $origHeight }}</td>
+                        <td class="font-weight-bold text-success">{{ number_format($origArea, 2) }}</td>
                         <td>
-                            <div>{{ number_format($carpet->price) }} $</div>
-                            <div class="text-danger" style="font-weight: 700;">{{ number_format($carpet->total_price) }} $</div>
+                            <div>{{ number_format($origUnitPrice) }} $</div>
+                            <div class="text-danger" style="font-weight: 700;">{{ number_format($origTotalPriceUsd) }} $</div>
                         </td>
                         <td>
                             @php

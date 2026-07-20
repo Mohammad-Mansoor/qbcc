@@ -64,7 +64,7 @@ class CarpetsController extends Controller
 
     public function index()
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
@@ -118,7 +118,7 @@ class CarpetsController extends Controller
 
     public function show_all_contract_carpet()
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $carpets = DB::table('carpets')
             ->join('agents', 'carpets.agent_id', 'agents.agent_id')
             ->join('users', 'agents.user_id', 'users.id')
@@ -174,7 +174,7 @@ class CarpetsController extends Controller
 
     public function search_contract_carpet(Request $request)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $search = $request->search;
 
@@ -239,7 +239,7 @@ class CarpetsController extends Controller
 
     public function search_contract_carpet_by_agent(Request $request)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $agent_id = $request->agent_id;
 
@@ -700,7 +700,7 @@ class CarpetsController extends Controller
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $currencies = \App\Currency::all();
         $qualities = \App\Quality::all();
@@ -763,7 +763,7 @@ class CarpetsController extends Controller
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $currencies = \App\Currency::all();
         $qualities = \App\Quality::all();
@@ -825,7 +825,7 @@ class CarpetsController extends Controller
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $qualities = \App\Quality::all();
         $currencies = \App\Currency::all();
 
@@ -917,7 +917,7 @@ class CarpetsController extends Controller
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $qualities = \App\Quality::all();
         $currencies = \App\Currency::all();
 
@@ -1003,7 +1003,7 @@ class CarpetsController extends Controller
         $afg_money = CarpetMaterial::where('carpet_id', $carpet->carpet_id)->sum('total_price_af');
         $usd_money = $materialMoney;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $rawMaterialAccounts = $this->accountSelectionService->getValidAccounts('RAW_MATERIAL', 'credit');
         $expenseAccounts = $this->accountSelectionService->getValidAccounts('EXPENSE', 'debit');
         $currencies = \App\Currency::all();
@@ -1065,7 +1065,7 @@ class CarpetsController extends Controller
         $mapping = MappingRule::where('mapping_key', 'WEIGHT_CARPET_ENTRY')->first();
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
 
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $currencies = \App\Currency::all();
 
         return view('carpets.list-weight', compact('carpets', 'editCarpet', 'agents', 'orders', 'types', 'employees', 'AccountNo', 'qualities', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'currencies'));
@@ -1187,7 +1187,7 @@ class CarpetsController extends Controller
 
     public function listBuyCarpet(Request $request)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         
         $query = Carpet::orderBy('carpet_no', 'DESC')
             ->whereIn('status', [1, 12])
@@ -1248,12 +1248,12 @@ class CarpetsController extends Controller
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
         $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'warehouses', 'defaultWarehouseId', 'allAccounts', 'purchaseInvoices'));
     }
 
     public function show_all_buy_carpet()
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $carpets = Carpet::orderBy('carpet_no', 'DESC')
             ->whereIn('status', [1, 12])
             ->whereHas('agent', function($q) {
@@ -1282,13 +1282,13 @@ class CarpetsController extends Controller
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
         $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'all', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'qualities', 'currencies', 'editCarpet', 'all', 'warehouses', 'defaultWarehouseId', 'allAccounts', 'purchaseInvoices'));
     }
 
 
     public function search_buy_carpet(Request $request)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
         $search = $request->search;
 
         $carpets = Carpet::whereIn('status', [1, 12])
@@ -1340,7 +1340,7 @@ class CarpetsController extends Controller
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
         $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'search', 'AccountNo', 'orders', 'types', 'all', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'allAccounts', 'purchaseInvoices'));
     }
 
 
@@ -1397,11 +1397,13 @@ class CarpetsController extends Controller
         $this->inventoryManager->processPurchase($carpet, [
             'transaction_type' => 'carpet_purchase',
             'quantity' => 1,
-            'unit_cost' => $carpet->total_price,
+            'unit_cost' => $carpet->original_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
             'area' => (float) ($carpet->area ?? 0),
             'date' => $carpet->date ?? now()->format('Y-m-d'),
-            'total_amount' => $carpet->total_price,
+            'total_amount' => (float)($carpet->area ?? 0) * (float)($carpet->original_price ?? 0),
+            'currency_code' => $carpet->currency_code,
+            'exchange_rate' => $carpet->exchange_rate,
             'party_type' => 'App\Agents',
             'party_id' => $carpet->agent_id,
             'reference' => $glReference ?? $carpet->carpet_no,
@@ -1457,7 +1459,7 @@ class CarpetsController extends Controller
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $expenseAccounts = $this->accountSelectionService->getValidAccounts('EXPENSE', 'debit');
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $inventoryAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
 
         // Check Number Generation
         $lastCheck = CarpetCheckBook::latest()->first();
@@ -1468,7 +1470,7 @@ class CarpetsController extends Controller
 
     public function editBuyCarpet($id)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
 
         $editCarpet = Carpet::find($id);
         $carpets = Carpet::orderBy('carpet_no', 'DESC')
@@ -1498,7 +1500,7 @@ class CarpetsController extends Controller
         $defaultWarehouseId = ($mapping && $mapping->warehouse_id) ? $mapping->warehouse_id : 1;
         $purchaseInvoices = \App\PurchaseInvoice::where('status', 'open')->with('agent.user')->get();
 
-        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'inventoryAccounts', 'purchaseInvoices'));
+        return view('carpets.list-buy-carpet', compact('carpets', 'agents', 'AccountNo', 'orders', 'types', 'editCarpet', 'qualities', 'currencies', 'warehouses', 'defaultWarehouseId', 'allAccounts', 'purchaseInvoices'));
     }
 
     function UpdatetBuyCarpet(Request $request, $carpet_id)
@@ -1644,11 +1646,13 @@ class CarpetsController extends Controller
         $this->inventoryManager->processPurchase($carpet, [
             'transaction_type' => 'carpet_purchase',
             'quantity' => 1,
-            'unit_cost' => $carpet->total_price,
+            'unit_cost' => $carpet->original_price,
             'warehouse_id' => $request->warehouse_id ?? 1,
             'area' => (float) ($carpet->area ?? 0),
             'date' => $carpet->date ?? now()->format('Y-m-d'),
-            'total_amount' => $carpet->total_price,
+            'total_amount' => (float)($carpet->area ?? 0) * (float)($carpet->original_price ?? 0),
+            'currency_code' => $carpet->currency_code,
+            'exchange_rate' => $carpet->exchange_rate,
             'party_type' => 'App\Agents',
             'party_id' => $carpet->agent_id,
             'reference' => $carpet->parcha_number ?? $carpet->carpet_no,
@@ -1713,7 +1717,7 @@ class CarpetsController extends Controller
         }
 
         $material = '';
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
         $rawMaterialAccounts = $this->accountSelectionService->getValidAccounts('MATERIAL_INVENTORY', 'credit');
         $expenseAccounts = $this->accountSelectionService->getValidAccounts('REPAIR_EXPENSE', 'debit');
         $currencies = \App\Currency::all();
@@ -1731,7 +1735,7 @@ class CarpetsController extends Controller
      */
     public function edit($id)
     {
-        $inventoryAccounts = $this->accountSelectionService->getValidAccounts('CARPET_INVENTORY', 'debit');
+        $allAccounts = AppChartOfAccount::orderBy('account_code')->get();
 
         $editCarpet = Carpet::find($id);
 
@@ -2012,11 +2016,13 @@ class CarpetsController extends Controller
                         $this->inventoryManager->processPurchase($carpet, [
                             'transaction_type' => 'carpet_purchase',
                             'quantity' => 1,
-                            'unit_cost' => $carpet->total_price,
+                            'unit_cost' => $carpet->original_price,
                             'warehouse_id' => $carpet->warehouse_id,
                             'area' => (float) ($carpet->area ?? 0),
                             'date' => $carpet->date ?? now()->format('Y-m-d'),
-                            'total_amount' => $carpet->total_price,
+                            'total_amount' => (float)($carpet->area ?? 0) * (float)($carpet->original_price ?? 0),
+                            'currency_code' => $carpet->currency_code,
+                            'exchange_rate' => $carpet->exchange_rate,
                             'party_type' => 'App\Agents',
                             'party_id' => $carpet->agent_id,
                             'reference' => $carpet->carpet_no,

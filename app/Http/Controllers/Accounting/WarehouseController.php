@@ -134,30 +134,85 @@ class WarehouseController extends Controller
         $warehouse = Warehouse::findOrFail($id);
         $issueDate = Carbon::now()->format('Y-m-d H:i');
 
+        $carpetTypes = [];
+        $qualities = [];
+        $agents = [];
+        $materialCategories = [];
+        $materialTypes = [];
+
         if ($warehouse->subtype === 'carpet') {
-            $items = \App\Carpet::with(['type', 'quality', 'agent.user'])
+            $carpetTypes = \App\CarpetType::all();
+            $qualities = \App\Quality::all();
+            $agents = \App\Agents::with('user')->get();
+
+            $query = \App\Carpet::with(['type', 'quality', 'agent.user'])
                 ->where('warehouse_id', $id)
-                ->where('status', '!=', 6)
-                ->get();
+                ->where('status', '!=', 6);
+
+            if ($request->filled('search')) {
+                $search = $request->get('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('carpet_no', 'like', "%{$search}%")
+                      ->orWhere('map_number', 'like', "%{$search}%");
+                });
+            }
+            if ($request->filled('type_id')) {
+                $query->where('type_id', $request->get('type_id'));
+            }
+            if ($request->filled('quality_id')) {
+                $query->where('quality_id', $request->get('quality_id'));
+            }
+            if ($request->filled('status') && $request->get('status') !== 'all') {
+                $query->where('status', $request->get('status'));
+            }
+            if ($request->filled('agent_id')) {
+                $query->where('agent_id', $request->get('agent_id'));
+            }
+            
+            $items = $query->get();
         } else {
-            $items = \DB::table('inventory_transactions')
+            $materialCategories = \App\MaterialCategory::where('subtype', $warehouse->subtype)->get();
+            $materialTypes = \App\MaterialType::where('subtype', $warehouse->subtype)->get();
+
+            $query = \DB::table('inventory_transactions')
                 ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
                 ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
                 ->leftJoin('material_categories', 'inventory_transactions.category_id', '=', 'material_categories.material_category_id')
                 ->where('inventory_transactions.warehouse_id', $id)
                 ->where('inventory_transactions.status', 1)
                 ->where('items.type', 'App\MaterialType')
-                ->where('material_types.subtype', $warehouse->subtype)
-                ->select(
+                ->where('material_types.subtype', $warehouse->subtype);
+
+            if ($request->filled('search')) {
+                $search = $request->get('search');
+                $query->where('material_types.material_type', 'like', "%{$search}%");
+            }
+            if ($request->filled('category_id')) {
+                $query->where('inventory_transactions.category_id', $request->get('category_id'));
+            }
+            if ($request->filled('material_type_id')) {
+                $query->where('material_types.material_type_id', $request->get('material_type_id'));
+            }
+
+            $query->select(
                     'material_types.material_type_id',
                     'material_types.material_type',
-                    'material_categories.material_category',
+                    \DB::raw("MAX(material_categories.material_category) as material_category"),
                     \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as available_qty"),
                     \DB::raw("MAX(items.current_cost) as current_cost")
                 )
-                ->groupBy('material_types.material_type_id', 'material_types.material_type', 'material_categories.material_category_id', 'material_categories.material_category')
-                ->havingRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) > 0")
-                ->get();
+                ->groupBy('material_types.material_type_id', 'material_types.material_type');
+            
+            if ($request->filled('min_qty')) {
+                $minQty = (float) $request->get('min_qty');
+                $query->havingRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) >= ?", [$minQty]);
+            }
+            if ($request->filled('max_qty')) {
+                $maxQty = (float) $request->get('max_qty');
+                $query->havingRaw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) <= ?", [$maxQty]);
+            }
+
+            $items = $query->get();
         }
 
         $headerPath = public_path('images/header.png');
@@ -178,7 +233,7 @@ class WarehouseController extends Controller
             '6' => 'فروخته شده (Sold)'
         ];
 
-        $data = compact('warehouse', 'items', 'issueDate', 'headerBase64', 'footerBase64', 'logoBase64', 'statuses');
+        $data = compact('warehouse', 'items', 'issueDate', 'headerBase64', 'footerBase64', 'logoBase64', 'statuses', 'carpetTypes', 'qualities', 'agents', 'materialCategories', 'materialTypes', 'request');
 
         if ($exportType === 'pdf') {
             return view('accounting.warehouses.stock_report_pdf', $data);

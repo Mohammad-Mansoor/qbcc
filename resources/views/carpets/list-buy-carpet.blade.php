@@ -513,8 +513,12 @@
                                     <select name="currency_id" id="modal_currency_id"
                                         class="form-control border-primary font-weight-bold">
                                         @foreach($currencies as $curr)
-                                            <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}"
-                                                data-code="{{ $curr->code }}" {{ ($editCarpet && $editCarpet->currency_id == $curr->id) || (!$editCarpet && $curr->code == 'USD') ? 'selected' : '' }}>{{ $curr->code }} ({{ $curr->symbol }})</option>
+                                            <option value="{{ $curr->id }}" 
+                                                data-rate="{{ ($editCarpet && $editCarpet->currency_id == $curr->id && $editCarpet->exchange_rate) ? $editCarpet->exchange_rate : $curr->exchange_rate }}"
+                                                data-code="{{ $curr->code }}" 
+                                                {{ ($editCarpet && $editCarpet->currency_id == $curr->id) || (!$editCarpet && $curr->code == 'USD') ? 'selected' : '' }}>
+                                                {{ $curr->code }} ({{ $curr->symbol }})
+                                            </option>
                                         @endforeach
                                     </select>
                                     <input type="hidden" name="exchange_rate" id="modal_exchange_rate"
@@ -565,10 +569,22 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label-premium">حساب دارایی (Inventory GL)</label>
-                                    <select name="override_inventory_account_id" class="form-control premium-input">
-                                        @foreach($inventoryAccounts as $acc)
-                                            <option value="{{$acc->id}}" {{ ($editCarpet && $editCarpet->override_inventory_account_id == $acc->id) || (old('override_inventory_account_id', 15) == $acc->id) ? 'selected' : '' }}>
+                                    <label class="form-label-premium">حساب دارایی / بدهکار (Inventory GL - Debit)</label>
+                                    <select name="override_inventory_account_id" class="form-control select2">
+                                        <option value="">-- پیش‌فرض سیستم (System Default) --</option>
+                                        @foreach($allAccounts as $acc)
+                                            <option value="{{$acc->id}}" {{ ($editCarpet && $editCarpet->override_inventory_account_id == $acc->id) || (old('override_inventory_account_id') == $acc->id) ? 'selected' : '' }}>
+                                                {{$acc->account_name}} ({{$acc->account_code}})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label-premium">حساب بستانکار (Credit Account)</label>
+                                    <select name="override_credit_account_id" class="form-control select2">
+                                        <option value="">-- پیش‌فرض سیستم (System Default) --</option>
+                                        @foreach($allAccounts as $acc)
+                                            <option value="{{$acc->id}}" {{ ($editCarpet && $editCarpet->override_credit_account_id == $acc->id) || (old('override_credit_account_id') == $acc->id) ? 'selected' : '' }}>
                                                 {{$acc->account_name}} ({{$acc->account_code}})</option>
                                         @endforeach
                                     </select>
@@ -664,9 +680,11 @@
             // Regular Select2 Initialization (for filters outside modal)
             $('form[action="/dashboard/list-buy-carpet"] .select2').select2();
 
-            // Select2 Fix for Modals
-            $('#buyCarpetModal .select2').select2({
-                dropdownParent: $('#buyCarpetModal')
+            // Select2 Fix for Modals: Append to immediate parent to fix scroll blinking/closing bug
+            $('#buyCarpetModal .select2').each(function() {
+                $(this).select2({
+                    dropdownParent: $(this).parent()
+                });
             });
 
             // Dependent Dropdown: Filter Invoices by Vendor

@@ -118,6 +118,46 @@ header("Cache-Control: private",false);
         
         <tr style="height: 15pt;"><td colspan="{{ $warehouse->subtype === 'carpet' ? 10 : 6 }}" style="border: none; background-color: #ffffff;"></td></tr>
 
+        @if(count(array_filter($request->except(['id', 'export']))) > 0)
+        <tr>
+            <td colspan="{{ $warehouse->subtype === 'carpet' ? 10 : 6 }}" class="meta-label" style="text-align: right; background-color: #e2e8f0; height: 20pt;">فیلترهای اعمال شده (Applied Filters):</td>
+        </tr>
+        <tr>
+            <td colspan="{{ $warehouse->subtype === 'carpet' ? 10 : 6 }}" class="meta-value text-right" style="height: 40pt; vertical-align: top;">
+                @if($request->filled('search')) جستجو: {{ $request->search }} | @endif
+                @if($request->filled('type_id')) 
+                    @php $typeName = collect($carpetTypes ?? [])->firstWhere('carpet_type_id', $request->type_id)->carpet_type ?? $request->type_id; @endphp
+                    نوعیت: {{ $typeName }} | 
+                @endif
+                @if($request->filled('quality_id')) 
+                    @php $qualName = collect($qualities ?? [])->firstWhere('quality_id', $request->quality_id)->quality ?? $request->quality_id; @endphp
+                    کوالیتی: {{ $qualName }} | 
+                @endif
+                @if($request->filled('status') && $request->status !== 'all') 
+                    وضعیت: {{ $statuses[$request->status] ?? $request->status }} | 
+                @endif
+                @if($request->filled('agent_id')) 
+                    @php 
+                        $ag = collect($agents ?? [])->firstWhere('id', $request->agent_id);
+                        $agName = $ag ? ($ag->user->name . ' ' . $ag->user->last_name) : $request->agent_id;
+                    @endphp
+                    عاملیت: {{ $agName }} | 
+                @endif
+                @if($request->filled('category_id')) 
+                    @php $catName = collect($materialCategories ?? [])->firstWhere('material_category_id', $request->category_id)->material_category ?? $request->category_id; @endphp
+                    کتگوری: {{ $catName }} | 
+                @endif
+                @if($request->filled('material_type_id')) 
+                    @php $matTypeName = collect($materialTypes ?? [])->firstWhere('material_type_id', $request->material_type_id)->material_type ?? $request->material_type_id; @endphp
+                    نوعیت مواد: {{ $matTypeName }} | 
+                @endif
+                @if($request->filled('min_qty')) حداقل موجودی: {{ $request->min_qty }} | @endif
+                @if($request->filled('max_qty')) حداکثر موجودی: {{ $request->max_qty }} | @endif
+            </td>
+        </tr>
+        <tr style="height: 15pt;"><td colspan="{{ $warehouse->subtype === 'carpet' ? 10 : 6 }}" style="border: none; background-color: #ffffff;"></td></tr>
+        @endif
+
         <!-- Main Table -->
         @if($warehouse->subtype === 'carpet')
         <thead>

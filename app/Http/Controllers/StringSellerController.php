@@ -194,7 +194,7 @@ class StringSellerController extends Controller
             $seller->accounting_balance = DB::table('ledger_entries')
                 ->where('party_type', 'App\StringSeller')
                 ->where('party_id', $seller->id)
-                ->sum(DB::raw("credit - debit"));
+                ->sum(DB::raw("base_credit - base_debit"));
 
             // 2. Legacy Balance (AFN & USD)
             $seller->legacy_af = DB::table('seller_payments')->where('seller_id', $seller->id)->where('type', 'رسید')->sum('amount_af') 

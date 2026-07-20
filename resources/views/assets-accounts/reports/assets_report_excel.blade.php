@@ -44,7 +44,8 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel to read Persian characters correctly
                 <th>کلاس</th>
                 <th>موقعیت فزیکی</th>
                 <th>تاریخ خرید</th>
-                <th>قیمت خرید</th>
+                <th>قیمت اصلی</th>
+                <th>قیمت خرید (Base)</th>
                 <th>اسعار</th>
                 <th>ارزش اسقاط</th>
                 <th>عمر مفید (سال)</th>
@@ -62,6 +63,7 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel to read Persian characters correctly
                 <td>{{ $asset->asset_class }}</td>
                 <td>{{ $asset->physical_location }}</td>
                 <td>{{ \Carbon\Carbon::parse($asset->acquisition_date)->format('Y-m-d') }}</td>
+                <td>{{ number_format($asset->original_amount ?? $asset->acquisition_cost, 2) }}</td>
                 <td>{{ number_format($asset->acquisition_cost, 2) }}</td>
                 <td>{{ $asset->currency_code ?? 'USD' }}</td>
                 <td>{{ number_format($asset->estimated_salvage_value, 2) }}</td>
@@ -69,14 +71,14 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel to read Persian characters correctly
             </tr>
             @empty
             <tr>
-                <td colspan="13" style="text-align: center;">هیچ جنسی یافت نشد.</td>
+                <td colspan="14" style="text-align: center;">هیچ جنسی یافت نشد.</td>
             </tr>
             @endforelse
         </tbody>
         @if($assets->count() > 0)
         <tfoot>
             <tr style="background-color: #e2e8f0; font-weight: bold;">
-                <td colspan="9" style="text-align: center;">مجموع کلی</td>
+                <td colspan="10" style="text-align: center;">مجموع کلی</td>
                 <td>{{ number_format($assets->sum('acquisition_cost'), 2) }}</td>
                 <td colspan="3"></td>
             </tr>

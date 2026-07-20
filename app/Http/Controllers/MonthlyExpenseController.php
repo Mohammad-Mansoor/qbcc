@@ -37,9 +37,24 @@ class MonthlyExpenseController extends Controller
             
             $key = $slugMap[$expense->category] ?? 'EXP_MISC';
 
+            $currencyMap = [
+                1 => 'AFN',
+                2 => 'USD',
+                3 => 'PKR'
+            ];
+            $currencyCode = $currencyMap[$expense->currency] ?? 'USD';
+            $exchangeRate = $expense->dollar_rate > 0 ? $expense->dollar_rate : 1;
+
+            if ($currencyCode !== 'USD' && $exchangeRate > 1.0) {
+                // If user entered 70 instead of 1/70
+                $exchangeRate = 1.0 / $exchangeRate;
+            }
+
             $this->accountingService->postAutoTransaction('expense', $key, [
                 'date' => $expense->date,
                 'amount' => $expense->amount,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'reference' => 'EXP-' . $expense->id,
                 'description' => $expense->description . " (" . $expense->category . ")",
                 'source_type' => 'MonthlyExpense',

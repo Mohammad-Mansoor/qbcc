@@ -30,13 +30,15 @@ class MaterialAccountPaymentController extends Controller
             $txType = ($payment->type === 'گرفت') ? 'material_payment_out' : 'material_payment_in';
             $mappingKey = ($payment->type === 'گرفت') ? 'MATERIAL_PAYMENT' : 'MATERIAL_RECEIPT';
 
-            // 1. Post General Ledger Transaction in base currency (USD)
+            // 1. Post General Ledger Transaction in original currency
             $this->accountingService->postAutoTransaction(
                 $txType,
                 $mappingKey,
                 [
                     'date' => $payment->date,
-                    'amount' => $payment->base_currency_amount ?? 0,
+                    'amount' => $payment->original_amount ?? 0,
+                    'currency_code' => $payment->currency_code,
+                    'exchange_rate' => $payment->exchange_rate,
                     'party_type' => 'App\MaterialAccount',
                     'party_id' => $payment->account_id,
                     'reference' => 'MAP-' . $payment->id,

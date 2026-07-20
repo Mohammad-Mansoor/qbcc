@@ -3,8 +3,8 @@
     $totalDebit = 0;
     $totalCredit = 0;
     foreach($entries as $tx) {
-        $totalDebit += $tx->debit;
-        $totalCredit += $tx->credit;
+        $totalDebit += $tx->base_debit;
+        $totalCredit += $tx->base_credit;
     }
     $isCustomer = ($entityKey === 'customer');
     if ($isCustomer) {
@@ -314,9 +314,9 @@
             @foreach($entries as $tx)
                 @php
                     if ($isCustomer) {
-                        $currentRunning += ($tx->debit - $tx->credit);
+                        $currentRunning += ($tx->base_debit - $tx->base_credit);
                     } else {
-                        $currentRunning += ($tx->credit - $tx->debit);
+                        $currentRunning += ($tx->base_credit - $tx->base_debit);
                     }
                     $rowBgColor = $loop->even ? '#f8fafc' : '#ffffff';
                 @endphp
@@ -325,10 +325,10 @@
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $tx->reference ?: '-' }}</td>
                     <td class="text-right" style="height: 26pt; padding-right: 12px; background-color: {{ $rowBgColor }};">{{ $tx->description ?: 'بدون توضیحات' }}</td>
                     <td class="text-left text-danger" style="height: 26pt; padding-left: 12px; background-color: {{ $rowBgColor }};">
-                        {{ $tx->debit > 0 ? '$' . number_format($tx->debit, 2) : '-' }}
+                        {{ $tx->base_debit > 0 ? '$' . number_format($tx->base_debit, 2) : '-' }}
                     </td>
                     <td class="text-left text-success" style="height: 26pt; padding-left: 12px; background-color: {{ $rowBgColor }};">
-                        {{ $tx->credit > 0 ? '$' . number_format($tx->credit, 2) : '-' }}
+                        {{ $tx->base_credit > 0 ? '$' . number_format($tx->base_credit, 2) : '-' }}
                     </td>
                     <td class="text-left font-bold" style="direction: ltr; height: 26pt; padding-left: 12px; background-color: {{ $rowBgColor }};">
                         {{ number_format(abs($currentRunning), 2) }} {{ $currentRunning >= 0 ? ($isCustomer ? '(Dr)' : '(Cr)') : ($isCustomer ? '(Cr)' : '(Dr)') }}

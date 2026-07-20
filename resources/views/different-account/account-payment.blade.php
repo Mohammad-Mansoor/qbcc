@@ -348,9 +348,10 @@
                                 <div class="form-group">
                                     <label class="small font-weight-bold text-muted">حساب بدهکار (Debit Account)</label>
                                     <select name="override_debit_account_id" id="override_debit_account_id"
-                                        class="form-control-modern w-100" required style="font-family: inherit;">
+                                        class="form-control-modern w-100" style="font-family: inherit;">
+                                        <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                                         @foreach($chartOfAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ (($paymentEdit && $paymentEdit->override_debit_account_id == $acc->id) || (!$paymentEdit && $mappingIn && $mappingIn->debit_account_id == $acc->id)) ? 'selected' : '' }}
+                                            <option value="{{ $acc->id }}" {{ ($paymentEdit && $paymentEdit->override_debit_account_id == $acc->id) ? 'selected' : '' }}
                                                 data-cash="{{ $acc->is_cash_account }}">
                                                 {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
                                             </option>
@@ -362,9 +363,10 @@
                                 <div class="form-group">
                                     <label class="small font-weight-bold text-muted">حساب بستانکار (Credit Account)</label>
                                     <select name="override_credit_account_id" id="override_credit_account_id"
-                                        class="form-control-modern w-100" required style="font-family: inherit;">
+                                        class="form-control-modern w-100" style="font-family: inherit;">
+                                        <option value="">-- پیش‌فرض سیستم (System Default) --</option>
                                         @foreach($chartOfAccounts as $acc)
-                                            <option value="{{ $acc->id }}" {{ (($paymentEdit && $paymentEdit->override_credit_account_id == $acc->id) || (!$paymentEdit && $mappingOut && $mappingOut->credit_account_id == $acc->id)) ? 'selected' : '' }}
+                                            <option value="{{ $acc->id }}" {{ ($paymentEdit && $paymentEdit->override_credit_account_id == $acc->id) ? 'selected' : '' }}
                                                 data-cash="{{ $acc->is_cash_account }}">
                                                 {{ $acc->account_code }} - {{ $acc->account_name }} ({{ $acc->account_type }})
                                             </option>
@@ -432,42 +434,8 @@
             // Initial calculation on load
             calculateUSD();
 
-            // Dynamic select accounts filtering and defaults
-            const mappingInDebit = "{{ $mappingIn->debit_account_id ?? '' }}";
-            const mappingInCredit = "{{ $mappingIn->credit_account_id ?? '' }}";
-            const mappingOutDebit = "{{ $mappingOut->debit_account_id ?? '' }}";
-            const mappingOutCredit = "{{ $mappingOut->credit_account_id ?? '' }}";
-
-            function filterAccounts() {
-                let type = $('select[name="type"]').val();
-                let debitSelect = $('#override_debit_account_id');
-                let creditSelect = $('#override_credit_account_id');
-
-                // Enable all options first
-                debitSelect.find('option').prop('disabled', false);
-                creditSelect.find('option').prop('disabled', false);
-
-                if (type === 'رسید') {
-                    // Set defaults if currently selected is disabled or if opening a new form
-                    if (debitSelect.find('option:selected').is(':disabled') || !debitSelect.val()) {
-                        debitSelect.val(mappingInDebit);
-                    }
-                    if (!creditSelect.val() || creditSelect.val() == mappingOutCredit) {
-                        creditSelect.val(mappingInCredit);
-                    }
-                } else {
-                    // Set defaults if currently selected is disabled or if opening a new form
-                    if (creditSelect.find('option:selected').is(':disabled') || !creditSelect.val()) {
-                        creditSelect.val(mappingOutCredit);
-                    }
-                    if (!debitSelect.val() || debitSelect.val() == mappingInDebit) {
-                        debitSelect.val(mappingOutDebit);
-                    }
-                }
-            }
-
-            $('select[name="type"]').change(filterAccounts);
-            filterAccounts(); // run initially
+            // Backend handles account defaults based on the transaction type seamlessly
+            // Javascript forcing logic has been removed so "System Default" behaves perfectly
         });
     </script>
 @endsection

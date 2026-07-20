@@ -13,7 +13,7 @@ header("Cache-Control: private",false);
     $sum_finish = 0;
     $sum_sold = 0;
     foreach($carpets as $carpet) {
-        $sum_purchase += $carpet->total_price;
+        $sum_purchase += $carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price;
         $sum_repair += $carpet->repair ? $carpet->repair->sum('total_price') : 0;
         $sum_wash += $carpet->carpet_wash ? $carpet->carpet_wash->total_price : 0;
         $sum_finish += $carpet->finishing_works ? $carpet->finishing_works->sum('price') : 0;
@@ -199,6 +199,10 @@ header("Cache-Control: private",false);
         <tbody>
             @forelse($carpets as $index => $carpet)
             @php
+                $origWidth = $carpet->buying_width > 0 ? $carpet->buying_width : $carpet->width;
+                $origHeight = $carpet->buying_height > 0 ? $carpet->buying_height : $carpet->height;
+                $origArea = $carpet->buying_area > 0 ? $carpet->buying_area : $carpet->area;
+                $origTotalPriceUsd = $carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price;
                 $repair_cost = $carpet->repair ? $carpet->repair->sum('total_price') : 0;
                 $wash_cost = $carpet->carpet_wash ? $carpet->carpet_wash->total_price : 0;
                 $finish_cost = $carpet->finishing_works ? $carpet->finishing_works->sum('price') : 0;
@@ -212,10 +216,10 @@ header("Cache-Control: private",false);
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->type->carpet_type ?? '-' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->quality->quality ?? '-' }}</td>
                 <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->map_number ?? '-' }}</td>
-                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->buying_height ?? $carpet->height }}</td>
-                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->buying_width ?? $carpet->width }}</td>
-                <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
-                <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($carpet->total_price, 2) }}</td>
+                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $origHeight }}</td>
+                <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $origWidth }}</td>
+                <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($origArea, 2) }}</td>
+                <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($origTotalPriceUsd, 2) }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $repair_cost > 0 ? '$'.number_format($repair_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $wash_cost > 0 ? '$'.number_format($wash_cost, 2) : '-' }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">{{ $finish_cost > 0 ? '$'.number_format($finish_cost, 2) : '-' }}</td>
@@ -233,7 +237,7 @@ header("Cache-Control: private",false);
             @if($carpets->count() > 0)
             <tr class="total-row">
                 <td colspan="8" class="text-center" style="height: 32pt;">مجموع کلی (Grand Total)</td>
-                <td class="text-center font-bold" style="direction: ltr; height: 32pt;">{{ number_format($carpets->sum('area'), 2) }}</td>
+                <td class="text-center font-bold" style="direction: ltr; height: 32pt;">{{ number_format($carpets->sum(function($c) { return $c->buying_area > 0 ? $c->buying_area : $c->area; }), 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_purchase, 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_repair, 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_wash, 2) }}</td>
