@@ -266,7 +266,10 @@
             </button>
             @endcan
             <a href="/dashboard/customer-order-details/{{ $customer_order->co_id }}?export=pdf" target="_blank" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
-                <i class="fa fa-print ml-1"></i> چاپ (PDF)
+                <i class="fa fa-file-pdf text-danger ml-1"></i> چاپ (PDF)
+            </a>
+            <a href="/dashboard/customer-order-details/{{ $customer_order->co_id }}?export=excel" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
+                <i class="fa fa-file-excel text-success ml-1"></i> خروجی (Excel)
             </a>
             <a href="/dashboard/customer-orders" class="btn btn-light font-weight-bold shadow-sm text-dark mr-2">
                 <i class="fa fa-arrow-right ml-1"></i> بازگشت
@@ -274,7 +277,7 @@
         </div>
     </div>
 
-    @if($errors->any())
+    @if(isset($errors) && $errors->any())
         <div class="alert alert-danger glass-card mb-4 text-right" style="direction: rtl;">
             <ul class="mb-0 pr-3">
                 @foreach($errors->all() as $error)

@@ -203,7 +203,7 @@
                             <p class="card-val">${{ number_format($openingBalance, 2) }}</p>
                         </div>
                         <div class="dashboard-col card-red">
-                            <div class="small-title text-danger">دیبت / فروش (Debit)</div>
+                            <div class="small-title text-danger">{{ $entityKey === 'customer' ? 'دیبت / فروش (Debit)' : 'دیبت (Debit)' }}</div>
                             <p class="card-val text-danger">${{ number_format($entries->sum('base_debit'), 2) }}</p>
                         </div>
                         <div class="dashboard-col card-green">
@@ -230,7 +230,7 @@
                                 <th>تاریخ (Date)</th>
                                 <th>سند (Ref)</th>
                                 <th style="width: 40%;">تفصیلات (Description)</th>
-                                <th>دیبت / فروش</th>
+                                <th>{{ $entityKey === 'customer' ? 'دیبت / فروش' : 'دیبت' }}</th>
                                 <th>کریدت / رسید</th>
                                 <th>بیلانس نهایی</th>
                             </tr>

@@ -325,7 +325,15 @@
             <div class="card glass-card">
                 <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3" style="direction: rtl;">
                     <h5 class="mb-0 font-weight-bold text-dark"><i class="fa fa-list text-primary ml-2"></i>فرمایشات موجود</h5>
-                    <button class="btn btn-sm btn-outline-secondary hideOnPrint" onclick="window.print()"><i class="fa fa-print ml-1"></i> چاپ گزارش</button>
+                    <div class="d-flex align-items-center gap-2 hideOnPrint">
+                        <a href="{{ route('customer_orders.export_pdf', $customer->id) }}" id="btnExportPdf" target="_blank" class="btn btn-sm btn-outline-danger font-weight-bold ml-1">
+                            <i class="fa fa-file-pdf ml-1"></i> خروجی PDF
+                        </a>
+                        <a href="{{ route('customer_orders.export_excel', $customer->id) }}" id="btnExportExcel" class="btn btn-sm btn-outline-success font-weight-bold ml-1">
+                            <i class="fa fa-file-excel ml-1"></i> خروجی Excel
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fa fa-print ml-1"></i> چاپ مرورگر</button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -403,6 +411,9 @@
                                             @can('manage_customer_order_details')
                                             <a href="/dashboard/customer-order-details/{{$co->co_id}}" class="btn btn-sm btn-outline-primary ml-1 font-weight-bold">
                                                 <i class="fa fa-list"></i> جزئیات قالین
+                                            </a>
+                                            <a href="/dashboard/customer-order-details/{{$co->co_id}}?export=pdf" target="_blank" class="btn btn-sm btn-outline-danger ml-1 font-weight-bold" title="گزارش PDF فرمایش">
+                                                <i class="fa fa-file-pdf"></i> PDF
                                             </a>
                                             @endcan
                                             @can('edit_customer_order')
@@ -583,6 +594,23 @@
                 row.hide();
             }
         });
+
+        // Update PDF and Excel export links dynamically
+        let pdfUrl = "{{ route('customer_orders.export_pdf', $customer->id) }}";
+        let excelUrl = "{{ route('customer_orders.export_excel', $customer->id) }}";
+        let params = [];
+
+        if (status) params.push('status=' + encodeURIComponent(status));
+        if (searchQuery) params.push('search=' + encodeURIComponent(searchQuery));
+
+        if (params.length > 0) {
+            let queryStr = '?' + params.join('&');
+            pdfUrl += queryStr;
+            excelUrl += queryStr;
+        }
+
+        $('#btnExportPdf').attr('href', pdfUrl);
+        $('#btnExportExcel').attr('href', excelUrl);
     }
 
     // Attach real-time keyup/change listeners

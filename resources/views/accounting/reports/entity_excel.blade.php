@@ -236,7 +236,7 @@
         <!-- Summary Dashboard Card Grid -->
         <!-- Card Labels -->
         <tr>
-            <td colspan="2" class="card-label-debit" style="height: 18pt;" valign="middle">مجموع دیبت / فروش (Total Debit)</td>
+            <td colspan="2" class="card-label-debit" style="height: 18pt;" valign="middle">{{ $entityKey === 'customer' ? 'مجموع دیبت / فروش (Total Debit)' : 'مجموع دیبت (Total Debit)' }}</td>
             <td colspan="2" class="card-label-credit" style="height: 18pt;" valign="middle">مجموع کریدت / رسید (Total Credit)</td>
             <td colspan="2" class="card-label-balance" style="height: 18pt;" valign="middle">بیلانس نهایی (Current Balance)</td>
         </tr>
@@ -287,7 +287,7 @@
                 <th width="130" style="height: 32pt;">تاریخ سند (Date)</th>
                 <th width="130" style="height: 32pt;">سند مرجع (Ref)</th>
                 <th width="360" style="height: 32pt;">تفصیلات / شرح تراکنش (Description)</th>
-                <th width="135" style="height: 32pt;">دیبت / فروش (Debit)</th>
+                <th width="135" style="height: 32pt;">{{ $entityKey === 'customer' ? 'دیبت / فروش (Debit)' : 'دیبت (Debit)' }}</th>
                 <th width="135" style="height: 32pt;">کریدیت / رسید (Credit)</th>
                 <th width="155" style="height: 32pt;">بیلانس نهایی (Balance)</th>
             </tr>

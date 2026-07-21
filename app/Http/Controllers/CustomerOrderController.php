@@ -95,6 +95,12 @@ class CustomerOrderController extends Controller
      * @param int $customer_id
      * @return \Illuminate\Http\Response
      */
+    /**
+     * Display the specified resource.
+     *
+     * @param int $customer_id
+     * @return \Illuminate\Http\Response
+     */
     public function show($customer_id)
     {
         $customer = \App\Customer::findOrFail($customer_id);
@@ -104,6 +110,93 @@ class CustomerOrderController extends Controller
 
         return view('customer-orders.customer-orders', compact('customer', 'orderEdit', 'customer_orders', 'nextOrderNumber'));
     }
+
+    public function exportPdf($customer_id, Request $request)
+    {
+        return $this->generateCustomerOrdersReport($customer_id, $request, 'pdf');
+    }
+
+    public function exportExcel($customer_id, Request $request)
+    {
+        return $this->generateCustomerOrdersReport($customer_id, $request, 'excel');
+    }
+
+    private function generateCustomerOrdersReport($customer_id, Request $request, $type)
+    {
+        $customer = \App\Customer::findOrFail($customer_id);
+
+        $query = CustomerOrder::with('details')->where('main_customer_id', $customer_id);
+
+        // Status Filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Search Filter (order_name or customer_order_number)
+        if ($request->filled('search') || $request->filled('q')) {
+            $searchTerm = $request->input('search', $request->input('q'));
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('order_name', 'like', '%' . $searchTerm . '%')
+                  ->orWhere('customer_order_number', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Date Filter
+        if ($request->filled('from_date')) {
+            $query->whereDate('order_date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('order_date', '<=', $request->to_date);
+        }
+
+        $customer_orders = $query->orderBy('co_id', 'DESC')->get();
+
+        // Calculate aggregate statistics
+        $totalOrders = $customer_orders->count();
+        $pendingOrders = $customer_orders->where('status', 'pending')->count();
+        $inProgressOrders = $customer_orders->where('status', 'in_progress')->count();
+        $completedOrders = $customer_orders->where('status', 'completed')->count();
+        $canceledOrders = $customer_orders->where('status', 'cancel')->count();
+
+        $totalCarpets = 0;
+        $completedCarpets = 0;
+        $totalArea = 0;
+
+        foreach ($customer_orders as $co) {
+            $totalCarpets += $co->details->count();
+            $completedCarpets += $co->details->whereIn('current_status', ['ready', 'shipped'])->count();
+            foreach ($co->details as $detail) {
+                $totalArea += (float)$detail->area;
+            }
+        }
+
+        $kpis = [
+            'total_orders' => $totalOrders,
+            'pending_orders' => $pendingOrders,
+            'in_progress_orders' => $inProgressOrders,
+            'completed_orders' => $completedOrders,
+            'canceled_orders' => $canceledOrders,
+            'total_carpets' => $totalCarpets,
+            'completed_carpets' => $completedCarpets,
+            'total_area' => $totalArea,
+        ];
+
+        $issueDate = Carbon::now()->format('Y-m-d H:i');
+
+        if ($type === 'excel') {
+            return view('customer-orders.reports.customer_orders_excel', compact(
+                'customer', 'customer_orders', 'kpis', 'issueDate', 'request'
+            ));
+        } else {
+            $logoPath = public_path('images/logo.png');
+            $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+
+            return view('customer-orders.reports.customer_orders_pdf', compact(
+                'customer', 'customer_orders', 'kpis', 'issueDate', 'request', 'logoBase64'
+            ));
+        }
+    }
+
 
     /**
      * Show the form for editing the specified resource.

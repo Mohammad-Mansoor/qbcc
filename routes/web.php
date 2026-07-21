@@ -569,6 +569,8 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_customer_orders']], function () {
     Route::resource('/customer-account-for-orders','CustomerAccountOrderController');
     Route::get('/customer-orders-next-number', 'CustomerOrderController@getNextOrderNumber');
+    Route::get('/customer-orders/{customer_id}/export/pdf', 'CustomerOrderController@exportPdf')->name('customer_orders.export_pdf');
+    Route::get('/customer-orders/{customer_id}/export/excel', 'CustomerOrderController@exportExcel')->name('customer_orders.export_excel');
     Route::resource('/customer-orders','CustomerOrderController');
     Route::resource('/customer-order-details','CustomerOrderDetailsController');
     Route::get('/carpet-specification/{id}', 'CustomerOrderDetailsController@show_carpet');

@@ -143,22 +143,68 @@ class CustomerOrderDetailsController extends Controller
      * @param  \App\CustomerOrderDetails  $customerOrderDetails
      * @return \Illuminate\Http\Response
      */
+    private function calculateStatusStats($customer_order_details)
+    {
+        $statusesList = [
+            'graphing'  => ['label' => 'نقشه کشی', 'icon' => 'fa-drafting-compass', 'bg' => '#8b5cf6', 'light_bg' => '#f3e8ff', 'text' => '#6b21a8'],
+            'dyeing'    => ['label' => 'رنگ ریزی', 'icon' => 'fa-fill-drip', 'bg' => '#ec4899', 'light_bg' => '#fce7f3', 'text' => '#9d174d'],
+            'on_loom'   => ['label' => 'در جریان بافت', 'icon' => 'fa-industry', 'bg' => '#3b82f6', 'light_bg' => '#dbeafe', 'text' => '#1e40af'],
+            'off_loom'  => ['label' => 'ختمِ بافت', 'icon' => 'fa-cut', 'bg' => '#6366f1', 'light_bg' => '#e0e7ff', 'text' => '#3730a3'],
+            'washing'   => ['label' => 'شستشو', 'icon' => 'fa-shower', 'bg' => '#06b6d4', 'light_bg' => '#cffaff', 'text' => '#155e75'],
+            'finishing' => ['label' => 'تیاری', 'icon' => 'fa-magic', 'bg' => '#f59e0b', 'light_bg' => '#fef3c7', 'text' => '#92400e'],
+            'repairing' => ['label' => 'ترمیم', 'icon' => 'fa-tools', 'bg' => '#d97706', 'light_bg' => '#ffedd5', 'text' => '#9a3412'],
+            'ready'     => ['label' => 'آماده (تکمیل)', 'icon' => 'fa-check-circle', 'bg' => '#10b981', 'light_bg' => '#d1fae5', 'text' => '#065f46'],
+            'shipped'   => ['label' => 'ارسال شده', 'icon' => 'fa-truck', 'bg' => '#059669', 'light_bg' => '#ecfdf5', 'text' => '#047857'],
+            'paused'    => ['label' => 'متوقف', 'icon' => 'fa-pause-circle', 'bg' => '#64748b', 'light_bg' => '#f1f5f9', 'text' => '#334155'],
+            'cancelled' => ['label' => 'لغو شده', 'icon' => 'fa-times-circle', 'bg' => '#ef4444', 'light_bg' => '#fee2e2', 'text' => '#991b1b'],
+        ];
+
+        $statusStats = [];
+        foreach ($statusesList as $key => $info) {
+            $filtered = $customer_order_details->where('current_status', $key);
+            $statusStats[$key] = [
+                'key'        => $key,
+                'label'      => $info['label'],
+                'icon'       => $info['icon'],
+                'bg'         => $info['bg'],
+                'light_bg'   => $info['light_bg'],
+                'text'       => $info['text'],
+                'count'      => $filtered->count(),
+                'total_area' => (float)$filtered->sum('area'),
+            ];
+        }
+
+        return $statusStats;
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  \App\CustomerOrderDetails  $customerOrderDetails
+     * @return \Illuminate\Http\Response
+     */
     public function show($order_id)
     {
         $customer_order = CustomerOrder::with('customer')->find($order_id);
         $customer_order_details = DB::table('customer_order_details')->where('customer_order_id',$order_id)->orderBy('cod_id','DESC')->get();
-        
+        $statusStats = $this->calculateStatusStats($customer_order_details);
+
         if (request()->export === 'pdf') {
             $logoPath = public_path('images/logo.png');
             $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
 
-            return view('customer-orders.customer-order-details-pdf', compact('customer_order', 'customer_order_details', 'logoBase64'));
+            return view('customer-orders.customer-order-details-pdf', compact('customer_order', 'customer_order_details', 'statusStats', 'logoBase64'));
+        }
+
+        if (request()->export === 'excel') {
+            $issueDate = Carbon::now()->format('Y-m-d H:i');
+            return view('customer-orders.customer-order-details-excel', compact('customer_order', 'customer_order_details', 'statusStats', 'issueDate'));
         }
 
         $orderEdit = null;
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'currencies'));
+        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'statusStats', 'currencies'));
     }
 
     public function show_carpet($carpet_id)
@@ -178,8 +224,9 @@ class CustomerOrderDetailsController extends Controller
         $customer_order_details = DB::table('customer_order_details')->where('customer_order_id', $orderEdit->customer_order_id)->orderBy('cod_id','DESC')->get();
         $customer_order = CustomerOrder::find($orderEdit->customer_order_id);
         $currencies = \App\Currency::where('is_active', true)->get();
+        $statusStats = $this->calculateStatusStats($customer_order_details);
 
-        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'currencies'));
+        return view('customer-orders.customer-order-details', compact('orderEdit', 'customer_order','customer_order_details', 'statusStats', 'currencies'));
     }
 
     /**

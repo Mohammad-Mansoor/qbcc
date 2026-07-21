@@ -263,6 +263,40 @@
         </tr>
     </table>
 
+    <!-- Grouped Status Statistics Table (11 Statuses) -->
+    @if(isset($statusStats) && count($statusStats) > 0)
+    <div style="margin-bottom: 12px;">
+        <div style="font-size: 8pt; font-weight: bold; color: #1e3a8a; margin-bottom: 4px;">
+            آمار قالین‌ها تفکیک‌شده بر اساس ۱۱ مرحله بافت و تولید:
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 7.5pt;">
+            <thead>
+                <tr style="background-color: #312e81; color: #ffffff;">
+                    @foreach($statusStats as $stat)
+                        <th style="border: 1px solid #475569; padding: 4px 2px; text-align: center; font-size: 7pt; width: 9.09%;">
+                            {{ $stat['label'] }}
+                        </th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    @foreach($statusStats as $stat)
+                        <td style="border: 1px solid #cbd5e1; padding: 5px 2px; text-align: center; background-color: {{ $stat['count'] > 0 ? '#eff6ff' : '#ffffff' }};">
+                            <span style="font-weight: bold; color: {{ $stat['count'] > 0 ? '#1d4ed8' : '#64748b' }}; display: block;">
+                                {{ $stat['count'] }} تخته
+                            </span>
+                            <span style="font-size: 6.8pt; color: {{ $stat['total_area'] > 0 ? '#047857' : '#94a3b8' }}; display: block; margin-top: 2px;">
+                                {{ number_format($stat['total_area'], 2) }} m²
+                            </span>
+                        </td>
+                    @endforeach
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
+
     <!-- Data table -->
     <table class="data-table">
         <thead>
