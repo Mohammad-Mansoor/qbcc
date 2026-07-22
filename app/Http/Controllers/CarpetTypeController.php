@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 use App\Activity;
 use App\CarpetType;
 use Illuminate\Http\Request;
-use\DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 class CarpetTypeController extends Controller

@@ -25,12 +25,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        if (\Illuminate\Support\Facades\Schema::hasTable('currencies')) {
-            $afn = \App\Currency::where('code', 'AFN')->first();
-            // The legacy system expected 'amount' to be "How many AFN = 1 USD"
-            // Our new system stores "How many USD = 1 AFN"
-            $legacyRate = ($afn && $afn->exchange_rate > 0) ? (1 / $afn->exchange_rate) : 70;
-            View::share('currency', $legacyRate);
+        if (!$this->app->runningInConsole()) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('currencies')) {
+                    $afn = \App\Currency::where('code', 'AFN')->first();
+                    // The legacy system expected 'amount' to be "How many AFN = 1 USD"
+                    // Our new system stores "How many USD = 1 AFN"
+                    $legacyRate = ($afn && $afn->exchange_rate > 0) ? (1 / $afn->exchange_rate) : 70;
+                    View::share('currency', $legacyRate);
+                }
+            } catch (\Throwable $e) {
+                // Silently ignore if DB is not reachable during early boot
+            }
         }
     }
 }
