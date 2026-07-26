@@ -49,7 +49,8 @@ class RoleController extends Controller
         ]);
 
         $role = Role::create(['name' => $request->input('name')]);
-        $role->syncPermissions($request->input('permission'));
+        $permissions = array_map('intval', (array) $request->input('permission'));
+        $role->syncPermissions($permissions);
 
         $this->logActivity("نقش جدید به نام " . $role->name . " ایجاد شد");
 
@@ -92,7 +93,8 @@ class RoleController extends Controller
         $role->name = $request->input('name');
         $role->save();
 
-        $role->syncPermissions($request->input('permission'));
+        $permissions = array_map('intval', (array) $request->input('permission'));
+        $role->syncPermissions($permissions);
 
         $this->logActivity("نقش " . $role->name . " ویرایش شد");
 
