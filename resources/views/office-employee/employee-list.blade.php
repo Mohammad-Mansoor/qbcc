@@ -289,7 +289,6 @@
               <tbody>
               @if(method_exists($employees, 'total') ? $employees->total() > 0 : $employees->count() > 0)
                   @foreach($employees as $employee)
-                    @if(auth()->user()->role == $employee->user_role || auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                       <tr class="ur{{ $employee->id }}">
                         <td>{{$employee->id}}</td>
                         <td>{{$employee->name}}</td>
@@ -326,7 +325,6 @@
                         @endcan
 
                       </tr>
-                    @endif
                   @endforeach
               @else
                   <tr>

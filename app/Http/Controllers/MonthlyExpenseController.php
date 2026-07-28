@@ -68,16 +68,16 @@ class MonthlyExpenseController extends Controller
     public function index()
     {
         $expenseEdit = '';
-        $expenses = DB::table('monthly_expenses')->where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
+        $expenses = DB::table('monthly_expenses')->orderBy('id','DESC')->paginate(50);
         $expenses_sp = DB::table('monthly_expenses')->orderBy('id','DESC')->paginate(50);
 
         $categories = ['خوراکه', 'متفرقه دفتر', 'کرایه و برق', 'ترانسپورت', 'برداشت', 'ترمیمات و تیل', 'معاشات', 'اجوره'];
         $stats = [];
         foreach ($categories as $cat) {
             $stats[$cat] = [
-                'af' => DB::table('monthly_expenses')->where('user_role',Auth::user()->role)->where('category',$cat)->where('currency',1)->sum('amount'),
-                'usd' => DB::table('monthly_expenses')->where('user_role',Auth::user()->role)->where('category',$cat)->where('currency',2)->sum('amount'),
-                'cd' => DB::table('monthly_expenses')->where('user_role',Auth::user()->role)->where('category',$cat)->where('currency',3)->sum('amount'),
+                'af' => DB::table('monthly_expenses')->where('category',$cat)->where('currency',1)->sum('amount'),
+                'usd' => DB::table('monthly_expenses')->where('category',$cat)->where('currency',2)->sum('amount'),
+                'cd' => DB::table('monthly_expenses')->where('category',$cat)->where('currency',3)->sum('amount'),
             ];
         }
 
@@ -116,7 +116,7 @@ class MonthlyExpenseController extends Controller
 
     public function search(Request $request){
         $expenseEdit = '';
-        $expenses = DB::table('monthly_expenses')->whereMonth('date',$request->month)->whereYear('date',$request->year)->where('user_role',Auth::user()->role)->get();
+        $expenses = DB::table('monthly_expenses')->whereMonth('date',$request->month)->whereYear('date',$request->year)->get();
         $expenses_sp = DB::table('monthly_expenses')->whereMonth('date',$request->month)->whereYear('date',$request->year)->get();
         $search = 'yes';
 
@@ -155,7 +155,7 @@ class MonthlyExpenseController extends Controller
     public function edit($expense_id)
     {
         $expenseEdit = MonthlyExpense::find($expense_id);
-        $expenses = DB::table('monthly_expenses')->where('user_role',Auth::user()->role)->paginate(50);
+        $expenses = DB::table('monthly_expenses')->paginate(50);
         $expenses_sp = DB::table('monthly_expenses')->paginate(50);
         $search ='';
         return view('office-cash-book.monthly-expenses', compact('expenseEdit','expenses','expenses_sp','search'));

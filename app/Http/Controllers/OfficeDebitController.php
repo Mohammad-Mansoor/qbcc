@@ -89,7 +89,7 @@ class OfficeDebitController extends Controller
                 $data['name'] = $emp->name;
             }
 
-            $csh = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+            $csh = OfficeCashBook::first();
 
             if($csh){
                 $currency = \App\Currency::find($request->currency_id);
@@ -196,7 +196,7 @@ class OfficeDebitController extends Controller
             $csh = OfficeCashBook::count();
 
             if($csh > 0){
-                $balance = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+                $balance = OfficeCashBook::first();
                 
                 // Add the old base USD amount back to cash book
                 $oldUSD = $db->base_amount ?: ($db->amount_af ? bcdiv((string)$db->amount_af, '60.0000', 4) : $db->amount);
@@ -274,7 +274,7 @@ class OfficeDebitController extends Controller
                 // Reverse Transaction
                 $this->accountingService->reverseTransactionBySource($id, 'Office Debit Deleted');
                 
-                $balance = OfficeCashBook::where('user_role', Auth::user()->role)->first();
+                $balance = OfficeCashBook::first();
                 if ($balance) {
                     // Restore original USD base amount back to cash book
                     $oldUSD = $db->base_amount ?: ($db->amount_af ? bcdiv((string)$db->amount_af, '60.0000', 4) : $db->amount);

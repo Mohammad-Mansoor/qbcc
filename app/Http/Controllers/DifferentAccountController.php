@@ -49,15 +49,16 @@ class DifferentAccountController extends Controller
     public function index()
     {
         $accountEdit = "";
-        $center_accounts = DifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->get();
+        $all_accounts = DifferentAccount::all();
+        $center_accounts = $all_accounts;
+        $froshat_accounts = $all_accounts;
+        $mo_accounts = $all_accounts;
+        $sp_accounts = $all_accounts;
         
         $balances = $this->calculateBalances();
         $remaining = $balances['remaining'];
         $talab = $balances['talab'];
 
-        $froshat_accounts = DifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->get();
-        $mo_accounts = DifferentAccount::where('user_role','MO')->get();
-        $sp_accounts = DifferentAccount::all();
         return view('different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','remaining','talab'));
     }
 
@@ -65,22 +66,16 @@ class DifferentAccountController extends Controller
     {
         $search = $request->search;
         $accountEdit = "";
-        $center_accounts = DifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->where('name','like','%'.$search.'%')
+
+        $matched_accounts = DifferentAccount::where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
             ->get();
-        $froshat_accounts = DifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
-            ->get();
-        $mo_accounts = DifferentAccount::where('user_role','MO')->where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
-            ->get();
-        $sp_accounts = DifferentAccount::where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
-            ->get();
+
+        $center_accounts = $matched_accounts;
+        $froshat_accounts = $matched_accounts;
+        $mo_accounts = $matched_accounts;
+        $sp_accounts = $matched_accounts;
 
         $balances = $this->calculateBalances();
         $remaining = $balances['remaining'];

@@ -20,12 +20,12 @@ class OfficeCashBookController extends Controller
     public function index()
     {
 
-        $credit = OfficeCredit::where('user_role',Auth::user()->role)->sum('amount');
-        $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+        $credit = OfficeCredit::sum('amount');
+        $cashbook = OfficeCashBook::first();
 
 
-        $debits =  OfficeDebit::where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(20);
-        $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
+        $debits =  OfficeDebit::orderBy('id','DESC')->paginate(20);
+        $debit_sum = OfficeDebit::sum('amount');
         $pagination = '';
         $expenseEdit = '';
         $currencies = \App\Currency::where('is_active', true)->get();
@@ -33,13 +33,13 @@ class OfficeCashBookController extends Controller
 
     }
     public function all_expenses(){
-        $credit = OfficeCredit::where('user_role',Auth::user()->role)->sum('amount');
-        $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+        $credit = OfficeCredit::sum('amount');
+        $cashbook = OfficeCashBook::first();
 
 
-        $debits =  OfficeDebit::where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(50);
-        $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
-        $expenseType = OfficeDebit::where('user_role',Auth::user()->role)->select('expense_type')->distinct()->get();
+        $debits =  OfficeDebit::orderBy('id','DESC')->paginate(50);
+        $debit_sum = OfficeDebit::sum('amount');
+        $expenseType = OfficeDebit::select('expense_type')->distinct()->get();
         $expenseEdit = '';
         $currencies = \App\Currency::where('is_active', true)->get();
         return view('office-cash-book.recieveds',compact('debits','credit','cashbook','expenseType','debit_sum','expenseEdit','currencies'));
@@ -47,16 +47,16 @@ class OfficeCashBookController extends Controller
     }
     public function expense_search(Request $request)
     {
-        $credit = OfficeCredit::where('user_role',Auth::user()->role)->sum('amount');
-        $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+        $credit = OfficeCredit::sum('amount');
+        $cashbook = OfficeCashBook::first();
         $search = $request->search;
         $start = $request->from_date;
         $end = $request->to_date;
 
-        $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('name','like','%'.$search.'%')->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
+        $debits = OfficeDebit::where('name','like','%'.$search.'%')->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
 
-        $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
+        $debit_sum = OfficeDebit::sum('amount');
         $expenseEdit = '';
         $currencies = \App\Currency::where('is_active', true)->get();
         return view('office-cash-book.recieveds',compact('debits','credit','cashbook','search','debit_sum','expenseEdit','start','end','currencies'));
@@ -74,27 +74,27 @@ class OfficeCashBookController extends Controller
         $end = $request->to_date;
 
         if ($request->expense_type == 'همه مصارف' && $request->search_for_where == 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
+            $debits = OfficeDebit::whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }elseif ($request->expense_type == 'همه مصارف' && $request->search_for_where != 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
+            $debits = OfficeDebit::where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }elseif ($request->expense_type != 'همه مصارف' && $request->search_for_where == 'همه مصارف'){
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
+            $debits = OfficeDebit::where('expense_type',$request->expense_type)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }else{
-            $debits = OfficeDebit::where('user_role',Auth::user()->role)->where('expense_type',$request->expense_type)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
+            $debits = OfficeDebit::where('expense_type',$request->expense_type)->where('expense_for_where',$request->search_for_where)->whereBetween('date',[$start,$end])->orderBy('id','DESC')->paginate(50);
 
         }
 
         $search = $request->expense_for_where.' '.$request->expense_type;
-        $credit = OfficeCredit::where('user_role',Auth::user()->role)->sum('amount');
-        $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+        $credit = OfficeCredit::sum('amount');
+        $cashbook = OfficeCashBook::first();
 
 
 
-        $expenseType = OfficeDebit::where('user_role',Auth::user()->role)->select('expense_type')->distinct()->get();
-        $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
+        $expenseType = OfficeDebit::select('expense_type')->distinct()->get();
+        $debit_sum = OfficeDebit::sum('amount');
         $expenseEdit = '';
         $currencies = \App\Currency::where('is_active', true)->get();
         return view('office-cash-book.recieveds',compact('debits','credit','cashbook','start','end','expenseType','search','search','debit_sum','expenseEdit','currencies'));
@@ -146,12 +146,12 @@ class OfficeCashBookController extends Controller
     public function edit($id)
     {
 
-        $credit = OfficeCredit::where('user_role',Auth::user()->role)->sum('amount');
-        $cashbook = OfficeCashBook::where('user_role',Auth::user()->role)->first();
+        $credit = OfficeCredit::sum('amount');
+        $cashbook = OfficeCashBook::first();
 
 
-        $debits =  OfficeDebit::where('user_role',Auth::user()->role)->orderBy('id','DESC')->paginate(20);
-        $debit_sum = OfficeDebit::where('user_role',Auth::user()->role)->sum('amount');
+        $debits =  OfficeDebit::orderBy('id','DESC')->paginate(20);
+        $debit_sum = OfficeDebit::sum('amount');
 
         $pagination = '';
         $expenseEdit = OfficeDebit::find($id);

@@ -157,15 +157,12 @@ class NewMonthlyExpenseBalanceController extends Controller
             ->select('new_monthly_expense_balances.*', 'debit_acc.account_name as debit_account_name', 'debit_acc.account_code as debit_account_code', 'credit_acc.account_name as credit_account_name', 'credit_acc.account_code as credit_account_code')
             ->where('month_id',$month->me_id);
 
-        $expenses = (clone $expensesWithOverrides)->where('user_role',Auth::user()->role)->orderBy('new_monthly_expense_balances.id','DESC')->paginate(50);
+        $expenses = (clone $expensesWithOverrides)->orderBy('new_monthly_expense_balances.id','DESC')->paginate(50);
         $expenses_sp = (clone $expensesWithOverrides)->orderBy('new_monthly_expense_balances.id','DESC')->paginate(50);
 
         $currencies = \App\Currency::all();
 
         $expensesQuery = DB::table('new_monthly_expense_balances')->where('month_id', $month->me_id);
-        if (Auth::user()->role != 'SP') {
-            $expensesQuery->where('user_role', Auth::user()->role);
-        }
         $categoryTotals = (clone $expensesQuery)
             ->select('category', 'currency_code', 
                 DB::raw('SUM(original_amount) as total_original'),
@@ -177,30 +174,30 @@ class NewMonthlyExpenseBalanceController extends Controller
         // ... stats calculation code ...
         // (Keeping existing UI logic but focusing on accounting integration)
         
-        $khoraka_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',1)->sum('amount');
-        $khoraka_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',2)->sum('amount');
-        $khoraka_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','خوراکه')->where('currency',3)->sum('amount');
-        $motafrqa_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','متفرقه دفتر')->where('currency',1)->sum('amount');
-        $motafrqa_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','متفرقه دفتر')->where('currency',2)->sum('amount');
-        $motafrqa_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','متفرقه دفتر')->where('currency',3)->sum('amount');
-        $keraia_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','کرایه و برق')->where('currency',1)->sum('amount');
-        $keraia_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','کرایه و برق')->where('currency',2)->sum('amount');
-        $keraia_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','کرایه و برق')->where('currency',3)->sum('amount');
-        $transport_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترانسپورت')->where('currency',1)->sum('amount');
-        $transport_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترانسپورت')->where('currency',2)->sum('amount');
-        $transport_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترانسپورت')->where('currency',3)->sum('amount');
-        $bardasht_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','برداشت')->where('currency',1)->sum('amount');
-        $bardasht_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','برداشت')->where('currency',2)->sum('amount');
-        $bardasht_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','برداشت')->where('currency',3)->sum('amount');
-        $tel_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترمیمات و تیل')->where('currency',1)->sum('amount');
-        $tel_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترمیمات و تیل')->where('currency',2)->sum('amount');
-        $tel_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','ترمیمات و تیل')->where('currency',3)->sum('amount');
-        $mashat_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','معاشات')->where('currency',1)->sum('amount');
-        $mashat_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','معاشات')->where('currency',2)->sum('amount');
-        $mashat_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','معاشات')->where('currency',3)->sum('amount');
-        $ajora_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',1)->sum('amount');
-        $ajora_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',2)->sum('amount');
-        $ajora_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('user_role',Auth::user()->role)->where('category','اجوره')->where('currency',3)->sum('amount');
+        $khoraka_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',1)->sum('amount');
+        $khoraka_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',2)->sum('amount');
+        $khoraka_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',3)->sum('amount');
+        $motafrqa_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','متفرقه دفتر')->where('currency',1)->sum('amount');
+        $motafrqa_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','متفرقه دفتر')->where('currency',2)->sum('amount');
+        $motafrqa_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','متفرقه دفتر')->where('currency',3)->sum('amount');
+        $keraia_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','کرایه و برق')->where('currency',1)->sum('amount');
+        $keraia_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','کرایه و برق')->where('currency',2)->sum('amount');
+        $keraia_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','کرایه و برق')->where('currency',3)->sum('amount');
+        $transport_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترانسپورت')->where('currency',1)->sum('amount');
+        $transport_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترانسپورت')->where('currency',2)->sum('amount');
+        $transport_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترانسپورت')->where('currency',3)->sum('amount');
+        $bardasht_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','برداشت')->where('currency',1)->sum('amount');
+        $bardasht_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','برداشت')->where('currency',2)->sum('amount');
+        $bardasht_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','برداشت')->where('currency',3)->sum('amount');
+        $tel_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترمیمات و تیل')->where('currency',1)->sum('amount');
+        $tel_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترمیمات و تیل')->where('currency',2)->sum('amount');
+        $tel_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','ترمیمات و تیل')->where('currency',3)->sum('amount');
+        $mashat_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','معاشات')->where('currency',1)->sum('amount');
+        $mashat_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','معاشات')->where('currency',2)->sum('amount');
+        $mashat_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','معاشات')->where('currency',3)->sum('amount');
+        $ajora_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','اجوره')->where('currency',1)->sum('amount');
+        $ajora_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','اجوره')->where('currency',2)->sum('amount');
+        $ajora_cd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','اجوره')->where('currency',3)->sum('amount');
 
         $khoraka_sp_af = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',1)->sum('amount');
         $khoraka_sp_usd = DB::table('new_monthly_expense_balances')->where('month_id',$month->me_id)->where('category','خوراکه')->where('currency',2)->sum('amount');

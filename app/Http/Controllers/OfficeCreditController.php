@@ -44,28 +44,31 @@ class OfficeCreditController extends Controller
     public function index()
     {
         $creditEdit = "";
-        $center_credits = OfficeCredit::where('user_role','CO')->orWhere('user_role','CCO')->orderBy('id', 'DESC')->get();
-        $froshat_credits = OfficeCredit::where('user_role','SO')->orWhere('user_role','SCO')->orderBy('id', 'DESC')->get();
-        $sp_credits = OfficeCredit::where('user_role','SP')->orderBy('id', 'DESC')->get();
+        $all_credits = OfficeCredit::orderBy('id', 'DESC')->get();
+        $center_credits = $all_credits;
+        $froshat_credits = $all_credits;
+        $sp_credits = $all_credits;
 
-        $other_user = OfficeCredit::where('user_role', '!=', 'SP')->where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
+        $other_user = OfficeCredit::where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
         
-        $center_total = OfficeCredit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
-        $froshat_total = OfficeCredit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
-        $sp_total = OfficeCredit::where('user_role', '=', 'SP')->sum('amount');
+        $total_credits = OfficeCredit::sum('amount');
+        $center_total = $total_credits;
+        $froshat_total = $total_credits;
+        $sp_total = $total_credits;
 
         $cashbook = OfficeCashBook::count();
         $cash = '';
 
-        $center_debits = OfficeDebit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
-        $froshat_debits = OfficeDebit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
-        $sp_debits = OfficeDebit::where('user_role', '=', 'SP')->sum('amount');
+        $total_debits = OfficeDebit::sum('amount');
+        $center_debits = $total_debits;
+        $froshat_debits = $total_debits;
+        $sp_debits = $total_debits;
 
-        $so_cashbook = OfficeCashBook::where('user_role','SO')->orWhere('user_role','SCO')->sum('balance');
-        $co_cashbook = OfficeCashBook::where('user_role','CO')->orWhere('user_role','CCO')->sum('balance');
+        $so_cashbook = OfficeCashBook::sum('balance');
+        $co_cashbook = $so_cashbook;
 
         if ($cashbook > 0) {
-            $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
+            $cash = OfficeCashBook::sum('balance');
         }
         $currencies = \App\Currency::where('is_active', true)->get();
         return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook', 'currencies'));
@@ -276,28 +279,31 @@ class OfficeCreditController extends Controller
     {
         $creditEdit = OfficeCredit::find($id);
         
-        $center_credits = OfficeCredit::where('user_role','CO')->orWhere('user_role','CCO')->orderBy('id', 'DESC')->get();
-        $froshat_credits = OfficeCredit::where('user_role','SO')->orWhere('user_role','SCO')->orderBy('id', 'DESC')->get();
-        $sp_credits = OfficeCredit::where('user_role','SP')->orderBy('id', 'DESC')->get();
+        $all_credits = OfficeCredit::orderBy('id', 'DESC')->get();
+        $center_credits = $all_credits;
+        $froshat_credits = $all_credits;
+        $sp_credits = $all_credits;
 
-        $other_user = OfficeCredit::where('user_role', '!=', 'SP')->where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
+        $other_user = OfficeCredit::where('payment_id', null)->where('customer_id', null)->where('status','!=',0)->sum('amount');
 
-        $center_total = OfficeCredit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
-        $froshat_total = OfficeCredit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
-        $sp_total = OfficeCredit::where('user_role', '=', 'SP')->sum('amount');
+        $total_credits = OfficeCredit::sum('amount');
+        $center_total = $total_credits;
+        $froshat_total = $total_credits;
+        $sp_total = $total_credits;
 
         $cashbook = OfficeCashBook::count();
         $cash = '';
 
-        $center_debits = OfficeDebit::where('user_role', '=', 'CO')->orWhere('user_role', '=', 'CCO')->sum('amount');
-        $froshat_debits = OfficeDebit::where('user_role', '=', 'SO')->orWhere('user_role', '=', 'SCO')->sum('amount');
-        $sp_debits = OfficeDebit::where('user_role', '=', 'SP')->sum('amount');
+        $total_debits = OfficeDebit::sum('amount');
+        $center_debits = $total_debits;
+        $froshat_debits = $total_debits;
+        $sp_debits = $total_debits;
         
-        $so_cashbook = OfficeCashBook::where('user_role','SO')->orWhere('user_role','SCO')->sum('balance');
-        $co_cashbook = OfficeCashBook::where('user_role','CO')->orWhere('user_role','CCO')->sum('balance');
+        $so_cashbook = OfficeCashBook::sum('balance');
+        $co_cashbook = $so_cashbook;
         
         if ($cashbook > 0) {
-            $cash = OfficeCashBook::where('user_role', Auth::user()->role)->sum('balance');
+            $cash = OfficeCashBook::sum('balance');
         }
         $currencies = \App\Currency::where('is_active', true)->get();
         return view('office-cash-book.add-credit', compact('center_credits','froshat_credits','sp_credits','center_total','froshat_total','sp_total','center_debits','froshat_debits','sp_debits', 'creditEdit', 'cash', 'other_user', 'so_cashbook', 'co_cashbook', 'currencies'));

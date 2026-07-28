@@ -25,44 +25,31 @@ class NewDifferentAccountController extends Controller
      */
     public function index()
     {
-        
-     
         $accountEdit = "";
-        $center_accounts = NewDifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->get();
+        $all_accounts = NewDifferentAccount::all();
+        $center_accounts = $all_accounts;
+        $froshat_accounts = $all_accounts;
+        $mo_accounts = $all_accounts;
+        $sp_accounts = $all_accounts;
 
-
-        $froshat_accounts = NewDifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->get();
-        $mo_accounts = NewDifferentAccount::where('user_role','MO')->get();
-        $sp_accounts = NewDifferentAccount::all();
         return view('new-different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts'));
-
     }
+
     public function search(Request $request)
     {
         $search = $request->search;
-
-
         $accountEdit = "";
-        $center_accounts = NewDifferentAccount::where('user_role','CO')->orWhere('user_role','CCO')->where('name','like','%'.$search.'%')
+
+        $matched_accounts = NewDifferentAccount::where('name','like','%'.$search.'%')
             ->orWhere('phone','like','%'.$search.'%')
             ->orWhere('address','like','%'.$search.'%')
-
             ->get();
-        $froshat_accounts = NewDifferentAccount::where('user_role','SO')->orWhere('user_role','SCO')->where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
 
-            ->get();
-        $mo_accounts = NewDifferentAccount::where('user_role','MO')->where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
+        $center_accounts = $matched_accounts;
+        $froshat_accounts = $matched_accounts;
+        $mo_accounts = $matched_accounts;
+        $sp_accounts = $matched_accounts;
 
-            ->get();
-        $sp_accounts = NewDifferentAccount::where('name','like','%'.$search.'%')
-            ->orWhere('phone','like','%'.$search.'%')
-            ->orWhere('address','like','%'.$search.'%')
-
-            ->get();
         return view('new-different-account.accounts',compact('accountEdit','center_accounts','froshat_accounts','mo_accounts','sp_accounts','search'));
     }
 

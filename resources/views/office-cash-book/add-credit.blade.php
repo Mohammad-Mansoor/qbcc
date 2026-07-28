@@ -218,7 +218,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @php($display_credits = (auth()->user()->role == 'SP' ? $sp_credits : (auth()->user()->role == 'CO' || auth()->user()->role == 'CCO' ? $center_credits : $froshat_credits)))
+                        @php($display_credits = $sp_credits)
                         @forelse ($display_credits as $credit)
                         <tr class="ur{{ $credit->id }} border-bottom">
                             <td class="px-4 py-3 font-weight-bold text-dark text-right">
