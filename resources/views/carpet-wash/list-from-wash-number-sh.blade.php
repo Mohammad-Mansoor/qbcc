@@ -95,9 +95,9 @@
                   <input type="hidden" name="wash_number_sh" value="{{$wash_number_sh}}">
                   <div class="row">
                     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-21">
-                      <span class="date-label">جستجو نمبر قالین</span><input type="text"
+                      <span class="date-label">جستجو نمبر قالین یا نقشه</span><input type="text"
                                                                              value="{{ Request::old('search') }}"
-                                                                             name="search" class="form-control" placeholder="چستجو نمبر قالین"
+                                                                             name="search" class="form-control" placeholder="جستجو نمبر قالین یا نقشه"
                                                                              required>
                     </div>
                   </div>

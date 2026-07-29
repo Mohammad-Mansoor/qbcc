@@ -239,10 +239,10 @@ $none_washed_total = DB::table('carpets')
                 <input type="hidden" name="team_id" value="{{$team->id}}">
                 <input type="hidden" name="wash_number" value="{{$wash_number}}">
                 <div class="form-group mb-0">
-                  <label class="font-weight-bold mb-1">جستجو نمبر قالین:</label>
+                  <label class="font-weight-bold mb-1">جستجو نمبر قالین یا نقشه:</label>
                   <div class="input-group">
                     <input type="text" value="{{ Request::old('search') }}" name="search" class="form-control"
-                      placeholder="جستجو نمبر قالین..." required>
+                      placeholder="جستجو نمبر قالین یا نقشه..." required>
                     <div class="input-group-append">
                       <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
                     </div>

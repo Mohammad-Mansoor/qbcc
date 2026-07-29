@@ -22,7 +22,7 @@ class CarpetWashController extends Controller
     {
         $this->accountingService = $accountingService;
         $this->inventoryManager = $inventoryManager;
-        
+
         $this->middleware('permission:view_carpet_washes')->only(['index', 'wash_numbers', 'search_wash_number_for_wash', 'search_carpet_type_from_wash_number', 'search_wash_numbersh_for_wash', 'search_wash_numbersh_payment', 'search', 'search_carpet_type', 'show']);
         $this->middleware('permission:create_carpet_wash')->only(['create_carpet_wash', 'store']);
         $this->middleware('permission:edit_carpet_wash')->only(['edit', 'update']);
@@ -37,11 +37,12 @@ class CarpetWashController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-     public function return_to_center($wash_id){
+    public function return_to_center($wash_id)
+    {
         return DB::transaction(function () use ($wash_id) {
             $carpet_wash = CarpetWash::find($wash_id);
-            $carpet = Carpet::where('carpet_id',$carpet_wash->carpetId)->first();
-            
+            $carpet = Carpet::where('carpet_id', $carpet_wash->carpetId)->first();
+
             // Get original source warehouse from the latest active Washing Transfer OUT transaction for this carpet
             $originalTransaction = DB::table('inventory_transactions')
                 ->where('reference_type', get_class($carpet))
@@ -58,7 +59,7 @@ class CarpetWashController extends Controller
             $activity->description = " قالین نمبر " . $carpet->carpet_no . " از شست به دفتر مرکزی بازگشت داده شد ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
-            
+
             $carpet->status = 1;
             $carpet->washing_id = null;
             $carpet->warehouse_id = $originalWarehouseId;
@@ -102,14 +103,15 @@ class CarpetWashController extends Controller
 
             $carpet_wash->delete();
 
-            return redirect('/dashboard/carpet-wash')->with('status','موفقانه بازگشت شد !');
+            return redirect('/dashboard/carpet-wash')->with('status', 'موفقانه بازگشت شد !');
         });
     }
 
-    public function return_to_kachaee(Request $request, $wash_id){
+    public function return_to_kachaee(Request $request, $wash_id)
+    {
         return DB::transaction(function () use ($request, $wash_id) {
             $carpet_wash = CarpetWash::find($wash_id);
-            $carpet = Carpet::where('carpet_id',$carpet_wash->carpetId)->first();
+            $carpet = Carpet::where('carpet_id', $carpet_wash->carpetId)->first();
 
             $sourceWarehouseId = $carpet->warehouse_id;
 
@@ -174,7 +176,7 @@ class CarpetWashController extends Controller
                 ]);
             }
 
-            return redirect('/dashboard/carpet-wash')->with('status','موفقانه بازگشت شد !');
+            return redirect('/dashboard/carpet-wash')->with('status', 'موفقانه بازگشت شد !');
         });
     }
 
@@ -208,15 +210,16 @@ class CarpetWashController extends Controller
     {
         $team = WashingTeam::find($team_id);
         $wash = CarpetWash::where('team_id', $team_id)->first();
-        if (!$wash) return redirect()->back()->with('error', 'هیچ رکوردی یافت نشد');
-        
+        if (!$wash)
+            return redirect()->back()->with('error', 'هیچ رکوردی یافت نشد');
+
         $wash_number = $wash->wash_number;
         $carpet_washes = CarpetWash::Where('team_id', '=', $team_id)->where('wash_number', '=', $wash->wash_number)->get();
         $wash_numbers = CarpetWash::where('team_id', $team_id)->distinct()->get(['wash_number']);
         $wash_date = CarpetWash::where('team_id', $team_id)->where('wash_number', $wash_number)->first();
         $list_for_wash = '';
         $wash_check = 'all';
-        return view('carpet-wash.list-from-wash-number', compact('carpet_washes', 'team', 'wash_number', 'list_for_wash', 'wash_numbers', 'wash_date','wash_check'));
+        return view('carpet-wash.list-from-wash-number', compact('carpet_washes', 'team', 'wash_number', 'list_for_wash', 'wash_numbers', 'wash_date', 'wash_check'));
     }
 
     public function search_wash_number_for_wash(Request $request)
@@ -227,19 +230,22 @@ class CarpetWashController extends Controller
         $team = WashingTeam::find($team_id);
         $search = $request->search;
         $wash_date = CarpetWash::where('team_id', $team_id)->where('wash_number', $wash_number)->first();
-        
+
         if ($search) {
             $carpet_washes = CarpetWash::Where('team_id', '=', $team_id)
                 ->WhereHas('carpet', function ($query) use ($search) {
-                    $query->where('carpet_no', 'like', '%' . $search . '%');
+                    $query->where(function ($q) use ($search) {
+                        $q->where('carpet_no', 'like', '%' . $search . '%')
+                            ->orWhere('map_number', 'like', '%' . $search . '%');
+                    });
                 })->orderBy('carpetId', 'ASC')->get();
         } else {
             $carpet_washes = CarpetWash::Where('team_id', '=', $team_id)->where('wash_number', '=', $wash_number)->orderBy('carpetId', 'ASC')->get();
         }
-        
+
         $list_for_wash = '';
         $wash_numbers = CarpetWash::where('team_id', $team_id)->distinct()->get(['wash_number']);
-        return view('carpet-wash.list-from-wash-number', compact('carpet_washes', 'team', 'wash_number','list_for_wash', 'wash_numbers', 'wash_date','wash_check'));
+        return view('carpet-wash.list-from-wash-number', compact('carpet_washes', 'team', 'wash_number', 'list_for_wash', 'wash_numbers', 'wash_date', 'wash_check'));
     }
 
     public function search_carpet_type_from_wash_number(Request $request)
@@ -272,14 +278,18 @@ class CarpetWashController extends Controller
         if ($search) {
             $carpet_washes = CarpetWash::Where('team_id', '=', $team_id)
                 ->WhereHas('carpet', function ($query) use ($search) {
-                    $query->where('carpet_no', 'like', '%' . $search . '%');
+                    $query->where(function ($q) use ($search) {
+                        $q->where('carpet_no', 'like', '%' . $search . '%')
+                            ->orWhere('map_number', 'like', '%' . $search . '%')
+                            ->orWhere('carpet_id', 'like', '%' . $search . '%');
+                    });
                 })->orderBy('carpetId', 'ASC')->get();
         } else {
             $carpet_washes = CarpetWash::Where('team_id', '=', $team_id)->where('wash_number_sh', '=', $wash_number_sh)->orderBy('carpetId', 'ASC')->get();
         }
         $list_for_wash = '';
         $wash_numbers = CarpetWash::where('team_id', $team_id)->distinct()->get(['wash_number_sh']);
-        return view('carpet-wash.list-from-wash-number-sh', compact('carpet_washes', 'team', 'wash_number_sh','list_for_wash', 'wash_numbers', 'wash_date'));
+        return view('carpet-wash.list-from-wash-number-sh', compact('carpet_washes', 'team', 'wash_number_sh', 'list_for_wash', 'wash_numbers', 'wash_date'));
     }
 
     public function search_wash_numbersh_payment($wash_number_sh, $team_id)
@@ -320,11 +330,11 @@ class CarpetWashController extends Controller
             $washeds = CarpetWash::orderBy('date', 'DESC')->paginate(60);
             return view('carpet-wash.index', compact('washeds', 'team', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
         } else {
-            $washeds = CarpetWash::where('wash_number','like','%'.$search.'%')
-                ->orWhere('wash_number_sh','like','%'.$search.'%')
-                ->orWhere('date','like','%'.$search.'%')
+            $washeds = CarpetWash::where('wash_number', 'like', '%' . $search . '%')
+                ->orWhere('wash_number_sh', 'like', '%' . $search . '%')
+                ->orWhere('date', 'like', '%' . $search . '%')
                 ->orWhereHas('carpet', function ($query) use ($search) {
-                    $query->where('carpet_no', 'like', '%'.$search.'%');
+                    $query->where('carpet_no', 'like', '%' . $search . '%');
                 })->orWhereHas('washing_team', function ($query) use ($search) {
                     $query->where('name', 'like', '%' . $search . '%');
                 })->get();
@@ -334,12 +344,12 @@ class CarpetWashController extends Controller
             return view('carpet-wash.index', compact('washeds', 'team', 'team_id', 'wash_check', 'kachaee_teams', 'finishing_teams', 'carpet_warehouses'));
         }
     }
-    
+
     public function search_carpet_type(Request $request)
     {
         $search = $request->carpet_type_id;
         $washeds = CarpetWash::WhereHas('carpet', function ($query) use ($search) {
-            $query->where('type_id',$search);
+            $query->where('type_id', $search);
         })->get();
 
         $wash_check = 2;
@@ -367,18 +377,18 @@ class CarpetWashController extends Controller
     public function create_carpet_wash($id)
     {
         $carpet_wash = CarpetWash::find($id);
-        
+
         $openBatches = \App\ProductionBatch::where('type', 'wash')
             ->where('status', 'open')
             ->where('team_id', $carpet_wash->team_id)
             ->get();
-        
+
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'WASHING_CREDIT')->first();
         $defaultAccount = $mapping ? $mapping->debit_account_id : null;
-        
+
         $currencies = \App\Currency::where('is_active', true)->get();
         $currency = \App\Currency::getLegacyAFNRate();
 
@@ -415,8 +425,8 @@ class CarpetWashController extends Controller
             }
 
             // Convert amount to Base Currency (USD) for the ledger
-            $baseAmount = ($request->currency_code === 'USD') 
-                ? $request->total_price 
+            $baseAmount = ($request->currency_code === 'USD')
+                ? $request->total_price
                 : $request->total_price; // Total price comes from JS as USD base
 
             // Resolve the initial Washing WIP warehouse
@@ -526,7 +536,7 @@ class CarpetWashController extends Controller
                 $carpet->washed_width = $request->width;
                 $carpet->washed_height = $request->height;
                 $carpet->washed_area = $request->area;
-                
+
                 $carpet->total_price = $carpet->total_price + $baseAmount;
                 // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
                 $carpet->total_price_af = $carpet->total_price_af + $request->af_total_price;
@@ -545,7 +555,7 @@ class CarpetWashController extends Controller
                 $carpet_wash->save();
             }
 
-            return redirect('/dashboard/carpet-wash/wash-numbers/'.$team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
+            return redirect('/dashboard/carpet-wash/wash-numbers/' . $team_id)->with('status', ' مراحل شست موفقانه ثبت شد');
         });
     }
 
@@ -574,7 +584,7 @@ class CarpetWashController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('WASHING_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'WASHING_CREDIT')->first();
         $defaultAccount = $mapping ? $mapping->debit_account_id : null;
-        
+
         $currencies = \App\Currency::where('is_active', true)->get();
         $currency = \App\Currency::getLegacyAFNRate();
 
@@ -583,15 +593,17 @@ class CarpetWashController extends Controller
             ->where('source_id', $wash->id)
             ->where('status', 'posted')
             ->first();
-        
+
         $existingDebitAccount = null;
         $existingCreditAccount = null;
-        
+
         if ($transaction) {
             $debitEntry = $transaction->entries()->where('debit', '>', 0)->first();
             $creditEntry = $transaction->entries()->where('credit', '>', 0)->first();
-            if ($debitEntry) $existingDebitAccount = $debitEntry->account_id;
-            if ($creditEntry) $existingCreditAccount = $creditEntry->account_id;
+            if ($debitEntry)
+                $existingDebitAccount = $debitEntry->account_id;
+            if ($creditEntry)
+                $existingCreditAccount = $creditEntry->account_id;
         }
 
         $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
@@ -702,11 +714,11 @@ class CarpetWashController extends Controller
             // Sync carpet pricing and dimensions
             // Sync carpet pricing and dimensions
             $originalArea = $carpet->area ?? 0;
-            
-            $baseAmount = ($request->currency_code === 'USD') 
-                ? $request->total_price 
+
+            $baseAmount = ($request->currency_code === 'USD')
+                ? $request->total_price
                 : $request->total_price;
-                
+
             $carpet->total_price = $carpet->total_price - $wash->base_currency_amount + $baseAmount;
             // total_price_af is used as a local currency field, storing raw input (PKR, EUR, etc.) without conversion
             $carpet->total_price_af = $carpet->total_price_af - $wash->af_total_price + $request->af_total_price;
