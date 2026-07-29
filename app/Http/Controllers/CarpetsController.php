@@ -1093,6 +1093,7 @@ class CarpetsController extends Controller
         
         // USD Normalization update
         $data['total_price'] = $request->total_price;
+        $data['carpet_price_us'] = $request->total_price;
         $data['total_price_af'] = $request->total_price_af;
         $data['exchange_rate'] = $request->exchange_rate;
         
@@ -1551,6 +1552,7 @@ class CarpetsController extends Controller
         $data['currency_code'] = $currency ? $currency->code : 'USD';
         $data['exchange_rate'] = $request->exchange_rate;
         $data['total_price'] = $request->total_price;
+        $data['carpet_price_us'] = $request->total_price;
         $data['total_price_af'] = $request->total_price_af;
         $data['dollar_rate'] = ($afnCurrency && $afnCurrency->exchange_rate > 0) ? (1 / $afnCurrency->exchange_rate) : 1;
 

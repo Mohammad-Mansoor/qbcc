@@ -214,7 +214,7 @@
 
     @php
         $sum_area = $carpets->sum('area');
-        $sum_purchase = $carpets->sum('carpet_price_us');
+        $sum_purchase = $carpets->sum(function($c) { return $c->carpet_price_us > 0 ? $c->carpet_price_us : $c->total_price; });
     @endphp
 
     <!-- Header -->
@@ -294,9 +294,9 @@
                     <td class="text-center" style="direction:ltr;">{{ $carpet->buying_width ?? $carpet->width }}</td>
                     <td class="text-center font-bold" style="direction:ltr;">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }}</td>
                     <td class="text-center" style="direction:ltr;">
-                        ${{ number_format($carpet->area > 0 ? $carpet->carpet_price_us / $carpet->area : 0, 2) }}</td>
+                        ${{ number_format($carpet->area > 0 ? ($carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price) / $carpet->area : 0, 2) }}</td>
                     <td class="text-center font-bold" style="direction:ltr; color:#059669;">
-                        ${{ number_format($carpet->carpet_price_us, 2) }}</td>
+                        ${{ number_format($carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price, 2) }}</td>
                 </tr>
             @empty
                 <tr>
