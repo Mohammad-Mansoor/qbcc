@@ -14,112 +14,162 @@ class AccountSelectionService
      */
     protected static $constraints = [
         'MATERIAL_PURCHASE_CREDIT' => [
-            'debit' => ['account_type' => 'Asset'], // broader filter for safety
-            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Asset'], // broader filter for safety
+            'debit' => [], // broader filter for safety
+            // 'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            'credit' => []
         ],
         'SALES_REVENUE' => [
-            'debit' => ['account_type' => 'Asset'],
-            'credit' => ['account_type' => 'Revenue']
+            // 'debit' => ['account_type' => 'Asset'],
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Revenue']
+            'credit' => []
         ],
         'SALES_COGS' => [
-            'debit' => ['account_type' => 'Expense'], // COGS is an expense
-            'credit' => ['report_group' => 'Inventory']
+            // 'debit' => ['account_type' => 'Expense'], // COGS is an expense
+            'debit' => [], // COGS is an expense
+            // 'credit' => ['report_group' => 'Inventory']
+            'credit' => []
         ],
         'PYMT_IN' => [
-            'debit' => ['account_type' => 'Asset'],
-            'credit' => ['account_type' => ['Asset', 'Liability']]
+            'debit' => [],
+            'credit' => []
         ],
         'PYMT_OUT' => [
-            'debit' => ['account_type' => ['Asset', 'Liability']],
-            'credit' => ['account_type' => 'Asset']
+            'debit' => [],
+            'credit' => []
         ],
         'kachaee_payment' => [
-            'debit' => ['account_type' => ['Asset', 'Liability']],
-            'credit' => ['account_type' => ['Asset', 'Liability']]
+            // 'debit' => ['account_type' => ['Asset', 'Liability']],
+            'debit' => [],
+            // 'credit' => ['account_type' => ['Asset', 'Liability']]
+            'credit' => []
         ],
         'washing_payment' => [
-            'debit' => ['account_type' => ['Asset', 'Liability']],
-            'credit' => ['account_type' => ['Asset', 'Liability']]
+            // 'debit' => ['account_type' => ['Asset', 'Liability']],
+            'debit' => [],
+            // 'credit' => ['account_type' => ['Asset', 'Liability']]
+            'credit' => []
         ],
         'finishing_payment' => [
-            'debit' => ['account_type' => ['Asset', 'Liability']],
-            'credit' => ['account_type' => ['Asset', 'Liability']]
+            // 'debit' => ['account_type' => ['Asset', 'Liability']],
+            'debit' => [],
+            // 'credit' => ['account_type' => ['Asset', 'Liability']]
+            'credit' => []
         ],
         'CASH_OUT' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXPENSE_DEFAULT' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'WASHING_CREDIT' => [
-            'debit' => ['account_type' => 'Asset'],
-            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Asset'],
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            'credit' => []
         ],
         'FINISHING_CREDIT' => [
-            'debit' => ['account_type' => 'Asset'],
-            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Asset'],
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_RENT' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_FOOD' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_TRANS' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_MISC' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_MISC_OFFICE' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXPENSE_کرایه_و_برق' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_FUEL' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'EXP_WAGES' => [
-            'debit' => ['account_type' => 'Expense'],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => 'Expense'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'PAYROLL_ACCRUAL' => [
-            'debit' => ['account_type' => ['Expense', 'Asset', 'Liability']],
-            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            // 'debit' => ['account_type' => ['Expense', 'Asset', 'Liability']],
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            'credit' => []
         ],
         'PAYROLL_PAYMENT' => [
-            'debit' => ['account_type' => ['Liability', 'Expense']],
-            'credit' => ['is_cash_account' => 1]
+            // 'debit' => ['account_type' => ['Liability', 'Expense']],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1]
+            'credit' => []
         ],
         'ASSET_PURCH' => [
-            'debit' => ['report_group' => 'Fixed Asset'],
-            'credit' => ['is_cash_account' => 1, 'account_type' => 'Liability']
+            // 'debit' => ['report_group' => 'Fixed Asset'],
+            'debit' => [],
+            // 'credit' => ['is_cash_account' => 1, 'account_type' => 'Liability']
+            'credit' => []
         ],
         'MATERIAL_REVENUE' => [
-            'debit' => ['account_type' => 'Asset'], // Default to asset for receivables/cash
-            'credit' => ['account_type' => 'Revenue']
+            // 'debit' => ['account_type' => 'Asset'], // Default to asset for receivables/cash
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Revenue']
+            'credit' => []
         ],
         'CARPET_INVENTORY' => [
-            'debit' => ['report_group' => 'Inventory'],
-            'credit' => ['report_group' => 'Inventory']
+            // 'debit' => ['report_group' => 'Inventory'],
+            'debit' => [],
+            // 'credit' => ['report_group' => 'Inventory']
+            'credit' => []
         ],
         'MATERIAL_RECEIPT' => [
-            'debit' => ['report_group' => 'Inventory'],
-            'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            // 'debit' => ['report_group' => 'Inventory'],
+            'debit' => [],
+            // 'credit' => ['account_type' => 'Liability', 'is_cash_account' => 1]
+            'credit' => []
         ],
         'MATERIAL_PAYMENT' => [
-            'debit' => ['account_type' => 'Liability', 'is_cash_account' => 1],
-            'credit' => ['report_group' => 'Inventory']
+            // 'debit' => ['account_type' => 'Liability', 'is_cash_account' => 1],
+            'debit' => [],
+            // 'credit' => ['report_group' => 'Inventory']
+            'credit' => []
         ],
         'DIFF_IN' => [
             'debit' => [],
