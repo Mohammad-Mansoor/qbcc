@@ -382,6 +382,19 @@ class WashingTeamController extends Controller
         //
     }
 
+    public function updateNote(Request $request, $id)
+    {
+        $team = WashingTeam::findOrFail($id);
+        $team->note = $request->note;
+        $team->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $team->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function valData()
     {
         return request()->validate([
@@ -389,6 +402,7 @@ class WashingTeamController extends Controller
             'last_name' => 'required',
             'contact_no' => 'required',
             'address' => 'required',
+            'note' => 'nullable',
         ]);
     }
 }

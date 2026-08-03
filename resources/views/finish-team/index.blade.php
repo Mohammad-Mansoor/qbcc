@@ -264,7 +264,19 @@
                   @endphp
                   <tr>
                     <td class="px-4 font-weight-bold text-muted">{{ $t->id }}</td>
-                    <td class="font-weight-bold">{{ $t->name }}</td>
+                    <td class="font-weight-bold d-flex align-items-center">
+                      {{ $t->name }}
+                      @if(!empty($t->note))
+                        <i class="feather icon-file-text text-warning ml-1 btn-finish-note" 
+                           style="cursor:pointer;" 
+                           data-toggle="modal" 
+                           data-target="#finishNoteModal" 
+                           data-id="{{ $t->id }}" 
+                           data-name="{{ $t->name }}" 
+                           data-note="{{ $t->note }}" 
+                           title="دارای یادداشت: {{ $t->note }}"></i>
+                      @endif
+                    </td>
                     <td>{{ $t->father_name ?? 'N/A' }}</td>
                     <td>{{ $t->tazkira_number ?? 'N/A' }}</td>
                     <td style="direction: ltr; text-align: right;">{{ $t->contact_number ?? 'N/A' }}</td>
@@ -280,6 +292,16 @@
                     @endif
 
                     <td class="hideOnPrint text-center">
+                      <button type="button"
+                        class="btn btn-sm btn-light border text-warning btn-finish-note mr-1"
+                        data-toggle="modal"
+                        data-target="#finishNoteModal"
+                        data-id="{{ $t->id }}"
+                        data-name="{{ $t->name }}"
+                        data-note="{{ $t->note }}"
+                        title="یادداشت (Note)">
+                        <i class="feather icon-file-text"></i>
+                      </button>
                       @can('edit_finishing_team')
                       <a href="/dashboard/finish-team/{{$t->id}}/edit" class="btn btn-sm btn-warning text-white" data-toggle="tooltip" title="ویرایش تیم">
                         <i class="fa fa-edit"></i>
@@ -310,7 +332,19 @@
                   @if($t->payment->count() > 0 && $total_balance_usd != 0)
                     <tr>
                       <td class="px-4 font-weight-bold text-muted">{{ $t->id }}</td>
-                      <td class="font-weight-bold">{{ $t->name }}</td>
+                      <td class="font-weight-bold d-flex align-items-center">
+                        {{ $t->name }}
+                        @if(!empty($t->note))
+                          <i class="feather icon-file-text text-warning ml-1 btn-finish-note" 
+                             style="cursor:pointer;" 
+                             data-toggle="modal" 
+                             data-target="#finishNoteModal" 
+                             data-id="{{ $t->id }}" 
+                             data-name="{{ $t->name }}" 
+                             data-note="{{ $t->note }}" 
+                             title="دارای یادداشت: {{ $t->note }}"></i>
+                        @endif
+                      </td>
                       <td>{{ $t->father_name ?? 'N/A' }}</td>
                       <td>{{ $t->tazkira_number ?? 'N/A' }}</td>
                       <td style="direction: ltr; text-align: right;">{{ $t->contact_number ?? 'N/A' }}</td>
@@ -326,6 +360,16 @@
                       @endif
 
                       <td class="hideOnPrint text-center">
+                        <button type="button"
+                          class="btn btn-sm btn-light border text-warning btn-finish-note mr-1"
+                          data-toggle="modal"
+                          data-target="#finishNoteModal"
+                          data-id="{{ $t->id }}"
+                          data-name="{{ $t->name }}"
+                          data-note="{{ $t->note }}"
+                          title="یادداشت (Note)">
+                          <i class="feather icon-file-text"></i>
+                        </button>
                         @can('edit_finishing_team')
                         <a href="/dashboard/finish-team/{{$t->id}}/edit" class="btn btn-sm btn-warning text-white" data-toggle="tooltip" title="ویرایش تیم">
                           <i class="fa fa-edit"></i>
@@ -437,6 +481,12 @@
               @error('address') <p class="text-danger mt-1">{{$message}}</p> @enderror
             </div>
           </div>
+          <div class="row mt-3">
+            <div class="col-12 form-group">
+              <label class="font-weight-bold mb-2">یادداشت (Note)</label>
+              <textarea name="note" id="note" class="form-control custom-input" placeholder="یادداشت را وارد کنید" rows="3"></textarea>
+            </div>
+          </div>
         </div>
         <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 15px 25px;">
           <button type="button" class="btn btn-light rounded-pill px-3" data-dismiss="modal">انصراف</button>
@@ -498,6 +548,12 @@
               @error('address') <p class="text-danger mt-1">{{$message}}</p> @enderror
             </div>
           </div>
+          <div class="row mt-3">
+            <div class="col-12 form-group">
+              <label class="font-weight-bold mb-2">یادداشت (Note)</label>
+              <textarea name="note" id="note" class="form-control custom-input" rows="3" placeholder="یادداشت را وارد کنید">{{$fteamEdit->note}}</textarea>
+            </div>
+          </div>
         </div>
         <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 15px 25px;">
           <a href="/dashboard/finish-team" class="btn btn-light rounded-pill px-3">انصراف</a>
@@ -509,11 +565,51 @@
 </div>
 @endif
 
+  <!-- DEDICATED NOTE MODAL -->
+  <div class="modal fade" id="finishNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content QBIC-modal-content" style="border-radius: 16px; border: none; overflow: hidden;">
+        <div class="modal-header p-4" style="background: #1e3a8a;">
+          <h5 class="modal-title text-white font-weight-bold" id="noteModalFinishName"><i class="feather icon-file-text mr-1"></i> یادداشت تیم تیاری</h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body p-4 text-right" style="direction: rtl;">
+          <form id="finishNoteForm" method="POST" action="">
+            @csrf
+            <input type="hidden" id="noteFinishId" name="team_id">
+            <div class="form-group mb-3">
+              <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+              <textarea id="noteTextareaFinish" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_finishing_team') readonly @endcannot></textarea>
+            </div>
+            <div class="text-right mt-4">
+              @can('edit_finishing_team')
+              <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+              @else
+              <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+              @endcan
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @section('scripts')
   <script>
       $(document).ready(function () {
+          $(document).on('click', '.btn-finish-note', function () {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var note = $(this).data('note');
+            $('#noteModalFinishName').html('<i class="feather icon-file-text mr-1"></i> یادداشت: ' + name);
+            $('#noteFinishId').val(id);
+            $('#noteTextareaFinish').val(note || '');
+            $('#finishNoteForm').attr('action', '/dashboard/finish-team/note/' + id);
+          });
           // Initialize Tooltips
           $('[data-toggle="tooltip"]').tooltip();
 

@@ -187,6 +187,19 @@ class DifferentAccountController extends Controller
         }
     }
 
+    public function updateNote(Request $request, $id)
+    {
+        $account = DifferentAccount::findOrFail($id);
+        $account->note = $request->note;
+        $account->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $account->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function valData()
     {
         return request()->validate([
@@ -194,6 +207,7 @@ class DifferentAccountController extends Controller
             'address' => 'required|min:2|max:256',
             'phone' => 'required|min:3|max:14',
             'user_role' => '',
+            'note' => 'nullable',
         ]);
     }
 

@@ -260,6 +260,19 @@ class CustomerController extends Controller
     {
         //
     }
+    public function updateNote(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+        $customer->note = $request->note;
+        $customer->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $customer->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function valData()
     {
         return request()->validate([
@@ -271,6 +284,7 @@ class CustomerController extends Controller
             'phone' => 'required|min:3|max:14',
             'email' => '',
             'website' => '',
+            'note' => 'nullable',
         ]);
     }
 }

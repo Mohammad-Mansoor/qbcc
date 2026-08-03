@@ -155,6 +155,12 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="col-md-4 col-sm-12 mb-3">
+                            <div class="form-group mb-0">
+                                <label class="font-weight-bold text-muted mb-2" style="font-size: 0.85rem;">یادداشت (Note)</label>
+                                <textarea name="note" class="form-control form-control-sm border-light-gray shadow-none" rows="2" placeholder="یادداشت را وارد کنید..." style="border-radius: 8px;">{{ $customerEdit ? $customerEdit->note : old('note') }}</textarea>
+                            </div>
+                        </div>
                         <div class="col-12 text-left mt-2">
                             <button
                                 class="btn btn-sm {{ !$customerEdit ? 'btn-primary' : 'btn-warning text-dark' }} px-4 shadow-sm"
@@ -223,7 +229,19 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="font-weight-bold text-dark">{{ $cust->name }}</div>
+                                        <div class="font-weight-bold text-dark d-flex align-items-center">
+                                            {{ $cust->name }}
+                                            @if(!empty($cust->note))
+                                                <i class="feather icon-file-text text-warning ml-1 btn-customer-note" 
+                                                   style="cursor:pointer;" 
+                                                   data-toggle="modal" 
+                                                   data-target="#customerNoteModal" 
+                                                   data-id="{{ $cust->id }}" 
+                                                   data-name="{{ $cust->name }}" 
+                                                   data-note="{{ $cust->note }}" 
+                                                   title="دارای یادداشت: {{ $cust->note }}"></i>
+                                            @endif
+                                        </div>
                                         <small class="text-muted">{{ $cust->company_name }}</small>
                                     </td>
                                     <td class="text-left font-weight-bold text-primary" dir="ltr">
@@ -260,6 +278,17 @@
                                     </td>
                                     <td class="hideOnPrint text-center">
                                         <div class="btn-group">
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-warning mr-1 p-1 px-2 btn-customer-note"
+                                                data-toggle="modal"
+                                                data-target="#customerNoteModal"
+                                                data-id="{{ $cust->id }}"
+                                                data-name="{{ $cust->name }}"
+                                                data-note="{{ $cust->note }}"
+                                                title="یادداشت (Note)"
+                                                style="border-radius: 6px;">
+                                                <i class="feather icon-file-text"></i>
+                                            </button>
                                             @can('edit_customer')
                                             <a href="/dashboard/customers/{{$cust->id}}/edit"
                                                 class="btn btn-sm btn-outline-warning mr-1 p-1 px-2" title="ویرایش"
@@ -300,4 +329,52 @@
             </div>
         </div>
     </div>
+
+    <!-- DEDICATED NOTE MODAL -->
+    <div class="modal fade" id="customerNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content QBIC-modal-content" style="border-radius: 12px; border: none;">
+                <div class="modal-header p-4" style="background: #1e3a8a;">
+                    <h5 class="modal-title text-white font-weight-bold" id="noteModalCustomerName"><i class="feather icon-file-text mr-1"></i> یادداشت مشتری</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body p-4 text-right" style="direction: rtl;">
+                    <form id="customerNoteForm" method="POST" action="">
+                        @csrf
+                        <input type="hidden" id="noteCustomerId" name="customer_id">
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+                            <textarea id="noteTextareaCustomer" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_customer') readonly @endcannot></textarea>
+                        </div>
+                        <div class="text-right mt-4">
+                            @can('edit_customer')
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                                <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+                            </button>
+                            <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+                            @else
+                            <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+                            @endcan
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('scripts')
+    <script>
+        $(document).ready(function () {
+            $(document).on('click', '.btn-customer-note', function () {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var note = $(this).data('note');
+                $('#noteModalCustomerName').html('<i class="feather icon-file-text mr-1"></i> یادداشت: ' + name);
+                $('#noteCustomerId').val(id);
+                $('#noteTextareaCustomer').val(note || '');
+                $('#customerNoteForm').attr('action', '/dashboard/customers/note/' + id);
+            });
+        });
+    </script>
 @endsection

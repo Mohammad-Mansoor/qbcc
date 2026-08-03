@@ -55,7 +55,7 @@
     @if(isset($account) || count($entries) > 0)
     @php
         $accCurrency = isset($account) ? $account->currency : 'USD';
-        $accRate = (isset($currencies) && isset($currencies[$accCurrency])) ? $currencies[$accCurrency]->exchange_rate : 1.0;
+        $accRate = (isset($currencies) && isset($currencies[$accCurrency]) && $currencies[$accCurrency]->exchange_rate > 0) ? $currencies[$accCurrency]->exchange_rate : 1.0;
     @endphp
     <!-- Analytical Snapshot Cards -->
     <div class="row mb-4 no-print">
@@ -65,7 +65,7 @@
                 <h4 class="font-weight-bold text-dark mt-2 mb-0">{{ number_format($openingBalance, 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
                 @if($accCurrency !== 'USD')
                 <div class="text-muted small mt-1">
-                    {{ number_format($openingBalance * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                    {{ number_format($openingBalance / $accRate, 2) }} <small>{{ $accCurrency }}</small>
                 </div>
                 @endif
             </div>
@@ -76,7 +76,7 @@
                 <h4 class="font-weight-bold text-primary mt-2 mb-0">+ {{ number_format($entries->sum('debit'), 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
                 @if($accCurrency !== 'USD')
                 <div class="text-muted small mt-1">
-                    + {{ number_format($entries->sum('debit') * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                    + {{ number_format($entries->sum('debit') / $accRate, 2) }} <small>{{ $accCurrency }}</small>
                 </div>
                 @endif
             </div>
@@ -87,7 +87,7 @@
                 <h4 class="font-weight-bold text-danger mt-2 mb-0">- {{ number_format($entries->sum('credit'), 2) }} <small class="text-muted" style="font-size: 0.75rem;">USD</small></h4>
                 @if($accCurrency !== 'USD')
                 <div class="text-muted small mt-1">
-                    - {{ number_format($entries->sum('credit') * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                    - {{ number_format($entries->sum('credit') / $accRate, 2) }} <small>{{ $accCurrency }}</small>
                 </div>
                 @endif
             </div>
@@ -106,7 +106,7 @@
                 <h4 class="text-white font-weight-bold mt-2 mb-0">{{ number_format($runningBalance, 2) }} <small class="text-white-50" style="font-size: 0.75rem;">USD</small></h4>
                 @if($accCurrency !== 'USD')
                 <div class="text-white opacity-75 small mt-1">
-                    {{ number_format($runningBalance * $accRate, 2) }} <small>{{ $accCurrency }}</small>
+                    {{ number_format($runningBalance / $accRate, 2) }} <small>{{ $accCurrency }}</small>
                 </div>
                 @endif
             </div>
@@ -176,7 +176,7 @@
                                         {{ number_format($openingBalance, 2) }} <small class="text-muted">USD</small>
                                         @if($accCurrency !== 'USD')
                                             <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
-                                                {{ number_format($openingBalance * $accRate, 2) }} {{ $accCurrency }}
+                                                {{ number_format($openingBalance / $accRate, 2) }} {{ $accCurrency }}
                                             </div>
                                         @endif
                                     </td>
@@ -214,7 +214,7 @@
                                         {{ number_format($currentRunning, 2) }} <small class="text-muted">USD</small>
                                         @if($accCurrency !== 'USD')
                                             <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
-                                                {{ number_format($currentRunning * $accRate, 2) }} {{ $accCurrency }}
+                                                {{ number_format($currentRunning / $accRate, 2) }} {{ $accCurrency }}
                                             </div>
                                         @endif
                                     </td>
@@ -228,7 +228,7 @@
                                         {{ number_format($entries->sum('debit'), 2) }} <small class="text-muted">USD</small>
                                         @if($accCurrency !== 'USD')
                                             <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
-                                                {{ number_format($entries->sum('debit') * $accRate, 2) }} {{ $accCurrency }}
+                                                {{ number_format($entries->sum('debit') / $accRate, 2) }} {{ $accCurrency }}
                                             </div>
                                         @endif
                                     </td>
@@ -236,7 +236,7 @@
                                         {{ number_format($entries->sum('credit'), 2) }} <small class="text-muted">USD</small>
                                         @if($accCurrency !== 'USD')
                                             <div class="small text-muted font-weight-normal" style="font-size: 0.75rem;">
-                                                {{ number_format($entries->sum('credit') * $accRate, 2) }} {{ $accCurrency }}
+                                                {{ number_format($entries->sum('credit') / $accRate, 2) }} {{ $accCurrency }}
                                             </div>
                                         @endif
                                     </td>
@@ -244,7 +244,7 @@
                                         {{ number_format($currentRunning, 2) }} <small class="text-muted">USD</small>
                                         @if($accCurrency !== 'USD')
                                             <div class="small text-muted font-weight-normal" style="font-size: 0.85rem;">
-                                                {{ number_format($currentRunning * $accRate, 2) }} {{ $accCurrency }}
+                                                {{ number_format($currentRunning / $accRate, 2) }} {{ $accCurrency }}
                                             </div>
                                         @endif
                                     </td>

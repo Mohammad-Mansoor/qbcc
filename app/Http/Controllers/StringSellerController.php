@@ -217,12 +217,26 @@ class StringSellerController extends Controller
             return $seller;
         });
     }
+    public function updateNote(Request $request, $id)
+    {
+        $seller = StringSeller::findOrFail($id);
+        $seller->note = $request->note;
+        $seller->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $seller->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function valData()
     {
         return request()->validate([
             'name' => 'required|min:2|max:256',
             'phone' => 'required|min:3|max:14',
             'address' => 'required',
+            'note' => 'nullable',
         ]);
     }
 }

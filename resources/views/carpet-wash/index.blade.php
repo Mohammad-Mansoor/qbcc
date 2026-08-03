@@ -418,6 +418,7 @@
                   <thead>
                     <tr>
                       <th>شماره قالین</th>
+                      <th>نمبر نقشه</th>
                       <th>نوعیت قالین</th>
                       <th>شست نمبر (مرکزی)</th>
                       <th>شست نمبر (فروشات)</th>
@@ -437,6 +438,7 @@
                       @if($washed->carpet)
                         <tr class="ur{{ $washed->id }}">
                           <td class="font-weight-bold text-dark">{{$washed->carpet->carpet_no}}</td>
+                          <td><span class="badge badge-light border">{{$washed->carpet->map_number ?? '-'}}</span></td>
                           <td><span class="badge badge-light border">{{$washed->carpet->type->carpet_type ?? '-'}}</span></td>
                           <td><span class="badge badge-light border">{{$washed->wash_number}}</span></td>
                           <td>

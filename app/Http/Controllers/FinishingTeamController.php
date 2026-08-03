@@ -128,6 +128,7 @@ class FinishingTeamController extends Controller
             'contact_number' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'grantor_name' => 'nullable|string|max:255',
+            'note' => 'nullable',
         ]);
         $team = FinishingTeam::create($data);
          $activity = new Activity();
@@ -200,6 +201,7 @@ class FinishingTeamController extends Controller
             'contact_number' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'grantor_name' => 'nullable|string|max:255',
+            'note' => 'nullable',
         ]);
         
          $activity = new Activity();
@@ -210,6 +212,19 @@ class FinishingTeamController extends Controller
         
         $team->update($data);
         return redirect('/dashboard/finish-team')->with('status', 'موفقانه بروز شد');
+    }
+
+    public function updateNote(Request $request, $id)
+    {
+        $team = FinishingTeam::findOrFail($id);
+        $team->note = $request->note;
+        $team->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $team->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
     }
 
     /**

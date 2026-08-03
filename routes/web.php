@@ -206,6 +206,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::resource('/finish-team', 'FinishingTeamController')->parameters(['finish-team' => 'team']);
     Route::post('/finish-team/search', 'FinishingTeamController@search');
     Route::get('/finishing-accounts', 'FinishingTeamController@accounts');
+    Route::post('/finish-team/note/{id}', 'FinishingTeamController@updateNote')->name('finish_team.update_note');
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_finishing_centers']], function () {
@@ -302,6 +303,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::resource('/string-seller-payments', 'SellerPaymentController');
     Route::get('/seller-payments-all/{seller_id}', 'SellerPaymentController@show_all_payment');
     Route::get('/sttring-seller-accounts', 'StringSellerController@accounts');
+    Route::post('/string-seller/note/{id}', 'StringSellerController@updateNote')->name('string_seller.update_note');
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_material_purchases']], function () {
@@ -399,6 +401,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::get('/kachaee-payments-all/{team_id}', 'KachaeePaymentController@show_all_payment');
     Route::get('/kachaee-accounts', 'KachaeeController@accounts');
     Route::post('/kachaee-team/search', 'KachaeeController@search');
+    Route::post('/kachaee-team/note/{id}', 'KachaeeController@updateNote')->name('kachaee_team.update_note');
 
     // These used to be here, but moved to their specific sending route groups
 });
@@ -452,6 +455,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::get('/agent-accounts', 'AgentsController@accounts');
     Route::get('/agent-deactive', 'AgentsController@deactive_accounts');
     Route::get('/agent-status-change/{agent_id}', 'AgentsController@change_status');
+    Route::post('/agent/note/{id}', 'AgentsController@updateNote')->name('agents.update_note');
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_phone_book']], function () {
@@ -495,6 +499,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::get('/washing-accounts', 'WashingTeamController@accounts');
     Route::post('/washing-team/search', 'WashingTeamController@search');
     Route::get('washing-team-carpets/{id}', 'WashingTeamController@team_carpets');
+    Route::post('/washing-team/note/{id}', 'WashingTeamController@updateNote')->name('washing_team.update_note');
 });
 
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_invoices']], function () {
@@ -628,6 +633,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
 
     Route::get('/customer-accounts', 'CustomerController@accounts');
     Route::post('/customers/search', 'CustomerController@search');
+    Route::post('/customers/note/{id}', 'CustomerController@updateNote')->name('customers.update_note');
 });
     
 Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_trial_balance']], function () {
@@ -768,6 +774,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::resource('/different-account', 'DifferentAccountController');
     Route::get('different-account-payments-all/{account_id}', 'DifferentAccountController@show_all_payment');
     Route::post('different-account/search', 'DifferentAccountController@search');
+    Route::post('different-account/note/{id}', 'DifferentAccountController@updateNote')->name('different_account.update_note');
 
     /** Route for different account received */
     // Route::resource('/different-account-receiveds', 'DifferentAccountReceviedController')->parameters(['different-account-receiveds' => 'differentAccountRecevied']); // Controller missing

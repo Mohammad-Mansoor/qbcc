@@ -430,7 +430,8 @@ class FinishingTeamPaymentController extends Controller
     public function edit($payment_id)
     {
         $paymentEdit = FinishingTeamPayment::find($payment_id);
-        $team = FinishingTeam::find($paymentEdit->team_id);
+        $team_id = $paymentEdit->team_id;
+        $team = FinishingTeam::find($team_id);
         $payments = FinishingTeamPayment::where('team_id',$paymentEdit->team_id)->where('finish_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
 
         // FORENSIC DYNAMIC TOTALS
@@ -569,7 +570,7 @@ class FinishingTeamPaymentController extends Controller
 
             // Reversal - pass class name to avoid ID collision reversals with other models
             if ($payed->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Record Edited', 'Finishing_payment');
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Finishing Record Edited', get_class($payed));
             }
 
             $currency = \App\Currency::find($request->currency_id);

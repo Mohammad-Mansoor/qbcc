@@ -330,6 +330,13 @@
                   <small class="text-danger">@error('address') {{ __('message.' . $message) }} @enderror</small>
                 </div>
               </div>
+              <div class="col-12 mb-3">
+                <div class="form-group">
+                  <label class="font-weight-bold text-muted small mb-2"><i class="fa fa-sticky-note text-muted mr-1"></i>
+                    یادداشت (Note)</label>
+                  <textarea id="note" name="note" class="form-control custom-input" rows="3" placeholder="یادداشت را وارد کنید...">{{ $teamEdit ? $teamEdit->note : Request::old('note') }}</textarea>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -414,7 +421,19 @@
                     }
                   @endphp
                   <tr>
-                    <td class="font-weight-bold text-dark">{{ $t->name }}</td>
+                    <td class="font-weight-bold text-dark d-flex align-items-center">
+                      {{ $t->name }}
+                      @if(!empty($t->note))
+                        <i class="feather icon-file-text text-warning ml-1 btn-kachaee-note" 
+                           style="cursor:pointer;" 
+                           data-toggle="modal" 
+                           data-target="#kachaeeNoteModal" 
+                           data-id="{{ $t->id }}" 
+                           data-name="{{ $t->name }}" 
+                           data-note="{{ $t->note }}" 
+                           title="دارای یادداشت: {{ $t->note }}"></i>
+                      @endif
+                    </td>
                     <td>{{ $t->father_name }}</td>
                     <td>{{ $t->grand_father_name }}</td>
                     <td>{{ $t->national_id }}</td>
@@ -430,6 +449,16 @@
 
                     <td class="hideOnPrint text-center">
                       <div class="btn-group">
+                        <button type="button"
+                          class="btn btn-sm btn-light-warning border-0 shadow-none p-2 mx-1 btn-kachaee-note"
+                          data-toggle="modal"
+                          data-target="#kachaeeNoteModal"
+                          data-id="{{ $t->id }}"
+                          data-name="{{ $t->name }}"
+                          data-note="{{ $t->note }}"
+                          title="یادداشت (Note)">
+                          <i class="feather icon-file-text"></i>
+                        </button>
                         @can('edit_kachaee_team')
                           <a href="/dashboard/kachaee-team/{{$t->id}}/edit"
                             class="btn btn-sm btn-light-primary border-0 shadow-none p-2" title="ویرایش (Edit)">
@@ -470,11 +499,52 @@
       </div>
     </div>
   </div>
+
+  <!-- DEDICATED NOTE MODAL -->
+  <div class="modal fade" id="kachaeeNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content QBIC-modal-content" style="border-radius: 20px; border: none;">
+        <div class="modal-header p-4" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+          <h5 class="modal-title text-white font-weight-bold" id="noteModalTeamName"><i class="feather icon-file-text mr-1"></i> یادداشت تیم کچایی</h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body p-4 text-right" style="direction: rtl;">
+          <form id="kachaeeNoteForm" method="POST" action="">
+            @csrf
+            <input type="hidden" id="noteTeamId" name="team_id">
+            <div class="form-group mb-3">
+              <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+              <textarea id="noteTextarea" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_kachaee_team') readonly @endcannot></textarea>
+            </div>
+            <div class="text-right mt-4">
+              @can('edit_kachaee_team')
+              <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+              @else
+              <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+              @endcan
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @section('scripts')
   <script>
     $(document).ready(function () {
+      $(document).on('click', '.btn-kachaee-note', function () {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        var note = $(this).data('note');
+        $('#noteModalTeamName').html('<i class="feather icon-file-text mr-1"></i> یادداشت: ' + name);
+        $('#noteTeamId').val(id);
+        $('#noteTextarea').val(note || '');
+        $('#kachaeeNoteForm').attr('action', '/dashboard/kachaee-team/note/' + id);
+      });
       $("#kachaee_team").tableExport({
         headers: true,
         footers: true,

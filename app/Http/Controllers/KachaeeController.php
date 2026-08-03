@@ -228,6 +228,19 @@ class KachaeeController extends Controller
         //
     }
 
+    public function updateNote(Request $request, $id)
+    {
+        $team = Kachaee::findOrFail($id);
+        $team->note = $request->note;
+        $team->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $team->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function valData(){
         return request()->validate([
             'name' => 'required',
@@ -237,6 +250,7 @@ class KachaeeController extends Controller
             'national_id' => 'required',
             'contact_no' => 'required',
             'address' => 'required',
+            'note' => 'nullable',
         ]);
     }
     protected function valReceived(){

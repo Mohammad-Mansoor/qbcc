@@ -334,7 +334,8 @@ class CarpetWashController extends Controller
                 ->orWhere('wash_number_sh', 'like', '%' . $search . '%')
                 ->orWhere('date', 'like', '%' . $search . '%')
                 ->orWhereHas('carpet', function ($query) use ($search) {
-                    $query->where('carpet_no', 'like', '%' . $search . '%');
+                    $query->where('carpet_no', 'like', '%' . $search . '%')
+                        ->orWhere('map_number', 'like', '%' . $search . '%');
                 })->orWhereHas('washing_team', function ($query) use ($search) {
                     $query->where('name', 'like', '%' . $search . '%');
                 })->get();

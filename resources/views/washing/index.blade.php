@@ -54,6 +54,14 @@
                   </div>
                 </div>
               </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="form-group fill">
+                    <label style="font-weight: 500; margin-bottom: 8px;">یادداشت (Note)</label>
+                    <textarea id="note" name="note" dir="rtl" class="form-control" placeholder="یادداشت را وارد کنید" style="border-radius: 8px; padding: 10px 14px;" rows="3">{{ Request::old('note') }}</textarea>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px;">
               <button class="btn btn-warning btn-sm" type="button" data-dismiss="modal" style="border-radius: 6px; padding: 6px 16px;">انصراف</button>
@@ -94,6 +102,14 @@
                     <label style="font-weight: 500; margin-bottom: 8px;">آدرس</label>
                     <input type="text" id="address" name="address" value="{{$team->address}}" dir="rtl" class="form-control" required style="border-radius: 8px; padding: 10px 14px;">
                     <small class="text-danger">@error('address') {{ __('message.'.$message) }} @enderror</small>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="form-group fill">
+                    <label style="font-weight: 500; margin-bottom: 8px;">یادداشت (Note)</label>
+                    <textarea id="note" name="note" dir="rtl" class="form-control" placeholder="یادداشت را وارد کنید" style="border-radius: 8px; padding: 10px 14px;" rows="3">{{ $team->note }}</textarea>
                   </div>
                 </div>
               </div>
@@ -189,7 +205,19 @@
                   
                   @if($show_row)
                   <tr class="border-bottom">
-                    <td class="font-weight-bold text-dark align-middle">{{ $t->name }}</td>
+                    <td class="font-weight-bold text-dark align-middle d-flex align-items-center justify-content-center">
+                      {{ $t->name }}
+                      @if(!empty($t->note))
+                        <i class="feather icon-file-text text-warning ml-1 btn-washing-note" 
+                           style="cursor:pointer;" 
+                           data-toggle="modal" 
+                           data-target="#washingNoteModal" 
+                           data-id="{{ $t->id }}" 
+                           data-name="{{ $t->name . ' ' . $t->last_name }}" 
+                           data-note="{{ $t->note }}" 
+                           title="دارای یادداشت: {{ $t->note }}"></i>
+                      @endif
+                    </td>
                     <td class="align-middle">{{ $t->last_name }}</td>
                     <td class="align-middle" style="direction: ltr; font-family: monospace;">{{ $t->contact_no }}</td>
                     <td class="align-middle text-muted">{{ $t->address }}</td>
@@ -208,6 +236,15 @@
                     <!-- Action Buttons -->
                     <td class="align-middle hideOnPrint">
                       <div class="btn-group shadow-sm" role="group">
+                        <button type="button" class="btn btn-sm btn-light border text-warning btn-washing-note"
+                           data-toggle="modal"
+                           data-target="#washingNoteModal"
+                           data-id="{{ $t->id }}"
+                           data-name="{{ $t->name . ' ' . $t->last_name }}"
+                           data-note="{{ $t->note }}"
+                           title="یادداشت (Note)">
+                           <i class="feather icon-file-text"></i>
+                        </button>
                         @can('edit_washing_team')
                         <a href="/dashboard/washing-team/{{$t->id}}/edit" class="btn btn-sm btn-light border" title="ویرایش" style="color: #4b5563;"><i class="fa fa-edit"></i></a>
                         @endcan
@@ -232,15 +269,52 @@
     </div>
   </div>
   
-  <!-- tables -->
+  <!-- tables  </div>
 
+  <!-- DEDICATED NOTE MODAL -->
+  <div class="modal fade" id="washingNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content QBIC-modal-content" style="border-radius: 12px; border: none;">
+        <div class="modal-header p-4" style="background: #10b981;">
+          <h5 class="modal-title text-white font-weight-bold" id="noteModalWashingName"><i class="feather icon-file-text mr-1"></i> یادداشت تیم شست</h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body p-4 text-right" style="direction: rtl;">
+          <form id="washingNoteForm" method="POST" action="">
+            @csrf
+            <input type="hidden" id="noteWashingId" name="team_id">
+            <div class="form-group mb-3">
+              <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+              <textarea id="noteTextareaWashing" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_washing_team') readonly @endcannot></textarea>
+            </div>
+            <div class="text-right mt-4">
+              @can('edit_washing_team')
+              <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+              @else
+              <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+              @endcan
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection
 @section('footer-plugins')
-  
-  
-  
   <script>
       $(document).ready(function () {
+          $(document).on('click', '.btn-washing-note', function () {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var note = $(this).data('note');
+            $('#noteModalWashingName').html('<i class="feather icon-file-text mr-1"></i> یادداشت: ' + name);
+            $('#noteWashingId').val(id);
+            $('#noteTextareaWashing').val(note || '');
+            $('#washingNoteForm').attr('action', '/dashboard/washing-team/note/' + id);
+          });
           $("#washing_team").tableExport({
               headers: true,                      // (Boolean), display table headers (th or td elements) in the <thead>, (default: true)
               footers: true,                      // (Boolean), display table footers (th or td elements) in the <tfoot>, (default: false)

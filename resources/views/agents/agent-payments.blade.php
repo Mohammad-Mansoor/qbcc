@@ -681,6 +681,7 @@
                         @php
                             $advances = \App\AgentPayment::where('agent_id', $agent->agent_id)
                                 ->where('is_advance', true)
+                                ->where('status', 1)
                                 ->orderBy('date', 'DESC')
                                 ->get();
                         @endphp
@@ -754,7 +755,7 @@
                     <div class="tab-pane fade" id="agent-reconciliation" role="tabpanel">
                         @php
                             $agentAllocations = \App\AgentPaymentAllocation::whereHas('agent_payment', function($q) use ($agent) {
-                                $q->where('agent_id', $agent->agent_id);
+                                $q->where('agent_id', $agent->agent_id)->where('status', 1);
                             })->with(['agent_payment', 'allocatable'])->orderBy('id', 'DESC')->get();
                         @endphp
                         <div class="table-responsive">

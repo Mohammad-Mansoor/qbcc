@@ -11,6 +11,8 @@
         if ($normal == 'debit') { $finalBalance += ($entry->debit - $entry->credit); } 
         else { $finalBalance += ($entry->credit - $entry->debit); }
     }
+    $accCurrency = isset($account) ? $account->currency : 'USD';
+    $accRate = (isset($currencies) && isset($currencies[$accCurrency]) && $currencies[$accCurrency]->exchange_rate > 0) ? $currencies[$accCurrency]->exchange_rate : 1.0;
 @endphp
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
@@ -93,9 +95,24 @@
             <td colspan="2" class="card-label-balance" style="height: 18pt;" valign="middle">بیلانس نهایی (Closing Balance)</td>
         </tr>
         <tr>
-            <td colspan="2" class="card-value-debit" style="height: 32pt;" valign="middle">${{ number_format($totalDebit, 2) }}</td>
-            <td colspan="2" class="card-value-credit" style="height: 32pt;" valign="middle">${{ number_format($totalCredit, 2) }}</td>
-            <td colspan="2" class="card-value-balance" style="height: 32pt;" valign="middle">${{ number_format($finalBalance, 2) }}</td>
+            <td colspan="2" class="card-value-debit" style="height: 32pt;" valign="middle">
+                ${{ number_format($totalDebit, 2) }}
+                @if($accCurrency !== 'USD')
+                    <br><span style="font-size: 9.5pt; font-weight: normal; color: #1e3a8a;">+ {{ number_format($totalDebit / $accRate, 2) }} {{ $accCurrency }}</span>
+                @endif
+            </td>
+            <td colspan="2" class="card-value-credit" style="height: 32pt;" valign="middle">
+                ${{ number_format($totalCredit, 2) }}
+                @if($accCurrency !== 'USD')
+                    <br><span style="font-size: 9.5pt; font-weight: normal; color: #991b1b;">- {{ number_format($totalCredit / $accRate, 2) }} {{ $accCurrency }}</span>
+                @endif
+            </td>
+            <td colspan="2" class="card-value-balance" style="height: 32pt;" valign="middle">
+                ${{ number_format($finalBalance, 2) }}
+                @if($accCurrency !== 'USD')
+                    <br><span style="font-size: 9.5pt; font-weight: normal; color: #1e3a8a;">{{ number_format($finalBalance / $accRate, 2) }} {{ $accCurrency }}</span>
+                @endif
+            </td>
         </tr>
         <tr style="height: 15pt;"><td colspan="6" style="border: none; background-color: #ffffff;"></td></tr>
         <tr>
@@ -139,7 +156,12 @@
                 <td class="text-right font-bold" style="height: 26pt; padding-right: 12px;">بیلانس انتقالی (Opening Balance Forwarded)</td>
                 <td class="text-left" style="height: 26pt;">-</td>
                 <td class="text-left" style="height: 26pt;">-</td>
-                <td class="text-left font-bold" style="direction: ltr; height: 26pt; padding-left: 12px;">${{ number_format($runningBalance, 2) }}</td>
+                <td class="text-left font-bold" style="direction: ltr; height: 26pt; padding-left: 12px;">
+                    ${{ number_format($runningBalance, 2) }}
+                    @if($accCurrency !== 'USD')
+                        <br><span style="font-size: 8.5pt; font-weight: normal; color: #475569;">{{ number_format($runningBalance / $accRate, 2) }} {{ $accCurrency }}</span>
+                    @endif
+                </td>
             </tr>
             @foreach($entries as $tx)
                 @php
@@ -160,15 +182,33 @@
                     </td>
                     <td class="text-left font-bold" style="direction: ltr; height: 26pt; padding-left: 12px; background-color: {{ $rowBgColor }};">
                         ${{ number_format($runningBalance, 2) }}
+                        @if($accCurrency !== 'USD')
+                            <br><span style="font-size: 8.5pt; font-weight: normal; color: #475569;">{{ number_format($runningBalance / $accRate, 2) }} {{ $accCurrency }}</span>
+                        @endif
                     </td>
                 </tr>
             @endforeach
             <tr style="height: 10pt;"><td colspan="6" style="border: none; background-color: #ffffff;"></td></tr>
             <tr class="total-row">
                 <td colspan="3" class="text-center" style="height: 32pt;">خلاصه کل دوره (Totals for Selected Period)</td>
-                <td class="text-left" style="height: 32pt; padding-left: 12px;">${{ number_format($totalDebit, 2) }}</td>
-                <td class="text-left" style="height: 32pt; padding-left: 12px;">${{ number_format($totalCredit, 2) }}</td>
-                <td class="text-left font-bold" style="direction: ltr; height: 32pt; padding-left: 12px;">${{ number_format($runningBalance, 2) }}</td>
+                <td class="text-left" style="height: 32pt; padding-left: 12px;">
+                    ${{ number_format($totalDebit, 2) }}
+                    @if($accCurrency !== 'USD')
+                        <br><span style="font-size: 9.5pt; font-weight: normal; color: #e2e8f0;">+ {{ number_format($totalDebit / $accRate, 2) }} {{ $accCurrency }}</span>
+                    @endif
+                </td>
+                <td class="text-left" style="height: 32pt; padding-left: 12px;">
+                    ${{ number_format($totalCredit, 2) }}
+                    @if($accCurrency !== 'USD')
+                        <br><span style="font-size: 9.5pt; font-weight: normal; color: #fca5a5;">- {{ number_format($totalCredit / $accRate, 2) }} {{ $accCurrency }}</span>
+                    @endif
+                </td>
+                <td class="text-left font-bold" style="direction: ltr; height: 32pt; padding-left: 12px;">
+                    ${{ number_format($runningBalance, 2) }}
+                    @if($accCurrency !== 'USD')
+                        <br><span style="font-size: 9.5pt; font-weight: normal; color: #e2e8f0;">{{ number_format($runningBalance / $accRate, 2) }} {{ $accCurrency }}</span>
+                    @endif
+                </td>
             </tr>
         </tbody>
     </table>

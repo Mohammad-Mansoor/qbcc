@@ -197,6 +197,13 @@
                   </div>
                   @error('address') <p class="text-danger small mt-1">{{trans('message.'.$message)}}</p> @enderror
                 </div>
+                <div class="form-group modern-form-group">
+                  <label class="font-weight-bold">یادداشت (Note)</label>
+                  <div class="modern-input-wrapper">
+                    <textarea id="seller_note" class="modern-input" rows="3" name="note" placeholder="یادداشت یا توضیحات اضافی را بنویسید" style="padding-top: 12px !important; resize: vertical; min-height: 80px;"></textarea>
+                    <i class="fa fa-file-text-o" style="top: 15px;"></i>
+                  </div>
+                </div>
               </div>
               <div class="modal-footer modern-modal-footer justify-content-start">
                 <button type="button" class="btn btn-modern-secondary" data-dismiss="modal">انصراف</button>
@@ -290,6 +297,9 @@
                   <tr class="seller-row" data-id="{{ $seller->id }}">
                     <td class="py-3 px-4">
                       <strong class="text-dark">{{$seller->name}}</strong>
+                      @if(!empty($seller->note))
+                        <i class="fa fa-sticky-note text-warning mr-1" onclick="openNoteModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" style="cursor:pointer;" data-toggle="tooltip" title="دارای یادداشت: {{ e($seller->note) }}"></i>
+                      @endif
                       <div class="text-muted small mt-1"><i class="fa fa-map-marker text-muted" style="margin-left: 4px;"></i>{{$seller->address}}</div>
                     </td>
                     <td class="py-3 px-3 text-muted">{{$seller->phone}}</td>
@@ -311,11 +321,15 @@
                     <td class="py-3 px-4 text-center hideOnPrint">
                       <div class="btn-group">
                         @can('edit_string_seller')
-                        <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}')" 
+                        <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" 
                            class="btn btn-icon-only text-primary" data-toggle="tooltip" data-placement="top" title="ویرایش اطلاعات">
                            <i class="fa fa-edit"></i>
                         </button>
                         @endcan
+                        <button type="button" onclick="openNoteModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" 
+                           class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="یادداشت (Note)">
+                           <i class="fa fa-sticky-note"></i>
+                        </button>
                         @can('manage_seller_payments')
                         <a href="/dashboard/string-seller-payments/{{$seller->id}}"
                            class="btn btn-icon-only text-info" data-toggle="tooltip" data-placement="top" title="حساب میراثی">
@@ -347,6 +361,9 @@
                     <tr class="seller-row" data-id="{{ $seller->id }}">
                       <td class="py-3 px-4">
                         <strong class="text-dark">{{$seller->name}}</strong>
+                        @if(!empty($seller->note))
+                          <i class="fa fa-sticky-note text-warning mr-1" onclick="openNoteModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" style="cursor:pointer;" data-toggle="tooltip" title="دارای یادداشت: {{ e($seller->note) }}"></i>
+                        @endif
                         <div class="text-muted small mt-1"><i class="fa fa-map-marker text-muted" style="margin-left: 4px;"></i>{{$seller->address}}</div>
                       </td>
                       <td class="py-3 px-3 text-muted">{{$seller->phone}}</td>
@@ -368,11 +385,15 @@
                       <td class="py-3 px-4 text-center hideOnPrint">
                         <div class="btn-group">
                           @can('edit_string_seller')
-                          <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}')" 
+                          <button type="button" onclick="openEditModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ e($seller->phone) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->address)) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" 
                              class="btn btn-icon-only text-primary" data-toggle="tooltip" data-placement="top" title="ویرایش اطلاعات">
                              <i class="fa fa-edit"></i>
                           </button>
                           @endcan
+                          <button type="button" onclick="openNoteModal('{{ $seller->id }}', '{{ e($seller->name) }}', '{{ preg_replace('/\r|\n/', ' ', e($seller->note)) }}')" 
+                             class="btn btn-icon-only text-warning" data-toggle="tooltip" data-placement="top" title="یادداشت (Note)">
+                             <i class="fa fa-sticky-note"></i>
+                          </button>
                           @can('manage_seller_payments')
                           <a href="/dashboard/string-seller-payments/{{$seller->id}}"
                              class="btn btn-icon-only text-info" data-toggle="tooltip" data-placement="top" title="حساب میراثی">
@@ -416,6 +437,43 @@
     
     </div>
   </div>
+
+  <!-- Modal for Viewing & Editing String Seller Note -->
+  <div class="modal fade" id="sellerNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content modern-modal-content">
+        <form id="sellerNoteForm" method="post" action="">
+          @csrf
+          <div class="modal-header modern-modal-header d-flex justify-content-between align-items-center">
+            <h5 class="modal-title modern-modal-title" id="sellerNoteModalTitle">
+              <i class="fa fa-file-text-o"></i>
+              <span id="sellerNoteModalName">یادداشت فروشنده</span>
+            </h5>
+            <button type="button" class="modern-close-btn m-0 p-0" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body text-right p-4">
+            <input type="hidden" id="note_seller_id" name="seller_id">
+            <div class="form-group mb-3">
+              <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+              <textarea id="sellerNoteTextarea" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_string_seller') readonly @endcannot></textarea>
+            </div>
+            <div class="text-right mt-4">
+              @can('edit_string_seller')
+              <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                <i class="fa fa-save mr-1"></i> ذخیره یادداشت
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+              @else
+              <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+              @endcan
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @section('scripts')
@@ -438,17 +496,27 @@
           $('#seller_name').val('');
           $('#seller_phone').val('');
           $('#seller_address').val('');
+          $('#seller_note').val('');
           $('#sellerModal').modal('show');
       }
 
-      function openEditModal(id, name, phone, address) {
+      function openEditModal(id, name, phone, address, note) {
           $('#sellerModalLabel').html('<i class="fa fa-edit"></i> <span>ویرایش فروشنده مواد خام</span>');
           $('#sellerForm').attr('action', '/dashboard/string-seller/' + id);
           $('#method_override').html('<input type="hidden" name="_method" value="PATCH">');
           $('#seller_name').val(name);
           $('#seller_phone').val(phone);
           $('#seller_address').val(address);
+          $('#seller_note').val(note || '');
           $('#sellerModal').modal('show');
+      }
+
+      function openNoteModal(id, name, note) {
+          $('#sellerNoteModalName').text('یادداشت: ' + name);
+          $('#note_seller_id').val(id);
+          $('#sellerNoteTextarea').val(note || '');
+          $('#sellerNoteForm').attr('action', '/dashboard/string-seller/note/' + id);
+          $('#sellerNoteModal').modal('show');
       }
 
       @if($sellerEdit)
@@ -457,7 +525,8 @@
             '{{ $sellerEdit->id }}',
             '{{ e($sellerEdit->name) }}',
             '{{ e($sellerEdit->phone) }}',
-            '{{ preg_replace("/\r|\n/", " ", e($sellerEdit->address)) }}'
+            '{{ preg_replace("/\r|\n/", " ", e($sellerEdit->address)) }}',
+            '{{ preg_replace("/\r|\n/", " ", e($sellerEdit->note)) }}'
           );
         });
       @endif

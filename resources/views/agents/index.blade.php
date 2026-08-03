@@ -352,10 +352,13 @@
                                     <div class="agent-identity">
                                         <img src="{{ $d->image ? '/' . $d->image : 'https://ui-avatars.com/api/?name=' . $d->user->name . '&background=1e3a8a&color=fff' }}"
                                             class="agent-avatar">
-                                        <div class="agent-info">
-                                            <span class="name">{{ $d->user->name . ' ' . $d->user->last_name }}</span>
-                                            <span class="email">{{ $d->user->email }}</span>
-                                        </div>
+                                         <div class="agent-info">
+                                             <span class="name">{{ $d->user->name . ' ' . $d->user->last_name }}</span>
+                                             @if(!empty($d->note))
+                                                 <i class="feather icon-file-text text-warning ml-1 btn-agent-note" data-toggle="modal" data-target="#agentNoteModal" data-id="{{ $d->agent_id }}" data-name="{{ $d->user->name . ' ' . $d->user->last_name }}" data-note="{{ $d->note }}" style="cursor:pointer;" title="دارای یادداشت: {{ $d->note }}"></i>
+                                             @endif
+                                             <span class="email">{{ $d->user->email }}</span>
+                                         </div>
                                     </div>
                                 </td>
                                 <td>
@@ -380,10 +383,20 @@
                                                 class="btn-action-round bg-light-info text-info" title="ویرایش"><i
                                                     class="feather icon-edit-2"></i></a>
                                         @endcan
-                                        <a href="/dashboard/agents/{{ $d->agent_id }}"
-                                            class="btn-action-round bg-light-warning text-warning" title="جزییات"><i
-                                                class="feather icon-user"></i></a>
-                                        @can('view_agent_carpets')
+                                         <a href="/dashboard/agents/{{ $d->agent_id }}"
+                                             class="btn-action-round bg-light-warning text-warning" title="جزییات"><i
+                                                 class="feather icon-user"></i></a>
+                                         <button type="button"
+                                             class="btn-action-round bg-light-warning text-warning btn-agent-note"
+                                             data-toggle="modal"
+                                             data-target="#agentNoteModal"
+                                             data-id="{{ $d->agent_id }}"
+                                             data-name="{{ $d->user->name . ' ' . $d->user->last_name }}"
+                                             data-note="{{ $d->note }}"
+                                             title="یادداشت (Note)">
+                                             <i class="feather icon-file-text"></i>
+                                         </button>
+                                         @can('view_agent_carpets')
                                             <a href="/dashboard/agent-carpet/{{$d->agent_id}}"
                                                 class="btn-action-round bg-light-primary text-primary" title="قالین ها"><i
                                                     class="feather icon-package"></i></a>
@@ -551,6 +564,15 @@
                         </div>
                     </div>
 
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <div class="input-group-modern">
+                                <label>یادداشت (Note)</label>
+                                <textarea name="note" class="form-control-modern" style="height: 70px; resize: vertical;" placeholder="یادداشت یا توضیحات اضافی...">{{ $agent ? $agent->note : old('note') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     @if(!$agent)
                         <div class="form-section mt-3"><i class="feather icon-lock"></i> ۳. امنیت</div>
                         <div class="row">
@@ -587,6 +609,39 @@
     </div>
 </div>
 
+<!-- DEDICATED NOTE MODAL -->
+<div class="modal fade" id="agentNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content QBIC-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="noteModalAgentName"><i class="feather icon-file-text mr-1"></i> یادداشت نماینده</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="agentNoteForm" method="POST" action="">
+                    @csrf
+                    <input type="hidden" id="noteAgentId" name="agent_id">
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
+                        <textarea id="noteTextarea" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_agent') readonly @endcannot></textarea>
+                    </div>
+                    <div class="text-right mt-4">
+                        @can('edit_agent')
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                            <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+                        </button>
+                        <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+                        @else
+                        <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+                        @endcan
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('footer-plugins')
@@ -605,6 +660,17 @@
 
         $(document).ready(function () {
             @if($errors->any() || $agent) $('#agentModal').modal('show'); @endif
+
+            $('.btn-agent-note').on('click', function () {
+                var agentId = $(this).data('id');
+                var agentName = $(this).data('name');
+                var agentNote = $(this).data('note');
+
+                $('#noteModalAgentName').html('<i class="feather icon-file-text mr-1"></i> یادداشت: ' + agentName);
+                $('#noteAgentId').val(agentId);
+                $('#noteTextarea').val(agentNote || '');
+                $('#agentNoteForm').attr('action', '/dashboard/agent/note/' + agentId);
+            });
 
             $("#imageUpload").change(function () {
                 if (this.files && this.files[0]) {

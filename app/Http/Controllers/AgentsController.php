@@ -356,6 +356,19 @@ class AgentsController extends Controller
         }
     }
 
+    public function updateNote(Request $request, $id)
+    {
+        $agent = Agents::findOrFail($id);
+        $agent->note = $request->note;
+        $agent->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'یادداشت با موفقیت بروز رسانی شد', 'note' => $agent->note]);
+        }
+
+        return redirect()->back()->with('status', 'یادداشت با موفقیت بروز رسانی شد');
+    }
+
     protected function Valid()
     {
         return request()->validate([
@@ -376,7 +389,8 @@ class AgentsController extends Controller
             'image' => '',
             'national_id' => '',
             'phone_no' => '',
-            'user_id' => ''
+            'user_id' => '',
+            'note' => ''
         ]);
     }
 
@@ -396,6 +410,7 @@ class AgentsController extends Controller
             'image' => '',
             'national_id' => '',
             'phone_no' => '',
+            'note' => ''
         ]);
     }
 }

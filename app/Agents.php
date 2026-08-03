@@ -9,7 +9,7 @@ class Agents extends Model
     protected $primaryKey = 'agent_id';
     protected $fillable = ['agent_father_name' , 'agent_address' , 'account_type' , 'national_id',
                             'contract_type' , 'contract_date' , 'contract_scan_file' , 'account_no',
-                            'account_status' , 'description' , 'user_id' , 'province_id','image'
+                            'account_status' , 'description' , 'user_id' , 'province_id','image', 'note'
                         ];
 
     public function employee()

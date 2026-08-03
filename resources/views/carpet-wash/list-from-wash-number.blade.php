@@ -287,6 +287,7 @@ $none_washed_total = DB::table('carpets')
               <thead>
                 <tr>
                   <th>ITEM#</th>
+                  <th>MAP NO</th>
                   <th>ITEM DESCRIPTION</th>
                   <th>HEIGHT</th>
                   <th>WIDTH</th>
@@ -322,6 +323,7 @@ $none_washed_total = DB::table('carpets')
                                 @if($showRow)
                                   <tr>
                                     <td class="font-weight-bold text-dark">{{$wash->carpet->carpet_no}}</td>
+                                    <td><span class="badge badge-light border">{{$wash->carpet->map_number ?? '-'}}</span></td>
                                     <td><span class="badge badge-light border">{{$wash->carpet->type->carpet_type ?? '-'}}</span></td>
 
                                     <td style="direction: ltr;">

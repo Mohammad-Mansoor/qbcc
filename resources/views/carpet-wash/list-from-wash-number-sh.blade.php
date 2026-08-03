@@ -118,6 +118,7 @@
                 <tr style="color: dodgerblue;">
                   
                   <td><b>ITEM#</b></td>
+                  <td><b>MAP NO</b></td>
                   <td><b>ITEM DESCRIPTION</b></td>
                   <td><b>HEIGHT</b></td>
                   <td><b>WIDTH</b></td>
@@ -138,6 +139,7 @@
                 @forelse ($carpet_washes as $wash)
                   <tr>
                     <td>{{$wash->carpet->carpet_no}}</td>
+                    <td><span class="badge badge-light border">{{$wash->carpet->map_number ?? '-'}}</span></td>
                     @if($wash->carpet->type)
                     <td>{{$wash->carpet->type->carpet_type}}</td>
                     @else

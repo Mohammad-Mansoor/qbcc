@@ -381,7 +381,7 @@ class AccountingService
                 'App\Http\Controllers\EmployeePaymentController' => 'App\EmployeePayment',
                 'App\Http\Controllers\AjnasAccountDetailsController' => 'Ajnas_account',
                 'App\Http\Controllers\WashingPaymentController' => 'Washing_payment',
-                'App\Http\Controllers\FinishingTeamPaymentController' => 'Finishing_payment',
+                'App\Http\Controllers\FinishingTeamPaymentController' => 'App\FinishingTeamPayment',
             ];
             
             if (isset($mappings[$callerClass])) {

@@ -75,9 +75,9 @@ class DifferentAccountPaymentController extends Controller
             DifferentAccountTotal::create([
                 'account_id' => $accountId,
                 'currency_code' => $t->currency_code,
-                'total' => $t->total_receipts,
-                'paid' => $t->total_payments,
-                'remaining' => $t->total_receipts - $t->total_payments
+                'total' => $t->total_payments,
+                'paid' => $t->total_receipts,
+                'remaining' => $t->total_payments - $t->total_receipts
             ]);
         }
     }

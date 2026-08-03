@@ -157,8 +157,8 @@ class PayrollController extends Controller
             ]);
 
             // Stamp the run_id on each item and insert
-            foreach ($items as &$item) {
-                $item['payroll_run_id'] = $runId;
+            foreach ($items as $key => $item) {
+                $items[$key]['payroll_run_id'] = $runId;
             }
             DB::table('payroll_items')->insert($items);
 
