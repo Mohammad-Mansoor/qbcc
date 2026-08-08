@@ -1,5 +1,7 @@
 <?php
 
+namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -294,6 +296,8 @@ class PermissionSeeder extends Seeder
             'view_payroll',
             'run_payroll',
             'view_payroll_slip',
+            'edit_payroll',
+            'delete_payroll',
             'view_employee_money_requests',
             'approve_employee_money_requests',
             'reject_employee_money_requests',

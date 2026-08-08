@@ -553,6 +553,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     /** Route For Monthly Payroll (Salary Run) */
     Route::resource('/payroll', 'PayrollController')->names('payroll');
     Route::get('/payroll/{run}/slip/{item}', 'PayrollController@slip')->name('payroll.slip');
+    Route::post('/payroll/{run}/cancel', 'PayrollController@cancel')->name('payroll.cancel');
 });
 
 

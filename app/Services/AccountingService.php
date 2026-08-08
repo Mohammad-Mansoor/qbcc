@@ -69,6 +69,8 @@ class AccountingService
         $debitAcc = ChartOfAccount::find($debitAccountId);
         $creditAcc = ChartOfAccount::find($creditAccountId);
 
+        $hasExplicitParty = !empty($params['party_type']) && !empty($params['party_id']);
+
         $shouldTagDebit = ($debitAcc->account_type == 'Asset' || $debitAcc->account_type == 'Liability')
             && !$debitAcc->is_cash_account
             && !in_array($debitAcc->account_type, ['Expense', 'Revenue', 'Equity'])
@@ -80,6 +82,23 @@ class AccountingService
             && !in_array($creditAcc->account_type, ['Expense', 'Revenue', 'Equity'])
             && $creditAcc->report_group != 'Inventory'
             && !in_array(strtolower($creditAcc->account_name), ['inventory', 'work in progress', 'wip', 'finished goods']);
+
+        // If explicit party is provided for module payments and neither side was tagged due to cash/advance accounts, tag the party side
+        if ($hasExplicitParty && !$shouldTagDebit && !$shouldTagCredit) {
+            $condLower = strtolower($rule->condition ?? $key);
+            $isPaymentOut = str_contains($condLower, 'out') 
+                         || str_contains($condLower, 'advance') 
+                         || str_contains($condLower, 'گرفت')
+                         || str_contains($condLower, 'payroll')
+                         || str_contains($condLower, 'expense')
+                         || str_contains($condLower, 'debit');
+
+            if ($isPaymentOut) {
+                $shouldTagDebit = true;
+            } else {
+                $shouldTagCredit = true;
+            }
+        }
 
         $entries = [
             [

@@ -448,11 +448,9 @@
                                                 @endif
                                             </td>
                                             <td class="hideOnPrint text-center">
-                                                @if($p->status == 0)
-                                                    <a href="/dashboard/washing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-info">
-                                                        <i class="fa fa-edit"></i>
-                                                    </a>
-                                                @endif
+                                                <a href="/dashboard/washing-payments/{{$p->id}}/edit" class="btn btn-sm btn-outline-info" title="ویرایش">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
                                                 @can('cancel_washing_payment')
                                                     <button type="button" onclick="deletePayment({{$p->id}}, {{$p->team_id}})" class="btn btn-sm btn-outline-danger" title="ابطال / حذف">
                                                         <i class="fa fa-ban"></i>

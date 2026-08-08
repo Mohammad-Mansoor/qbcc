@@ -313,28 +313,53 @@ $(document).ready(function() {
     $('#override_debit_account_id, #override_credit_account_id').select2();
 
     function recalcRow(row) {
-        var base = parseFloat(row.find('input[name*="[base_salary]"]').val()) || 0;
+        var baseRaw = row.find('input[name*="[base_salary]"]').val() || '0';
+        var base = parseFloat(baseRaw.toString().replace(/,/g, '')) || 0;
         var rate = parseFloat(row.find('.rate-input').val()) || 1;
         var bonus = parseFloat(row.find('.bonus-input').val()) || 0;
         var ded   = parseFloat(row.find('.ded-input').val()) || 0;
         var net   = base + bonus - ded;
         var netUSD = net * rate;
 
-        row.find('.net-local').val(net.toFixed(2));
-        row.find('.net-usd').text(netUSD.toFixed(2));
+        row.find('.net-local').val(net.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        row.find('.net-usd').text(netUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         recalcGrandTotal();
     }
 
     function recalcGrandTotal() {
         var totalUSD = 0;
+        var totalsByCurr = {};
+
         $('#payroll-table tbody tr.emp-row').each(function() {
             var checked = $(this).find('.emp-checkbox').is(':checked');
             if (!checked) return;
-            var usdText = $(this).find('.net-usd').text();
-            totalUSD += parseFloat(usdText) || 0;
+
+            var rawLocal = $(this).find('.net-local').val() || '0';
+            var netLocal = parseFloat(rawLocal.toString().replace(/,/g, '')) || 0;
+            var currCode = $(this).find('.net-local').next('small').text().trim() || 'USD';
+            
+            var usdText = $(this).find('.net-usd').text().replace(/,/g, '');
+            var netUSD = parseFloat(usdText) || 0;
+
+            totalUSD += netUSD;
+
+            if (!totalsByCurr[currCode]) {
+                totalsByCurr[currCode] = 0;
+            }
+            totalsByCurr[currCode] += netLocal;
         });
-        $('#grand_total_usd').val(totalUSD.toFixed(2));
-        $('#footer-net-usd').text(totalUSD.toFixed(2));
+
+        var localSummaryParts = [];
+        for (var code in totalsByCurr) {
+            localSummaryParts.push(totalsByCurr[code].toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + code);
+        }
+
+        var localSummaryStr = localSummaryParts.length > 0 ? localSummaryParts.join(' + ') : '—';
+        $('#footer-net-local').text(localSummaryStr);
+
+        var formattedUSD = totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        $('#grand_total_usd').val(formattedUSD);
+        $('#footer-net-usd').text(formattedUSD);
     }
 
     // Live recalc on any input change
@@ -355,8 +380,10 @@ $(document).ready(function() {
         recalcGrandTotal();
     });
 
-    // Initial calculation
-    recalcGrandTotal();
+    // Initial calculation for all rows
+    $('#payroll-table tbody tr.emp-row').each(function() {
+        recalcRow($(this));
+    });
 });
 </script>
 @endsection

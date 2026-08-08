@@ -461,7 +461,7 @@
                         <div class="card-header-premium text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);">
                             <h5><i class="fa fa-folder-open mr-2"></i> بل‌های دستمزد گروپ شده (Grouped Batches)</h5>
                             <span class="badge badge-light p-2 font-weight-bold text-primary" style="font-size: 0.9rem;">
-                                مجموع بل‌ها: {{ count($groupedRepairs) }} عدد
+                                مجموع بل‌ها: {{ count($groupedRepairs ?? []) }} عدد
                             </span>
                         </div>
                         <div class="card-body p-0">

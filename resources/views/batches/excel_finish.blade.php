@@ -2,18 +2,18 @@
 <head>
     <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
     <!--[if gte mso 9]>
-    <xml>
-        <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-                <x:ExcelWorksheet>
-                    <x:Name>Finishing Batch</x:Name>
-                    <x:WorksheetOptions>
-                        <x:DisplayGridlines/>
-                    </x:WorksheetOptions>
-                </x:ExcelWorksheet>
-            </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-    </xml>
+    <?php $x = 'x:'; echo "<xml>
+        <{$x}ExcelWorkbook>
+            <{$x}ExcelWorksheets>
+                <{$x}ExcelWorksheet>
+                    <{$x}Name>Batch Invoice</{$x}Name>
+                    <{$x}WorksheetOptions>
+                        <{$x}DisplayGridlines/>
+                    </{$x}WorksheetOptions>
+                </{$x}ExcelWorksheet>
+            </{$x}ExcelWorksheets>
+        </{$x}ExcelWorkbook>
+    </xml>"; ?>
     <![endif]-->
     <style>
         body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; direction: rtl; background-color: #ffffff; }

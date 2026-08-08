@@ -553,6 +553,7 @@ class KachaeePaymentController extends Controller
             ->get()
             ->keyBy('kachaee_number');
 
+        $groupedRepairs = [];
         // Map each repair with its paid/remaining metrics
         foreach ($repairs as $rep) {
             $refPayments = $paymentsByRef->get($rep->kachaee_number);
@@ -568,6 +569,32 @@ class KachaeePaymentController extends Controller
                 $rep->payment_status = 'paid';
             } else {
                 $rep->payment_status = 'partial';
+            }
+
+            $ref = $rep->kachaee_number ?: 'بدون نمبر';
+            if (!isset($groupedRepairs[$ref])) {
+                $groupedRepairs[$ref] = [
+                    'first_date' => $rep->date,
+                    'kachaee_number' => $ref,
+                    'total_carpets' => 0,
+                    'total_cost' => 0,
+                    'total_paid' => (float)$totalPaid,
+                    'remaining_balance' => 0,
+                    'payment_status' => 'unpaid'
+                ];
+            }
+            $groupedRepairs[$ref]['total_carpets']++;
+            $groupedRepairs[$ref]['total_cost'] += $rep->total_cost;
+        }
+
+        foreach ($groupedRepairs as $ref => &$group) {
+            $group['remaining_balance'] = max(0, $group['total_cost'] - $group['total_paid']);
+            if ($group['total_paid'] <= 0) {
+                $group['payment_status'] = 'unpaid';
+            } elseif ($group['remaining_balance'] <= 0) {
+                $group['payment_status'] = 'paid';
+            } else {
+                $group['payment_status'] = 'partial';
             }
         }
 
@@ -594,7 +621,7 @@ class KachaeePaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'currentDebitAccountId', 'currentCreditAccountId', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'currentDebitAccountId', 'currentCreditAccountId', 'repairs', 'groupedRepairs', 'totalBaseRepairs', 'ledgerStatement'));
     }
 
     /**

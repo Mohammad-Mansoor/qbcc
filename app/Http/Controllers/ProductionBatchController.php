@@ -231,7 +231,7 @@ class ProductionBatchController extends Controller
 
         if ($type === 'kachaee') {
             $query = \App\CarpetRepair::where('kachaee_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'team']);
+                ->with(['carpet.type', 'carpet.quality', 'carpet.warehouse', 'team']);
             
             if ($startDate && $endDate) {
                 $query->whereBetween('repair_date', [$startDate, $endDate]);
@@ -258,7 +258,7 @@ class ProductionBatchController extends Controller
 
         } elseif ($type === 'wash') {
             $query = \App\CarpetWash::where('wash_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'washing_team']);
+                ->with(['carpet.type', 'carpet.quality', 'carpet.warehouse', 'washing_team']);
                 
             if ($startDate && $endDate) {
                 $query->whereBetween('date', [$startDate, $endDate]);
@@ -293,7 +293,7 @@ class ProductionBatchController extends Controller
 
         } elseif ($type === 'finish') {
             $query = \App\FinishingWork::where('finish_number', $ref)
-                ->with(['carpet.type', 'carpet.quality', 'team', 'category']);
+                ->with(['carpet.type', 'carpet.quality', 'carpet.warehouse', 'team', 'category']);
                 
             if ($startDate && $endDate) {
                 $query->whereBetween('date', [$startDate, $endDate]);

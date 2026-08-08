@@ -106,8 +106,12 @@
                         <tr>
                             <td class="text-muted font-weight-bold align-middle">خلاصه کارکرد:</td>
                             <td class="align-middle font-weight-bold text-dark">
-                                <span class="mr-3"><i class="fa fa-cubes text-muted mr-1"></i> {{ $groupedCarpets->count() }} Pcs</span>
-                                <span><i class="fa fa-map-o text-muted mr-1"></i> {{ number_format($groupedCarpets->sum(function($group) { return $group->first()->carpet->area ?? 0; }), 2) }} m²</span>
+                                <span class="badge badge-light border mr-2 px-3 py-2" style="direction: ltr; display: inline-flex; align-items: center; font-size: 0.95rem; background-color: #f8fafc; color: #1e293b;">
+                                    <i class="fa fa-cubes text-primary mr-2"></i> {{ $groupedCarpets->count() }} Pcs
+                                </span>
+                                <span class="badge badge-light border px-3 py-2" style="direction: ltr; display: inline-flex; align-items: center; font-size: 0.95rem; background-color: #f8fafc; color: #1e293b;">
+                                    <i class="fa fa-map-o text-info mr-2"></i> {{ number_format($groupedCarpets->sum(function($group) { return $group->first()->carpet->area ?? 0; }), 2) }} m²
+                                </span>
                             </td>
                         </tr>
                     </table>
@@ -155,6 +159,7 @@
                             <th class="border-0 align-middle py-3">کیفیت</th>
                             <th class="border-0 align-middle py-3">ابعاد (m)</th>
                             <th class="border-0 align-middle py-3">مساحت (m²)</th>
+                            <th class="border-0 align-middle py-3">گدام فعلی (Warehouse)</th>
                             @foreach($batchCategories as $cat)
                                 <th class="border-0 align-middle py-3" style="background-color: #2563eb; color: #ffffff !important;">{{ $cat->category }}</th>
                             @endforeach
@@ -187,6 +192,11 @@
                                 <td>{{ $carpet->quality->quality ?? '---' }}</td>
                                 <td style="direction: ltr;">{{ $carpet->height ?? '---' }} × {{ $carpet->width ?? '---' }}</td>
                                 <td class="font-weight-bold">{{ number_format($area, 2) }}</td>
+                                <td class="font-weight-bold">
+                                    <span class="badge badge-light border px-2 py-1" style="background-color: #f1f5f9; color: #1e293b;">
+                                        <i class="fa fa-building-o text-info mr-1"></i> {{ $carpet->warehouse->name ?? '---' }}
+                                    </span>
+                                </td>
                                 
                                 @foreach($batchCategories as $cat)
                                     @php

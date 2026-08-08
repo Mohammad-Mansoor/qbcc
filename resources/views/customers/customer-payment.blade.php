@@ -683,7 +683,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($allocatedPayments as $allocPay)
+                                    @forelse($allocatedPayments ?? [] as $allocPay)
                                     <tr class="text-right">
                                         <td>{{ $allocPay->date }}</td>
                                         <td>
@@ -753,13 +753,13 @@
             },
             'گرفت': {
                 debit: [
-                    @foreach($allowedDebitAccountsOut as $acc)
-                    { id: {{ $acc->id }}, text: "بدهکار: {{ $acc->account_name }}", selected: {{ ($mappingOut && $mappingOut->debit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @foreach($allowedDebitAccountsOut ?? [] as $acc)
+                    { id: {{ $acc->id }}, text: "بدهکار: {{ $acc->account_name }}", selected: {{ (($mappingOut ?? null) && $mappingOut->debit_account_id == $acc->id) ? 'true' : 'false' }} },
                     @endforeach
                 ],
                 credit: [
-                    @foreach($allowedCreditAccountsOut as $acc)
-                    { id: {{ $acc->id }}, text: "بستانکار: {{ $acc->account_name }}", selected: {{ ($mappingOut && $mappingOut->credit_account_id == $acc->id) ? 'true' : 'false' }} },
+                    @foreach($allowedCreditAccountsOut ?? [] as $acc)
+                    { id: {{ $acc->id }}, text: "بستانکار: {{ $acc->account_name }}", selected: {{ (($mappingOut ?? null) && $mappingOut->credit_account_id == $acc->id) ? 'true' : 'false' }} },
                     @endforeach
                 ]
             }

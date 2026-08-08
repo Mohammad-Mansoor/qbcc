@@ -274,9 +274,18 @@ $none_washed_total = DB::table('carpets')
             <div class="col-lg-1 col-sm-2 text-left hideOnPrint">
               <div class="form-group mb-0">
                 <label class="d-none d-sm-block mb-1">&nbsp;</label>
-                <button class="btn btn-light border shadow-sm btn-block py-2" onclick="printPage('PaidToDA')">
-                  <i class="fa fa-print"></i>
-                </button>
+                @php
+                  $batch = \App\ProductionBatch::where('reference_number', $wash_number)->where('type', 'wash')->first();
+                @endphp
+                @if($batch)
+                  <a href="{{ route('batches.details', $batch->id) }}?export=pdf" target="_blank" class="btn btn-light border shadow-sm btn-block py-2" title="چاپ PDF شست نمبر">
+                    <i class="fa fa-print text-primary"></i>
+                  </a>
+                @else
+                  <a href="/dashboard/batches/{{ $wash_number }}/details?export=pdf" target="_blank" class="btn btn-light border shadow-sm btn-block py-2" title="چاپ PDF شست نمبر">
+                    <i class="fa fa-print text-primary"></i>
+                  </a>
+                @endif
               </div>
             </div>
           </div>

@@ -189,10 +189,10 @@
                         شرکت‌های متفرقه (Forensic Audit Ready)</p>
                 </div>
                 @can('create_different_account')
-                <button class="btn btn-primary rounded-lg px-4 font-weight-bold shadow-sm" data-toggle="modal"
-                    data-target="#accountModal" style="height: 45px;">
-                    <i class="feather icon-plus mr-1"></i> ایجاد حساب جدید
-                </button>
+                    <button class="btn btn-primary rounded-lg px-4 font-weight-bold shadow-sm" data-toggle="modal"
+                        data-target="#accountModal" style="height: 45px;">
+                        <i class="feather icon-plus mr-1"></i> ایجاد حساب جدید
+                    </button>
                 @endcan
             </div>
 
@@ -285,14 +285,12 @@
                                                     <div class="font-weight-bold text-dark d-flex align-items-center">
                                                         {{ $account->name }}
                                                         @if(!empty($account->note))
-                                                            <i class="feather icon-file-text text-warning ml-1 btn-different-account-note" 
-                                                               style="cursor:pointer;" 
-                                                               data-toggle="modal" 
-                                                               data-target="#differentAccountNoteModal" 
-                                                               data-id="{{ $account->id }}" 
-                                                               data-name="{{ $account->name }}" 
-                                                               data-note="{{ $account->note }}" 
-                                                               title="دارای یادداشت: {{ $account->note }}"></i>
+                                                            <i class="feather icon-file-text text-warning ml-1 btn-different-account-note"
+                                                                style="cursor:pointer;" data-toggle="modal"
+                                                                data-target="#differentAccountNoteModal"
+                                                                data-id="{{ $account->id }}" data-name="{{ $account->name }}"
+                                                                data-note="{{ $account->note }}"
+                                                                title="دارای یادداشت: {{ $account->note }}"></i>
                                                         @endif
                                                     </div>
                                                     <div class="small text-muted">{{ $account->phone }}</div>
@@ -324,22 +322,19 @@
                                             @endforeach
                                         </td>
                                         <td class="text-center hideOnPrint">
-                                             <div class="btn-group">
-                                                 <button type="button"
-                                                     class="btn btn-sm btn-light-warning text-warning rounded-lg mr-1 btn-different-account-note"
-                                                     data-toggle="modal"
-                                                     data-target="#differentAccountNoteModal"
-                                                     data-id="{{ $account->id }}"
-                                                     data-name="{{ $account->name }}"
-                                                     data-note="{{ $account->note }}"
-                                                     title="یادداشت (Note)">
-                                                     <i class="feather icon-file-text"></i>
-                                                 </button>
-                                                 @can('edit_different_account')
-                                                <a href="/dashboard/different-account/{{$account->id}}/edit"
-                                                    class="btn btn-sm btn-light-info text-info rounded-lg mr-1" title="ویرایش">
-                                                    <i class="feather icon-edit-2"></i>
-                                                </a>
+                                            <div class="btn-group">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-light-warning text-warning rounded-lg mr-1 btn-different-account-note"
+                                                    data-toggle="modal" data-target="#differentAccountNoteModal"
+                                                    data-id="{{ $account->id }}" data-name="{{ $account->name }}"
+                                                    data-note="{{ $account->note }}" title="یادداشت (Note)">
+                                                    <i class="feather icon-file-text"></i>
+                                                </button>
+                                                @can('edit_different_account')
+                                                    <a href="/dashboard/different-account/{{$account->id}}/edit"
+                                                        class="btn btn-sm btn-light-info text-info rounded-lg mr-1" title="ویرایش">
+                                                        <i class="feather icon-edit-2"></i>
+                                                    </a>
                                                 @endcan
                                                 <a href="/dashboard/different-account/{{$account->id}}"
                                                     class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm"
@@ -347,12 +342,12 @@
                                                     جزییات حساب
                                                 </a>
                                                 @can('delete_different_account')
-                                                @if(auth()->user()->role == 'SP')
-                                                    <button onclick="deleteAccount({{$account->id}})"
-                                                        class="btn btn-sm btn-light-danger text-danger rounded-lg ml-1">
-                                                        <i class="feather icon-trash-2"></i>
-                                                    </button>
-                                                @endif
+                                                    @if(auth()->user()->role == 'SP')
+                                                        <button onclick="deleteAccount({{$account->id}})"
+                                                            class="btn btn-sm btn-light-danger text-danger rounded-lg ml-1">
+                                                            <i class="feather icon-trash-2"></i>
+                                                        </button>
+                                                    @endif
                                                 @endcan
                                             </div>
                                         </td>
@@ -440,7 +435,8 @@
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content QBIC-modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="noteModalAccountName"><i class="feather icon-file-text mr-1"></i> یادداشت حساب متفرقه</h5>
+                    <h5 class="modal-title" id="noteModalAccountName"><i class="feather icon-file-text mr-1"></i> یادداشت
+                        حساب متفرقه</h5>
                     <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span
                             aria-hidden="true">&times;</span></button>
                 </div>
@@ -450,16 +446,21 @@
                         <input type="hidden" id="noteAccountId" name="account_id">
                         <div class="form-group mb-3">
                             <label class="font-weight-bold text-muted small mb-2">متن یادداشت (Note Text):</label>
-                            <textarea id="noteTextarea" name="note" class="form-control" rows="12" style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;" placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_different_account') readonly @endcannot></textarea>
+                            <textarea id="noteTextarea" name="note" class="form-control" rows="12"
+                                style="border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.6; min-height: 280px; max-height: 500px; resize: vertical;"
+                                placeholder="یادداشت را اینجا وارد کنید..." @cannot('edit_different_account') readonly
+                                @endcannot></textarea>
                         </div>
                         <div class="text-right mt-4">
                             @can('edit_different_account')
-                            <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
-                                <i class="feather icon-save mr-1"></i> ذخیره یادداشت
-                            </button>
-                            <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2" data-dismiss="modal">انصراف</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                                    <i class="feather icon-save mr-1"></i> ذخیره یادداشت
+                                </button>
+                                <button type="button" class="btn btn-light rounded-pill px-4 text-muted mr-2"
+                                    data-dismiss="modal">انصراف</button>
                             @else
-                            <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm" data-dismiss="modal">بستن</button>
+                                <button type="button" class="btn btn-secondary rounded-pill px-4 font-weight-bold shadow-sm"
+                                    data-dismiss="modal">بستن</button>
                             @endcan
                         </div>
                     </form>
@@ -477,7 +478,7 @@
         });
 
         $(document).ready(function () {
-            @if($accountEdit) $('#accountModal').modal('show'); @endif
+                @if($accountEdit) $('#accountModal').modal('show'); @endif
 
             $(document).on('click', '.btn-different-account-note', function () {
                 var id = $(this).data('id');

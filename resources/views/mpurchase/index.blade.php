@@ -627,7 +627,7 @@
                     <select name="currency_id" id="currency_id" class="form-control select2" style="width: 100%;" required>
                       @foreach($currencies as $curr)
                         <option value="{{ $curr->id }}" data-rate="{{ $curr->exchange_rate }}" 
-                                {{ $purchaseMaterial->currency_id == $curr->id ? 'selected' : ($curr->code == 'AFN' ? 'selected' : '') }}>
+                                {{ $purchaseMaterial->currency_id == $curr->id ? 'selected' : '' }}>
                           {{ $curr->code }} ({{ $curr->symbol }})
                         </option>
                       @endforeach

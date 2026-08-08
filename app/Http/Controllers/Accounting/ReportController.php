@@ -237,12 +237,15 @@ class ReportController extends Controller
             // Batch pre-fetch relationships to avoid N+1 queries
             $allocationIds = [];
             $paymentIds = [];
+            $carpetIds = [];
             foreach ($entries as $item) {
                 $srcType = strtolower($item->source_type);
                 if ($srcType === 'app\agentpaymentallocation' || $srcType === 'agent_advance_settlement') {
                     $allocationIds[] = $item->source_id;
                 } elseif ($srcType === 'app\agentpayment' || $srcType === 'agent_payment') {
                     $paymentIds[] = $item->source_id;
+                } elseif ($srcType === 'app\carpet' || $srcType === 'carpet') {
+                    $carpetIds[] = $item->source_id;
                 }
             }
 
@@ -258,8 +261,15 @@ class ReportController extends Controller
                 return $pay;
             })->keyBy('id');
 
+            $carpets = DB::table('carpets')
+                ->leftJoin('purchase_invoices', 'carpets.purchase_invoice_id', '=', 'purchase_invoices.id')
+                ->whereIn('carpets.carpet_id', array_unique($carpetIds))
+                ->select('carpets.carpet_id', 'purchase_invoices.invoice_number')
+                ->get()
+                ->keyBy('carpet_id');
+
             // Group entries by resolved reference
-            $entries = collect($entries)->groupBy(function($item) use ($allocations, $payments) {
+            $entries = collect($entries)->groupBy(function($item) use ($allocations, $payments, $carpets) {
                 $groupRef = trim($item->reference);
                 $srcType = strtolower($item->source_type);
                 if ($srcType === 'app\agentpaymentallocation' || $srcType === 'agent_advance_settlement') {
@@ -274,6 +284,11 @@ class ReportController extends Controller
                         if ($alloc && $alloc->allocatable) {
                             $groupRef = $alloc->allocatable->invoice_no ?? $alloc->allocatable->bill_number;
                         }
+                    }
+                } elseif ($srcType === 'app\carpet' || $srcType === 'carpet') {
+                    $c = $carpets->get($item->source_id);
+                    if ($c && !empty($c->invoice_number)) {
+                        $groupRef = $c->invoice_number;
                     }
                 }
                 return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;

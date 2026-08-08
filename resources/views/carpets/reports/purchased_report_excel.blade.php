@@ -29,22 +29,22 @@ header("Cache-Control: private",false);
 <head>
     <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
     <!--[if gte mso 9]>
-    <xml>
-        <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-                <x:ExcelWorksheet>
-                    <x:Name>Purchased Carpets</x:Name>
-                    <x:WorksheetOptions>
-                        <x:DisplayGridlines/>
-                        <x:FreezePanes/>
-                        <x:SplitHorizontal>10</x:SplitHorizontal>
-                        <x:TopRowBottomPane>10</x:TopRowBottomPane>
-                        <x:ActivePane>2</x:ActivePane>
-                    </x:WorksheetOptions>
-                </x:ExcelWorksheet>
-            </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-    </xml>
+    <?php $x = 'x:'; echo "<xml>
+        <{$x}ExcelWorkbook>
+            <{$x}ExcelWorksheets>
+                <{$x}ExcelWorksheet>
+                    <{$x}Name>Purchased Carpets</{$x}Name>
+                    <{$x}WorksheetOptions>
+                        <{$x}DisplayGridlines/>
+                        <{$x}FreezePanes/>
+                        <{$x}SplitHorizontal>10</{$x}SplitHorizontal>
+                        <{$x}TopRowBottomPane>10</{$x}TopRowBottomPane>
+                        <{$x}ActivePane>2</{$x}ActivePane>
+                    </{$x}WorksheetOptions>
+                </{$x}ExcelWorksheet>
+            </{$x}ExcelWorksheets>
+        </{$x}ExcelWorkbook>
+    </xml>"; ?>
     <![endif]-->
     <style>
         body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; direction: rtl; background-color: #ffffff; }

@@ -368,6 +368,13 @@ class CustomerPaymentController extends Controller
             ->where('type', 'گرفت')
             ->sum('base_amount');
 
+        $allocatedPayments = CustomerPayment::where('customer_id', $customer_id)
+            ->has('allocations')
+            ->with(['allocations.invoice'])
+            ->where('status', '!=', 2)
+            ->orderBy('date', 'DESC')
+            ->get();
+
         $paymentEdit = '';
         $invoice_numbers = Invoice::where('customer_id', '=', $customer_id)->distinct()->get(['invoice_no']);
 
@@ -375,13 +382,19 @@ class CustomerPaymentController extends Controller
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+
+        $allowedDebitAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
         $currencies = \App\Currency::where('is_active', true)->get();
 
         $all = '';
         return view('customers.customer-payment', compact(
-            'customer', 'payments', 'paymentEdit', 'currencyTotals', 
+            'customer', 'payments', 'allocatedPayments', 'paymentEdit', 'currencyTotals', 
             'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
             'all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
+            'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut',
             'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
         ));
     }
@@ -406,6 +419,13 @@ class CustomerPaymentController extends Controller
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->paginate(30);
+
+        $allocatedPayments = CustomerPayment::where('customer_id', $customer_id)
+            ->has('allocations')
+            ->with(['allocations.invoice'])
+            ->where('status', '!=', 2)
+            ->orderBy('date', 'DESC')
+            ->get();
 
         // Fetch Carpet Sales Invoices
         $salesInvoices = \App\Invoice::where('customer_id', $customer_id)
@@ -449,16 +469,21 @@ class CustomerPaymentController extends Controller
         $invoice_numbers = Invoice::where('customer_id', '=', $customer_id)->distinct()->get(['invoice_no']);
 
         $selectionService = new \App\Services\AccountSelectionService();
-        $mKey = ($paymentEdit->type == 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
-        $allowedDebitAccounts = $selectionService->getValidAccounts($mKey, 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts($mKey, 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', $mKey)->first();
+        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
+        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
+        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+
+        $allowedDebitAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
+        $allowedCreditAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
         $currencies = \App\Currency::where('is_active', true)->get();
 
         return view('customers.customer-payment', compact(
-            'customer', 'payments', 'paymentEdit', 'currencyTotals', 
+            'customer', 'payments', 'allocatedPayments', 'paymentEdit', 'currencyTotals', 
             'totalBaseReceived', 'totalBaseSent', 'invoice_numbers', 
             'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 
+            'allowedDebitAccountsOut', 'allowedCreditAccountsOut', 'mappingOut',
             'currencies', 'salesInvoices', 'totalOwedSales', 'totalPaidSales'
         ));
     }
@@ -488,7 +513,7 @@ class CustomerPaymentController extends Controller
 
             // Reverse Old Accounting Entries (Only if it was approved)
             if ($payed->status == 1) {
-                $this->accountingService->reverseTransactionBySource($payed->id, 'Payment Record Edited');
+                $this->accountingService->reverseTransactionBySource($payed->id, 'Payment Record Edited', get_class($payed));
             }
 
             // Update record
@@ -573,7 +598,10 @@ class CustomerPaymentController extends Controller
 
             // Post New Accounting Entry (Only if approved)
             if ($payed->status == 1) {
-                $this->postPaymentToAccounting($payed);
+                $overrides = [];
+                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
+                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                $this->postPaymentToAccounting($payed, $overrides);
             }
 
             $activity = new Activity();

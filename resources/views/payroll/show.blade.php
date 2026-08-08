@@ -14,10 +14,25 @@
             <p class="text-muted small mb-0 mt-1">تاریخ اجرا: {{ \Carbon\Carbon::parse($run->run_date)->format('d M Y') }}</p>
         </div>
         <div class="col-md-5 text-left">
-            <button onclick="window.print()" class="btn btn-outline-secondary shadow-sm px-4">
+            @if(($run->status ?? 'posted') !== 'cancelled')
+                @can('edit_payroll')
+                <a href="{{ route('payroll.edit', $run->id) }}" class="btn btn-warning text-white shadow-sm px-3 mr-1">
+                    <i class="fa fa-pencil mr-1"></i> ویرایش
+                </a>
+                @endcan
+                @can('delete_payroll')
+                <form action="{{ route('payroll.cancel', $run->id) }}" method="POST" class="d-inline-block mr-1" onsubmit="return confirm('آیا مطمین هستید که میخواهید این دوره معاشاتی را لغو کنید؟ سند معکوس در دفتر کل و صورت حساب کارمندان درج خواهد شد.');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger shadow-sm px-3">
+                        <i class="fa fa-times mr-1"></i> لغو
+                    </button>
+                </form>
+                @endcan
+            @endif
+            <button onclick="window.print()" class="btn btn-outline-secondary shadow-sm px-3">
                 <i class="fa fa-print mr-1"></i> چاپ راپور
             </button>
-            <a href="{{ route('payroll.index') }}" class="btn btn-light shadow-sm px-4 ml-2">
+            <a href="{{ route('payroll.index') }}" class="btn btn-light shadow-sm px-3 ml-2">
                 <i class="fa fa-arrow-left mr-1"></i> بازگشت
             </a>
         </div>

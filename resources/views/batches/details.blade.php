@@ -121,8 +121,12 @@
                         <tr>
                             <td class="text-muted font-weight-bold align-middle">خلاصه کارکرد:</td>
                             <td class="align-middle font-weight-bold text-dark">
-                                <span class="mr-3"><i class="fa fa-cubes text-muted mr-1"></i> {{ $carpets->count() }} Pcs</span>
-                                <span><i class="fa fa-map-o text-muted mr-1"></i> {{ number_format($carpets->sum(function($c) { return $c->carpet->area ?? 0; }), 2) }} m²</span>
+                                <span class="badge badge-light border mr-2 px-3 py-2" style="direction: ltr; display: inline-flex; align-items: center; font-size: 0.95rem; background-color: #f8fafc; color: #1e293b;">
+                                    <i class="fa fa-cubes text-primary mr-2"></i> {{ $carpets->count() }} Pcs
+                                </span>
+                                <span class="badge badge-light border px-3 py-2" style="direction: ltr; display: inline-flex; align-items: center; font-size: 0.95rem; background-color: #f8fafc; color: #1e293b;">
+                                    <i class="fa fa-map-o text-info mr-2"></i> {{ number_format($carpets->sum(function($c) { return $c->carpet->area ?? 0; }), 2) }} m²
+                                </span>
                             </td>
                         </tr>
                     </table>
@@ -169,6 +173,7 @@
                             <th class="border-0 py-3 text-center">کیفیت (Quality)</th>
                             <th class="border-0 py-3 text-center">ابعاد (m)</th>
                             <th class="border-0 py-3 text-center">مساحت (m²)</th>
+                            <th class="border-0 py-3 text-center">گدام فعلی (Warehouse)</th>
                             @if($batch->type == 'finish')
                                 <th class="border-0 py-3 text-center">کتگوری تیاری</th>
                             @endif
@@ -197,6 +202,11 @@
                                 <td class="text-center font-weight-bold">
                                     {{ number_format($item->carpet->area ?? 0, 2) }}
                                 </td>
+                                <td class="text-center">
+                                    <span class="badge badge-light font-weight-bold border px-2 py-1" style="background-color: #f1f5f9; color: #1e293b;">
+                                        <i class="fa fa-building-o text-info mr-1"></i> {{ $item->carpet->warehouse->name ?? '---' }}
+                                    </span>
+                                </td>
                                 @php
                                     $area = isset($item->carpet->area) && $item->carpet->area > 0 ? $item->carpet->area : 1;
                                     $price = 0;
@@ -220,7 +230,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $batch->type == 'finish' ? 9 : 8 }}" class="text-center text-muted py-5">
+                                <td colspan="{{ $batch->type == 'finish' ? 10 : 9 }}" class="text-center text-muted py-5">
                                     <i class="fa fa-folder-open-o fa-2x mb-2 d-block"></i>
                                     هیچ قالینی تحت این نمبر مسلسل به ثبت نرسیده است.
                                 </td>
