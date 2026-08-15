@@ -17,6 +17,7 @@ class CarpetCheckBookController extends Controller
         $this->middleware('permission:view_purchase_bills')->only(['index', 'show']);
         $this->middleware('permission:create_purchase_bill')->only('store');
         $this->middleware('permission:close_purchase_bill')->only('closeInvoice');
+        $this->middleware('permission:edit_purchase_bill')->only(['edit', 'update']);
         // print_purchase_bill_pdf is handled inside show method via export=pdf
     }
     /**
@@ -149,5 +150,56 @@ class CarpetCheckBookController extends Controller
         $activity->save();
 
         return redirect()->back()->with('status', 'بل خرید با موفقیت بسته شد!');
+    }
+
+    /**
+     * Show the form for editing the purchase bill.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $invoice = PurchaseInvoice::with('agent.user')->findOrFail($id);
+
+        if ($invoice->paid_amount > 0) {
+            return redirect()->back()->with('error', 'امکان ویرایش این بل خرید وجود ندارد زیرا برای آن تادیات ثبت شده است.');
+        }
+
+        $agents = Agents::where('contract_type', 'carpet seller')->get();
+        return view('carpet-check-book.edit', compact('invoice', 'agents'));
+    }
+
+    /**
+     * Update the specified purchase bill in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $invoice = PurchaseInvoice::findOrFail($id);
+
+        if ($invoice->paid_amount > 0) {
+            return redirect()->back()->with('error', 'امکان ویرایش این بل خرید وجود ندارد زیرا برای آن تادیات ثبت شده است.');
+        }
+
+        $data = $request->validate([
+            'invoice_number' => 'required|string|unique:purchase_invoices,invoice_number,' . $id,
+            'agent_id' => 'required|exists:agents,agent_id',
+            'date' => 'required|date',
+        ]);
+
+        $invoice->update($data);
+
+        // Audit Log
+        $activity = new Activity();
+        $activity->date = Carbon::today()->format('Y-m-d');
+        $activity->description = "بل خرید نمبر " . $invoice->invoice_number . " ویرایش شد ";
+        $activity->user_id = Auth::user()->id;
+        $activity->save();
+
+        return redirect('/dashboard/check-book')->with('status', 'بل خرید با موفقیت ویرایش شد!');
     }
 }

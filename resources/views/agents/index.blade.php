@@ -400,25 +400,28 @@
                                             <a href="/dashboard/agent-carpet/{{$d->agent_id}}"
                                                 class="btn-action-round bg-light-primary text-primary" title="قالین ها"><i
                                                     class="feather icon-package"></i></a>
-                                        @endcan
-                                        @can('manage_agent_accounts')
+                                         @endcan
+                                         @can('manage_agent_accounts')
                                             <a href="/dashboard/agent-payments/{{$d->agent_id}}"
                                                 class="btn-action-round bg-light-success text-success" data-toggle="tooltip"
                                                 title="ثبت رسید و پرداخت (Account)"><i
                                                     class="feather icon-credit-card"></i></a>
-                                        @endcan
-                                        @can('view_agent_statement')
+                                         @endcan
+                                         @can('view_agent_statement')
                                             <a href="{{ route('accounting.reports.agent_statement', ['agent_id' => $d->agent_id]) }}"
                                                 class="btn-action-round bg-light-info text-info" data-toggle="tooltip"
                                                 title="صورت حساب مالی (Statement)"><i
                                                     class="feather icon-file-text"></i></a>
-                                        @endcan
+                                         @endcan
                                     </div>
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-3 d-flex justify-content-center hideOnPrint">
+                    {{ $data->appends(request()->query())->links() }}
                 </div>
             </div>
         </div>

@@ -29,15 +29,29 @@
                    style="font-family:monospace; font-weight:700; color:#3b82f6; font-size:1rem;">
           </div>
 
-          <div class="form-group mt-3">
-            <label style="font-weight:600; color:#334155;">فروشنده مواد خام (Seller) <span class="text-danger">*</span></label>
-            <select name="seller_id" id="seller_id_edit" class="form-control select2" style="width:100%;" required>
-              <option value="">— انتخاب فروشنده —</option>
-              @foreach($sellers as $s)
-                <option value="{{ $s->id }}" {{ $bill->seller_id == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
-              @endforeach
-            </select>
-          </div>
+          @if($bill->paid_amount > 0)
+            <div class="form-group mt-3">
+              <label style="font-weight:600; color:#334155;">
+                فروشنده مواد خام (Seller)
+                <span class="badge badge-warning mr-2" style="font-size:11px;"><i class="fa fa-lock"></i> قفل شده</span>
+              </label>
+              <input type="text" class="form-control bg-light text-muted font-weight-bold" value="{{ $bill->seller->name ?? '---' }}" disabled style="border-radius:8px;">
+              <input type="hidden" name="seller_id" value="{{ $bill->seller_id }}">
+              <small class="text-danger font-weight-bold d-block mt-2" style="font-size:12px;">
+                <i class="fa fa-exclamation-triangle mr-1"></i> امکان تغییر فروشنده وجود ندارد زیرا برای این بل خرید تادیات ثبت شده است.
+              </small>
+            </div>
+          @else
+            <div class="form-group mt-3">
+              <label style="font-weight:600; color:#334155;">فروشنده مواد خام (Seller) <span class="text-danger">*</span></label>
+              <select name="seller_id" id="seller_id_edit" class="form-control select2" style="width:100%;" required>
+                <option value="">— انتخاب فروشنده —</option>
+                @foreach($sellers as $s)
+                  <option value="{{ $s->id }}" {{ $bill->seller_id == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                @endforeach
+              </select>
+            </div>
+          @endif
 
           <div class="form-group mt-3">
             <label style="font-weight:600; color:#334155;">تاریخ بل (Date) <span class="text-danger">*</span></label>

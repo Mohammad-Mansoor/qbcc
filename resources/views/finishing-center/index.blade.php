@@ -389,14 +389,26 @@
                  role="tabpanel"
                  aria-labelledby="pills-non-finished-tab">
                <div class="row align-items-center" style="margin-bottom: 20px;">
-                 <div class="col-xs-4 col-lg-4 col-md-4 col-sm-4 hideOnPrint">
-                   <form action="/dashboard/finishing-center/search-non" method="post">
+                 <div class="col-lg-6 col-md-7 col-sm-8 hideOnPrint">
+                   <form action="/dashboard/finishing-center/search-non" method="post" class="d-flex align-items-center">
                      @csrf
-                     <input type="text" name="search_non" required
-                            placeholder="🔍 جستجو بر اساس شماره قالین، نوعیت قالین..." class="form-control modern-search">
+                     <div class="input-group">
+                       <input type="text" name="search_non" required value="{{ $search_non ?? request('search_non') }}"
+                              placeholder="🔍 جستجو بر اساس شماره قالین، نوعیت قالین..." class="form-control modern-search">
+                       <div class="input-group-append">
+                         <button type="submit" class="btn btn-primary px-3 shadow-sm font-weight-bold" style="border-radius: 0 8px 8px 0; white-space: nowrap;">
+                           <i class="fa fa-search"></i> جستجو
+                         </button>
+                       </div>
+                     </div>
+                     @if(!empty($search_non))
+                       <a href="/dashboard/finishing-center" class="btn btn-secondary px-3 ml-2 shadow-sm font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; white-space: nowrap;">
+                         <i class="fa fa-times mr-1"></i> پاکسازی
+                       </a>
+                     @endif
                    </form>
                  </div>
-                 <div class="col-xs-8 col-lg-8 col-md-8 col-sm-8 text-left">
+                 <div class="col-lg-6 col-md-5 col-sm-4 text-left">
                    <div class="btn-modern-action btn-print hideOnPrint"
                         onclick="printPage('noneRepairPrint')"><i
                              class="fa fa-print"></i> چاپ گزارش
@@ -410,6 +422,7 @@
                   <tr>
                     
                     <th>شماره قالین</th>
+                    <th>شماره نقشه</th>
                     <th>اسم نماینده</th>
                     <th>شماره فرمایش</th>
                     <th>نوعیت قالین</th>
@@ -430,6 +443,7 @@
                     <tr class="ur{{ $nonfinish->carpet_id  ?? ''}}">
                       
                       <td>{{$nonfinish->carpet_no ?? ''}}</td>
+                      <td><span class="badge badge-light border">{{$nonfinish->map_number ?? '---'}}</span></td>
                       @foreach($agents as $agent)
                         @if($agent->agent_id == $nonfinish->agent_id)
                           <td>{{$agent->user->name ?? ''}}</td>
@@ -522,14 +536,26 @@
                  aria-labelledby="pills-finished-tab">
               
               <div class="row align-items-center" style="margin-bottom: 20px;">
-                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 hideOnPrint">
-                  <form action="/dashboard/finishing-center/search" method="POST" id="dateSearch">
-                    @csrf
-                    <input type="text" name="search_finish" required
-                           placeholder="🔍 جستجو بر اساس شماره قالین، تیم، شماره تیاری..." class="form-control modern-search">
-                  </form>
-                </div>
-                <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8 text-left">
+                 <div class="col-lg-6 col-md-7 col-sm-8 hideOnPrint">
+                   <form action="/dashboard/finishing-center/search" method="POST" id="dateSearch" class="d-flex align-items-center">
+                     @csrf
+                     <div class="input-group">
+                       <input type="text" name="search_finish" required value="{{ $search_finish ?? request('search_finish') }}"
+                              placeholder="🔍 جستجو بر اساس شماره قالین، نقشه، تیم، شماره تیاری..." class="form-control modern-search">
+                       <div class="input-group-append">
+                         <button type="submit" class="btn btn-primary px-3 shadow-sm font-weight-bold" style="border-radius: 0 8px 8px 0; white-space: nowrap;">
+                           <i class="fa fa-search"></i> جستجو
+                         </button>
+                       </div>
+                     </div>
+                     @if(!empty($search_finish) || (isset($check) && $check == 'not_null'))
+                       <a href="/dashboard/finishing-center" class="btn btn-secondary px-3 ml-2 shadow-sm font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; white-space: nowrap;">
+                         <i class="fa fa-times mr-1"></i> پاکسازی
+                       </a>
+                     @endif
+                   </form>
+                 </div>
+                 <div class="col-lg-6 col-md-5 col-sm-4 text-left">
                   <div class="btn-modern-action btn-print hideOnPrint"
                        onclick="printPage('repairPrint')"><i
                             class="fa fa-print"></i> چاپ گزارش
@@ -542,6 +568,7 @@
                   <thead>
                   <tr>
                     <th>شماره قالین</th>
+                    <th>شماره نقشه</th>
                     <th>نمبر تیاری</th>
                     <th> قیمت تیاری (USD / اسعار)</th>
                     <th>تاریخ تیاری</th>
@@ -560,6 +587,7 @@
                   @foreach($finisheds as $finish)
                     <tr class="ur{{ $finish->id  ?? ''}}">
                       <td>{{$finish->carpet->carpet_no ?? ''}}</td>
+                      <td><span class="badge badge-light border">{{$finish->carpet->map_number ?? '---'}}</span></td>
                       <td>
                         <a href="/dashboard/batches/{{$finish->finish_number}}/details"
                            style="font-weight: 600; color: #2a5298;"
@@ -600,7 +628,7 @@
                         @endcan
                       </td>
                       <td class="hideOnPrint">
-                        @can('create_finishing_work')
+                        @can('edit_finishing_work')
                         <a href="/dashboard/finishing-center/{{$finish->id ?? ''}}/edit" class="btn-modern-action btn-edit printBTN"><i class="fa fa-pencil"></i>&nbsp; ویرایش</a>
                         @endcan
                       </td>

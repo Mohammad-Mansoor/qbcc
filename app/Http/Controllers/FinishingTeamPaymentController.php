@@ -45,6 +45,13 @@ class FinishingTeamPaymentController extends Controller
                 $mKey = ($payment->type == 'گرفت') ? 'FINISH_ADVANCE_OUT' : 'FINISH_ADVANCE_IN';
             }
             
+            if (!isset($overrides['override_debit_account_id']) && !empty($payment->override_debit_account_id)) {
+                $overrides['override_debit_account_id'] = $payment->override_debit_account_id;
+            }
+            if (!isset($overrides['override_credit_account_id']) && !empty($payment->override_credit_account_id)) {
+                $overrides['override_credit_account_id'] = $payment->override_credit_account_id;
+            }
+
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted,
             // passing it with a non-USD currency_code causes a double-conversion).
@@ -159,12 +166,14 @@ class FinishingTeamPaymentController extends Controller
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->override_debit_account_id = $request->override_debit_account_id ?: null;
+            $payed->override_credit_account_id = $request->override_credit_account_id ?: null;
             $payed->save();
 
             if ($payed->status == 1) {
                 $overrides = [];
-                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
-                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                if ($payed->override_debit_account_id) $overrides['override_debit_account_id'] = $payed->override_debit_account_id;
+                if ($payed->override_credit_account_id) $overrides['override_credit_account_id'] = $payed->override_credit_account_id;
                 $this->postPaymentToAccounting($payed, $overrides);
             }
 
@@ -208,9 +217,8 @@ class FinishingTeamPaymentController extends Controller
         $finish_numbers = FinishingWork::where('team_id','=',$team_id)->distinct()->get(['finish_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $allowedDebitAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
@@ -453,11 +461,31 @@ class FinishingTeamPaymentController extends Controller
         $finish_numbers = FinishingWork::where('team_id','=',$paymentEdit->team_id)->distinct()->get(['finish_number']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
-        $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
+        $allowedDebitAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        // Retrieve posted transaction details for edit view fallback
+        if ($paymentEdit) {
+            $postedTx = DB::table('ledger_transactions')
+                ->where('source_type', 'App\FinishingTeamPayment')
+                ->where('source_id', $paymentEdit->id)
+                ->where('status', 'posted')
+                ->whereNull('reversed_transaction_id')
+                ->latest('id')
+                ->first();
+            if ($postedTx) {
+                $debitEntry = DB::table('ledger_entries')->where('transaction_id', $postedTx->id)->where('debit', '>', 0)->first();
+                $creditEntry = DB::table('ledger_entries')->where('transaction_id', $postedTx->id)->where('credit', '>', 0)->first();
+                if ($debitEntry) {
+                    $paymentEdit->actual_debit_account_id = $debitEntry->account_id;
+                }
+                if ($creditEntry) {
+                    $paymentEdit->actual_credit_account_id = $creditEntry->account_id;
+                }
+            }
+        }
 
         // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $paymentEdit->team_id)
@@ -617,13 +645,15 @@ class FinishingTeamPaymentController extends Controller
                 $payed->amount_af = 0;
             }
 
+            $payed->override_debit_account_id = $request->override_debit_account_id ?: null;
+            $payed->override_credit_account_id = $request->override_credit_account_id ?: null;
             $payed->update();
 
             // Re-post
             if ($payed->status == 1) {
                 $overrides = [];
-                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
-                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                if ($payed->override_debit_account_id) $overrides['override_debit_account_id'] = $payed->override_debit_account_id;
+                if ($payed->override_credit_account_id) $overrides['override_credit_account_id'] = $payed->override_credit_account_id;
                 $this->postPaymentToAccounting($payed, $overrides);
             }
 

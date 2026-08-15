@@ -44,6 +44,13 @@ class WashingPaymentController extends Controller
                 $mKey = ($payment->type == 'گرفت') ? 'WASH_ADVANCE_OUT' : 'WASH_ADVANCE_IN';
             }
             
+            if (!isset($overrides['override_debit_account_id']) && !empty($payment->override_debit_account_id)) {
+                $overrides['override_debit_account_id'] = $payment->override_debit_account_id;
+            }
+            if (!isset($overrides['override_credit_account_id']) && !empty($payment->override_credit_account_id)) {
+                $overrides['override_credit_account_id'] = $payment->override_credit_account_id;
+            }
+
             // FORENSIC RULE: Pass original_amount + currency_code so AccountingService
             // performs the USD conversion exactly once (base_amount is already converted,
             // passing it with a non-USD currency_code causes a double-conversion).
@@ -158,12 +165,14 @@ class WashingPaymentController extends Controller
             }
 
             $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->override_debit_account_id = $request->override_debit_account_id ?: null;
+            $payed->override_credit_account_id = $request->override_credit_account_id ?: null;
             $payed->save();
 
             if ($payed->status == 1) {
                 $overrides = [];
-                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
-                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                if ($payed->override_debit_account_id) $overrides['override_debit_account_id'] = $payed->override_debit_account_id;
+                if ($payed->override_credit_account_id) $overrides['override_credit_account_id'] = $payed->override_credit_account_id;
                 $this->postPaymentToAccounting($payed, $overrides);
             }
 
@@ -216,13 +225,8 @@ class WashingPaymentController extends Controller
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
-            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
-            ->unique('id');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
-            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
-            ->unique('id');
+        $allowedDebitAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
 
@@ -516,15 +520,31 @@ class WashingPaymentController extends Controller
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);
         $currencies = \App\Currency::where('is_active', true)->get();
         
-        $selectionService = new \App\Services\AccountSelectionService();
-        $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'debit')
-            ->merge($selectionService->getValidAccounts('PYMT_IN', 'debit'))
-            ->unique('id');
-        $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit')
-            ->merge($selectionService->getValidAccounts('PYMT_IN', 'credit'))
-            ->unique('id');
+        $allowedDebitAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
+        $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        // Retrieve posted transaction details for edit view fallback
+        if ($paymentEdit) {
+            $postedTx = DB::table('ledger_transactions')
+                ->where('source_type', 'App\WashingPayment')
+                ->where('source_id', $paymentEdit->id)
+                ->where('status', 'posted')
+                ->whereNull('reversed_transaction_id')
+                ->latest('id')
+                ->first();
+            if ($postedTx) {
+                $debitEntry = DB::table('ledger_entries')->where('transaction_id', $postedTx->id)->where('debit', '>', 0)->first();
+                $creditEntry = DB::table('ledger_entries')->where('transaction_id', $postedTx->id)->where('credit', '>', 0)->first();
+                if ($debitEntry) {
+                    $paymentEdit->actual_debit_account_id = $debitEntry->account_id;
+                }
+                if ($creditEntry) {
+                    $paymentEdit->actual_credit_account_id = $creditEntry->account_id;
+                }
+            }
+        }
 
         // Fetch Completed Washes & Match with Specific Payments
         $washes = \App\CarpetWash::where('team_id', $team_id)
@@ -691,13 +711,15 @@ class WashingPaymentController extends Controller
                 $payed->amount_af = 0;
             }
 
+            $payed->override_debit_account_id = $request->override_debit_account_id ?: null;
+            $payed->override_credit_account_id = $request->override_credit_account_id ?: null;
             $payed->update();
 
             // Re-post
             if ($payed->status == 1) {
                 $overrides = [];
-                if ($request->override_debit_account_id) $overrides['override_debit_account_id'] = $request->override_debit_account_id;
-                if ($request->override_credit_account_id) $overrides['override_credit_account_id'] = $request->override_credit_account_id;
+                if ($payed->override_debit_account_id) $overrides['override_debit_account_id'] = $payed->override_debit_account_id;
+                if ($payed->override_credit_account_id) $overrides['override_credit_account_id'] = $payed->override_credit_account_id;
                 $this->postPaymentToAccounting($payed, $overrides);
             }
 

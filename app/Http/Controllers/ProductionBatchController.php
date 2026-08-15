@@ -23,16 +23,19 @@ class ProductionBatchController extends Controller
         }
         
         $permissionMap = [
-            'kachaee' => 'view_kachaee_batches',
-            'wash' => 'view_washing_batches',
-            'finish' => 'view_finishing_batches'
+            'kachaee' => ['view' => 'view_kachaee_batches', 'create' => 'create_kachaee_batch'],
+            'wash' => ['view' => 'view_washing_batches', 'create' => 'create_washing_batch'],
+            'finish' => ['view' => 'view_finishing_batches', 'create' => 'create_finishing_batch']
         ];
         
-        if (!Auth::user()->can($permissionMap[$type])) {
+        $viewPerm = $permissionMap[$type]['view'];
+        $createPerm = $permissionMap[$type]['create'];
+
+        if (!Auth::user()->can($viewPerm) && !Auth::user()->can($createPerm)) {
             abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
         }
 
-        $batches = ProductionBatch::ofType($type)->orderBy('id', 'desc')->get();
+        $batches = Auth::user()->can($viewPerm) ? ProductionBatch::ofType($type)->orderBy('id', 'desc')->get() : collect();
         
         // Fetch carpet count and square meters statistics grouped by batch reference number
         $stats = collect();
@@ -158,6 +161,68 @@ class ProductionBatchController extends Controller
         return redirect()->back()->with('status', "وضعیت نمبر {$batch->reference_number} با موفقیت تغییر کرد و {$message}");
     }
 
+    /**
+     * Update the specified production batch.
+     */
+    public function update(Request $request, $id)
+    {
+        $batch = ProductionBatch::findOrFail($id);
+
+        $permissionMap = [
+            'kachaee' => 'create_kachaee_batch',
+            'wash' => 'create_washing_batch',
+            'finish' => 'create_finishing_batch'
+        ];
+
+        if (!Auth::user()->can($permissionMap[$batch->type])) {
+            abort(403, 'شما اجازه دسترسی به این بخش را ندارید.');
+        }
+
+        // PAYMENT CHECK: If active non-reversed payments exist
+        if ($batch->has_payments || $batch->paid_amount > 0) {
+            if ($request->filled('reference_number') && $request->reference_number != $batch->reference_number) {
+                return redirect()->back()->with('error', 'امکان تغییر نمبر مسلسل وجود ندارد زیرا برای این نمبر تادیات ثبت شده است.');
+            }
+            if ($request->filled('team_id') && $request->team_id != $batch->team_id) {
+                return redirect()->back()->with('error', 'امکان تغییر تیم وجود ندارد زیرا برای این نمبر تادیات ثبت شده است.');
+            }
+        }
+
+        $oldRef = $batch->reference_number;
+        $oldTeamId = $batch->team_id;
+
+        $newRef = $request->input('reference_number', $batch->reference_number);
+        $newTeamId = $request->input('team_id', $batch->team_id);
+
+        // Update child records if reference_number changed
+        if ($newRef !== $oldRef) {
+            if ($batch->type === 'kachaee') {
+                \DB::table('carpet_repairs')->where('kachaee_number', $oldRef)->update(['kachaee_number' => $newRef]);
+            } elseif ($batch->type === 'wash') {
+                \DB::table('carpet_washes')->where('wash_number', $oldRef)->update(['wash_number' => $newRef]);
+            } elseif ($batch->type === 'finish') {
+                \DB::table('finishing_works')->where('finish_number', $oldRef)->update(['finish_number' => $newRef]);
+            }
+        }
+
+        // Update child records if team_id changed
+        if ($newTeamId != $oldTeamId) {
+            if ($batch->type === 'kachaee') {
+                \DB::table('carpet_repairs')->where('kachaee_number', $newRef)->update(['team_id' => $newTeamId]);
+            } elseif ($batch->type === 'wash') {
+                \DB::table('carpet_washes')->where('wash_number', $newRef)->update(['team_id' => $newTeamId]);
+            } elseif ($batch->type === 'finish') {
+                \DB::table('finishing_works')->where('finish_number', $newRef)->update(['team_id' => $newTeamId]);
+            }
+        }
+
+        $batch->reference_number = $newRef;
+        $batch->team_id = $newTeamId;
+        $batch->save();
+
+        return redirect()->back()->with('status', 'نمبر با موفقیت بروزرسانی شد: ' . $batch->reference_number);
+    }
+
     public function getOpenBatches(Request $request, $type)
     {
         if (!in_array($type, ['kachaee', 'wash', 'finish'])) {
@@ -240,6 +305,7 @@ class ProductionBatchController extends Controller
             $carpets = $query->get();
             
             $paymentsQuery = \App\KachaeePayment::where('kachaee_number', $ref)
+                ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
             if ($startDate && $endDate) {
@@ -273,6 +339,7 @@ class ProductionBatchController extends Controller
             }
             
             $paymentsQuery = \App\WashingPayment::where('wash_number', $ref)
+                ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
             if ($startDate && $endDate) {
@@ -302,6 +369,7 @@ class ProductionBatchController extends Controller
             $carpets = $query->get();
             
             $paymentsQuery = \App\FinishingTeamPayment::where('finish_number', $ref)
+                ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
             if ($startDate && $endDate) {
@@ -345,9 +413,9 @@ class ProductionBatchController extends Controller
                 if ($type === 'finish') {
                     $groupedCarpets = $carpets->groupBy('carpetId');
                     $batchCategories = \App\FinishingTeamCategory::all();
-                    return view('batches.pdf_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64'));
+                    return view('batches.pdf_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64', 'startDate', 'endDate'));
                 } else {
-                    return view('batches.pdf', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64'));
+                    return view('batches.pdf', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'bottomFooterBase64', 'logoBase64', 'startDate', 'endDate'));
                 }
             }
 
@@ -362,9 +430,9 @@ class ProductionBatchController extends Controller
                 if ($type === 'finish') {
                     $groupedCarpets = $carpets->groupBy('carpetId');
                     $batchCategories = \App\FinishingTeamCategory::all();
-                    echo view('batches.excel_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64'))->render();
+                    echo view('batches.excel_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'logoBase64', 'startDate', 'endDate'))->render();
                 } else {
-                    echo view('batches.excel', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'logoBase64'))->render();
+                    echo view('batches.excel', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'type', 'topHeaderBase64', 'logoBase64', 'startDate', 'endDate'))->render();
                 }
                 exit;
             }
@@ -373,9 +441,9 @@ class ProductionBatchController extends Controller
         if ($type === 'finish') {
             $groupedCarpets = $carpets->groupBy('carpetId');
             $batchCategories = \App\FinishingTeamCategory::all();
-            return view('batches.details_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team'));
+            return view('batches.details_finish', compact('batch', 'groupedCarpets', 'batchCategories', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'startDate', 'endDate'));
         }
         
-        return view('batches.details', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team'));
+        return view('batches.details', compact('batch', 'carpets', 'payments', 'totalCost', 'totalPaid', 'remaining', 'team', 'startDate', 'endDate'));
     }
 }

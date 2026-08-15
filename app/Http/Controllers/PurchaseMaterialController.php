@@ -126,12 +126,19 @@ class PurchaseMaterialController extends Controller
             }
         }
 
+        $currency = Currency::find($purchase->currency_id);
+        $currencyCode = $purchase->currency_code ?: ($currency ? $currency->code : 'USD');
+        $exchangeRate = $purchase->exchange_rate ?: ($currency ? $currency->exchange_rate : 1.0);
+        $totalAmount = $purchase->original_amount ?: bcmul((string)$purchase->price_per_kilo, (string)$purchase->quantity, 4);
+
         $this->inventoryManager->processPurchase($purchase, [
             'quantity' => $purchase->quantity,
             'unit_cost' => $purchase->price_per_kilo,
+            'currency_code' => $currencyCode,
+            'exchange_rate' => $exchangeRate,
             'warehouse_id' => $purchase->warehouse_id ?? 1,
             'date' => $purchase->purchase_date,
-            'total_amount' => $purchase->total_af,
+            'total_amount' => $totalAmount,
             'party_type' => 'App\StringSeller',
             'party_id' => $purchase->seller_id,
             'reference' => $billNumber,

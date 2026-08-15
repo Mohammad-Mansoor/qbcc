@@ -25,14 +25,37 @@ class OfficeEmployeeController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    private function getEmployeeStatementBalances($employeeIds)
+    {
+        if (empty($employeeIds) || count($employeeIds) === 0) {
+            return [];
+        }
+
+        return \Illuminate\Support\Facades\DB::table('ledger_entries')
+            ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+            ->where('ledger_entries.party_type', 'App\OfficeEmployee')
+            ->whereIn('ledger_entries.party_id', $employeeIds)
+            ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
+            ->select('ledger_entries.party_id', \Illuminate\Support\Facades\DB::raw('SUM(base_credit - base_debit) as net_balance'))
+            ->groupBy('ledger_entries.party_id')
+            ->pluck('net_balance', 'party_id')
+            ->toArray();
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
         $employees  = OfficeEmployee::with('department')->paginate(25);
+        $balances   = $this->getEmployeeStatementBalances($employees->pluck('id')->toArray());
         $department = EmployeeDepartment::all();
         $currencies = \App\Currency::where('is_active', 1)->get();
         $employeeEdit = '';
 
-        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit', 'currencies'));
+        return view('office-employee.employee-list', compact('employees', 'department', 'employeeEdit', 'currencies', 'balances'));
     }
 
     public function search(Request $request)
@@ -45,8 +68,9 @@ class OfficeEmployeeController extends Controller
             ->orWhere('job_title', 'like', '%' . $search . '%')
             ->orWhere('phone', 'like', '%' . $search . '%')
             ->orWhere('email', 'like', '%' . $search . '%')
-            ->paginate(5);
-        return view('office-employee.employee-list', compact('employees', 'employeeEdit', 'department', 'currencies'));
+            ->paginate(25);
+        $balances = $this->getEmployeeStatementBalances($employees->pluck('id')->toArray());
+        return view('office-employee.employee-list', compact('employees', 'employeeEdit', 'department', 'currencies', 'balances'));
     }
 
     /**

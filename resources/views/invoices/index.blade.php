@@ -12,7 +12,7 @@
 
     <div class="row">
         <!-- Create/Edit Section -->
-        @if(auth()->user()->hasAnyPermission(['create_invoice', 'edit_invoice']))
+        @if((!$invoiceEdit && auth()->user()->can('create_invoice')) || ($invoiceEdit && auth()->user()->can('edit_invoice')))
         <div class="col-md-12 mb-4">
             <div class="card border-0 shadow-sm rounded-lg">
                 <div class="card-header bg-white py-3 text-right">
@@ -33,13 +33,30 @@
                                        class="form-control border-0 bg-light font-weight-bold text-center" readonly>
                             </div>
                             <div class="col-md-3 form-group">
-                                <label class="small font-weight-bold text-muted">نوعیت فروش</label>
-                                <select name="type" id="type-select" required class="form-control shadow-sm border-0 select2">
-                                    <option {{ (($invoiceEdit && $invoiceEdit->type == 'carpet') || Request::old('type') == 'carpet') ? 'selected' : '' }} value="carpet">قالین (Carpet)</option>
-                                    <option {{ (($invoiceEdit && $invoiceEdit->type == 'dye') || Request::old('type') == 'dye') ? 'selected' : '' }} value="dye">رنگ (Dye)</option>
-                                    <option {{ (($invoiceEdit && $invoiceEdit->type == 'yarn') || Request::old('type') == 'yarn') ? 'selected' : '' }} value="yarn">نخ (Yarn)</option>
-                                </select>
-                            </div>
+                                 <label class="small font-weight-bold text-muted">
+                                     نوعیت فروش
+                                     @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                         <span class="badge badge-warning font-weight-bold ml-1" style="font-size: 10px;"><i class="fa fa-lock"></i> قفل شده</span>
+                                     @endif
+                                 </label>
+                                 @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                     @php
+                                         $typeLabel = $invoiceEdit->type === 'carpet' ? 'قالین (Carpet)' : ($invoiceEdit->type === 'dye' ? 'رنگ (Dye)' : 'نخ (Yarn)');
+                                     @endphp
+                                     <input type="text" class="form-control shadow-sm border-0 bg-light text-muted font-weight-bold" 
+                                            value="{{ $typeLabel }}" disabled style="border-radius: 8px;">
+                                     <input type="hidden" name="type" value="{{ $invoiceEdit->type }}">
+                                     <small class="text-danger font-weight-bold d-block mt-1" style="font-size: 11px;">
+                                         <i class="fa fa-exclamation-triangle mr-1"></i> امکان تغییر نوعیت فروش وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.
+                                     </small>
+                                 @else
+                                     <select name="type" id="type-select" required class="form-control shadow-sm border-0 select2">
+                                         <option {{ (($invoiceEdit && $invoiceEdit->type == 'carpet') || Request::old('type') == 'carpet') ? 'selected' : '' }} value="carpet">قالین (Carpet)</option>
+                                         <option {{ (($invoiceEdit && $invoiceEdit->type == 'dye') || Request::old('type') == 'dye') ? 'selected' : '' }} value="dye">رنگ (Dye)</option>
+                                         <option {{ (($invoiceEdit && $invoiceEdit->type == 'yarn') || Request::old('type') == 'yarn') ? 'selected' : '' }} value="yarn">نخ (Yarn)</option>
+                                     </select>
+                                 @endif
+                             </div>
                             <div class="col-md-3 form-group">
                                 <label class="small font-weight-bold text-muted">تاریخ انوایس</label>
                                 <input type="date" name="invoice_date" value="{{ $invoiceEdit ? $invoiceEdit->invoice_date : date('Y-m-d') }}" 
@@ -48,26 +65,54 @@
 
                             <!-- Customer Selection (For Carpets) -->
                             <div class="col-md-3 form-group" id="customer-group">
-                                <label class="small font-weight-bold text-muted">مشتری قالین</label>
-                                <select name="customer_id" id="customer-select" class="form-control shadow-sm border-0 select2">
-                                    <option value="">انتخاب مشتری...</option>
-                                    @foreach($customers as $cust)
-                                        <option {{ (($invoiceEdit && $invoiceEdit->customer_id == $cust->id) || Request::old('customer_id') == $cust->id) ? 'selected' : '' }} 
-                                                value="{{$cust->id}}">{{$cust->name}}</option>
-                                    @endforeach
-                                </select>
+                                <label class="small font-weight-bold text-muted">
+                                    مشتری قالین
+                                    @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                        <span class="badge badge-warning font-weight-bold ml-1" style="font-size: 10px;"><i class="fa fa-lock"></i> قفل شده</span>
+                                    @endif
+                                </label>
+                                @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                    <input type="text" class="form-control shadow-sm border-0 bg-light text-muted font-weight-bold" 
+                                           value="{{ $invoiceEdit->customer->name ?? '---' }}" disabled style="border-radius: 8px;">
+                                    <input type="hidden" name="customer_id" value="{{ $invoiceEdit->customer_id }}">
+                                    <small class="text-danger font-weight-bold d-block mt-1" style="font-size: 11px;">
+                                        <i class="fa fa-exclamation-triangle mr-1"></i> امکان تغییر مشتری وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.
+                                    </small>
+                                @else
+                                    <select name="customer_id" id="customer-select" class="form-control shadow-sm border-0 select2">
+                                        <option value="">انتخاب مشتری...</option>
+                                        @foreach($customers as $cust)
+                                            <option {{ (($invoiceEdit && $invoiceEdit->customer_id == $cust->id) || Request::old('customer_id') == $cust->id) ? 'selected' : '' }} 
+                                                    value="{{$cust->id}}">{{$cust->name}}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                             </div>
 
                             <!-- Agent Selection (For Materials: Dye, Yarn) -->
                             <div class="col-md-3 form-group" id="agent-group" style="display: none;">
-                                <label class="small font-weight-bold text-muted">نماینده / عامل</label>
-                                <select name="agent_id" id="agent-select" class="form-control shadow-sm border-0 select2">
-                                    <option value="">انتخاب نماینده...</option>
-                                    @foreach($agents as $agent)
-                                        <option {{ (($invoiceEdit && $invoiceEdit->agent_id == $agent->agent_id) || Request::old('agent_id') == $agent->agent_id) ? 'selected' : '' }} 
-                                                value="{{$agent->agent_id}}">{{$agent->user->name ?? $agent->name}}</option>
-                                    @endforeach
-                                </select>
+                                <label class="small font-weight-bold text-muted">
+                                    نماینده / عامل
+                                    @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                        <span class="badge badge-warning font-weight-bold ml-1" style="font-size: 10px;"><i class="fa fa-lock"></i> قفل شده</span>
+                                    @endif
+                                </label>
+                                @if($invoiceEdit && $invoiceEdit->paid_amount > 0)
+                                    <input type="text" class="form-control shadow-sm border-0 bg-light text-muted font-weight-bold" 
+                                           value="{{ $invoiceEdit->agent->user->name ?? ($invoiceEdit->agent->name ?? '---') }}" disabled style="border-radius: 8px;">
+                                    <input type="hidden" name="agent_id" value="{{ $invoiceEdit->agent_id }}">
+                                    <small class="text-danger font-weight-bold d-block mt-1" style="font-size: 11px;">
+                                        <i class="fa fa-exclamation-triangle mr-1"></i> امکان تغییر نماینده / عامل وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.
+                                    </small>
+                                @else
+                                    <select name="agent_id" id="agent-select" class="form-control shadow-sm border-0 select2">
+                                        <option value="">انتخاب نماینده...</option>
+                                        @foreach($agents as $agent)
+                                            <option {{ (($invoiceEdit && $invoiceEdit->agent_id == $agent->agent_id) || Request::old('agent_id') == $agent->agent_id) ? 'selected' : '' }} 
+                                                    value="{{$agent->agent_id}}">{{$agent->user->name ?? $agent->name}}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                             </div>
 
                             <div class="col-md-12 form-group mt-2">
@@ -96,6 +141,7 @@
         @endif
 
         <!-- List Section -->
+        @can('view_invoices')
         <div class="col-md-12">
             <div class="card border-0 shadow-sm rounded-lg overflow-hidden" id="invoiceListCard">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -217,6 +263,7 @@
                 </div>
             </div>
         </div>
+        @endcan
     </div>
 </div>
 

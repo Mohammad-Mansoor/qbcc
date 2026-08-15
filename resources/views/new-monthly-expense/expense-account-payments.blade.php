@@ -448,6 +448,17 @@
         $('#original_amount, #currency_id').on('input change', updateUsdPreview);
         updateUsdPreview();
 
+        // Double-submit prevention for expense form
+        $('#forensicExpenseForm').on('submit', function() {
+            var $form = $(this);
+            if ($form.data('submitting')) {
+                return false;
+            }
+            $form.data('submitting', true);
+            var $btn = $form.find('button[type="submit"]');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> در حال ثبت... (Saving...)');
+        });
+
         // Export
         $("#expense_list_table").tableExport({
             formats: ["xlsx"],

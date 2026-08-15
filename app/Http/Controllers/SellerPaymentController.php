@@ -327,6 +327,7 @@ class SellerPaymentController extends Controller
 
         $payments = SellerPayment::where('seller_id', $seller_id)
             ->where('is_advance', false)
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->paginate(30);
         
@@ -390,6 +391,7 @@ class SellerPaymentController extends Controller
 
         $payments = SellerPayment::where('seller_id', $seller_id)
             ->where('is_advance', false)
+            ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
         

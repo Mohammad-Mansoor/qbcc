@@ -82,6 +82,14 @@
                 @endif
             </td>
         </tr>
+        @if(!empty($startDate) && !empty($endDate))
+        <tr>
+            <td colspan="2" class="meta-label" style="height: 24pt;">فیلتر محدوده تاریخ:</td>
+            <td colspan="{{ $batch->type == 'finish' ? '4' : '3' }}" class="meta-value font-bold" style="height: 24pt; direction: ltr; text-align: right;">
+                از {{ $startDate }} الی {{ $endDate }}
+            </td>
+        </tr>
+        @endif
 
         <tr style="height: 15pt;"><td colspan="{{ $batch->type == 'finish' ? '6' : '5' }}" style="border: none; background-color: #ffffff;"></td></tr>
 
@@ -92,7 +100,8 @@
                 <th style="height: 32pt;">شماره نقشه</th>
                 <th style="height: 32pt;">نوعیت</th>
                 <th style="height: 32pt;">کیفیت</th>
-                <th style="height: 32pt;">ابعاد (m)</th>
+                <th style="height: 32pt;">طول (m)</th>
+                <th style="height: 32pt;">عرض (m)</th>
                 <th style="height: 32pt;">مساحت (m²)</th>
                 @if($batch->type == 'finish')
                     <th style="height: 32pt;">کتگوری تیاری</th>
@@ -116,6 +125,12 @@
                         $price = $item->total_price;
                     elseif ($batch->type == 'wash')
                         $price = $item->total_price ?: $item->af_total_price;
+
+                    if (isset($item->price) && $item->price > 0 && ($item->currency_code ?? 'USD') === 'USD') {
+                        $unitRate = $item->price;
+                    } else {
+                        $unitRate = round($price / $area, 2);
+                    }
                 @endphp
                 <tr style="background-color: {{ $rowBgColor }};">
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $index + 1 }}</td>
@@ -123,24 +138,25 @@
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->carpet->map_number ?? '---' }}</td>
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->carpet->type->carpet_type ?? '---' }}</td>
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->carpet->quality->quality ?? '---' }}</td>
-                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $item->carpet->height ?? '---' }} × {{ $item->carpet->width ?? '---' }}</td>
+                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $item->carpet->height ?? '---' }}</td>
+                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $item->carpet->width ?? '---' }}</td>
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($item->carpet->area ?? 0, 2) }}</td>
                     @if($batch->type == 'finish')
                         <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $item->category->category ?? '---' }}</td>
                     @endif
-                    <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($price / $area, 2) }}</td>
+                    <td class="text-center font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($unitRate, 2) }}</td>
                     <td class="text-left font-bold" style="direction: ltr; height: 26pt; background-color: {{ $rowBgColor }};">${{ number_format($price, 2) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ $batch->type == 'finish' ? 10 : 9 }}" class="text-center" style="height: 26pt;">هیچ قالینی ثبت نشده است.</td>
+                    <td colspan="{{ $batch->type == 'finish' ? 11 : 10 }}" class="text-center" style="height: 26pt;">هیچ قالینی ثبت نشده است.</td>
                 </tr>
             @endforelse
             
-            <tr style="height: 10pt;"><td colspan="{{ $batch->type == 'finish' ? '10' : '9' }}" style="border: none; background-color: #ffffff;"></td></tr>
+            <tr style="height: 10pt;"><td colspan="{{ $batch->type == 'finish' ? '11' : '10' }}" style="border: none; background-color: #ffffff;"></td></tr>
 
             <tr>
-                <td colspan="6" class="meta-label" style="height: 26pt;">مجموع کل مساحت:</td>
+                <td colspan="7" class="meta-label" style="height: 26pt;">مجموع کل مساحت:</td>
                 <td class="text-center font-bold" style="background-color: #f1f5f9; direction: ltr; height: 26pt;">{{ number_format($carpets->sum(function ($c) {
     return $c->carpet->area ?? 0; }), 2) }}</td>
                 @if($batch->type == 'finish')

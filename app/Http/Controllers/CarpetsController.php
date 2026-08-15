@@ -1556,6 +1556,12 @@ class CarpetsController extends Controller
         $data['total_price_af'] = $request->total_price_af;
         $data['dollar_rate'] = ($afnCurrency && $afnCurrency->exchange_rate > 0) ? (1 / $afnCurrency->exchange_rate) : 1;
 
+        // Map width/height/area from edit form specifically to buying dimensions only
+        $data['buying_width'] = $request->width ?? ($carpet->buying_width ?? $carpet->width);
+        $data['buying_height'] = $request->height ?? ($carpet->buying_height ?? $carpet->height);
+        $data['buying_area'] = $request->area ?? ($carpet->buying_area ?? $carpet->area);
+        unset($data['width'], $data['height'], $data['area']);
+
         $oldWarehouse = $carpet->warehouse_id;
         $oldAccount = $carpet->override_inventory_account_id;
         $oldCreditAccount = $carpet->override_credit_account_id;

@@ -421,6 +421,7 @@
                                 <thead>
                                     <tr class="text-right">
                                         <th>تاریخ (Date)</th>
+                                        <th>نوع معامله (Type)</th>
                                         <th>شرح (Description)</th>
                                         <th>فاکتور (Purchase Ref)</th>
                                         <th>ارز (CCY)</th>
@@ -435,6 +436,13 @@
                                     @foreach($payments as $pa)
                                     <tr class="text-right ur{{$pa->id}}">
                                         <td class="font-weight-bold">{{ $pa->date }}</td>
+                                        <td>
+                                            @if($pa->type == 'رسید')
+                                                <span class="badge badge-success px-2 py-1" style="background: #10b981; color: #fff;"><i class="fa fa-arrow-down mr-1"></i> رسید (IN)</span>
+                                            @else
+                                                <span class="badge badge-danger px-2 py-1" style="background: #ef4444; color: #fff;"><i class="fa fa-arrow-up mr-1"></i> گرفت (OUT)</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $pa->description }}</td>
                                         <td>
                                             <span class="badge badge-light border p-2">
@@ -452,31 +460,35 @@
                                         <td>
                                             @if($pa->status == 0)
                                                 <span class="status-badge bg-warning text-dark">انتظار تایید</span>
+                                            @elseif($pa->status == 2)
+                                                <span class="status-badge bg-danger text-white">لغو شده</span>
                                             @else
                                                 <span class="status-badge bg-success text-white">تایید شده</span>
                                             @endif
                                         </td>
                                         <td class="hideOnPrint text-center">
-                                            @if($pa->status == 0 || auth()->user()->role == 'SP')
-                                                <div class="btn-group">
-                                                    @can('manage_seller_payments')
-                                                    <a href="/dashboard/string-seller-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fa fa-edit"></i>
+                                            <div class="btn-group">
+                                                @can('manage_seller_payments')
+                                                <a href="/dashboard/string-seller-payments/{{$pa->id}}/edit" class="btn btn-sm btn-outline-primary" title="ویرایش">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                                @endcan
+
+                                                @php $transaction = \App\LedgerTransaction::where('source_type', 'seller_payment')->where('source_id', $pa->id)->first(); @endphp
+                                                @if($transaction)
+                                                    <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="روزنامچه مالی">
+                                                        <i class="fa fa-book"></i>
                                                     </a>
-                                                    @endcan
-                                                    @php $transaction = \App\LedgerTransaction::where('source_type', 'seller_payment')->where('source_id', $pa->id)->first(); @endphp
-                                                    @if($transaction)
-                                                        <a href="{{ route('accounting.journals.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-success" title="روزنامچه مالی">
-                                                            <i class="fa fa-book"></i>
-                                                        </a>
-                                                    @endif
-                                                    @can('cancel_seller_payment')
-                                                    <button onclick="deletePayment({{$pa->id}}, {{$pa->seller_id}})" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fa fa-times"></i> لغو
-                                                    </button>
-                                                    @endcan
-                                                </div>
-                                            @endif
+                                                @endif
+
+                                                @if($pa->status != 2)
+                                                @can('cancel_seller_payment')
+                                                <button onclick="deletePayment({{$pa->id}}, {{$pa->seller_id}})" class="btn btn-sm btn-outline-danger" title="لغو معامله">
+                                                    <i class="fa fa-times"></i> لغو
+                                                </button>
+                                                @endcan
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -484,7 +496,7 @@
                                 <tfoot class="bg-light">
                                     @foreach($currencyTotals as $code => $totals)
                                     <tr>
-                                        <th colspan="3" class="text-right">خلاصه {{ $code }}</th>
+                                        <th colspan="4" class="text-right">خلاصه {{ $code }}</th>
                                         <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
                                         @php $balance = $totals->total_received - $totals->total_sent; @endphp
@@ -494,7 +506,7 @@
                                     </tr>
                                     @endforeach
                                     <tr style="background: #e8eaf6;">
-                                        <th colspan="3" class="text-right" style="color:#1a237e;"><b>مجموع کل بیلانس (Base USD)</b></th>
+                                        <th colspan="4" class="text-right" style="color:#1a237e;"><b>مجموع کل بیلانس (Base USD)</b></th>
                                         <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                         <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
                                         @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp

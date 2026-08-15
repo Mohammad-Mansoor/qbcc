@@ -28,8 +28,9 @@ class EmployeePaymentController extends Controller
     {
         try {
             $amount = $payment->original_amount ?? $payment->amount ?? 0;
+            $mappingKey = ($payment->type === 'رسید') ? 'PYMT_IN' : 'PYMT_OUT';
 
-            $this->accountingService->postAutoTransaction('employee_payment', 'PAYROLL_PAYMENT', [
+            $this->accountingService->postAutoTransaction('employee_payment', $mappingKey, [
                 'date'         => $payment->date,
                 'amount'       => $amount,
                 'currency_code'=> $payment->currency_code,
@@ -40,6 +41,7 @@ class EmployeePaymentController extends Controller
                 'description'  => $payment->description,
                 'source_type'  => get_class($payment),
                 'source_id'    => $payment->id,
+                'type'         => $payment->type,
                 'override_debit_account_id'  => $payment->override_debit_account_id,
                 'override_credit_account_id' => $payment->override_credit_account_id,
             ]);

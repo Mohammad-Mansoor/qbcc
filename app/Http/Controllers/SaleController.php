@@ -118,6 +118,7 @@ class SaleController extends Controller
                   ->orWhere('quality', 'like', '%' . $search . '%')
                   ->orWhereHas('carpet', function($q2) use ($search) {
                       $q2->where('carpet_no', 'like', '%' . $search . '%')
+                        ->orWhere('map_number', 'like', '%' . $search . '%')
                         ->orWhere('width', 'like', '%' . $search . '%')
                         ->orWhere('height', 'like', '%' . $search . '%')
                         ->orWhere('area', 'like', '%' . $search . '%');

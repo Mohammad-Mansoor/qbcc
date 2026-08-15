@@ -240,7 +240,7 @@
 
                 {{-- Actions --}}
                 <td class="hideOnPrint" style="padding: 9px 12px; text-align: center; white-space: nowrap;">
-                  @if($pa->status == 0 || auth()->user()->role == 'SP')
+                  @can('manage_employee_payments')
                     <a href="/dashboard/employee-payments/{{ $pa->id }}/edit" class="btn btn-xs btn-info">
                       <i class="fa fa-pencil"></i> ویرایش
                     </a>
@@ -248,7 +248,7 @@
                             class="btn btn-danger btn-xs">
                       <i class="fa fa-trash"></i> حذف
                     </button>
-                  @endif
+                  @endcan
                 </td>
               </tr>
             @empty

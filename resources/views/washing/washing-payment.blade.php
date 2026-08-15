@@ -342,22 +342,26 @@
                         </button>
                         <div class="collapse mt-3" id="advancedAccounting">
                             <div class="accounting-override-box">
+                                @php
+                                    $selectedDebit = $paymentEdit ? ($paymentEdit->override_debit_account_id ?? $paymentEdit->actual_debit_account_id ?? '') : '';
+                                    $selectedCredit = $paymentEdit ? ($paymentEdit->override_credit_account_id ?? $paymentEdit->actual_credit_account_id ?? '') : '';
+                                @endphp
                                 <div class="row">
                                     <div class="col-md-6 form-group">
                                         <label class="small font-weight-bold">حساب بدهکار (Debit Account Override)</label>
                                         <select name="override_debit_account_id" id="override_debit_account_id" class="form-control custom-input select2">
-                                            <option value="">Default: {{ $mappingOut->debit_account->account_name ?? 'System' }}</option>
+                                            <option value="" {{ (empty($selectedDebit)) ? 'selected' : '' }}>Default: {{ ($paymentEdit && $paymentEdit->type == 'رسید' ? ($mappingIn->debit_account->account_name ?? 'System') : ($mappingOut->debit_account->account_name ?? 'System')) }}</option>
                                             @foreach($allowedDebitAccounts as $acc)
-                                                <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
+                                                <option value="{{ $acc->id }}" {{ ($selectedDebit == $acc->id) ? 'selected' : '' }}>{{ $acc->account_name }} ({{ $acc->account_code }})</option>
                                             @endforeach
                                         </select>
                                     </div>
                                     <div class="col-md-6 form-group">
                                         <label class="small font-weight-bold">حساب بستانکار (Credit Account Override)</label>
                                         <select name="override_credit_account_id" id="override_credit_account_id" class="form-control custom-input select2">
-                                            <option value="">Default: {{ $mappingOut->credit_account->account_name ?? 'System' }}</option>
+                                            <option value="" {{ (empty($selectedCredit)) ? 'selected' : '' }}>Default: {{ ($paymentEdit && $paymentEdit->type == 'رسید' ? ($mappingIn->credit_account->account_name ?? 'System') : ($mappingOut->credit_account->account_name ?? 'System')) }}</option>
                                             @foreach($allowedCreditAccounts as $acc)
-                                                <option value="{{ $acc->id }}">{{ $acc->account_name }} ({{ $acc->account_code }})</option>
+                                                <option value="{{ $acc->id }}" {{ ($selectedCredit == $acc->id) ? 'selected' : '' }}>{{ $acc->account_name }} ({{ $acc->account_code }})</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -786,6 +790,13 @@
         $('#currency_id').select2();
         $('#override_debit_account_id').select2();
         $('#override_credit_account_id').select2();
+
+        @if($paymentEdit && !empty($selectedDebit))
+            $('#override_debit_account_id').val("{{ $selectedDebit }}").trigger('change.select2');
+        @endif
+        @if($paymentEdit && !empty($selectedCredit))
+            $('#override_credit_account_id').val("{{ $selectedCredit }}").trigger('change.select2');
+        @endif
 
         // Dynamic account selection based on payment type (رسید vs گرفت)
         const mappingInDebit = "{{ $mappingIn->debit_account_id ?? '' }}";

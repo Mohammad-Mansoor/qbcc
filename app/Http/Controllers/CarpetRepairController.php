@@ -546,29 +546,33 @@ class CarpetRepairController extends Controller
     {
         $agents = Agents::all();
         $nonrepaireds = Carpet::where('status', '=', 2)
-            ->where('carpet_no', 'like', '%'.$request->search.'%')
-           ->get();
+            ->where(function ($query) use ($request) {
+                $query->where('carpet_no', 'like', '%' . $request->search . '%')
+                    ->orWhere('map_number', 'like', '%' . $request->search . '%');
+            })
+            ->get();
 
 
-        $repaireds = CarpetRepair::orderBy('carpetId','DESC')->paginate(30);
+        $repaireds = CarpetRepair::orderBy('carpetId', 'DESC')->paginate(30);
         $warehouses = DB::table('warehouses')->get();
         $search = '';
-        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
+        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds', 'search', 'warehouses'));
     }
     public function search_repaired(Request $request)
     {
         $search = $request->search;
         $agents = Agents::all();
-        $nonrepaireds = Carpet::where('status','=',2)->where('kachaee_id','!=',null)->orderBy('updated_at','DESC')->get();
-        $repaireds = CarpetRepair::where('kachaee_number', 'like', '%'.$search.'%')
+        $nonrepaireds = Carpet::where('status', '=', 2)->where('kachaee_id', '!=', null)->orderBy('updated_at', 'DESC')->get();
+        $repaireds = CarpetRepair::where('kachaee_number', 'like', '%' . $search . '%')
             ->orWhereHas('carpet', function ($query) use ($search) {
-                $query->where('carpet_no', 'like', '%' . $search . '%');
+                $query->where('carpet_no', 'like', '%' . $search . '%')
+                    ->orWhere('map_number', 'like', '%' . $search . '%');
             })
             ->orWhereHas('team', function ($query) use ($search) {
                 $query->where('name', 'like', '%' . $search . '%');
             })->get();
         $warehouses = DB::table('warehouses')->get();
-        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds','search','warehouses'));
+        return view('carpet-repair.index', compact('nonrepaireds', 'agents', 'repaireds', 'search', 'warehouses'));
     }
     public function repair_date_search(Request $request)
     {

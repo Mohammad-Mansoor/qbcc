@@ -440,12 +440,22 @@
                           <td class="font-weight-bold text-dark">{{$washed->carpet->carpet_no}}</td>
                           <td><span class="badge badge-light border">{{$washed->carpet->map_number ?? '-'}}</span></td>
                           <td><span class="badge badge-light border">{{$washed->carpet->type->carpet_type ?? '-'}}</span></td>
-                          <td><span class="badge badge-light border">{{$washed->wash_number}}</span></td>
                           <td>
-                            <a href="/dashboard/search-wash-numbersh-payment/{{$washed->wash_number_sh}},{{$washed->team_id}}"
-                              class="font-weight-bold" style="color: #3b82f6;">
-                              {{$washed->wash_number_sh}}
-                            </a>
+                            @if($washed->wash_number)
+                              <span class="badge badge-light border">{{$washed->wash_number}}</span>
+                            @else
+                              <span class="text-muted">---</span>
+                            @endif
+                          </td>
+                          <td>
+                            @if(($washed->carpet->status == 13 || $washed->total_price > 0 || $washed->af_total_price > 0) && ($washed->wash_number_sh || $washed->wash_number))
+                              <a href="/dashboard/batches/{{ $washed->wash_number }}/details"
+                                class="font-weight-bold" style="color: #3b82f6;">
+                                {{ $washed->wash_number_sh ?: $washed->wash_number }}
+                              </a>
+                            @else
+                              <span class="text-muted">---</span>
+                            @endif
                           </td>
                           <td style="direction: ltr">{{ $washed->area }} m<sup>2</sup></td>
                           <td style="direction: ltr">{{ number_format($washed->price, 2) }} {{ $washed->currency_code ?: 'USD' }}</td>

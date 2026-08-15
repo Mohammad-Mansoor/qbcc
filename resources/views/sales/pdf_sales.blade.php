@@ -114,18 +114,19 @@
             <tr>
                 <th style="width: 3%">ردیف</th>
                 <th style="width: 8%">نمبر انوایس</th>
-                <th style="width: 12%">مشتری</th>
-                <th style="width: 9%">نمبر قالین</th>
-                <th style="width: 8%">نوعیت</th>
-                <th style="width: 7%">کوالتی</th>
-                <th style="width: 8%">ابعاد (m)</th>
+                <th style="width: 11%">مشتری</th>
+                <th style="width: 8%">نمبر قالین</th>
+                <th style="width: 8%">نمبر نقشه</th>
+                <th style="width: 7%">نوعیت</th>
+                <th style="width: 6%">کوالتی</th>
+                <th style="width: 7%">ابعاد (m)</th>
                 <th style="width: 6%">مساحت (m²)</th>
-                <th style="width: 8%">قیمت خرید ($)</th>
-                <th style="width: 8%">قیمت تمام شد ($)</th>
-                <th style="width: 8%">قیمت فی متر</th>
-                <th style="width: 10%; background-color: #0f172a !important;">مجموع فروش ($)</th>
+                <th style="width: 7%">قیمت خرید ($)</th>
+                <th style="width: 7%">قیمت تمام شد ($)</th>
+                <th style="width: 7%">قیمت فی متر</th>
+                <th style="width: 8%; background-color: #0f172a !important;">مجموع فروش ($)</th>
                 @if(auth()->user()->role == 'SP')
-                <th style="width: 8%; background-color: #065f46 !important;">مفاد خالص ($)</th>
+                <th style="width: 7%; background-color: #065f46 !important;">مفاد خالص ($)</th>
                 @endif
             </tr>
         </thead>
@@ -176,6 +177,7 @@
                     <td class="text-center font-bold text-primary" style="direction: ltr;">{{ $sale->invoice->invoice_no ?? '---' }}</td>
                     <td class="text-center">{{ $sale->customer->name ?? '---' }} <br><span style="font-size: 6pt; color: #475569;">{{ $sale->customer->customer_code ?? '' }}</span></td>
                     <td class="text-center font-bold">{{ $sale->carpet->carpet_no ?? '---' }}</td>
+                    <td class="text-center font-bold">{{ $sale->carpet->map_number ?? '---' }}</td>
                     <td class="text-center">{{ $sale->type }}</td>
                     <td class="text-center">{{ $sale->quality }}</td>
                     <td class="text-center" style="direction: ltr;">{{ $sale->carpet_height ?? ($sale->carpet->height ?? '---') }} × {{ $sale->carpet_width ?? ($sale->carpet->width ?? '---') }}</td>
@@ -202,13 +204,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ auth()->user()->role == 'SP' ? 13 : 12 }}" class="text-center" style="color: #64748b; padding: 15px;">هیچ فروشاتی یافت نشد.</td>
+                    <td colspan="{{ auth()->user()->role == 'SP' ? 14 : 13 }}" class="text-center" style="color: #64748b; padding: 15px;">هیچ فروشاتی یافت نشد.</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot style="background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
             <tr>
-                <td colspan="7" class="text-left font-bold">مجموع کل:</td>
+                <td colspan="8" class="text-left font-bold">مجموع کل:</td>
                 <td class="text-center font-bold text-primary" style="direction: ltr;">{{ number_format($grandTotalArea, 2) }} m²</td>
                 <td class="text-center font-bold" style="direction: ltr; color: #0f172a;">${{ number_format($grandTotalPurchase, 2) }}</td>
                 <td class="text-center font-bold" style="color: #b91c1c; direction: ltr;">${{ number_format($grandTotalCost, 2) }}</td>

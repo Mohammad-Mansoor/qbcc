@@ -106,6 +106,21 @@ class NewMonthlyExpenseBalanceController extends Controller
                 'override_credit_account_id' => 'nullable|exists:chart_of_accounts,id',
             ]);
 
+            // SERVER IDEMPOTENCY CHECK: Block duplicate submissions within 5 seconds
+            $existingDuplicate = NewMonthlyExpenseBalance::where('month_id', $request->month_id)
+                ->where('category', $request->category)
+                ->where('original_amount', $request->amount)
+                ->where('currency', $request->currency_id)
+                ->where('date', $request->date)
+                ->where('description', $request->description)
+                ->where('created_at', '>=', now()->subSeconds(5))
+                ->first();
+
+            if ($existingDuplicate) {
+                \Log::warning("Duplicate monthly expense submission blocked for month #{$request->month_id}, amount: {$request->amount}");
+                return redirect()->back()->with('status', 'موفقانه ثبت و در سیستم مالی درج گردید!');
+            }
+
             $currency = \App\Currency::find($request->currency_id);
             $rate = $currency->exchange_rate;
 

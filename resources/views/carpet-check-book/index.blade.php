@@ -340,6 +340,23 @@
                                             class="btn btn-sm btn-light-primary border-0 shadow-none px-3" title="Details">
                                             <i class="feather icon-eye mr-1"></i> مشاهده جزئیات
                                         </a>
+                                        @can('edit_purchase_bill')
+                                            @if($invoice->paid_amount <= 0)
+                                                <button type="button" class="btn btn-sm btn-light-warning border-0 shadow-none px-3 edit-invoice-btn"
+                                                    data-id="{{ $invoice->id }}"
+                                                    data-invoice-number="{{ $invoice->invoice_number }}"
+                                                    data-agent-id="{{ $invoice->agent_id }}"
+                                                    data-date="{{ $invoice->date }}"
+                                                    title="ویرایش بل خرید">
+                                                    <i class="feather icon-edit mr-1"></i> ویرایش
+                                                </button>
+                                            @else
+                                                <button type="button" class="btn btn-sm btn-light text-muted border-0 shadow-none px-3" disabled
+                                                    title="امکان ویرایش وجود ندارد زیرا برای این بل تادیات ثبت شده است">
+                                                    <i class="feather icon-lock mr-1"></i> ویرایش (قفل شده)
+                                                </button>
+                                            @endif
+                                        @endcan
                                     </td>
                                 </tr>
                             @empty
@@ -403,6 +420,51 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL: EDIT INVOICE -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0 overflow-hidden"
+                style="border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);">
+                <div class="modal-header border-bottom p-4 bg-light">
+                    <h5 class="font-weight-bold mb-0 text-primary">ویرایش بل خرید</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="" method="post" id="editInvoiceForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body p-4 text-right" style="direction: rtl;">
+                        <div class="form-group">
+                            <label class="form-label-premium">نمبر بل خرید (Bill Number)</label>
+                            <input type="text" name="invoice_number" id="edit_invoice_number" class="form-control premium-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label-premium">نماینده (فروشنده قالین)</label>
+                            <select name="agent_id" id="edit_agent_id" class="form-control premium-input" required>
+                                <option value="">انتخاب فروشنده...</option>
+                                @foreach($agents as $agent)
+                                    <option value="{{ $agent->agent_id }}">{{ $agent->user->name }} ({{ $agent->account_no }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label-premium">تاریخ بل خرید</label>
+                            <input type="date" name="date" id="edit_date" class="form-control premium-input" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top p-4 bg-light d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary px-4 rounded-lg" data-dismiss="modal">انصراف</button>
+                        <button type="submit" class="btn btn-warning px-4 rounded-lg shadow">
+                            <i class="feather icon-save mr-1"></i> بروزرسانی بل خرید
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
@@ -415,6 +477,24 @@
 
             $("#createInvoiceForm").submit(function () {
                 $(this).find(":submit").attr("disabled", "disabled").html('<i class="feather icon-loader mr-1"></i> در حال ثبت...');
+            });
+
+            $(".edit-invoice-btn").click(function () {
+                var id = $(this).data('id');
+                var invNo = $(this).data('invoice-number');
+                var agentId = $(this).data('agent-id');
+                var date = $(this).data('date');
+
+                $('#editInvoiceForm').attr('action', '/dashboard/check-book/' + id);
+                $('#edit_invoice_number').val(invNo);
+                $('#edit_agent_id').val(agentId);
+                $('#edit_date').val(date);
+
+                $('#editInvoiceModal').modal('show');
+            });
+
+            $("#editInvoiceForm").submit(function () {
+                $(this).find(":submit").attr("disabled", "disabled").html('<i class="feather icon-loader mr-1"></i> در حال بروزرسانی...');
             });
         });
     </script>

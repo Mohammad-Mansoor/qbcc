@@ -83,19 +83,32 @@ class AccountingService
             && $creditAcc->report_group != 'Inventory'
             && !in_array(strtolower($creditAcc->account_name), ['inventory', 'work in progress', 'wip', 'finished goods']);
 
-        // If explicit party is provided for module payments and neither side was tagged due to cash/advance accounts, tag the party side
-        if ($hasExplicitParty && !$shouldTagDebit && !$shouldTagCredit) {
+        // For any transaction with an explicit party (Customer, Vendor, Agent, etc.),
+        // tag the party ONLY on the party's sub-ledger side (Debit for payments out, Credit for receipts),
+        // preventing duplicate statement lines regardless of which custom accounts are selected.
+        if ($hasExplicitParty) {
+            $typeParam = $params['type'] ?? '';
             $condLower = strtolower($rule->condition ?? $key);
-            $isPaymentOut = str_contains($condLower, 'out') 
-                         || str_contains($condLower, 'advance') 
-                         || str_contains($condLower, 'گرفت')
-                         || str_contains($condLower, 'payroll')
-                         || str_contains($condLower, 'expense')
-                         || str_contains($condLower, 'debit');
+
+            if ($typeParam === 'گرفت') {
+                $isPaymentOut = true;
+            } elseif ($typeParam === 'رسید') {
+                $isPaymentOut = false;
+            } else {
+                $isPaymentOut = str_contains($condLower, 'out') 
+                             || str_contains($condLower, 'advance') 
+                             || str_contains($condLower, 'گرفت')
+                             || str_contains($condLower, 'payroll')
+                             || str_contains($condLower, 'expense')
+                             || str_contains($condLower, 'debit')
+                             || str_contains($condLower, 'withdrawal');
+            }
 
             if ($isPaymentOut) {
                 $shouldTagDebit = true;
+                $shouldTagCredit = false;
             } else {
+                $shouldTagDebit = false;
                 $shouldTagCredit = true;
             }
         }

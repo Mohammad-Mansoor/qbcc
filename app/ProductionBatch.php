@@ -15,7 +15,7 @@ class ProductionBatch extends Model
         'status',
     ];
 
-    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status', 'team_name'];
+    protected $appends = ['total_amount', 'paid_amount', 'remaining_balance', 'payment_status', 'team_name', 'has_payments'];
 
     /**
      * Scope to filter by type.
@@ -105,17 +105,17 @@ class ProductionBatch extends Model
         if ($this->type === 'kachaee') {
             $directPaid = \DB::table('kachaee_payments')
                 ->where('kachaee_number', $this->reference_number)
-                ->where('status', 1)
+                ->where('status', '!=', 2)
                 ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
         } elseif ($this->type === 'wash') {
             $directPaid = \DB::table('washing_payments')
                 ->where('wash_number', $this->reference_number)
-                ->where('status', 1)
+                ->where('status', '!=', 2)
                 ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
         } elseif ($this->type === 'finish') {
             $directPaid = \DB::table('finishing_team_payments')
                 ->where('finish_number', $this->reference_number)
-                ->where('status', 1)
+                ->where('status', '!=', 2)
                 ->sum(\DB::raw("CASE WHEN type = 'گرفت' THEN original_amount ELSE -original_amount END")) ?? 0.0;
         }
 
@@ -123,6 +123,34 @@ class ProductionBatch extends Model
         $allocatedPaid = $this->allocations()->sum('allocated_amount') ?? 0.0;
 
         return (float)($directPaid + $allocatedPaid);
+    }
+
+    public function getHasPaymentsAttribute()
+    {
+        if ($this->paid_amount > 0) {
+            return true;
+        }
+
+        if ($this->type === 'kachaee') {
+            $hasDirect = \DB::table('kachaee_payments')
+                ->where('kachaee_number', $this->reference_number)
+                ->where('status', '!=', 2)
+                ->exists();
+        } elseif ($this->type === 'wash') {
+            $hasDirect = \DB::table('washing_payments')
+                ->where('wash_number', $this->reference_number)
+                ->where('status', '!=', 2)
+                ->exists();
+        } elseif ($this->type === 'finish') {
+            $hasDirect = \DB::table('finishing_team_payments')
+                ->where('finish_number', $this->reference_number)
+                ->where('status', '!=', 2)
+                ->exists();
+        } else {
+            $hasDirect = false;
+        }
+
+        return $hasDirect || ($this->allocations()->count() > 0);
     }
 
     public function getRemainingBalanceAttribute()

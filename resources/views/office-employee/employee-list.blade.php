@@ -271,6 +271,8 @@
                   @if(auth()->user()->role == 'SP' || auth()->user()->role == 'FI')
                     <th>کارمند بخش</th>
                   @endif
+                  <th>طلبات (مطالبات از کارمند)</th>
+                  <th>باقیات (بدهی به کارمند)</th>
                   @can('edit_employee')
                   <th>ویرایش</th>
                   <th>قرار داد</th>
@@ -289,6 +291,17 @@
               <tbody>
               @if(method_exists($employees, 'total') ? $employees->total() > 0 : $employees->count() > 0)
                   @foreach($employees as $employee)
+                      @php
+                        $netBal = $balances[$employee->id] ?? 0;
+                        $talabaat = 0; // Employee owes company (Debit > Credit)
+                        $baqeeyat = 0; // Company owes employee (Credit > Debit)
+
+                        if ($netBal < 0) {
+                            $talabaat = abs($netBal);
+                        } elseif ($netBal > 0) {
+                            $baqeeyat = $netBal;
+                        }
+                      @endphp
                       <tr class="ur{{ $employee->id }}">
                         <td>{{$employee->id}}</td>
                         <td>{{$employee->name}}</td>
@@ -307,6 +320,27 @@
                           @endif
                         @endif
 
+                        {{-- Talabaat Column (Employee owes company: Green +) --}}
+                        <td style="text-align: right;" dir="ltr">
+                          @if($talabaat > 0)
+                            <span class="font-weight-bold text-success" style="color: #10b981;">
+                              ${{ number_format($talabaat, 2) }}
+                            </span>
+                          @else
+                            <span class="text-muted">-</span>
+                          @endif
+                        </td>
+
+                        {{-- Baqeeyat Column (Company owes employee: Red -) --}}
+                        <td style="text-align: right;" dir="ltr">
+                          @if($baqeeyat > 0)
+                            <span class="font-weight-bold text-danger" style="color: #ef4444;">
+                              -${{ number_format($baqeeyat, 2) }}
+                            </span>
+                          @else
+                            <span class="text-muted">-</span>
+                          @endif
+                        </td>
 
                         @can('edit_employee')
                         <td><a href="/dashboard/office-employee/{{$employee->id}}/edit" class="btn btn-sm btn-info"><i
@@ -328,7 +362,7 @@
                   @endforeach
               @else
                   <tr>
-                    <td colspan="9" class="info">هیچ موردی دریافت نشد</td>
+                    <td colspan="13" class="info">هیچ موردی دریافت نشد</td>
                   </tr>
               @endif
               </tbody>

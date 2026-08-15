@@ -34,7 +34,7 @@
 </head>
 <body>
     @php
-        $colspanHeader = 7 + $batchCategories->count();
+        $colspanHeader = 8 + $batchCategories->count();
     @endphp
     <table>
         <tr>
@@ -45,8 +45,8 @@
                     <span style="font-weight: bold; color: #1e3a8a; font-size: 18pt;">QBIC</span>
                 @endif
             </td>
-            <td colspan="{{ $colspanHeader - 1 }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
-                <span class="company-name">شرکت صنعتی برادران قاسمی</span><br><br>
+            <td colspan="{{ $colspanHeader - 1 }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px;">
+                <span class="company-name">شرکت برادران قاسمی</span><br>
                 <span class="company-subtitle">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت  افغانستان</span>
             </td>
         </tr>
@@ -69,6 +69,14 @@
             <td colspan="1" class="meta-label" style="height: 24pt;">تاریخ ایجاد:</td>
             <td colspan="{{ $colspanHeader - 5 }}" class="meta-value" style="height: 24pt; direction: ltr; text-align: right;">{{ $batch->created_at->format('Y-m-d') }}</td>
         </tr>
+        @if(!empty($startDate) && !empty($endDate))
+        <tr>
+            <td colspan="2" class="meta-label" style="height: 24pt;">فیلتر محدوده تاریخ:</td>
+            <td colspan="{{ $colspanHeader - 2 }}" class="meta-value font-bold" style="height: 24pt; direction: ltr; text-align: right;">
+                از {{ $startDate }} الی {{ $endDate }}
+            </td>
+        </tr>
+        @endif
 
         <tr style="height: 15pt;"><td colspan="{{ $colspanHeader }}" style="border: none; background-color: #ffffff;"></td></tr>
 
@@ -79,7 +87,8 @@
                 <th style="height: 32pt;">شماره نقشه</th>
                 <th style="height: 32pt;">نوعیت</th>
                 <th style="height: 32pt;">کیفیت</th>
-                <th style="height: 32pt;">ابعاد (m)</th>
+                <th style="height: 32pt;">طول (m)</th>
+                <th style="height: 32pt;">عرض (m)</th>
                 <th style="height: 32pt;">مساحت (m²)</th>
                 @foreach($batchCategories as $cat)
                     <th class="cat-header" style="height: 32pt;">{{ $cat->category }}</th>
@@ -115,7 +124,8 @@
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->map_number ?? '---' }}</td>
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->type->carpet_type ?? '---' }}</td>
                     <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ $carpet->quality->quality ?? '---' }}</td>
-                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $carpet->height ?? '---' }} × {{ $carpet->width ?? '---' }}</td>
+                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $carpet->height ?? '---' }}</td>
+                    <td class="text-center" style="height: 26pt; background-color: {{ $rowBgColor }}; direction: ltr;">{{ $carpet->width ?? '---' }}</td>
                     <td class="text-center font-bold" style="height: 26pt; background-color: {{ $rowBgColor }};">{{ number_format($area, 2) }}</td>
 
                     @foreach($batchCategories as $cat)
@@ -143,7 +153,7 @@
             <tr style="height: 10pt;"><td colspan="{{ $colspanHeader }}" style="border: none; background-color: #ffffff;"></td></tr>
 
             <tr>
-                <td colspan="6" class="meta-label" style="height: 26pt;">مجموع کل:</td>
+                <td colspan="7" class="meta-label" style="height: 26pt;">مجموع کل:</td>
                 <td class="text-center font-bold" style="background-color: #f1f5f9; direction: ltr; height: 26pt;">{{ number_format($grandTotalArea, 2) }}</td>
                 @foreach($batchCategories as $cat)
                     <td class="text-center font-bold" style="background-color: #f1f5f9; direction: ltr; height: 26pt;">${{ number_format($catTotals[$cat->id], 2) }}</td>

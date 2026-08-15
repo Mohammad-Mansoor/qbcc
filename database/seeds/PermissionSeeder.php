@@ -200,6 +200,7 @@ class PermissionSeeder extends Seeder
             // Finishing
             'view_finishing_centers',
             'create_finishing_work',
+            'edit_finishing_work',
             'send_carpet_to_finishing',
             'return_carpet_from_finishing',
             're_saving_the_work',

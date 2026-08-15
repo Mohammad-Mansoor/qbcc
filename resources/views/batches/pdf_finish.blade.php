@@ -48,18 +48,19 @@
             color: #ffffff !important;
             font-weight: bold;
             border: 1px solid #94a3b8;
-            font-size: 7pt;
-            padding: 3px 2px;
+            font-size: 7.5pt;
+            padding: 6px 4px;
             text-align: center;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
         table.ledger-table td {
             border: 1px solid #94a3b8;
-            padding: 3px 2px;
-            font-size: 7.5pt;
+            padding: 5px 4px;
+            font-size: 8pt;
             color: #000;
             vertical-align: middle;
+            line-height: 1.35;
         }
         table.ledger-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         
@@ -152,6 +153,14 @@
                 <span class="meta-val-primary" style="direction: ltr;">{{ $batch->created_at->format('Y-m-d') }}</span>
             </td>
         </tr>
+        @if(!empty($startDate) && !empty($endDate))
+        <tr>
+            <td colspan="4" style="text-align: center; padding-top: 4px; border-top: 1px dashed #cbd5e1;">
+                <span class="meta-label">فیلتر محدوده تاریخ (Date Filter):</span>
+                <span class="meta-val-primary" style="direction: ltr; font-weight: bold; color: #1e3a8a;">از {{ $startDate }} الی {{ $endDate }}</span>
+            </td>
+        </tr>
+        @endif
     </table>
 
     <h4 style="font-size: 12pt; color: #0f172a; margin-bottom: 10px;">لیست قالین‌ها و مصارف تیاری به تفکیک</h4>
@@ -162,9 +171,10 @@
                 <th style="width: 4%">ردیف</th>
                 <th style="width: 9%">نمبر قالین</th>
                 <th style="width: 7%">نقشه</th>
-                <th style="width: 9%">نوعیت</th>
-                <th style="width: 7%">کیفیت</th>
-                <th style="width: 8%">ابعاد (m)</th>
+                <th style="width: 8%">نوعیت</th>
+                <th style="width: 6%">کیفیت</th>
+                <th style="width: 5%">طول (m)</th>
+                <th style="width: 5%">عرض (m)</th>
                 <th style="width: 6%">مساحت (m²)</th>
                 @foreach($batchCategories as $cat)
                     <th class="cat-header">{{ $cat->category }}</th>
@@ -196,7 +206,8 @@
                     <td class="text-center">{{ $carpet->map_number ?? '---' }}</td>
                     <td class="text-center">{{ $carpet->type->carpet_type ?? '---' }}</td>
                     <td class="text-center">{{ $carpet->quality->quality ?? '---' }}</td>
-                    <td class="text-center" style="direction: ltr;">{{ $carpet->height ?? '---' }} × {{ $carpet->width ?? '---' }}</td>
+                    <td class="text-center" style="direction: ltr;">{{ $carpet->height ?? '---' }}</td>
+                    <td class="text-center" style="direction: ltr;">{{ $carpet->width ?? '---' }}</td>
                     <td class="text-center font-bold" style="direction: ltr;">{{ number_format($area, 2) }}</td>
                     
                     @foreach($batchCategories as $cat)
@@ -234,13 +245,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ 8 + $batchCategories->count() }}" class="text-center" style="color: #64748b;">هیچ قالینی ثبت نشده است.</td>
+                    <td colspan="{{ 9 + $batchCategories->count() }}" class="text-center" style="color: #64748b;">هیچ قالینی ثبت نشده است.</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot style="background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
             <tr>
-                <td colspan="6" class="text-left font-bold">مجموع کل:</td>
+                <td colspan="7" class="text-left font-bold">مجموع کل:</td>
                 <td class="text-center font-bold text-primary" style="direction: ltr;">{{ number_format($grandTotalArea, 2) }} m²</td>
                 @foreach($batchCategories as $cat)
                     <td class="text-center font-bold" style="direction: ltr; color: #0f172a;">${{ number_format($catTotals[$cat->id], 2) }}</td>

@@ -314,6 +314,7 @@
                             <th class="border-0 px-4 py-3">نمبر انوایس</th>
                             <th class="border-0 py-3">مشتری</th>
                             <th class="border-0 py-3">مشخصات قالین</th>
+                            <th class="border-0 py-3 text-center">شماره نقشه</th>
                             <th class="border-0 py-3 text-center">ابعاد (m)</th>
                             <th class="border-0 py-3 text-center">مساحت (m²)</th>
                             <th class="border-0 py-3 text-center">قیمت خرید</th>
@@ -369,6 +370,13 @@
                                     @endif
                                 </h6>
                                 <span class="badge badge-light tiny px-2 py-1">{{ $sale->type }} | {{ $sale->quality }}</span>
+                            </td>
+                            <td class="text-center font-weight-bold text-dark small">
+                                @if($sale->is_returned)
+                                    <del>{{ $sale->carpet->map_number ?? '---' }}</del>
+                                @else
+                                    <span class="badge badge-light border">{{ $sale->carpet->map_number ?? '---' }}</span>
+                                @endif
                             </td>
                             <td class="text-center small font-weight-bold text-muted">
                                 @if($sale->is_returned)
@@ -478,7 +486,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="py-5 text-center">
+                            <td colspan="11" class="py-5 text-center">
                                 <img src="/assets/img/empty-cart.png" alt="Empty" style="width: 80px; opacity: 0.5;">
                                 <p class="mt-3 text-muted">هیچ فروشاتی یافت نشد.</p>
                             </td>

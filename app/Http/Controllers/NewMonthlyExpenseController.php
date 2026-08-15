@@ -82,10 +82,6 @@ class NewMonthlyExpenseController extends Controller
         
         $expensesQuery = DB::table('new_monthly_expense_balances')->where('month_id', $id);
         
-        if (Auth::user()->role != 'SP') {
-            $expensesQuery->where('user_role', Auth::user()->role);
-        }
-        
         $expensesWithOverrides = (clone $expensesQuery)
             ->leftJoin('chart_of_accounts as debit_acc', 'new_monthly_expense_balances.override_debit_account_id', '=', 'debit_acc.id')
             ->leftJoin('chart_of_accounts as credit_acc', 'new_monthly_expense_balances.override_credit_account_id', '=', 'credit_acc.id')

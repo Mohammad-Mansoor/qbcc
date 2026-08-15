@@ -432,7 +432,7 @@
 
           @endif
 
-          @if(auth()->user()->hasAnyPermission(['view_carpet_repairs', 'view_kachaee_teams', 'view_kachaee_team_statement', 'view_kachaee_batches', 'view_kachaee_money_requests']))
+          @if(auth()->user()->hasAnyPermission(['view_carpet_repairs', 'view_kachaee_teams', 'view_kachaee_team_statement', 'view_kachaee_batches', 'create_kachaee_batch', 'view_kachaee_money_requests']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('carpet-repair*', 'kachaee-team', 'dashboard/accounting/reports/repair-team-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
@@ -447,9 +447,9 @@
                 @can('view_kachaee_team_statement')
                   <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب کچایی</a></li>
                 @endcan
-                @can('view_kachaee_batches')
+                @canany(['view_kachaee_batches', 'create_kachaee_batch'])
                   <li><a href="/dashboard/batches/kachaee">نمبرهای کچایی (KCH)</a></li>
-                @endcan
+                @endcanany
                 @if(auth()->user()->can('view_kachaee_money_requests'))
                   <li><a href="/dashboard/kachaee-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
@@ -457,7 +457,7 @@
             </li>
           @endif
 
-          @if(auth()->user()->hasAnyPermission(['view_carpet_washes', 'view_washing_teams', 'view_washing_team_statement', 'view_washing_batches', 'view_washing_money_requests']))
+          @if(auth()->user()->hasAnyPermission(['view_carpet_washes', 'view_washing_teams', 'view_washing_team_statement', 'view_washing_batches', 'create_washing_batch', 'view_washing_money_requests']))
 
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('carpet-wash*', 'washing-team', 'dashboard/accounting/reports/washing-team-statement*') ? 'active' : '' }}">
@@ -474,9 +474,9 @@
                 @can('view_washing_team_statement')
                   <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب شست</a></li>
                 @endcan
-                @can('view_washing_batches')
+                @canany(['view_washing_batches', 'create_washing_batch'])
                   <li><a href="/dashboard/batches/wash">نمبرهای شست (Wash)</a></li>
-                @endcan
+                @endcanany
                 @if(auth()->user()->can('view_washing_money_requests'))
                   <li><a href="/dashboard/washing-money-request-list"> لیست درخواست های پول</a></li>
                 @endif
@@ -484,7 +484,7 @@
             </li>
           @endif
 
-          @if(auth()->user()->hasAnyPermission(['view_finishing_centers', 'view_finishing_teams', 'view_finishing_team_statement', 'view_finishing_batches', 'view_refinish_requests', 'view_finishing_money_requests']))
+          @if(auth()->user()->hasAnyPermission(['view_finishing_centers', 'view_finishing_teams', 'view_finishing_team_statement', 'view_finishing_batches', 'create_finishing_batch', 'view_refinish_requests', 'view_finishing_money_requests']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('finishing-center*', 'finish-team', 'finish-team-category', 'dashboard/accounting/reports/finishing-team-statement*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
@@ -499,9 +499,9 @@
                 @can('view_finishing_team_statement')
                   <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیاری</a></li>
                 @endcan
-                @can('view_finishing_batches')
+                @canany(['view_finishing_batches', 'create_finishing_batch'])
                   <li><a href="/dashboard/batches/finish">نمبرهای تیاری (TA)</a></li>
-                @endcan
+                @endcanany
 
                 @can('view_refinish_requests')
                   <li><a href="/dashboard/refinish-request-list"> لیست درخواست های دوباره تیاری</a></li>
@@ -523,7 +523,7 @@
             </li>
           @endif
 
-          @if(auth()->user()->hasAnyPermission(['view_sales', 'view_invoices']))
+          @if(auth()->user()->hasAnyPermission(['view_sales', 'view_invoices', 'create_invoice']))
             <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') || request()->is('invoices*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>فروشات</b></span></a>
@@ -532,9 +532,9 @@
                 <li><a href="/dashboard/sales"> لیست فروشات</a></li>
                 @endcan
                 <!-- <li><a href="/dashboard/packing-list">پکینگ لیست</a></li> -->
-                @can('view_invoices')
+                @canany(['view_invoices', 'create_invoice'])
                 <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
-                @endcan
+                @endcanany
               </ul>
             </li>
 

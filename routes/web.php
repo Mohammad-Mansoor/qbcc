@@ -502,7 +502,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::post('/washing-team/note/{id}', 'WashingTeamController@updateNote')->name('washing_team.update_note');
 });
 
-Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_invoices']], function () {
+Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view_invoices|create_invoice']], function () {
     /** Route For invoices */
     Route::resource('/invoices', 'InvoiceController');
     Route::post('/invoices/{id}/close', 'InvoiceController@closeInvoice');
@@ -879,6 +879,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth']], function () {
     Route::post('/batches/{type}', 'ProductionBatchController@store')->name('batches.store');
     Route::post('/batches/{id}/toggle-status', 'ProductionBatchController@toggleStatus')->name('batches.toggle-status');
     Route::get('/batches/{id}/details', 'ProductionBatchController@details')->name('batches.details');
+    Route::put('/batches/{id}', 'ProductionBatchController@update')->name('batches.update');
     
     // Global Search Routes
     Route::get('/global-search/carpets', 'GlobalSearchController@searchCarpets')->name('global-search.carpets');

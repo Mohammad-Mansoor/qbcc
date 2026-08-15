@@ -142,6 +142,12 @@ class RawMaterialPurchaseBillController extends Controller
     {
         $bill = RawMaterialPurchaseBill::findOrFail($id);
 
+        if ($bill->paid_amount > 0 && $request->seller_id != $bill->seller_id) {
+            return redirect()->back()->withErrors([
+                'seller_id' => 'امکان تغییر فروشنده وجود ندارد زیرا برای این بل خرید تادیات ثبت شده است.'
+            ]);
+        }
+
         $data = $request->validate([
             'seller_id' => 'required|exists:string_sellers,id',
             'date'      => 'required|date',

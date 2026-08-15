@@ -157,7 +157,8 @@
                             <th class="border-0 align-middle py-3">نقشه</th>
                             <th class="border-0 align-middle py-3">نوعیت</th>
                             <th class="border-0 align-middle py-3">کیفیت</th>
-                            <th class="border-0 align-middle py-3">ابعاد (m)</th>
+                            <th class="border-0 align-middle py-3">طول (m)</th>
+                            <th class="border-0 align-middle py-3">عرض (m)</th>
                             <th class="border-0 align-middle py-3">مساحت (m²)</th>
                             <th class="border-0 align-middle py-3">گدام فعلی (Warehouse)</th>
                             @foreach($batchCategories as $cat)
@@ -190,7 +191,8 @@
                                 <td>{{ $carpet->map_number ?? '---' }}</td>
                                 <td>{{ $carpet->type->carpet_type ?? '---' }}</td>
                                 <td>{{ $carpet->quality->quality ?? '---' }}</td>
-                                <td style="direction: ltr;">{{ $carpet->height ?? '---' }} × {{ $carpet->width ?? '---' }}</td>
+                                <td style="direction: ltr;">{{ $carpet->height ?? '---' }}</td>
+                                <td style="direction: ltr;">{{ $carpet->width ?? '---' }}</td>
                                 <td class="font-weight-bold">{{ number_format($area, 2) }}</td>
                                 <td class="font-weight-bold">
                                     <span class="badge badge-light border px-2 py-1" style="background-color: #f1f5f9; color: #1e293b;">
@@ -233,7 +235,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 8 + $batchCategories->count() }}" class="text-center text-muted py-5">
+                                <td colspan="{{ 9 + $batchCategories->count() }}" class="text-center text-muted py-5">
                                     <i class="fa fa-folder-open-o fa-2x mb-2 d-block"></i>
                                     هیچ قالینی در این نمبر مسلسل یافت نشد.
                                 </td>
@@ -242,7 +244,7 @@
                     </tbody>
                     <tfoot class="bg-light">
                         <tr>
-                            <td colspan="6" class="text-left font-weight-bold align-middle">مجموع کل:</td>
+                            <td colspan="7" class="text-left font-weight-bold align-middle">مجموع کل:</td>
                             <td class="font-weight-bold align-middle text-primary">{{ number_format($grandTotalArea, 2) }} m²</td>
                             @foreach($batchCategories as $cat)
                                 <td class="font-weight-bold align-middle text-dark" style="direction: ltr;">${{ number_format($catTotals[$cat->id], 2) }}</td>

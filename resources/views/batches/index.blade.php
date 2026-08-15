@@ -87,15 +87,21 @@
         <div class="col-lg-12">
             <!-- Navigation Tabs -->
             <div class="nav-tabs-premium">
+                @canany(['view_kachaee_batches', 'create_kachaee_batch'])
                 <a href="/dashboard/batches/kachaee" class="nav-link-premium {{ $type == 'kachaee' ? 'active' : '' }}">
                     <i class="fa fa-wrench mr-1"></i> نمبرهای کچایی (Kachaee)
                 </a>
+                @endcanany
+                @canany(['view_washing_batches', 'create_washing_batch'])
                 <a href="/dashboard/batches/wash" class="nav-link-premium {{ $type == 'wash' ? 'active' : '' }}">
                     <i class="fa fa-tint mr-1"></i> نمبرهای شست (Washing)
                 </a>
+                @endcanany
+                @canany(['view_finishing_batches', 'create_finishing_batch'])
                 <a href="/dashboard/batches/finish" class="nav-link-premium {{ $type == 'finish' ? 'active' : '' }}">
                     <i class="fa fa-scissors mr-1"></i> نمبرهای تیاری (Tayaari)
                 </a>
+                @endcanany
             </div>
 
             <div class="glass-card">
@@ -145,6 +151,7 @@
                         @php
                             $createPermission = 'create_' . ($type == 'wash' ? 'washing' : ($type == 'finish' ? 'finishing' : 'kachaee')) . '_batch';
                             $managePermission = 'manage_' . ($type == 'wash' ? 'washing' : ($type == 'finish' ? 'finishing' : 'kachaee')) . '_batch_status';
+                            $viewPermission = 'view_' . ($type == 'wash' ? 'washing' : ($type == 'finish' ? 'finishing' : 'kachaee')) . '_batches';
                         @endphp
 
                         @can($createPermission)
@@ -155,6 +162,7 @@
                     </div>
                 </div>
 
+                @can($viewPermission)
                 <div class="card-body p-4">
                     <div class="table-responsive">
                         <table class="table table-hover table-striped align-middle">
@@ -220,6 +228,15 @@
                                                     <i class="fa fa-info-circle"></i> جزئیات (Details)
                                                 </a>
                                                 @can($managePermission)
+                                                    <button type="button" class="btn btn-sm btn-outline-warning rounded-lg font-weight-bold d-inline-flex align-items-center edit-batch-btn"
+                                                        style="padding: 6px 12px; gap: 4px;"
+                                                        data-id="{{ $batch->id }}"
+                                                        data-ref="{{ $batch->reference_number }}"
+                                                        data-team-id="{{ $batch->team_id }}"
+                                                        data-paid="{{ ($batch->has_payments || $batch->paid_amount > 0) ? 1 : 0 }}"
+                                                        title="ویرایش">
+                                                        <i class="fa fa-edit"></i> ویرایش (Edit)
+                                                    </button>
                                                     <form action="/dashboard/batches/{{ $batch->id }}/toggle-status" method="post"
                                                         class="m-0 d-inline-block">
                                                         @csrf
@@ -259,6 +276,7 @@
                         </table>
                     </div>
                 </div>
+                @endcan
             </div>
         </div>
     </div>
@@ -301,6 +319,56 @@
         </div>
     </div>
 
+    <!-- Edit Batch Modal -->
+    <div class="modal fade" id="editBatchModal" tabindex="-1" role="dialog" aria-labelledby="editBatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                <div class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title font-weight-bold text-dark" id="editBatchModalLabel">
+                        <i class="fa fa-edit text-warning mr-2"></i>ویرایش {{ $title }}
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="padding: 1rem;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="" method="post" id="editBatchForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body p-4 text-right" style="direction: rtl;">
+                        <div id="paymentLockNotice" class="alert alert-danger border-0 mb-3 font-weight-bold tiny" style="display: none; border-radius: 8px;">
+                            <i class="fa fa-exclamation-triangle mr-1"></i> امکان تغییر تیم و نمبر مسلسل وجود ندارد زیرا برای این نمبر تادیات ثبت شده است.
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold text-secondary mb-2">
+                                نمبر مسلسل (Batch Reference)
+                                <span id="refLockBadge" class="badge badge-warning ml-2 tiny" style="display: none;"><i class="fa fa-lock"></i> قفل شده</span>
+                            </label>
+                            <input type="text" name="reference_number" id="edit_reference_number" class="form-control" style="font-size: 1.1rem; letter-spacing: 0.5px; direction: ltr; font-weight: bold;">
+                        </div>
+
+                        <div class="form-group mb-2">
+                            <label class="font-weight-bold text-secondary mb-2">
+                                انتخاب تیم (Select Team)
+                                <span id="teamLockBadge" class="badge badge-warning ml-2 tiny" style="display: none;"><i class="fa fa-lock"></i> قفل شده</span>
+                            </label>
+                            <select name="team_id" id="edit_team_id" class="form-control custom-select" required>
+                                <option value="" disabled>لطفاً یک تیم را انتخاب کنید</option>
+                                @foreach($teams as $team)
+                                    <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light" style="border-top: 1px solid #e2e8f0; border-radius: 0 0 12px 12px;">
+                        <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">انصراف (Cancel)</button>
+                        <button type="submit" class="btn btn-warning font-weight-bold"><i class="fa fa-save mr-1"></i> ذخیره تغییرات (Save)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @section('scripts')
@@ -335,6 +403,35 @@
 
             $('#batchSearchInput').on('input', filterBatches);
             $('#teamFilter').on('change', filterBatches);
+
+            $('.edit-batch-btn').click(function () {
+                var id = $(this).data('id');
+                var ref = $(this).data('ref');
+                var teamId = $(this).data('team-id');
+                var isPaid = $(this).data('paid') == 1;
+
+                $('#editBatchForm').attr('action', '/dashboard/batches/' + id);
+                $('#edit_reference_number').val(ref);
+                $('#edit_team_id').val(teamId);
+
+                if (isPaid) {
+                    $('#paymentLockNotice').show();
+                    $('#refLockBadge').show();
+                    $('#teamLockBadge').show();
+
+                    $('#edit_reference_number').prop('readonly', true).addClass('bg-light text-muted');
+                    $('#edit_team_id').prop('disabled', true).addClass('bg-light text-muted');
+                } else {
+                    $('#paymentLockNotice').hide();
+                    $('#refLockBadge').hide();
+                    $('#teamLockBadge').hide();
+
+                    $('#edit_reference_number').prop('readonly', false).removeClass('bg-light text-muted');
+                    $('#edit_team_id').prop('disabled', false).removeClass('bg-light text-muted');
+                }
+
+                $('#editBatchModal').modal('show');
+            });
         });
     </script>
 @endsection

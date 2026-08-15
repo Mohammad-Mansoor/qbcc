@@ -51,7 +51,8 @@
         }
 
         .footer-space {
-            height: 130px;
+            height: 0px;
+            display: none;
         }
 
         .content-wrapper {
@@ -143,8 +144,8 @@
             color: #ffffff !important;
             font-weight: bold;
             border: 1px solid #94a3b8;
-            font-size: 7pt;
-            padding: 3px 2px;
+            font-size: 7.5pt;
+            padding: 6px 4px;
             text-align: center;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -152,10 +153,11 @@
 
         table.ledger-table td {
             border: 1px solid #94a3b8;
-            padding: 3px 2px;
-            font-size: 7.5pt;
+            padding: 5px 4px;
+            font-size: 8pt;
             color: #000;
             vertical-align: middle;
+            line-height: 1.35;
         }
 
         table.ledger-table tbody tr:nth-child(even) {
@@ -250,11 +252,7 @@
         @endif
     </div>
 
-    <div class="fixed-footer">
-        @if(isset($bottomFooterBase64) && $bottomFooterBase64)
-            <img src="{{ $bottomFooterBase64 }}" alt="Footer">
-        @endif
-    </div>
+
 
     <table style="width: 100%; border: none; border-collapse: collapse;">
         <thead>
@@ -316,6 +314,14 @@
                                         style="direction: ltr;">{{ $batch->created_at->format('Y-m-d') }}</span>
                                 </td>
                             </tr>
+                            @if(!empty($startDate) && !empty($endDate))
+                            <tr>
+                                <td colspan="3" style="text-align: center; padding-top: 4px; border-top: 1px dashed #cbd5e1;">
+                                    <span class="meta-label">فیلتر تاریخ (Date Filter):</span>
+                                    <span class="meta-val-primary" style="direction: ltr; font-weight: bold; color: #1e3a8a;">از {{ $startDate }} الی {{ $endDate }}</span>
+                                </td>
+                            </tr>
+                            @endif
                         </table>
 
                         <table style="width: 100%; margin-bottom: 5px;">
@@ -363,12 +369,13 @@
                             <thead>
                                 <tr>
                                     <th style="width: 5%">ردیف</th>
-                                    <th style="width: 15%">نمبر قالین</th>
+                                    <th style="width: 14%">نمبر قالین</th>
                                     <th style="width: 10%">شماره نقشه</th>
-                                    <th style="width: 12%">نوعیت</th>
-                                    <th style="width: 10%">کیفیت</th>
-                                    <th style="width: 15%">ابعاد (m)</th>
-                                    <th style="width: 10%">مساحت (m²)</th>
+                                    <th style="width: 11%">نوعیت</th>
+                                    <th style="width: 9%">کیفیت</th>
+                                    <th style="width: 8%">طول (m)</th>
+                                    <th style="width: 8%">عرض (m)</th>
+                                    <th style="width: 9%">مساحت (m²)</th>
                                     @if($batch->type == 'finish')
                                         <th style="width: 10%">کتگوری</th>
                                         <th style="width: 13%">هزینه/m² ($)</th>
@@ -388,8 +395,8 @@
                                         <td class="text-center">{{ $item->carpet->map_number ?? '---' }}</td>
                                         <td class="text-center">{{ $item->carpet->type->carpet_type ?? '---' }}</td>
                                         <td class="text-center">{{ $item->carpet->quality->quality ?? '---' }}</td>
-                                        <td class="text-center" style="direction: ltr;">{{ $item->carpet->height ?? '---' }}
-                                            × {{ $item->carpet->width ?? '---' }}</td>
+                                        <td class="text-center" style="direction: ltr;">{{ $item->carpet->height ?? '---' }}</td>
+                                        <td class="text-center" style="direction: ltr;">{{ $item->carpet->width ?? '---' }}</td>
                                         <td class="text-center font-bold" style="direction: ltr;">
                                             {{ number_format($item->carpet->area ?? 0, 2) }}</td>
                                         @php
@@ -401,18 +408,24 @@
                                                 $price = $item->total_price;
                                             elseif ($batch->type == 'wash')
                                                 $price = $item->total_price ?: $item->af_total_price;
+
+                                            if (isset($item->price) && $item->price > 0 && ($item->currency_code ?? 'USD') === 'USD') {
+                                                $unitRate = $item->price;
+                                            } else {
+                                                $unitRate = round($price / $area, 2);
+                                            }
                                         @endphp
                                         @if($batch->type == 'finish')
                                             <td class="text-center">{{ $item->category->category ?? '---' }}</td>
                                         @endif
                                         <td class="text-center font-bold" style="direction: ltr;">
-                                            ${{ number_format($price / $area, 2) }}</td>
+                                            ${{ number_format($unitRate, 2) }}</td>
                                         <td class="text-left font-bold text-dark" style="direction: ltr;">
                                             ${{ number_format($price, 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $batch->type == 'finish' ? 10 : 9 }}" class="text-center"
+                                        <td colspan="{{ $batch->type == 'finish' ? 11 : 10 }}" class="text-center"
                                             style="color: #64748b;">هیچ قالینی ثبت نشده است.</td>
                                     </tr>
                                 @endforelse
@@ -506,13 +519,7 @@
                 </td>
             </tr>
         </tbody>
-        <tfoot>
-            <tr>
-                <td style="border: none; padding: 0;">
-                    <div class="footer-space"></div>
-                </td>
-            </tr>
-        </tfoot>
+
     </table>
 
 </body>

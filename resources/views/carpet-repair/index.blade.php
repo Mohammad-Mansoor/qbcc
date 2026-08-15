@@ -382,6 +382,7 @@
                   <thead>
                     <tr>
                       <th>شماره قالین</th>
+                      <th>شماره نقشه</th>
                       <th>اسم کچایی گر</th>
                       <th>گدام</th>
                       <th>نوعیت</th>
@@ -397,6 +398,7 @@
                     @foreach($nonrepaireds as $nonrepaired)
                       <tr class="ur{{ $nonrepaired->carpet_id }}">
                         <td class="font-weight-bold text-dark">{{$nonrepaired->carpet_no}}</td>
+                        <td><span class="badge badge-light border">{{$nonrepaired->map_number ?? '---'}}</span></td>
                         <td>{{$nonrepaired->kachaee->name}}</td>
                         <td><span class="badge badge-light border">{{$nonrepaired->warehouse->name ?? 'نامشخص'}}</span></td>
                         <td><span class="badge badge-light border">{{$nonrepaired->type->carpet_type}}</span></td>
@@ -444,7 +446,7 @@
                       </tr>
                     @endforeach
                     <tr style="background: #f8fafc;" class="font-weight-bold">
-                      <td colspan="4" class="text-right">مجموع:</td>
+                      <td colspan="5" class="text-right">مجموع:</td>
                       <td colspan="5" class="text-left" style="direction: ltr;">
                         {{$nonrepaireds->count()}} pcs | {{number_format($nonrepaireds->sum('area'), 2)}} m<sup>2</sup>
                       </td>
@@ -462,7 +464,7 @@
                   <form action="/dashboard/search-repaired" method="POST" class="form-inline">
                     @csrf
                     <div class="input-group w-75">
-                      <input type="text" name="search" placeholder="جستجوی سریع..." class="form-control"
+                      <input type="text" name="search" placeholder="جستجوی سریع شماره قالین، نقشه، تیم..." class="form-control"
                         value="{{ isset($search) ? $search : '' }}" required>
                       <div class="input-group-append">
                         <button type="submit" class="btn btn-search"><i class="fa fa-search"></i></button>
@@ -508,6 +510,7 @@
                   <thead>
                     <tr>
                       <th>شماره قالین</th>
+                      <th>شماره نقشه</th>
                       <th>نمبر کچایی</th>
                       <th>نوعیت</th>
                       <th>گدام</th>
@@ -525,6 +528,7 @@
                     @foreach($repaireds as $repaired)
                       <tr class="ur{{ $repaired->id }}">
                         <td class="font-weight-bold text-dark">{{$repaired->carpet->carpet_no}}</td>
+                        <td><span class="badge badge-light border">{{$repaired->carpet->map_number ?? '---'}}</span></td>
                         <td>
                           <a href="/dashboard/carpet-repair/search-kachaee-number/{{$repaired->kachaee_number}}{{$repaired->team_id}}"
                             class="badge badge-light border">

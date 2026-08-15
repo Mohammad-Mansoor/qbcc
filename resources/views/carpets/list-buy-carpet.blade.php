@@ -279,10 +279,10 @@
                                         <span class="d-block text-dark">{{ $carpet->type->carpet_type ?? 'N/A' }}</span>
                                         <small class="text-muted">{{ $carpet->quality->quality ?? 'N/A' }}</small>
                                     </td>
-                                    <td>
-                                        <span class="d-block">{{ $carpet->area }} m²</span>
-                                        <small class="text-muted">{{ $carpet->height }}x{{ $carpet->width }}</small>
-                                    </td>
+                                     <td>
+                                         <span class="d-block">{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</span>
+                                         <small class="text-muted">{{ $carpet->buying_height ?? $carpet->height }}x{{ $carpet->buying_width ?? $carpet->width }}</small>
+                                     </td>
                                     <td class="text-right">
                                         <div class="font-weight-bold text-dark">
                                             {{ number_format($carpet->original_price ?? $carpet->price, 2) }}
@@ -476,19 +476,19 @@
                                     <div class="col-md-3 form-group">
                                         <label class="form-label-premium">طول (Length - m)</label>
                                         <input type="number" step="0.01" name="height" id="modal_height"
-                                            value="{{ $editCarpet->height ?? '' }}" class="form-control premium-input"
+                                            value="{{ $editCarpet ? ($editCarpet->buying_height ?? $editCarpet->height) : '' }}" class="form-control premium-input"
                                             required>
                                     </div>
                                     <div class="col-md-3 form-group">
                                         <label class="form-label-premium">عرض (Width - m)</label>
                                         <input type="number" step="0.01" name="width" id="modal_width"
-                                            value="{{ $editCarpet->width ?? '' }}" class="form-control premium-input"
+                                            value="{{ $editCarpet ? ($editCarpet->buying_width ?? $editCarpet->width) : '' }}" class="form-control premium-input"
                                             required>
                                     </div>
                                     <div class="col-md-3 form-group">
                                         <label class="form-label-premium">مساحت (m²)</label>
                                         <input type="number" step="0.01" name="area" id="modal_area"
-                                            value="{{ $editCarpet->area ?? '' }}"
+                                            value="{{ $editCarpet ? ($editCarpet->buying_area ?? $editCarpet->area) : '' }}"
                                             class="form-control premium-input bg-light" readonly>
                                     </div>
                                     <div class="col-md-3 form-group">

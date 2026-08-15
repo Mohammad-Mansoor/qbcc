@@ -28,7 +28,8 @@ class FinishingWorkController extends Controller
         $this->inventoryManager = $inventoryManager;
         
         $this->middleware('permission:view_finishing_centers')->only(['index', 'search_finish_number', 'search_from_finish_number', 'search', 'search_non', 'show']);
-        $this->middleware('permission:create_finishing_work')->only(['saving_the_work', 'store', 'edit', 'update', 'destroy']);
+        $this->middleware('permission:create_finishing_work')->only(['saving_the_work', 'store']);
+        $this->middleware('permission:edit_finishing_work')->only(['edit', 'update', 'destroy']);
         $this->middleware('permission:re_saving_the_work')->only(['re_saving_the_work', 'store_refinish']);
         $this->middleware('permission:view_refinish_requests')->only(['request_list']);
         $this->middleware('permission:approve_refinish_requests')->only(['approve_request']);
@@ -228,7 +229,8 @@ class FinishingWorkController extends Controller
         $finisheds = FinishingWork::where('finish_number', 'like', '%' . $search_finish . '%')
             ->orWhere('date', 'like', '%' . $search_finish . '%')
             ->orWhereHas('carpet', function ($query) use ($search_finish) {
-                $query->where('carpet_no', 'like', '%' . $search_finish . '%');
+                $query->where('carpet_no', 'like', '%' . $search_finish . '%')
+                    ->orWhere('map_number', 'like', '%' . $search_finish . '%');
             })->orWhereHas('team', function ($query) use ($search_finish) {
                 $query->where('name', 'like', '%' . $search_finish . '%');
             })->orWhereHas('category', function ($query) use ($search_finish) {
@@ -239,7 +241,7 @@ class FinishingWorkController extends Controller
         $nonfinished = Carpet::where('status', '=', 4)->orderBy('updated_at', 'DESC')->paginate(20);
         $team = FinishingTeam::all();
         $check = 'not_null';
-        return view('finishing-center.index', compact('nonfinished', 'team', 'agents', 'finisheds', 'check'));
+        return view('finishing-center.index', compact('nonfinished', 'team', 'agents', 'finisheds', 'check', 'search_finish'));
     }
 
     public function search_non(Request $request)
@@ -247,14 +249,17 @@ class FinishingWorkController extends Controller
         $search_non = $request->search_non;
         $agents = Agents::all();
         $nonfinished = Carpet::where('status', '=', 4)
-            ->where('carpet_no', 'like', '%' . $search_non . '%')
+            ->where(function ($query) use ($search_non) {
+                $query->where('carpet_no', 'like', '%' . $search_non . '%')
+                    ->orWhere('map_number', 'like', '%' . $search_non . '%');
+            })
             ->orWhereHas('type', function ($query) use ($search_non) {
                 $query->where('carpet_type', 'like', '%' . $search_non . '%');
             })->orderBy('updated_at', 'DESC')->paginate(20);
         $finisheds = FinishingWork::paginate(20);
         $team = FinishingTeam::all();
         $check = '';
-        return view('finishing-center.index', compact('nonfinished', 'team', 'agents', 'finisheds', 'check'));
+        return view('finishing-center.index', compact('nonfinished', 'team', 'agents', 'finisheds', 'check', 'search_non'));
     }
 
 

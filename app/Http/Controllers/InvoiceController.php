@@ -87,7 +87,7 @@ class InvoiceController extends Controller
     {
         $customers = Customer::where('type','مشتری قالین')->get();
         $agents = \App\Agents::with('user')->get();
-        $invoices = Invoice::orderBy('id', 'desc')->paginate(30);
+        $invoices = Auth::user()->can('view_invoices') ? Invoice::orderBy('id', 'desc')->paginate(30) : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 30);
         $invoiceEdit = "";
         $invoice_no = Invoice::generateNextInvoiceNo();
         return view('invoices.index',compact('customers','agents','invoiceEdit','invoice_no','invoices'));
@@ -176,6 +176,9 @@ class InvoiceController extends Controller
      */
     public function store(Request $request)
     {
+        if (!Auth::user()->can('create_invoice')) {
+            abort(403, 'شما دسترسی به ایجاد انوایس جدید را ندارید.');
+        }
         $this->accountingService->failIfLocked($request->invoice_date);
         
         $rules = [
@@ -218,6 +221,9 @@ class InvoiceController extends Controller
      */
     public function show($id, Request $request)
     {
+        if (!Auth::user()->can('view_invoices')) {
+            abort(403, 'شما دسترسی به مشاهده انوایس را ندارید.');
+        }
         $invoice = Invoice::with(['customer', 'agent.user', 'payments'])->find($id);
         
         if ($request->export === 'pdf') {
@@ -265,9 +271,12 @@ class InvoiceController extends Controller
      */
     public function edit($id)
     {
+        if (!Auth::user()->can('edit_invoice')) {
+            abort(403, 'شما دسترسی به ویرایش انوایس را ندارید.');
+        }
         $customers = Customer::where('type','مشتری قالین')->get();
         $agents = \App\Agents::with('user')->get();
-        $invoices = Invoice::orderBy('id', 'desc')->paginate(30);
+        $invoices = Auth::user()->can('view_invoices') ? Invoice::orderBy('id', 'desc')->paginate(30) : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 30);
         $invoiceEdit = Invoice::findOrFail($id);
         
         if ($invoiceEdit->status === 'closed') {
@@ -286,10 +295,25 @@ class InvoiceController extends Controller
      */
     public function update(Request $request, Invoice $invoice)
     {
+        if (!Auth::user()->can('edit_invoice')) {
+            abort(403, 'شما دسترسی به ویرایش انوایس را ندارید.');
+        }
         $this->accountingService->failIfLocked($request->invoice_date);
         
         if ($invoice->status === 'closed') {
             return redirect('/dashboard/invoices')->with('error', 'امکان ویرایش انوایس بسته شده وجود ندارد!');
+        }
+
+        if ($invoice->paid_amount > 0) {
+            if ($request->filled('type') && $request->type != $invoice->type) {
+                return redirect()->back()->with('error', 'امکان تغییر نوعیت فروش وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.');
+            }
+            if ($request->filled('agent_id') && $request->agent_id != $invoice->agent_id) {
+                return redirect()->back()->with('error', 'امکان تغییر نماینده / عامل وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.');
+            }
+            if ($request->filled('customer_id') && $request->customer_id != $invoice->customer_id) {
+                return redirect()->back()->with('error', 'امکان تغییر مشتری وجود ندارد زیرا برای این انوایس تادیات ثبت شده است.');
+            }
         }
         
         $rules = [
