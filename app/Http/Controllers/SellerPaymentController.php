@@ -265,7 +265,7 @@ class SellerPaymentController extends Controller
                 $payed->amount_af = 0;
             }
 
-            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->status = (Auth::user()->isSuperAdmin()) ? 1 : 0;
             $payed->override_debit_account_id = $request->override_debit_account_id;
             $payed->override_credit_account_id = $request->override_credit_account_id;
             $payed->save();

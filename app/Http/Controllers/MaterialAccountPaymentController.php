@@ -166,7 +166,7 @@ class MaterialAccountPaymentController extends Controller
         $payed->type_id = $request->type_id;
         $payed->account_id = $request->account_id;
 
-        if (Auth::user()->role == 'SP'){
+        if (Auth::user()->isSuperAdmin()){
             $payed->status = 1;
         }
         else{

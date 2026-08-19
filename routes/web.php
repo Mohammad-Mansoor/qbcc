@@ -736,6 +736,15 @@ Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'perm
     Route::get('/warehouses/{id}/stock-report/excel', 'Accounting\WarehouseController@stockReportExcel')->name('accounting.warehouses.stock_report_excel');
 });
 
+/** Warehouse Carpet & Raw Material Stock Reports */
+Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'permission:view_carpet_stock_report']], function () {
+    Route::get('/warehouses/carpet-stock', 'Accounting\WarehouseReportController@carpetStock')->name('accounting.warehouses.carpet_stock');
+});
+
+Route::group(['prefix' => 'dashboard/accounting', 'middleware' => ['auth', 'permission:view_raw_material_stock_report']], function () {
+    Route::get('/warehouses/raw-material-stock', 'Accounting\WarehouseReportController@rawMaterialStock')->name('accounting.warehouses.raw_material_stock');
+});
+
 /** Warehouse Transfers Routes */
 
 // Static routes MUST come before parameterized {id} routes to avoid shadowing

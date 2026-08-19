@@ -363,7 +363,7 @@ class MaterialSaleController extends Controller
             // Normalized USD Base Calculation
             $data['base_currency_amount'] = bcmul($request->original_amount, $request->exchange_rate, 4);
 
-            $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
+            $data['status'] = (Auth::user()->isSuperAdmin()) ? 1 : 0;
 
             $sale = new MaterialSale($data);
 

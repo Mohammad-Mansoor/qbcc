@@ -564,7 +564,7 @@
             </li>
           @endif
 
-          @if(auth()->user()->hasAnyPermission(['view_warehouse_inventory_report', 'view_warehouses', 'view_inventory_transfers', 'view_warehouse_movements']))
+          @if(auth()->user()->hasAnyPermission(['view_warehouse_inventory_report', 'view_carpet_stock_report', 'view_raw_material_stock_report', 'view_warehouses', 'view_inventory_transfers', 'view_warehouse_movements']))
               <li
                 class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*') || request()->is('dashboard/inventory/reports*')) ? 'active pcoded-trigger' : '' }}">
                 <a href="#" class="nav-link">
@@ -575,6 +575,12 @@
                   @can('view_warehouse_inventory_report')
                     <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a></li>
                   @endcan
+                  @can('view_carpet_stock_report')
+                    <li><a href="{{ route('accounting.warehouses.carpet_stock') }}" style="color: #10b981;">موجودی قالین‌ها (Carpet Stock)</a></li>
+                  @endcan
+                  @can('view_raw_material_stock_report')
+                    <li><a href="{{ route('accounting.warehouses.raw_material_stock') }}" style="color: #6366f1;">موجودی مواد خام (Raw Material Stock)</a></li>
+                  @endcan
                   @can('view_warehouses')
                     <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
                   @endcan
@@ -584,9 +590,8 @@
                   @can('view_warehouse_movements')
                     <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
                   @endcan
+                </ul>
               </li>
-            </ul>
-            </li>
           @endif
 
         @if(auth()->user()->hasAnyPermission(['view_customers']))

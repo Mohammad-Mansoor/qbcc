@@ -135,7 +135,7 @@ class DifferentAccountPaymentController extends Controller
 
             // FORENSIC PILLAR 5: Multiplication for USD Normalization
             $data['base_amount'] = bcmul($data['amount'], $data['exchange_rate'], 4);
-            $data['status'] = (Auth::user()->role == 'SP') ? 1 : 0;
+            $data['status'] = (Auth::user()->isSuperAdmin()) ? 1 : 0;
 
             $payment = DifferentAccountPayment::create($data);
 

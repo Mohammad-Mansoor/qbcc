@@ -42,4 +42,11 @@ class User extends Authenticatable
         return $this->hasOne(Agents::class , 'user_id' , 'id');
     }
 
+    public function isSuperAdmin()
+    {
+        return $this->role === 'SP' 
+            || $this->role === 'Super Admin' 
+            || (method_exists($this, 'hasRole') && $this->hasRole('Super Admin'));
+    }
+
 }

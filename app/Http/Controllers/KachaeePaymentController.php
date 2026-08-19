@@ -183,7 +183,7 @@ class KachaeePaymentController extends Controller
                 $payed->amount_af = 0;
             }
 
-            $payed->status = (Auth::user()->role == 'SP') ? 1 : 0;
+            $payed->status = (Auth::user()->isSuperAdmin()) ? 1 : 0;
             $payed->save();
 
             if ($payed->status == 1) {

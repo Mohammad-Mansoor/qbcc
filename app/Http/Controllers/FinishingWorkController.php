@@ -337,7 +337,7 @@ class FinishingWorkController extends Controller
                 $finish->warehouse_id = $request->input('warehouse_id');
             }
             
-            if (Auth::user()->role == 'SP' || $request->is_direct_store) {
+            if (Auth::user()->isSuperAdmin() || $request->is_direct_store) {
                 $finish->status = 1;
                 $carpet->total_price += $finish->price;
                 $carpet->total_price_af += $finish->price_af;

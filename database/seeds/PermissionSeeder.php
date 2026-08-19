@@ -260,6 +260,8 @@ class PermissionSeeder extends Seeder
 
             // Warehouse
             'view_warehouse_inventory_report',
+            'view_carpet_stock_report',
+            'view_raw_material_stock_report',
             'view_warehouses',
             'create_warehouse',
             'edit_warehouse',

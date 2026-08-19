@@ -132,7 +132,7 @@ class NewDifferentAccountPaymentController extends Controller
 
 
         ]);
-        if (Auth::user()->role == 'SP'){
+        if (Auth::user()->isSuperAdmin()){
             $received_data['status'] = 1;
         }
         else{

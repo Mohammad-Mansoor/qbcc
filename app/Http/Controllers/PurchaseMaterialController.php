@@ -193,7 +193,7 @@ class PurchaseMaterialController extends Controller
     public function store(Request $request)
     {
         $data = $this->Valid();
-        if (Auth::user()->role == 'SP') {
+        if (Auth::user()->isSuperAdmin()) {
             $data['status'] = 1;
         } else {
             $data['status'] = 0;

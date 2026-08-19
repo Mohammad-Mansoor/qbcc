@@ -211,7 +211,7 @@ class OfficeCreditController extends Controller
             $data['base_amount'] = $baseAmount;
             $data['amount'] = $request->amount;
 
-            if (Auth::user()->role != 'SP') {
+            if (!Auth::user()->isSuperAdmin()) {
                 $cashbook = OfficeCashBook::where('user_role', Auth::user()->role)->first();
                 $sp_cashbook = OfficeCashBook::where('user_role', 'SP')->first();
 
@@ -253,13 +253,13 @@ class OfficeCreditController extends Controller
 
                 $activity = new Activity();
                 $activity->date = Carbon::today()->format('Y-m-d');
-                $activity->description = " مبلغ " . $request->amount . "  دخل شد ";
+                $activity->description = "اضافه نمودن رسد به دخل توسط " . Auth::user()->name;
                 $activity->user_id = Auth::user()->id;
                 $activity->save();
             }
 
             if ($credit) {
-                if (Auth::user()->role == 'SP') {
+                if (Auth::user()->isSuperAdmin()) {
                     return redirect('/dashboard/add-office-credit')->with('status', 'مقدار پول موفقانه در دخل و روزنامچه مالی ثبت شد!');
                 } else {
                     return redirect('/dashboard/add-office-credit')->with('status', 'درخواست شما موفقانه ارسال شد تا تایید ان منتظر بمانید !');
@@ -316,7 +316,7 @@ class OfficeCreditController extends Controller
             $credit = OfficeCredit::find($id);
             $sp = OfficeCashBook::where('user_role', 'SP')->first();
 
-            if (Auth::user()->role == 'SP') {
+            if (Auth::user()->isSuperAdmin()) {
                 $sp->balance = $sp->balance - $credit->amount + $request->amount;
                 $sp->update();
             }
