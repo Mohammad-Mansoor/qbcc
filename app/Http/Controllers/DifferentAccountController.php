@@ -119,26 +119,26 @@ class DifferentAccountController extends Controller
     public function show($id)
     {
         $account = DifferentAccount::find($id);
-        $payments = DifferentAccountPayment::where('account_id',$id)->orderBy('created_at','DESC')->paginate(30);
+        $payments = DifferentAccountPayment::with(['debitAccount', 'creditAccount'])->where('account_id',$id)->orderBy('created_at','DESC')->paginate(30);
         $totals = \App\DifferentAccountTotal::where('account_id', $id)->get();
         $paymentEdit = '';
         $currencies = Currency::all();
         $chartOfAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingIn = \App\MappingRule::where('mapping_key', 'DIFF_IN')->first();
-        $mappingOut = \App\MappingRule::where('mapping_key', 'DIFF_OUT')->first();
+        $mappingIn = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'DIFF_IN')->first();
+        $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'DIFF_OUT')->first();
         return view('different-account.account-payment',compact('account','payments','totals','paymentEdit', 'currencies', 'chartOfAccounts', 'mappingIn', 'mappingOut'));
     }
 
     public function show_all_payment($account_id){
         $account = DifferentAccount::find($account_id);
-        $payments = DifferentAccountPayment::where('account_id',$account_id)->orderBy('created_at','DESC')->get();
+        $payments = DifferentAccountPayment::with(['debitAccount', 'creditAccount'])->where('account_id',$account_id)->orderBy('created_at','DESC')->get();
         $totals = \App\DifferentAccountTotal::where('account_id', $account_id)->get();
         $paymentEdit = '';
         $all = '';
         $currencies = Currency::all();
         $chartOfAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingIn = \App\MappingRule::where('mapping_key', 'DIFF_IN')->first();
-        $mappingOut = \App\MappingRule::where('mapping_key', 'DIFF_OUT')->first();
+        $mappingIn = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'DIFF_IN')->first();
+        $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'DIFF_OUT')->first();
         return view('different-account.account-payment',compact('account','payments','totals','paymentEdit','all', 'currencies', 'chartOfAccounts', 'mappingIn', 'mappingOut'));
     }
 

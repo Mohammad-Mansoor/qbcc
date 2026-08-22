@@ -213,6 +213,22 @@ class WarehouseController extends Controller
             }
 
             $items = $query->get();
+
+            $latestPrices = \DB::table('purchase_materials as pm')
+                ->select('pm.material_type', 'pm.price_per_kilo')
+                ->whereIn('pm.id', function($q) {
+                    $q->select(\DB::raw('MAX(id)'))
+                      ->from('purchase_materials')
+                      ->groupBy('material_type');
+                })
+                ->get()
+                ->keyBy('material_type');
+
+            foreach ($items as $item) {
+                $item->last_purchase_price = isset($latestPrices[$item->material_type_id])
+                    ? (float) $latestPrices[$item->material_type_id]->price_per_kilo
+                    : (float) $item->current_cost;
+            }
         }
 
         $headerPath = public_path('images/header.png');

@@ -194,7 +194,7 @@ class WashingPaymentController extends Controller
             return redirect('/dashboard/washing-team')->with('error', 'تیم شست‌وشو یافت نشد (Team not found).');
         }
 
-        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
+        $payments = WashingPayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('wash_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
@@ -229,6 +229,11 @@ class WashingPaymentController extends Controller
         $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'washing_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'washing_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'WASH_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'WASH_ADVANCE_OUT')->first();
 
         // Fetch Completed Washes & Match with Specific Payments
         $washes = \App\CarpetWash::where('team_id', $team_id)
@@ -329,7 +334,7 @@ class WashingPaymentController extends Controller
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'wash_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement'
+            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement', 'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ));
     }
 
@@ -340,7 +345,7 @@ class WashingPaymentController extends Controller
             return redirect('/dashboard/washing-team')->with('error', 'تیم شست‌وشو یافت نشد (Team not found).');
         }
 
-        $payments = WashingPayment::where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->get();
+        $payments = WashingPayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('wash_number', 'General')->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = WashingPayment::where('team_id', $team_id)
@@ -380,6 +385,12 @@ class WashingPaymentController extends Controller
             ->unique('id');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'washing_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'washing_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'WASH_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'WASH_ADVANCE_OUT')->first();
+        
         $all = 'true';
 
         // Fetch Completed Washes & Match with Specific Payments
@@ -481,7 +492,7 @@ class WashingPaymentController extends Controller
         return view('washing.washing-payment',compact(
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'wash_numbers','all', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
-            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement'
+            'washes', 'groupedWashes', 'totalBaseWashes', 'ledgerStatement', 'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ));
     }
 

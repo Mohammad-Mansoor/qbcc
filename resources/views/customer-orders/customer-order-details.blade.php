@@ -435,10 +435,12 @@
                                             <a href="/dashboard/carpet-specification/{{$co->cod_id}}" class="btn btn-light action-btn text-primary" title="مشاهده جزئیات کامل">
                                                 <i class="fa fa-eye"></i>
                                             </a>
-                                            @can('manage_customer_order_details')
+                                            @can('edit_customer_order_details')
                                             <a href="/dashboard/customer-order-details/{{$co->cod_id}}/edit" class="btn btn-light action-btn text-info" title="ویرایش مشخصات">
                                                 <i class="fa fa-edit"></i>
                                             </a>
+                                            @endcan
+                                            @can('delete_customer_order_details')
                                             <button class="btn btn-light action-btn text-danger mr-1" title="حذف قالین" onclick="deleteOrder({{$co->cod_id}})">
                                                 <i class="fa fa-trash"></i>
                                             </button>

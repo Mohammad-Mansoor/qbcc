@@ -211,7 +211,8 @@ header("Cache-Control: private",false);
                 <th style="height: 32pt;">کتگوری</th>
                 <th style="height: 32pt;">نوعیت مواد</th>
                 <th style="height: 32pt;">موجودی در دسترس (KG)</th>
-                <th style="height: 32pt;">آخرین فیت قیمت ($)</th>
+                <th style="height: 32pt;">قیمت آخرین خرید ($)</th>
+                <th style="height: 32pt;">قیمت میانگین WAC ($)</th>
                 <th style="height: 32pt;">ارزش تخمینی ($)</th>
             </tr>
         </thead>
@@ -229,12 +230,13 @@ header("Cache-Control: private",false);
                 <td class="text-center font-bold" style="height: 26pt;">{{ $item->material_category ?? '-' }}</td>
                 <td class="text-center font-bold" style="height: 26pt;">{{ $item->material_type ?? '-' }}</td>
                 <td class="text-center font-bold text-success" style="direction: ltr; height: 26pt;">{{ number_format($item->available_qty, 2) }}</td>
+                <td class="text-center" style="direction: ltr; height: 26pt;">${{ number_format($item->last_purchase_price ?? $item->current_cost, 2) }}</td>
                 <td class="text-center" style="direction: ltr; height: 26pt;">${{ number_format($item->current_cost, 2) }}</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 26pt;">${{ number_format($val, 2) }}</td>
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="text-center" style="padding: 20px;">هیچ موادی در این گدام یافت نشد.</td>
+                <td colspan="7" class="text-center" style="padding: 20px;">هیچ موادی در این گدام یافت نشد.</td>
             </tr>
             @endforelse
 
@@ -242,7 +244,7 @@ header("Cache-Control: private",false);
             <tr class="total-row">
                 <td colspan="3" class="text-center" style="height: 32pt;">مجموع کلی (Grand Total)</td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">{{ number_format($sum_qty, 2) }}</td>
-                <td class="text-center" style="height: 32pt;"></td>
+                <td colspan="2" class="text-center" style="height: 32pt;"></td>
                 <td class="text-center font-bold" style="direction: ltr; height: 32pt;">${{ number_format($sum_val, 2) }}</td>
             </tr>
             @endif

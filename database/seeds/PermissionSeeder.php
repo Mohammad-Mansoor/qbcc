@@ -246,6 +246,8 @@ class PermissionSeeder extends Seeder
             'edit_customer_order',
             'delete_customer_order',
             'manage_customer_order_details',
+            'edit_customer_order_details',
+            'delete_customer_order_details',
             'receive_customer_order_alerts',
 
             // Assets
@@ -254,6 +256,8 @@ class PermissionSeeder extends Seeder
             'edit_assets_account',
             'delete_assets_account',
             'manage_assets_account',
+            'edit_assets_account_details',
+            'delete_assets_account_details',
             'view_assets_report',
             'export_assets_report_pdf',
             'export_assets_report_excel',

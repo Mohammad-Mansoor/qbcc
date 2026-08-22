@@ -16,4 +16,14 @@ class WashingPayment extends Model
     {
         return $this->hasMany(WashingPaymentAllocation::class, 'washing_payment_id');
     }
+
+    public function debitAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'override_debit_account_id');
+    }
+
+    public function creditAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'override_credit_account_id');
+    }
 }

@@ -370,6 +370,7 @@
                                             <th>نوعیت (Type)</th>
                                             <th>شرح (Description)</th>
                                             <th>کچایی نمبر (Ref)</th>
+                                            <th>حسابات (Accounts)</th>
                                             <th>ارز (CCY)</th>
                                             <th>مقدار اصلی (Amount)</th>
                                             <th>نرخ (Rate)</th>
@@ -392,6 +393,31 @@
                                                 <span class="badge badge-light border p-2">
                                                     @if($pa->kachaee_number == 'نقد') نقد @else {{$pa->kachaee_number}} @endif
                                                 </span>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    if ($pa->is_advance) {
+                                                        $rule = ($pa->type == 'گرفت') ? ($advOutRule ?? null) : ($advInRule ?? null);
+                                                    } else {
+                                                        $rule = ($pa->type == 'گرفت') ? ($pymtOutRule ?? null) : ($pymtInRule ?? null);
+                                                    }
+                                                    $deb = $pa->debitAccount ?? ($rule->debitAccount ?? null);
+                                                    $cred = $pa->creditAccount ?? ($rule->creditAccount ?? null);
+
+                                                    $debCode = $deb ? $deb->account_code : ($pa->type == 'گرفت' ? ($pa->is_advance ? '11400' : '15000') : ($pa->is_advance ? '10100' : '10900'));
+                                                    $credCode = $cred ? $cred->account_code : ($pa->type == 'گرفت' ? ($pa->is_advance ? '10100' : '10900') : ($pa->is_advance ? '11400' : '15000'));
+
+                                                    $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : 'Debit Account';
+                                                    $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : 'Credit Account';
+                                                @endphp
+                                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                    <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                        Dr: {{ $debCode }}
+                                                    </span>
+                                                    <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                        Cr: {{ $credCode }}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="text-center font-weight-bold text-success">{{ $pa->currency_code ?: ($pa->amount > 0 ? 'USD' : 'AFN') }}</td>
                                             <td class="font-weight-bold" style="direction: ltr;">
@@ -430,7 +456,7 @@
                                     <tfoot class="bg-light">
                                         @foreach($currencyTotals as $code => $totals)
                                         <tr>
-                                            <th colspan="4" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
+                                            <th colspan="5" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
                                             <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
                                             @php $balance = $totals->total_received - $totals->total_sent; @endphp
@@ -440,7 +466,7 @@
                                         </tr>
                                         @endforeach
                                         <tr style="background: #e8f5e9;">
-                                            <th colspan="4" class="text-right text-success"><b>مجموع کل بیلانس (Base USD)</b></th>
+                                            <th colspan="5" class="text-right text-success"><b>مجموع کل بیلانس (Base USD)</b></th>
                                             <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
                                             @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp
@@ -642,6 +668,7 @@
                                             <th>مبلغ تخصیص (Allocated Amount)</th>
                                             <th>نرخ ارز (Exchange Rate)</th>
                                             <th>معادل دالر (Base USD Allocated)</th>
+                                            <th>اکانت‌ها (Accounts)</th>
                                             <th class="hideOnPrint">عملیات (Action)</th>
                                         </tr>
                                     </thead>

@@ -417,6 +417,7 @@
                                             <th>نوع (Type)</th>
                                             <th>نمبر شست (Wash #)</th>
                                             <th>شرح (Description)</th>
+                                            <th>حسابات (Accounts)</th>
                                             <th>ارز (CCY)</th>
                                             <th>نرخ (Rate)</th>
                                             <th>مقدار اصلی (Amount)</th>
@@ -436,6 +437,31 @@
                                             </td>
                                             <td class="text-info font-weight-bold">{{ $p->wash_number ?: 'N/A' }}</td>
                                             <td class="small">{{ $p->description }}</td>
+                                            <td>
+                                                @php
+                                                    if ($p->is_advance) {
+                                                        $rule = ($p->type == 'گرفت') ? ($advOutRule ?? null) : ($advInRule ?? null);
+                                                    } else {
+                                                        $rule = ($p->type == 'گرفت') ? ($pymtOutRule ?? null) : ($pymtInRule ?? null);
+                                                    }
+                                                    $deb = $p->debitAccount ?? ($rule->debitAccount ?? null);
+                                                    $cred = $p->creditAccount ?? ($rule->creditAccount ?? null);
+
+                                                    $debCode = $deb ? $deb->account_code : ($p->type == 'گرفت' ? ($p->is_advance ? '11400' : '15000') : ($p->is_advance ? '10000' : '10900'));
+                                                    $credCode = $cred ? $cred->account_code : ($p->type == 'گرفت' ? ($p->is_advance ? '10400' : '19200') : ($p->is_advance ? '11400' : '15000'));
+
+                                                    $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : 'Debit Account';
+                                                    $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : 'Credit Account';
+                                                @endphp
+                                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                    <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                        Dr: {{ $debCode }}
+                                                    </span>
+                                                    <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                        Cr: {{ $credCode }}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td class="font-weight-bold text-primary">{{ $p->currency_code ?: 'USD' }}</td>
                                             <td class="small" style="direction: ltr;">{{ number_format($p->exchange_rate, 8) }}</td>
                                             <td class="font-weight-bold" style="direction: ltr;">{{ number_format($p->original_amount ?: ($p->amount ?: $p->amount_af), 2) }}</td>
@@ -467,7 +493,7 @@
                                     <tfoot class="bg-light">
                                         @foreach($currencyTotals as $code => $totals)
                                         <tr>
-                                            <th colspan="3" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
+                                            <th colspan="4" class="text-right">خلاصه {{ $code }} ({{ $code }} Summary)</th>
                                             <td colspan="2" class="text-success text-right"><b>رسید: {{ number_format($totals->total_received, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>گرفت: {{ number_format($totals->total_sent, 2) }}</b></td>
                                             @php $balance = $totals->total_received - $totals->total_sent; @endphp
@@ -477,7 +503,7 @@
                                         </tr>
                                         @endforeach
                                         <tr style="background: #e8f5e9;">
-                                            <th colspan="3" class="text-right text-success"><b>مجموع کل بیلانس لجر (Base USD)</b></th>
+                                            <th colspan="4" class="text-right text-success"><b>مجموع کل بیلانس لجر (Base USD)</b></th>
                                             <td colspan="2" class="text-success text-right"><b>$ {{ number_format($totalBaseReceived, 2) }}</b></td>
                                             <td colspan="2" class="text-danger text-right"><b>$ {{ number_format($totalBaseSent, 2) }}</b></td>
                                             @php $baseBalance = $totalBaseReceived - $totalBaseSent; @endphp
@@ -680,6 +706,7 @@
                                             <th>تاریخ تخصیص (Allocation Date)</th>
                                             <th>سند پیش‌پرداخت (Source Advance)</th>
                                             <th>گروپ شست‌وشو مقصد (Target Batch)</th>
+                                            <th>حسابات درگیر (Accounts Involved)</th>
                                             <th>مبلغ تخصیص (Allocated Amount)</th>
                                             <th>نرخ ارز (Exchange Rate)</th>
                                             <th>معادل دالر (Base USD Allocated)</th>
@@ -704,6 +731,40 @@
                                                 @else
                                                     <span class="text-danger">سند حذف شده</span>
                                                 @endif
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $advPayment = $alloc->payment;
+                                                    if ($advPayment) {
+                                                        $advRule = ($advPayment->type == 'گرفت') ? ($advOutRule ?? null) : ($advInRule ?? null);
+                                                        $advDeb = $advPayment->debitAccount ?? ($advRule->debitAccount ?? null);
+                                                        $advCred = $advPayment->creditAccount ?? ($advRule->creditAccount ?? null);
+                                                        $advDebCode = $advDeb ? $advDeb->account_code : ($advPayment->type == 'گرفت' ? '11400' : '10000');
+                                                        $advCredCode = $advCred ? $advCred->account_code : ($advPayment->type == 'گرفت' ? '10400' : '11400');
+                                                        $advDebName = $advDeb ? ($advDeb->account_code . ' - ' . $advDeb->account_name) : 'Advance Account';
+                                                        $advCredName = $advCred ? ($advCred->account_code . ' - ' . $advCred->account_name) : 'Cash/Bank Account';
+                                                    } else {
+                                                        $advDebCode = '11400';
+                                                        $advCredCode = '10400';
+                                                        $advDebName = 'Advance to Suppliers';
+                                                        $advCredName = 'Sarafi-USD';
+                                                    }
+
+                                                    $settleDebCode = '15000';
+                                                    $settleCredCode = '11400';
+                                                @endphp
+                                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                    <div class="text-nowrap mb-1">
+                                                        <span class="badge badge-light border text-primary font-weight-bold" style="padding: 3px 6px;" title="پیش‌پرداخت (Advance): Dr {{ $advDebName }} / Cr {{ $advCredName }}" data-toggle="tooltip">
+                                                            پیش‌پرداخت: {{ $advDebCode }} / {{ $advCredCode }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-nowrap">
+                                                        <span class="badge badge-light border text-success font-weight-bold" style="padding: 2px 5px;" title="تصفیه تخصیص (Settlement): Dr Accounts Payable (15000) -> Cr Advance to Suppliers (11400)" data-toggle="tooltip">
+                                                            تصفیه: Dr {{ $settleDebCode }} &rarr; Cr {{ $settleCredCode }}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="font-weight-bold text-success" style="direction: ltr;">
                                                 {{ number_format($alloc->allocated_amount, 2) }} {{ $alloc->payment->currency_code ?? 'USD' }}

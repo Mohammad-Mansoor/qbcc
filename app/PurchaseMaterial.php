@@ -60,4 +60,12 @@ class PurchaseMaterial extends Model
     public function purchaseBill() {
         return $this->belongsTo(\App\RawMaterialPurchaseBill::class, 'raw_material_purchase_bill_id', 'id');
     }
+
+    public function debitAccount() {
+        return $this->belongsTo(ChartOfAccount::class, 'override_debit_account_id');
+    }
+
+    public function creditAccount() {
+        return $this->belongsTo(ChartOfAccount::class, 'override_credit_account_id');
+    }
 }

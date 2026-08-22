@@ -63,7 +63,9 @@ class PurchaseMaterialController extends Controller
      */
     public function index()
     {
-        $purchase = PurchaseMaterial::latest()->paginate(30);
+        $purchase = PurchaseMaterial::with(['debitAccount', 'creditAccount', 'materialType', 'materialCategory', 'seller', 'warehouse', 'purchaseBill'])
+            ->latest()
+            ->paginate(30);
         $material_type = MaterialType::all();
         $material_category = MaterialCategory::all();
         $sellers = StringSeller::all();
@@ -85,7 +87,7 @@ class PurchaseMaterialController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
         
         // Fetch current mapping as defaults
-        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
         $currencies = Currency::where('is_active', true)->get();
 
         $purchaseBills = RawMaterialPurchaseBill::orderBy('date','desc')->get();
@@ -284,7 +286,9 @@ class PurchaseMaterialController extends Controller
      */
     public function edit(PurchaseMaterial $purchaseMaterial)
     {
-        $purchase = PurchaseMaterial::latest()->paginate(30);
+        $purchase = PurchaseMaterial::with(['debitAccount', 'creditAccount', 'materialType', 'materialCategory', 'seller', 'warehouse', 'purchaseBill'])
+            ->latest()
+            ->paginate(30);
         $material_type = MaterialType::all();
         $material_category = MaterialCategory::all();
         $sellers = StringSeller::all();
@@ -293,7 +297,7 @@ class PurchaseMaterialController extends Controller
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('MATERIAL_PURCHASE_CREDIT', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'MATERIAL_PURCHASE_CREDIT')->first();
         $currencies    = Currency::where('is_active', true)->get();
         $purchaseBills = RawMaterialPurchaseBill::orderBy('date','desc')->get();
 

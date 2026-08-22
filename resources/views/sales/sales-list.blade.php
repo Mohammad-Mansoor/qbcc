@@ -321,6 +321,7 @@
                             <th class="border-0 py-3 text-center">قیمت تمام شد (COGS)</th>
                             <th class="border-0 py-3 text-center">قیمت فی متر</th>
                             <th class="border-0 py-3 text-center">مجموع فروش</th>
+                            <th class="border-0 py-3 text-center">حسابات (Accounts)</th>
                             @if(auth()->user()->role == 'SP')
                             <th class="border-0 py-3 text-center">مفاد خالص</th>
                             @endif
@@ -439,6 +440,36 @@
                                     @endif
                                 @endif
                             </td>
+                            <td class="text-center">
+                                <?php
+                                    $debRev = $sale->debitAccount ?? ($mappingRevenue->debitAccount ?? null);
+                                    $credRev = $sale->creditAccount ?? ($mappingRevenue->creditAccount ?? null);
+                                    $debCogs = $sale->cogsDebitAccount ?? ($mappingCogs->debitAccount ?? null);
+                                    $credCogs = $sale->cogsCreditAccount ?? ($mappingCogs->creditAccount ?? null);
+
+                                    $debRevCode = $debRev ? $debRev->account_code : '12000';
+                                    $credRevCode = $credRev ? $credRev->account_code : '19000';
+                                    $debCogsCode = $debCogs ? $debCogs->account_code : '20000';
+                                    $credCogsCode = $credCogs ? $credCogs->account_code : '13000';
+
+                                    $debRevName = $debRev ? ($debRev->account_code . ' - ' . $debRev->account_name) : 'Accounts Receivable (12000)';
+                                    $credRevName = $credRev ? ($credRev->account_code . ' - ' . $credRev->account_name) : 'Carpet Sales Revenue (19000)';
+                                    $debCogsName = $debCogs ? ($debCogs->account_code . ' - ' . $debCogs->account_name) : 'COGS Expense (20000)';
+                                    $credCogsName = $credCogs ? ($credCogs->account_code . ' - ' . $credCogs->account_name) : 'Finished Goods Inventory (13000)';
+                                ?>
+                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                    <div class="mb-1 text-nowrap">
+                                        <span class="badge badge-light border text-primary font-weight-bold" style="padding: 3px 6px;" title="عاید فروش (Revenue): Dr {{ $debRevName }} / Cr {{ $credRevName }}" data-toggle="tooltip">
+                                            عاید: {{ $debRevCode }} / {{ $credRevCode }}
+                                        </span>
+                                    </div>
+                                    <div class="text-nowrap">
+                                        <span class="badge badge-light border text-danger font-weight-bold" style="padding: 2px 5px;" title="قیمت تمام‌شد (COGS): Dr {{ $debCogsName }} / Cr {{ $credCogsName }}" data-toggle="tooltip">
+                                            تمام‌شد: {{ $debCogsCode }} / {{ $credCogsCode }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </td>
                             @if(auth()->user()->role == 'SP')
                             <td class="text-center">
                                 @if($sale->is_returned)
@@ -486,7 +517,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="11" class="py-5 text-center">
+                            <td colspan="{{ auth()->user()->role == 'SP' ? '13' : '12' }}" class="py-5 text-center">
                                 <img src="/assets/img/empty-cart.png" alt="Empty" style="width: 80px; opacity: 0.5;">
                                 <p class="mt-3 text-muted">هیچ فروشاتی یافت نشد.</p>
                             </td>

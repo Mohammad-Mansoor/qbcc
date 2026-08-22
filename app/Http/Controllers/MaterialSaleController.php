@@ -137,7 +137,9 @@ class MaterialSaleController extends Controller
      */
     public function index()
     {
-        $material_sales = MaterialSale::with(['category', 'type', 'agent', 'warehouse'])->orderBy('created_at', 'DESC')->paginate(60);
+        $material_sales = MaterialSale::with(['category', 'type', 'agent', 'warehouse', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
+            ->orderBy('created_at', 'DESC')
+            ->paginate(60);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = '';
@@ -161,7 +163,8 @@ class MaterialSaleController extends Controller
         $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
         $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
 
-        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $cogsMapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
         $warehouses = \App\Warehouse::all();
         $currencies = Currency::where('is_active', 1)->get();
         $baseCurrency = Currency::where('is_base_currency', 1)->first();
@@ -183,6 +186,7 @@ class MaterialSaleController extends Controller
             'allowedCogsDebit',
             'allowedCogsCredit',
             'mapping',
+            'cogsMapping',
             'warehouses',
             'currencies',
             'baseCurrency',
@@ -409,7 +413,9 @@ class MaterialSaleController extends Controller
      */
     public function edit($id)
     {
-        $material_sales = MaterialSale::paginate(30);
+        $material_sales = MaterialSale::with(['category', 'type', 'agent', 'warehouse', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
+            ->orderBy('created_at', 'DESC')
+            ->paginate(30);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = MaterialSale::find($id);
@@ -425,7 +431,8 @@ class MaterialSaleController extends Controller
         $allowedCogsDebit = $selectionService->getValidAccounts('SALES_COGS', 'debit');
         $allowedCogsCredit = $selectionService->getValidAccounts('SALES_COGS', 'credit');
 
-        $mapping = \App\MappingRule::where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'MATERIAL_REVENUE')->first();
+        $cogsMapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
         $warehouses = \App\Warehouse::all();
         $currencies = Currency::where('is_active', 1)->get();
         $baseCurrency = Currency::where('is_base_currency', 1)->first();
@@ -451,6 +458,7 @@ class MaterialSaleController extends Controller
             'allowedCogsDebit',
             'allowedCogsCredit',
             'mapping',
+            'cogsMapping',
             'warehouses',
             'currencies',
             'baseCurrency',
@@ -549,6 +557,12 @@ class MaterialSaleController extends Controller
             $currency = Currency::findOrFail($request->currency_id);
             $materialSale->currency_code = $currency->code;
             $materialSale->base_currency_amount = bcmul($request->original_amount, $request->exchange_rate, 4);
+
+            // Account Overrides Persistence
+            $materialSale->override_debit_account_id = $request->override_debit_account_id;
+            $materialSale->override_credit_account_id = $request->override_credit_account_id;
+            $materialSale->override_cogs_debit_id = $request->override_cogs_debit_id;
+            $materialSale->override_cogs_credit_id = $request->override_cogs_credit_id;
 
             $materialSale->update();
 

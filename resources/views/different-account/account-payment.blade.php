@@ -192,6 +192,7 @@
                             <tr>
                                 <th>تاریخ</th>
                                 <th>نوعیت</th>
+                                <th>حسابات (Accounts)</th>
                                 <th>مبلغ اصلی</th>
                                 <th>نرخ تبدیل</th>
                                 <th>معادل دالر (GL)</th>
@@ -208,6 +209,27 @@
                                         <span class="type-badge {{ $pa->type == 'رسید' ? 'badge-receipt' : 'badge-payment' }}">
                                             {{ $pa->type }}
                                         </span>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $rule = ($pa->type == 'رسید') ? ($mappingIn ?? null) : ($mappingOut ?? null);
+                                            $deb = $pa->debitAccount ?? ($rule->debitAccount ?? null);
+                                            $cred = $pa->creditAccount ?? ($rule->creditAccount ?? null);
+
+                                            $debCode = $deb ? $deb->account_code : ($pa->type == 'رسید' ? '10000' : '15000');
+                                            $credCode = $cred ? $cred->account_code : ($pa->type == 'رسید' ? '15000' : '10000');
+
+                                            $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : 'Debit Account';
+                                            $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : 'Credit Account';
+                                        @endphp
+                                        <div style="font-size: 0.78rem; line-height: 1.3;">
+                                            <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                Dr: {{ $debCode }}
+                                            </span>
+                                            <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                Cr: {{ $credCode }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="font-weight-bold" dir="ltr">

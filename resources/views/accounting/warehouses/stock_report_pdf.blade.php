@@ -188,12 +188,13 @@
                             @else
                             <thead>
                                 <tr>
-                                    <th class="text-center" style="width: 10%;">ردیف</th>
-                                    <th style="width: 25%;">کتگوری</th>
-                                    <th style="width: 25%;">نوعیت مواد</th>
-                                    <th class="text-center" style="width: 15%;">موجودی در دسترس (KG)</th>
-                                    <th class="text-center" style="width: 12.5%;">آخرین فیت قیمت ($)</th>
-                                    <th class="text-center" style="width: 12.5%;">ارزش تخمینی ($)</th>
+                                    <th class="text-center" style="width: 8%;">ردیف</th>
+                                    <th style="width: 22%;">کتگوری</th>
+                                    <th style="width: 22%;">نوعیت مواد</th>
+                                    <th class="text-center" style="width: 14%;">موجودی در دسترس (KG)</th>
+                                    <th class="text-center" style="width: 11%;">آخرین خرید ($)</th>
+                                    <th class="text-center" style="width: 11%;">میانگین WAC ($)</th>
+                                    <th class="text-center" style="width: 12%;">ارزش تخمینی ($)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -209,12 +210,13 @@
                                     <td><strong>{{ $item->material_category ?? '-' }}</strong></td>
                                     <td><strong>{{ $item->material_type ?? '-' }}</strong></td>
                                     <td class="text-center" style="direction: ltr; font-weight: bold;">{{ number_format($item->available_qty, 2) }}</td>
+                                    <td class="text-center" style="direction: ltr;">${{ number_format($item->last_purchase_price ?? $item->current_cost, 2) }}</td>
                                     <td class="text-center" style="direction: ltr;">${{ number_format($item->current_cost, 2) }}</td>
                                     <td class="text-center" style="direction: ltr; font-weight: bold;">${{ number_format($val, 2) }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center" style="padding: 20px;">هیچ موادی در این گدام یافت نشد.</td>
+                                    <td colspan="7" class="text-center" style="padding: 20px;">هیچ موادی در این گدام یافت نشد.</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -223,7 +225,7 @@
                                 <tr class="total-row">
                                     <td colspan="3" class="text-center">مجموع کلی (Grand Total)</td>
                                     <td class="text-center" style="direction: ltr;">{{ number_format($sum_qty, 2) }}</td>
-                                    <td class="text-center"></td>
+                                    <td colspan="2" class="text-center"></td>
                                     <td class="text-center" style="direction: ltr;">${{ number_format($sum_val, 2) }}</td>
                                 </tr>
                             </tfoot>

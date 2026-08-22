@@ -195,7 +195,7 @@ class FinishingTeamPaymentController extends Controller
             return redirect('/dashboard/finishing-team')->with('error', 'تیم تیاری یافت نشد (Team not found).');
         }
 
-        $payments = FinishingTeamPayment::where('team_id',$team_id)->where('finish_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
+        $payments = FinishingTeamPayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('finish_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
@@ -221,6 +221,11 @@ class FinishingTeamPaymentController extends Controller
         $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_name')->get();
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'finishing_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'finishing_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'FINISH_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'FINISH_ADVANCE_OUT')->first();
 
         // Fetch Approved Finishing Jobs
         $finishingWorks = \App\FinishingWork::where('team_id', $team_id)
@@ -299,7 +304,7 @@ class FinishingTeamPaymentController extends Controller
             'team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent',
             'finish_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies',
             'finishingWorks', 'groupedFinishingWorks', 'totalBaseFinishes',
-            'finishingAdvances', 'finishingAllocations'
+            'finishingAdvances', 'finishingAllocations', 'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ));
     }
 
@@ -310,7 +315,7 @@ class FinishingTeamPaymentController extends Controller
             return redirect('/dashboard/finishing-team')->with('error', 'تیم تیاری یافت نشد (Team not found).');
         }
 
-        $payments = FinishingTeamPayment::where('team_id',$team_id)->where('finish_number', 'General')->orderBy('date','DESC')->get();
+        $payments = FinishingTeamPayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('finish_number', 'General')->orderBy('date','DESC')->get();
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = FinishingTeamPayment::where('team_id', $team_id)
@@ -337,6 +342,12 @@ class FinishingTeamPaymentController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'finishing_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'finishing_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'FINISH_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'FINISH_ADVANCE_OUT')->first();
+
         $all = 'true';
 
         // Fetch Approved Finishing Jobs

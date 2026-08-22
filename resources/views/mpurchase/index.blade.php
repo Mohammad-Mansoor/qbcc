@@ -104,6 +104,7 @@
                     <small class="d-block" style="font-weight:400; color:#94a3b8; font-size:0.72rem;">نرخ × مبلغ</small>
                   </th>
                   <th style="padding: 12px 16px; font-weight: 600; text-align: center;">گدام</th>
+                  <th style="padding: 12px 16px; font-weight: 600; text-align: center;">حسابات (Accounts)</th>
                   <th style="padding: 12px 16px; font-weight: 600; text-align: center;">حالت</th>
                   <th style="padding: 12px 16px; font-weight: 600; text-align: center;">اقدام</th>
                 </tr>
@@ -223,6 +224,32 @@
                     @endif
                   </td>
 
+                  {{-- Accounts --}}
+                  <td style="padding: 10px 16px; text-align: center; white-space: nowrap;">
+                    @php
+                      $deb = $p->debitAccount ?? ($mapping->debitAccount ?? null);
+                      $cred = $p->creditAccount ?? ($mapping->creditAccount ?? null);
+
+                      $debCode = $deb ? $deb->account_code : '13000';
+                      $credCode = $cred ? $cred->account_code : '15000';
+
+                      $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : '13000 - Inventory';
+                      $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : '15000 - Accounts Payable';
+                    @endphp
+                    <div style="font-size: 0.78rem; line-height: 1.3;">
+                      <div class="mb-1">
+                        <span class="badge badge-light border text-primary font-weight-bold" style="padding: 3px 6px;" title="حساب گدام/موجودی (Debit): {{ $debName }}" data-toggle="tooltip">
+                          Dr: {{ $debCode }}
+                        </span>
+                      </div>
+                      <div>
+                        <span class="badge badge-light border text-success font-weight-bold" style="padding: 3px 6px;" title="حساب فروشنده/پرداختنی (Credit): {{ $credName }}" data-toggle="tooltip">
+                          Cr: {{ $credCode }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
                   {{-- Status --}}
                   <td style="padding: 10px 16px; text-align: center;">
                     @if($p->status == 0)
@@ -259,7 +286,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="14" style="text-align:center; padding: 40px; color: #94a3b8;">
+                  <td colspan="15" style="text-align:center; padding: 40px; color: #94a3b8;">
                     <i class="fa fa-inbox" style="font-size: 2rem; display:block; margin-bottom: 8px;"></i>
                     هیچ رکوردی یافت نشد
                   </td>

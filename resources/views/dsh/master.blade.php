@@ -1508,15 +1508,31 @@
 
   <script type="text/javascript">
     $(document).ready(function () {
-      $("form").on("submit", function () {
-        $(this).submit(function () {
+      // Global double-click & double-submit prevention for all forms
+      $(document).on("submit", "form", function (e) {
+        var $form = $(this);
+
+        if ($form.data("is-submitting")) {
+          e.preventDefault();
           return false;
-        });
+        }
+
+        $form.data("is-submitting", true);
+
+        // Disable submit buttons to prevent rapid double-clicks
+        var $submitBtns = $form.find("button[type='submit'], input[type='submit'], .btn-submit");
+        $submitBtns.prop("disabled", true);
+
         return true;
       });
+
+      // Re-enable submit buttons if HTML5 browser validation fails
+      $(document).on("invalid", "form input, form select, form textarea", function () {
+        var $form = $(this).closest("form");
+        $form.data("is-submitting", false);
+        $form.find("button[type='submit'], input[type='submit'], .btn-submit").prop("disabled", false);
+      });
     });
-
-
   </script>
   {{--this function prevent multiple submitting--}}
 

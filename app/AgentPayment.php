@@ -15,4 +15,14 @@ class AgentPayment extends Model
     {
         return $this->hasMany(AgentPaymentAllocation::class, 'agent_payment_id');
     }
+
+    public function debitAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'override_debit_account_id');
+    }
+
+    public function creditAccount()
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'override_credit_account_id');
+    }
 }

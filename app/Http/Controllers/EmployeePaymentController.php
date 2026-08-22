@@ -216,7 +216,7 @@ class EmployeePaymentController extends Controller
         $total_debit_usd  = EmployeePayment::where('type', 'گرفت')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
         $total_credit_usd = EmployeePayment::where('type', 'رسید')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
 
-        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->orderBy('date', 'DESC')->paginate(30);
+        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->with(['debitAccount', 'creditAccount'])->orderBy('date', 'DESC')->paginate(30);
         $paymentEdit         = '';
         $contract_number_list = $employee->employee_salary;
         $currencies          = \App\Currency::where('is_active', 1)->get();
@@ -224,7 +224,10 @@ class EmployeePaymentController extends Controller
 
             $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
             $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        $mappingPayroll      = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        if (!$mappingPayroll) {
+            $mappingPayroll  = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'employee_payment')->first();
+        }
 
         return view('office-employee.employee-payment', compact(
             'employee', 'payments', 'paymentEdit', 'debits_us', 'debits_af',
@@ -253,7 +256,7 @@ class EmployeePaymentController extends Controller
         $total_debit_usd  = EmployeePayment::where('type', 'گرفت')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
         $total_credit_usd = EmployeePayment::where('type', 'رسید')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
 
-        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->orderBy('date', 'DESC')->get();
+        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->with(['debitAccount', 'creditAccount'])->orderBy('date', 'DESC')->get();
         $paymentEdit         = '';
         $all                 = true;
         $contract_number_list = $employee->employee_salary;
@@ -261,7 +264,10 @@ class EmployeePaymentController extends Controller
         $baseCurrency        = \App\Currency::where('is_base_currency', 1)->first();
         $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
         $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        $mappingPayroll      = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        if (!$mappingPayroll) {
+            $mappingPayroll  = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'employee_payment')->first();
+        }
 
         return view('office-employee.employee-payment', compact(
             'employee', 'payments', 'paymentEdit', 'debits_us', 'debits_af',
@@ -289,7 +295,7 @@ class EmployeePaymentController extends Controller
         $total_debit_usd  = EmployeePayment::where('type', 'گرفت')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
         $total_credit_usd = EmployeePayment::where('type', 'رسید')->where('employee_id', $employee_id)->where('contract_number', $cn)->where('status', 1)->sum('base_currency_amount');
 
-        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->orderBy('date', 'DESC')->paginate(30);
+        $payments            = EmployeePayment::where('employee_id', $employee_id)->where('contract_number', $cn)->with(['debitAccount', 'creditAccount'])->orderBy('date', 'DESC')->paginate(30);
         $paymentEdit         = '';
         $contract_number_list = $employee->employee_salary;
         $check_contract      = true;
@@ -297,7 +303,10 @@ class EmployeePaymentController extends Controller
         $baseCurrency        = \App\Currency::where('is_base_currency', 1)->first();
         $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
         $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingPayroll      = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        $mappingPayroll      = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        if (!$mappingPayroll) {
+            $mappingPayroll  = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'employee_payment')->first();
+        }
 
         return view('office-employee.employee-payment', compact(
             'employee', 'payments', 'paymentEdit', 'debits_us', 'debits_af',
@@ -326,7 +335,7 @@ class EmployeePaymentController extends Controller
         $total_credit_usd = EmployeePayment::where('type', 'رسید')->where('employee_id', $paymentEdit->employee_id)->where('status', 1)->sum('base_currency_amount');
 
         $payments = $cn
-            ? EmployeePayment::where('employee_id', $paymentEdit->employee_id)->where('contract_number', $cn)->orderBy('date', 'DESC')->paginate(30)
+            ? EmployeePayment::where('employee_id', $paymentEdit->employee_id)->where('contract_number', $cn)->with(['debitAccount', 'creditAccount'])->orderBy('date', 'DESC')->paginate(30)
             : collect();
 
         $contract_number_list = $employee->employee_salary;
@@ -334,7 +343,10 @@ class EmployeePaymentController extends Controller
         $baseCurrency         = \App\Currency::where('is_base_currency', 1)->first();
         $allowedDebitAccounts  = \App\ChartOfAccount::orderBy('account_code')->get();
         $allowedCreditAccounts = \App\ChartOfAccount::orderBy('account_code')->get();
-        $mappingPayroll       = \App\MappingRule::where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        $mappingPayroll       = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PAYROLL_PAYMENT')->first();
+        if (!$mappingPayroll) {
+            $mappingPayroll   = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'employee_payment')->first();
+        }
 
         return view('office-employee.employee-payment', compact(
             'employee', 'payments', 'paymentEdit', 'debits_us', 'debits_af',

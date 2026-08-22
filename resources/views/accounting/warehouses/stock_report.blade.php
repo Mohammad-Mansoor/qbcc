@@ -214,7 +214,8 @@
                         <th>کتگوری</th>
                         <th>نوعیت</th>
                         <th>موجودی در دسترس (KG)</th>
-                        <th>آخرین فیت قیمت ($)</th>
+                        <th>قیمت آخرین خرید ($)</th>
+                        <th>قیمت میانگین WAC ($)</th>
                         <th>ارزش تخمینی ($)</th>
                     </tr>
                 </thead>
@@ -231,19 +232,20 @@
                         <td class="font-weight-bold" style="color: var(--accent-blue);">{{ $item->material_category ?? '-' }}</td>
                         <td class="font-weight-bold text-dark">{{ $item->material_type ?? '-' }}</td>
                         <td class="font-weight-bold text-success" dir="ltr">{{ number_format($item->available_qty, 2) }}</td>
+                        <td class="text-info" dir="ltr">{{ number_format($item->last_purchase_price ?? $item->current_cost, 2) }}</td>
                         <td class="text-danger" dir="ltr">{{ number_format($item->current_cost, 2) }}</td>
                         <td class="font-weight-bold" dir="ltr">{{ number_format($val, 2) }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">هیچ موادی در این گدام یافت نشد.</td>
+                        <td colspan="7" class="text-center text-muted py-4">هیچ موادی در این گدام یافت نشد.</td>
                     </tr>
                     @endforelse
                     @if(count($items) > 0)
                     <tr>
                         <td colspan="3" class="font-weight-bold text-center">مجموع:</td>
                         <td class="font-weight-bold text-success" dir="ltr">{{ number_format($sum_qty, 2) }}</td>
-                        <td></td>
+                        <td colspan="2"></td>
                         <td class="font-weight-bold text-danger" dir="ltr">{{ number_format($sum_val, 2) }} $</td>
                     </tr>
                     @endif

@@ -374,6 +374,9 @@ class CarpetRepairController extends Controller
             $data['exchange_rate'] = $rate;
             $data['base_currency_amount'] = $base_amount;
 
+            $data['override_debit_account_id'] = $request->account_id ?? $request->override_debit_account_id;
+            $data['override_credit_account_id'] = $request->override_credit_account_id;
+
             // account_id is used for ledger entry mapping, not stored directly in carpet_repairs
             unset($data['account_id']);
 
@@ -440,6 +443,24 @@ class CarpetRepairController extends Controller
         $currency = \App\Currency::getLegacyAFNRate();
         $currencies = \App\Currency::where('is_active', true)->get();
 
+        if (!$carpetRepair->override_debit_account_id || !$carpetRepair->override_credit_account_id) {
+            $tx = DB::table('ledger_transactions')
+                ->where('source_type', 'App\CarpetRepair')
+                ->where('source_id', $carpetRepair->id)
+                ->where('status', 'posted')
+                ->first();
+            if ($tx) {
+                $debitEntry = DB::table('ledger_entries')->where('transaction_id', $tx->id)->where('debit', '>', 0)->first();
+                $creditEntry = DB::table('ledger_entries')->where('transaction_id', $tx->id)->where('credit', '>', 0)->first();
+                if ($debitEntry && !$carpetRepair->override_debit_account_id) {
+                    $carpetRepair->override_debit_account_id = $debitEntry->account_id;
+                }
+                if ($creditEntry && !$carpetRepair->override_credit_account_id) {
+                    $carpetRepair->override_credit_account_id = $creditEntry->account_id;
+                }
+            }
+        }
+
         return view('carpet-repair.edit',compact('carpetRepair', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'defaultAccount', 'currency', 'currencies'));
     }
 
@@ -473,6 +494,8 @@ class CarpetRepairController extends Controller
             $data['currency_code'] = $currency;
             $data['exchange_rate'] = $rate;
             $data['base_currency_amount'] = $base_amount;
+            $data['override_debit_account_id'] = $request->account_id ?? $request->override_debit_account_id;
+            $data['override_credit_account_id'] = $request->override_credit_account_id;
             
             // account_id is used for ledger entry mapping, not stored directly in carpet_repairs
             unset($data['account_id']);
@@ -536,6 +559,8 @@ class CarpetRepairController extends Controller
             'team_id' => 'required',
             'description' => 'required',
             'account_id' => 'nullable',
+            'override_debit_account_id' => 'nullable',
+            'override_credit_account_id' => 'nullable',
             'currency_code' => 'nullable',
             'exchange_rate' => 'nullable',
         ]);

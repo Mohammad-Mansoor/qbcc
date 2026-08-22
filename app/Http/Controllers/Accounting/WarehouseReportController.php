@@ -81,7 +81,7 @@ class WarehouseReportController extends Controller
             ->toArray();
 
         // Base Query for Summary Cards
-        $baseCardQuery = DB::table('carpets');
+        $baseCardQuery = DB::table('carpets')->where('carpets.status', '!=', 6);
         if ($qualityId) $baseCardQuery->where('carpets.quality_id', $qualityId);
         if ($typeId) $baseCardQuery->where('carpets.type_id', $typeId);
 
@@ -104,6 +104,7 @@ class WarehouseReportController extends Controller
 
         // High-Performance SQL GROUP BY query for bottom card grid
         $gridQuery = DB::table('carpets')
+            ->where('carpets.status', '!=', 6)
             ->leftJoin('sales', function($join) {
                 $join->on('carpets.carpet_id', '=', 'sales.carpet_id')
                      ->where('sales.is_returned', '=', 0);

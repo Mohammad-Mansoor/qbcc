@@ -110,12 +110,12 @@ Permissions generally follow the standard `action_module` naming convention (e.g
 ## 11. Customer Orders (سفارشات)
 | Sidebar Link / Feature | Permissions Needed |
 | :--- | :--- |
-| لیست سفارشات | `view_customer_orders`, `create_customer_order`, `manage_customer_order_details` |
+| لیست سفارشات | `view_customer_orders`, `create_customer_order`, `edit_customer_order`, `delete_customer_order`, `manage_customer_order_details`, `edit_customer_order_details`, `delete_customer_order_details` |
 
 ## 12. Assets (اجناس ثابت شرکت)
 | Sidebar Link / Feature | Permissions Needed |
 | :--- | :--- |
-| حسابات اجناس | `view_assets_accounts`, `create_assets_account`, `edit_assets_account`, `delete_assets_account`, `manage_assets_account` |
+| حسابات اجناس | `view_assets_accounts`, `create_assets_account`, `edit_assets_account`, `delete_assets_account`, `manage_assets_account`, `edit_assets_account_details`, `delete_assets_account_details` |
 | گزارش اجناس ثابت | `view_assets_report`, `export_assets_report_pdf`, `export_assets_report_excel` |
 
 ## 13. Warehouse Management (مدیریت گدام‌ها)

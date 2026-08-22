@@ -151,6 +151,7 @@
                   معادل USD
                   <small class="d-block" style="font-weight: 400; color: #94a3b8; font-size: 0.7rem;">نرخ × مبلغ</small>
                 </th>
+                <th style="padding: 10px 12px; white-space: nowrap;">حسابات (Accounts)</th>
                 <th style="padding: 10px 12px; white-space: nowrap;">نرخ دالر</th>
                 <th style="padding: 10px 12px; white-space: nowrap;">قرارداد</th>
                 <th style="padding: 10px 12px;">تفصیلات</th>
@@ -205,6 +206,28 @@
                   </div>
                 </td>
 
+                {{-- Accounts Cell --}}
+                <td style="padding: 9px 12px; white-space: nowrap;">
+                  <?php
+                    $deb = $pa->debitAccount ?? ($mappingPayroll->debitAccount ?? null);
+                    $cred = $pa->creditAccount ?? ($mappingPayroll->creditAccount ?? null);
+
+                    $debCode = $deb ? $deb->account_code : ($isCredit ? '22000' : '16200');
+                    $credCode = $cred ? $cred->account_code : ($isCredit ? '16200' : '10100');
+
+                    $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : ($isCredit ? 'Staff Salaries Expense (22000)' : 'Salaries Liability (16200)');
+                    $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : ($isCredit ? 'Salaries Liability (16200)' : 'Cash (10100)');
+                  ?>
+                  <div style="font-size: 0.78rem; line-height: 1.3;">
+                    <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                      Dr: {{ $debCode }}
+                    </span>
+                    <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                      Cr: {{ $credCode }}
+                    </span>
+                  </div>
+                </td>
+
                 {{-- Exchange Rate --}}
                 <td style="padding: 9px 12px; color: #64748b; font-size: 0.82rem;" dir="ltr">
                   {{ number_format($exchRate, 4) }}
@@ -253,7 +276,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="9" style="text-align: center; padding: 50px 20px; color: #94a3b8;">
+                <td colspan="10" style="text-align: center; padding: 50px 20px; color: #94a3b8;">
                   <i class="fa fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 10px; color: #cbd5e1;"></i>
                   هیچ پرداختی ثبت نشده است.
                 </td>

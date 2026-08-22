@@ -132,13 +132,16 @@ class AjnasAccountDetailsController extends Controller
         $detailEdit = DB::table('ajnas_account_details')->where('aad_id', $detail_id)->first();
         if (!$detailEdit) abort(404);
         
-        $asset_account_details = DB::table('ajnas_account_details')->where('ajnas_account_id',$detailEdit->ajnas_account_id)->orderBy('aad_id','DESC')->get();
+        $asset_account_details = \App\AjnasAccountDetails::where('ajnas_account_id', $detailEdit->ajnas_account_id)
+            ->with(['debitAccount', 'creditAccount'])
+            ->orderBy('aad_id', 'DESC')
+            ->get();
         $account = AjnasAccount::find($detailEdit->ajnas_account_id);
 
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('ASSET_PURCH', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'ASSET_PURCH')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'ASSET_PURCH')->first();
         $currencies = DB::table('currencies')->where('is_active', 1)->get();
 
         return view('assets-accounts.assets-accounts-details', compact(

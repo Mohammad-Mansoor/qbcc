@@ -328,7 +328,7 @@ class KachaeePaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'all', 'repairs', 'totalBaseRepairs', 'ledgerStatement'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'all', 'repairs', 'totalBaseRepairs', 'ledgerStatement', 'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'));
     }
 
     public function show($team_id)
@@ -338,7 +338,7 @@ class KachaeePaymentController extends Controller
             return redirect('/dashboard/kachaee-team')->with('error', 'تیم کچایی یافت نشد (Team not found).');
         }
 
-        $payments = KachaeePayment::where('team_id',$team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
+        $payments = KachaeePayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('kachaee_number', 'نقد')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
         // FORENSIC DYNAMIC TOTALS
         $currencyTotals = KachaeePayment::where('team_id', $team_id)
@@ -378,6 +378,11 @@ class KachaeePaymentController extends Controller
             ->unique('id');
         $mappingIn = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
         $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'kachaee_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'kachaee_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'KACHAEE_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'KACHAEE_ADVANCE_OUT')->first();
 
         // Fetch all repairs completed by this team
         $repairs = \App\CarpetRepair::where('team_id', $team_id)
@@ -476,7 +481,7 @@ class KachaeePaymentController extends Controller
             ->orderBy('ledger_transactions.id', 'ASC')
             ->get();
 
-        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'repairs', 'groupedRepairs', 'totalBaseRepairs', 'ledgerStatement'));
+        return view('kachaee.kachaee-payment',compact('team','payments','paymentEdit','currencyTotals', 'totalBaseReceived', 'totalBaseSent','kachaee_numbers', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mappingIn', 'mappingOut', 'currencies', 'repairs', 'groupedRepairs', 'totalBaseRepairs', 'ledgerStatement', 'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'));
     }
 
     /**

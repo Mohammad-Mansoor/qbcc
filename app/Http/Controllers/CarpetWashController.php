@@ -524,6 +524,8 @@ class CarpetWashController extends Controller
                 $carpet_wash->currency_code = $request->currency_code;
                 $carpet_wash->exchange_rate = $request->exchange_rate;
                 $carpet_wash->base_currency_amount = $baseAmount;
+                $carpet_wash->override_debit_account_id = $request->account_id ?? $request->override_debit_account_id;
+                $carpet_wash->override_credit_account_id = $request->override_credit_account_id;
                 $carpet_wash->date = $request->date;
                 $carpet_wash->description = $request->description;
                 $carpet_wash->update();
@@ -589,22 +591,24 @@ class CarpetWashController extends Controller
         $currencies = \App\Currency::where('is_active', true)->get();
         $currency = \App\Currency::getLegacyAFNRate();
 
-        // Forensic Account Selection Lookup
-        $transaction = \App\LedgerTransaction::where('source_type', get_class($wash))
-            ->where('source_id', $wash->id)
-            ->where('status', 'posted')
-            ->first();
+        // Forensic Account Selection Lookup with direct DB column precedence
+        $existingDebitAccount = $wash->override_debit_account_id;
+        $existingCreditAccount = $wash->override_credit_account_id;
 
-        $existingDebitAccount = null;
-        $existingCreditAccount = null;
+        if (!$existingDebitAccount || !$existingCreditAccount) {
+            $transaction = \App\LedgerTransaction::where('source_type', get_class($wash))
+                ->where('source_id', $wash->id)
+                ->where('status', 'posted')
+                ->first();
 
-        if ($transaction) {
-            $debitEntry = $transaction->entries()->where('debit', '>', 0)->first();
-            $creditEntry = $transaction->entries()->where('credit', '>', 0)->first();
-            if ($debitEntry)
-                $existingDebitAccount = $debitEntry->account_id;
-            if ($creditEntry)
-                $existingCreditAccount = $creditEntry->account_id;
+            if ($transaction) {
+                $debitEntry = $transaction->entries()->where('debit', '>', 0)->first();
+                $creditEntry = $transaction->entries()->where('credit', '>', 0)->first();
+                if ($debitEntry && !$existingDebitAccount)
+                    $existingDebitAccount = $debitEntry->account_id;
+                if ($creditEntry && !$existingCreditAccount)
+                    $existingCreditAccount = $creditEntry->account_id;
+            }
         }
 
         $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
@@ -713,7 +717,6 @@ class CarpetWashController extends Controller
             }
 
             // Sync carpet pricing and dimensions
-            // Sync carpet pricing and dimensions
             $originalArea = $carpet->area ?? 0;
 
             $baseAmount = ($request->currency_code === 'USD')
@@ -744,6 +747,8 @@ class CarpetWashController extends Controller
             $wash->currency_code = $request->currency_code;
             $wash->exchange_rate = $request->exchange_rate;
             $wash->base_currency_amount = $baseAmount;
+            $wash->override_debit_account_id = $request->account_id ?? $request->override_debit_account_id;
+            $wash->override_credit_account_id = $request->override_credit_account_id;
             $wash->date = $request->date;
             $wash->description = $request->description;
             $wash->team_id = $request->team_id;

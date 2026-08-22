@@ -325,7 +325,7 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id', $seller_id)
+        $payments = SellerPayment::with(['debitAccount', 'creditAccount'])->where('seller_id', $seller_id)
             ->where('is_advance', false)
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
@@ -375,12 +375,18 @@ class SellerPaymentController extends Controller
         $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'seller_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'seller_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_OUT')->first();
+
         $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
 
         return view('string-seller.seller-payment', compact(
             'seller', 'payments', 'paymentEdit', 'currencyTotals',
             'totalBaseReceived', 'totalBaseSent', 'purchase_numbers',
-            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies',
+            'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ) + $rmData);
     }
     public function show_all_payment($seller_id){
@@ -389,7 +395,7 @@ class SellerPaymentController extends Controller
             return redirect('/dashboard/string-seller')->with('error', 'فروشنده یافت نشد (Seller not found).');
         }
 
-        $payments = SellerPayment::where('seller_id', $seller_id)
+        $payments = SellerPayment::with(['debitAccount', 'creditAccount'])->where('seller_id', $seller_id)
             ->where('is_advance', false)
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
@@ -439,13 +445,19 @@ class SellerPaymentController extends Controller
         $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'seller_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'seller_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_OUT')->first();
+
         $rmData = $this->buildRmPurchaseBillData((int) $seller_id);
         $all = 'true';
 
         return view('string-seller.seller-payment', compact(
             'seller', 'payments', 'paymentEdit', 'currencyTotals',
             'totalBaseReceived', 'totalBaseSent', 'purchase_numbers', 'all',
-            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies'
+            'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit', 'currencies',
+            'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ) + $rmData);
     }
     public function edit($payment_id)

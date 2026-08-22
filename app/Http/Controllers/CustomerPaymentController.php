@@ -240,7 +240,8 @@ class CustomerPaymentController extends Controller
         }
 
         // Fetch unallocated payments for the cash ledger
-        $payments = CustomerPayment::where('customer_id', $customer_id)
+        $payments = CustomerPayment::with(['debitAccount', 'creditAccount'])
+            ->where('customer_id', $customer_id)
             ->doesntHave('allocations')
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
@@ -291,18 +292,24 @@ class CustomerPaymentController extends Controller
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'customer_payment')->first();
+        if (!$mapping) {
+            $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->first();
+        }
         
         $allowedDebitAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'customer_payment')->first();
+        if (!$mappingOut) {
+            $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->first();
+        }
         
         $currencies = \App\Currency::where('is_active', true)->get();
 
-        $allocatedPayments = CustomerPayment::where('customer_id', $customer_id)
+        $allocatedPayments = CustomerPayment::with(['debitAccount', 'creditAccount', 'allocations.invoice', 'allocations'])
+            ->where('customer_id', $customer_id)
             ->has('allocations')
             ->where('status', '!=', 2)
-            ->with(['allocations.invoice', 'allocations'])
             ->orderBy('date', 'DESC')
             ->get();
 
@@ -323,7 +330,8 @@ class CustomerPaymentController extends Controller
         }
 
         // Fetch all unallocated payments
-        $payments = CustomerPayment::where('customer_id', $customer_id)
+        $payments = CustomerPayment::with(['debitAccount', 'creditAccount'])
+            ->where('customer_id', $customer_id)
             ->doesntHave('allocations')
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
@@ -368,9 +376,9 @@ class CustomerPaymentController extends Controller
             ->where('type', 'گرفت')
             ->sum('base_amount');
 
-        $allocatedPayments = CustomerPayment::where('customer_id', $customer_id)
+        $allocatedPayments = CustomerPayment::with(['debitAccount', 'creditAccount', 'allocations.invoice'])
+            ->where('customer_id', $customer_id)
             ->has('allocations')
-            ->with(['allocations.invoice'])
             ->where('status', '!=', 2)
             ->orderBy('date', 'DESC')
             ->get();
@@ -381,11 +389,17 @@ class CustomerPaymentController extends Controller
         $selectionService = new \App\Services\AccountSelectionService();
         $allowedDebitAccounts = $selectionService->getValidAccounts('PYMT_IN', 'debit');
         $allowedCreditAccounts = $selectionService->getValidAccounts('PYMT_IN', 'credit');
-        $mapping = \App\MappingRule::where('mapping_key', 'PYMT_IN')->first();
+        $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'customer_payment')->first();
+        if (!$mapping) {
+            $mapping = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->first();
+        }
 
         $allowedDebitAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $allowedCreditAccountsOut = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
-        $mappingOut = \App\MappingRule::where('mapping_key', 'PYMT_OUT')->first();
+        $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'customer_payment')->first();
+        if (!$mappingOut) {
+            $mappingOut = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->first();
+        }
 
         $currencies = \App\Currency::where('is_active', true)->get();
 

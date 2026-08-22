@@ -270,7 +270,7 @@ class AgentPaymentController extends Controller
             return redirect('/dashboard/agents')->with('error', 'نماینده مورد نظر یافت نشد (Agent not found).');
         }
 
-        $payments = AgentPayment::where('agent_id', $agent_id)
+        $payments = AgentPayment::with(['debitAccount', 'creditAccount'])->where('agent_id', $agent_id)
             ->where('status', 1)
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'allocated')
@@ -352,18 +352,24 @@ class AgentPaymentController extends Controller
         $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'agent_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'agent_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_OUT')->first();
+
         return view('agents.agent-payments', compact(
             'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
             'totalBaseSent', 'check_numbers', 'sale_numbers', 'currencies',
             'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit',
             'purchaseBills', 'salesInvoices', 'totalOwedPurchases', 'totalPaidPurchases',
-            'totalReceivableSales', 'totalReceivedSales'
+            'totalReceivableSales', 'totalReceivedSales',
+            'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ));
     }
 
     public function show_all($agent_id)
     {
-        $payments = AgentPayment::where('agent_id', $agent_id)
+        $payments = AgentPayment::with(['debitAccount', 'creditAccount'])->where('agent_id', $agent_id)
             ->where('status', 1)
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'allocated')
@@ -447,12 +453,18 @@ class AgentPaymentController extends Controller
         $pymtOutDebit = $selectionService->getValidAccounts('PYMT_OUT', 'debit');
         $pymtOutCredit = $selectionService->getValidAccounts('PYMT_OUT', 'credit');
 
+        $pymtInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_IN')->where('transaction_type', 'agent_payment')->first();
+        $pymtOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'PYMT_OUT')->where('transaction_type', 'agent_payment')->first();
+        $advInRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_IN')->first();
+        $advOutRule = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'AGENT_ADVANCE_OUT')->first();
+
         return view('agents.agent-payments', compact(
             'agent', 'payments', 'paymentEdit', 'currencyTotals', 'totalBaseReceived', 
             'totalBaseSent', 'check_numbers', 'all', 'sale_numbers', 'currencies',
             'pymtInDebit', 'pymtInCredit', 'pymtOutDebit', 'pymtOutCredit',
             'purchaseBills', 'salesInvoices', 'totalOwedPurchases', 'totalPaidPurchases',
-            'totalReceivableSales', 'totalReceivedSales'
+            'totalReceivableSales', 'totalReceivedSales',
+            'pymtInRule', 'pymtOutRule', 'advInRule', 'advOutRule'
         ));
     }
 

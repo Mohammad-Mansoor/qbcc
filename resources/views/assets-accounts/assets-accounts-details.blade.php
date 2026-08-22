@@ -354,6 +354,7 @@
                                     <th>موقعیت فزیکی</th>
                                     <th>سریال نمبر / نمبر جنس</th>
                                     <th>تاریخ خرید</th>
+                                    <th>حسابات (Accounts)</th>
                                     <th>ارزش خرید (Original)</th>
                                     <th>نرخ تسعیر (FX)</th>
                                     <th class="text-primary">ارزش معادل (USD Base)</th>
@@ -393,6 +394,26 @@
                                                 <div class="small text-muted"><b>Num:</b> {{$co->asset_number}}</div>
                                             </td>
                                             <td><span class="text-muted font-weight-bold">{{$co->acquisition_date}}</span></td>
+                                            <td>
+                                                <?php
+                                                    $deb = $co->debitAccount ?? ($mapping->debitAccount ?? null);
+                                                    $cred = $co->creditAccount ?? ($mapping->creditAccount ?? null);
+
+                                                    $debCode = $deb ? $deb->account_code : '13500';
+                                                    $credCode = $cred ? $cred->account_code : '10100';
+
+                                                    $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : 'Fixed Assets (13500)';
+                                                    $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : 'Cash-AFN (10100)';
+                                                ?>
+                                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                    <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                        Dr: {{ $debCode }}
+                                                    </span>
+                                                    <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                        Cr: {{ $credCode }}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             
                                             <!-- Original Cost with Currency Info -->
                                             <td>
@@ -428,18 +449,21 @@
                                             </td>
 
                                             <td class="hideOnPrint text-center" style="white-space: nowrap; width: 1%;">
-                                                @can('manage_assets_account')
-                                                <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
-                                                    <a href="/dashboard/assets-accounts-details/{{$co->aad_id}}/edit" class="btn-action-edit" title="ویرایش">
-                                                        <i class="fa fa-edit fa-lg"></i>
-                                                    </a>
-                                                    <button onclick="deleteAssetAccountDetails({{$co->aad_id}})" class="btn-action-delete" title="حذف">
-                                                        <i class="fa fa-trash fa-lg"></i>
-                                                    </button>
-                                                </div>
-                                                @else
-                                                    <span class="text-muted">-</span>
-                                                @endcan
+                                                 <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
+                                                     @can('edit_assets_account_details')
+                                                     <a href="/dashboard/assets-accounts-details/{{$co->aad_id}}/edit" class="btn-action-edit" title="ویرایش">
+                                                         <i class="fa fa-edit fa-lg"></i>
+                                                     </a>
+                                                     @endcan
+                                                     @can('delete_assets_account_details')
+                                                     <button onclick="deleteAssetAccountDetails({{$co->aad_id}})" class="btn-action-delete" title="حذف">
+                                                         <i class="fa fa-trash fa-lg"></i>
+                                                     </button>
+                                                     @endcan
+                                                     @if(!auth()->user()->can('edit_assets_account_details') && !auth()->user()->can('delete_assets_account_details'))
+                                                         <span class="text-muted">-</span>
+                                                     @endif
+                                                 </div>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -447,7 +471,7 @@
                                     <!-- Summary Row -->
                                     <tr style="background: rgba(241, 245, 249, 0.6); font-weight: 700;">
                                         <td colspan="3"><span class="text-indigo">جمله کل دارایی‌های ثابت</span></td>
-                                        <td colspan="4"></td>
+                                        <td colspan="5"></td>
                                         <td><span class="text-dark">تعداد جنس: {{$asset_account_details->count()}}</span></td>
                                         <td></td>
                                         <td class="text-primary font-weight-bold">$ {{ number_format($total_base_cost, 2) }}</td>

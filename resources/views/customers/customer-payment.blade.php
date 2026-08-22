@@ -522,6 +522,7 @@
                                         <th>نرخ تبادله</th>
                                         <th>معادل دالر (USD)</th>
                                         <th>نوعیت</th>
+                                        <th>حسابات (Accounts)</th>
                                         <th>انوایس نمبر</th>
                                         <th>تفصیلات</th>
                                         <th>تاریخ</th>
@@ -547,6 +548,28 @@
                                             @else
                                                 <span class="badge badge-danger px-2 py-1">گرفت</span>
                                             @endif
+                                        </td>
+                                        <td>
+                                            <?php
+                                                $isReceipt = ($pa->type == 'رسید');
+                                                $mRule = $isReceipt ? ($mapping ?? null) : ($mappingOut ?? null);
+                                                $deb = $pa->debitAccount ?? ($mRule->debitAccount ?? null);
+                                                $cred = $pa->creditAccount ?? ($mRule->creditAccount ?? null);
+
+                                                $debCode = $deb ? $deb->account_code : ($isReceipt ? '10100' : '12000');
+                                                $credCode = $cred ? $cred->account_code : ($isReceipt ? '12000' : '10100');
+
+                                                $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : ($isReceipt ? 'Cash (10100)' : 'Accounts Receivable (12000)');
+                                                $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : ($isReceipt ? 'Accounts Receivable (12000)' : 'Cash (10100)');
+                                            ?>
+                                            <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                    Dr: {{ $debCode }}
+                                                </span>
+                                                <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                    Cr: {{ $credCode }}
+                                                </span>
+                                            </div>
                                         </td>
                                         @if($pa->invoice_number == 'نقد')
                                             <td>نقد</td>
@@ -589,7 +612,7 @@
                                         <td colspan="2" class="text-success"><strong>رسیدات: {{ number_format($totals->total_received, 2) }} {{ $code }}</strong></td>
                                         <td colspan="2" class="text-danger"><strong>گرفت‌ها: {{ number_format($totals->total_sent, 2) }} {{ $code }}</strong></td>
                                         @php($balance = $totals->total_received - $totals->total_sent)
-                                        <td colspan="3" class="text-left font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
+                                        <td colspan="4" class="text-left font-weight-bold {{ $balance >= 0 ? 'text-success' : 'text-danger' }}">
                                             بیلانس: {{ number_format($balance, 2) }} {{ $code }}
                                         </td>
                                     </tr>
@@ -599,7 +622,7 @@
                                         <td colspan="2" class="text-success"><strong>$ {{ number_format($totalBaseReceived, 2) }}</strong></td>
                                         <td colspan="2" class="text-danger"><strong>$ {{ number_format($totalBaseSent, 2) }}</strong></td>
                                         @php($baseBalance = $totalBaseReceived - $totalBaseSent)
-                                        <td colspan="3" class="text-left font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
+                                        <td colspan="4" class="text-left font-weight-bold {{ $baseBalance >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.1rem;">
                                             بیلانس نهایی: $ {{ number_format($baseBalance, 2) }}
                                         </td>
                                     </tr>
@@ -675,6 +698,7 @@
                                         <th>تاریخ (Date)</th>
                                         <th>سند پرداخت (Payment)</th>
                                         <th>تخصیص به انوایس (Allocated Invoice)</th>
+                                        <th>حسابات (Accounts)</th>
                                         <th>مبلغ پرداختی (Amount)</th>
                                         <th>ارز (Currency)</th>
                                         <th>نرخ ارز (Exchange Rate)</th>
@@ -698,6 +722,28 @@
                                                 </span><br>
                                             @endforeach
                                         </td>
+                                        <td>
+                                            <?php
+                                                $isReceipt = ($allocPay->type == 'رسید');
+                                                $mRule = $isReceipt ? ($mapping ?? null) : ($mappingOut ?? null);
+                                                $deb = $allocPay->debitAccount ?? ($mRule->debitAccount ?? null);
+                                                $cred = $allocPay->creditAccount ?? ($mRule->creditAccount ?? null);
+
+                                                $debCode = $deb ? $deb->account_code : ($isReceipt ? '10100' : '12000');
+                                                $credCode = $cred ? $cred->account_code : ($isReceipt ? '12000' : '10100');
+
+                                                $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : ($isReceipt ? 'Cash (10100)' : 'Accounts Receivable (12000)');
+                                                $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : ($isReceipt ? 'Accounts Receivable (12000)' : 'Cash (10100)');
+                                            ?>
+                                            <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                <span class="badge badge-light border text-primary font-weight-bold d-block mb-1" style="padding: 3px 6px;" title="حساب بدهکار (Debit): {{ $debName }}" data-toggle="tooltip">
+                                                    Dr: {{ $debCode }}
+                                                </span>
+                                                <span class="badge badge-light border text-success font-weight-bold d-block" style="padding: 3px 6px;" title="حساب بستانکار (Credit): {{ $credName }}" data-toggle="tooltip">
+                                                    Cr: {{ $credCode }}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td class="font-weight-bold" style="direction: ltr;">{{ number_format($allocPay->original_amount ?? ($allocPay->amount > 0 ? $allocPay->amount : $allocPay->amount_af), 2) }}</td>
                                         <td><span class="badge badge-light border text-dark">{{ $allocPay->currency_code ?? ($allocPay->amount > 0 ? 'USD' : 'AFN') }}</span></td>
                                         <td class="text-muted" style="direction: ltr;">{{ number_format($allocPay->exchange_rate ?? ($allocPay->amount > 0 ? 1.0 : (1 / ($allocPay->dollar_rate > 0 ? $allocPay->dollar_rate : 1))), 4) }}</td>
@@ -712,7 +758,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="8" class="text-center py-4 text-muted">هیچ پرداخت تخصیص یافته‌ای یافت نشد.</td>
+                                        <td colspan="9" class="text-center py-4 text-muted">هیچ پرداخت تخصیص یافته‌ای یافت نشد.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>

@@ -276,6 +276,23 @@
                           <h6 class="mb-3 text-primary"><i class="fa fa-university"></i> تنظیمات حسابی (Material Sale
                             Accounting)</h6>
                         </div>
+                        @php
+                          $selectedDebitId = ($saleEdit && !is_null($saleEdit->override_debit_account_id))
+                            ? $saleEdit->override_debit_account_id
+                            : ($mapping->debit_account_id ?? null);
+
+                          $selectedCreditId = ($saleEdit && !is_null($saleEdit->override_credit_account_id))
+                            ? $saleEdit->override_credit_account_id
+                            : ($mapping->credit_account_id ?? null);
+
+                          $selectedCogsDebitId = ($saleEdit && !is_null($saleEdit->override_cogs_debit_id))
+                            ? $saleEdit->override_cogs_debit_id
+                            : (isset($cogsMapping) ? ($cogsMapping->debit_account_id ?? null) : null);
+
+                          $selectedCogsCreditId = ($saleEdit && !is_null($saleEdit->override_cogs_credit_id))
+                            ? $saleEdit->override_cogs_credit_id
+                            : (isset($cogsMapping) ? ($cogsMapping->credit_account_id ?? null) : null);
+                        @endphp
                         <div class="col-lg-3">
                           <div class="form-group text-right">
                             <label class="text-muted small">حساب دریافتنی (Debit) <span
@@ -283,7 +300,7 @@
                             <select name="override_debit_account_id" id="override_debit_account_id"
                               class="form-control select2">
                               @foreach($allowedDebitAccounts as $acc)
-                                <option value="{{ $acc->id }}" {{ (($saleEdit && $saleEdit->override_debit_account_id == $acc->id) || (!$saleEdit && $mapping && $mapping->debit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                <option value="{{ $acc->id }}" {{ $selectedDebitId == $acc->id ? 'selected' : '' }}>
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                                 </option>
                               @endforeach
@@ -297,7 +314,7 @@
                             <select name="override_credit_account_id" id="override_credit_account_id"
                               class="form-control select2">
                               @foreach($allowedCreditAccounts as $acc)
-                                <option value="{{ $acc->id }}" {{ (($saleEdit && $saleEdit->override_credit_account_id == $acc->id) || (!$saleEdit && $mapping && $mapping->credit_account_id == $acc->id)) ? 'selected' : '' }}>
+                                <option value="{{ $acc->id }}" {{ $selectedCreditId == $acc->id ? 'selected' : '' }}>
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                                 </option>
                               @endforeach
@@ -311,7 +328,7 @@
                             <select name="override_cogs_debit_id" id="override_cogs_debit_id"
                               class="form-control select2">
                               @foreach($allowedCogsDebit as $acc)
-                                <option value="{{ $acc->id }}" {{ ($saleEdit && $saleEdit->override_cogs_debit_id == $acc->id) ? 'selected' : '' }}>
+                                <option value="{{ $acc->id }}" {{ $selectedCogsDebitId == $acc->id ? 'selected' : '' }}>
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                                 </option>
                               @endforeach
@@ -325,7 +342,7 @@
                             <select name="override_cogs_credit_id" id="override_cogs_credit_id"
                               class="form-control select2">
                               @foreach($allowedCogsCredit as $acc)
-                                <option value="{{ $acc->id }}" {{ ($saleEdit && $saleEdit->override_cogs_credit_id == $acc->id) ? 'selected' : '' }}>
+                                <option value="{{ $acc->id }}" {{ $selectedCogsCreditId == $acc->id ? 'selected' : '' }}>
                                   {{ $acc->account_code }} - {{ $acc->account_name }}
                                 </option>
                               @endforeach
@@ -380,6 +397,7 @@
                 <th class="border-top-0">کتگوری</th>
                 <th class="border-top-0">نوعیت مواد</th>
                 <th class="border-top-0">گدام</th>
+                <th class="border-top-0">حسابات (Accounts)</th>
                 <th class="border-top-0">تاریخ</th>
                 <th class="border-top-0">حالت</th>
                 <th class="border-top-0 hideOnPrint">عملیات</th>
@@ -409,6 +427,39 @@
                   <td><span
                       class="text-secondary font-weight-bold">{{ optional($material->warehouse)->name ?? '---' }}</span>
                   </td>
+                  <td>
+                    @php
+                      $deb = $material->debitAccount ?? ($mapping->debitAccount ?? null);
+                      $cred = $material->creditAccount ?? ($mapping->creditAccount ?? null);
+                      $cogsDeb = $material->cogsDebitAccount ?? ($cogsMapping->debitAccount ?? null);
+                      $cogsCred = $material->cogsCreditAccount ?? ($cogsMapping->creditAccount ?? null);
+
+                      $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : '12000 - Accounts Receivable';
+                      $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : '19000 - Revenue From Sales';
+                      $cogsDebName = $cogsDeb ? ($cogsDeb->account_code . ' - ' . $cogsDeb->account_name) : '20000 - Cost of Goods Sold';
+                      $cogsCredName = $cogsCred ? ($cogsCred->account_code . ' - ' . $cogsCred->account_name) : '13000 - Inventory';
+
+                      $debCode = $deb ? $deb->account_code : '12000';
+                      $credCode = $cred ? $cred->account_code : '19000';
+                      $cogsDebCode = $cogsDeb ? $cogsDeb->account_code : '20000';
+                      $cogsCredCode = $cogsCred ? $cogsCred->account_code : '13000';
+                    @endphp
+                    <div style="font-size: 0.76rem; line-height: 1.3;">
+                      <div class="text-nowrap mb-1">
+                        <span class="badge badge-light border text-primary font-weight-bold" style="padding: 3px 6px;" title="دریافتنی (Debit): {{ $debName }}" data-toggle="tooltip">
+                          Dr: {{ $debCode }}
+                        </span>
+                        <span class="badge badge-light border text-success font-weight-bold" style="padding: 3px 6px;" title="فروش مواد (Credit): {{ $credName }}" data-toggle="tooltip">
+                          Cr: {{ $credCode }}
+                        </span>
+                      </div>
+                      <div class="text-nowrap">
+                        <span class="badge badge-light border text-muted font-weight-bold" style="padding: 2px 5px;" title="مصرف (COGS Dr): {{ $cogsDebName }} | گدام (COGS Cr): {{ $cogsCredName }}" data-toggle="tooltip">
+                          COGS: {{ $cogsDebCode }} / {{ $cogsCredCode }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
                   <td class="small">{{$material->date}}</td>
                   <td>
                     @if($material->status == 0)
@@ -433,7 +484,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="13" class="text-center py-5">
+                  <td colspan="14" class="text-center py-5">
                     <div class="text-muted"><i class="fa fa-info-circle mr-1"></i> هنوز فروش ثبت نشده است</div>
                   </td>
                 </tr>
