@@ -35,15 +35,35 @@ class ReportController extends Controller
         $openingBalance = 0;
 
         if ($customerId) {
-            // 1. Calculate Opening Balance for this customer across all AR accounts
-            $opening = DB::table('ledger_entries as le')
-                ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
-                ->where('le.party_type', 'App\Customer')
-                ->where('le.party_id', $customerId)
-                ->where('lt.date', '<', $startDate)
-                ->whereIn('lt.status', ['posted', 'reversed'])
-                ->first();
+            if ($request->get('export') === 'pdf') {
+                $reversedTxIds = DB::table('ledger_transactions as lt')
+                    ->join('ledger_entries as le', 'le.transaction_id', '=', 'lt.id')
+                    ->where('le.party_type', 'App\Customer')
+                    ->where('le.party_id', $customerId)
+                    ->whereNotNull('lt.reversed_transaction_id')
+                    ->pluck('lt.reversed_transaction_id')
+                    ->toArray();
+
+                $opening = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
+                    ->where('le.party_type', 'App\Customer')
+                    ->where('le.party_id', $customerId)
+                    ->where('lt.date', '<', $startDate)
+                    ->where('lt.status', 'posted')
+                    ->whereNull('lt.reversed_transaction_id')
+                    ->whereNotIn('lt.id', $reversedTxIds)
+                    ->first();
+            } else {
+                $opening = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->select(DB::raw('SUM(le.base_debit - le.base_credit) as balance'))
+                    ->where('le.party_type', 'App\Customer')
+                    ->where('le.party_id', $customerId)
+                    ->where('lt.date', '<', $startDate)
+                    ->whereIn('lt.status', ['posted', 'reversed'])
+                    ->first();
+            }
             
             $openingBalance = $opening->balance ?? 0;
 
@@ -183,15 +203,35 @@ class ReportController extends Controller
         $openingBalance = 0;
 
         if ($agentId) {
-            // 1. Calculate Opening Balance for this agent (credit - debit)
-            $opening = DB::table('ledger_entries as le')
-                ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
-                ->select(DB::raw('SUM(le.base_credit - le.base_debit) as balance'))
-                ->where('le.party_type', 'App\Agents')
-                ->where('le.party_id', $agentId)
-                ->where('lt.date', '<', $startDate)
-                ->whereIn('lt.status', ['posted', 'reversed'])
-                ->first();
+            if ($request->get('export') === 'pdf') {
+                $reversedTxIds = DB::table('ledger_transactions as lt')
+                    ->join('ledger_entries as le', 'le.transaction_id', '=', 'lt.id')
+                    ->where('le.party_type', 'App\Agents')
+                    ->where('le.party_id', $agentId)
+                    ->whereNotNull('lt.reversed_transaction_id')
+                    ->pluck('lt.reversed_transaction_id')
+                    ->toArray();
+
+                $opening = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->select(DB::raw('SUM(le.base_credit - le.base_debit) as balance'))
+                    ->where('le.party_type', 'App\Agents')
+                    ->where('le.party_id', $agentId)
+                    ->where('lt.date', '<', $startDate)
+                    ->where('lt.status', 'posted')
+                    ->whereNull('lt.reversed_transaction_id')
+                    ->whereNotIn('lt.id', $reversedTxIds)
+                    ->first();
+            } else {
+                $opening = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->select(DB::raw('SUM(le.base_credit - le.base_debit) as balance'))
+                    ->where('le.party_type', 'App\Agents')
+                    ->where('le.party_id', $agentId)
+                    ->where('lt.date', '<', $startDate)
+                    ->whereIn('lt.status', ['posted', 'reversed'])
+                    ->first();
+            }
             
             $openingBalance = $opening->balance ?? 0;
 

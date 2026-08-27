@@ -277,12 +277,31 @@ class EntityStatementController extends Controller
                 $selectedEntity->display_name = $selectedEntity->{$config['name_field']};
             }
 
-            $openingBalanceQuery = DB::table('ledger_entries')
-                ->where('party_type', $config['party_type'])
-                ->where('party_id', $selectedId)
-                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
-                ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
-                ->where('ledger_transactions.date', '<', $startDate);
+            if ($request->get('export') === 'pdf') {
+                $reversedTxIds = DB::table('ledger_transactions as lt')
+                    ->join('ledger_entries as le', 'le.transaction_id', '=', 'lt.id')
+                    ->where('le.party_type', $config['party_type'])
+                    ->where('le.party_id', $selectedId)
+                    ->whereNotNull('lt.reversed_transaction_id')
+                    ->pluck('lt.reversed_transaction_id')
+                    ->toArray();
+
+                $openingBalanceQuery = DB::table('ledger_entries as le')
+                    ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+                    ->where('le.party_type', $config['party_type'])
+                    ->where('le.party_id', $selectedId)
+                    ->where('lt.date', '<', $startDate)
+                    ->where('lt.status', 'posted')
+                    ->whereNull('lt.reversed_transaction_id')
+                    ->whereNotIn('lt.id', $reversedTxIds);
+            } else {
+                $openingBalanceQuery = DB::table('ledger_entries')
+                    ->where('party_type', $config['party_type'])
+                    ->where('party_id', $selectedId)
+                    ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                    ->whereIn('ledger_transactions.status', ['posted', 'reversed'])
+                    ->where('ledger_transactions.date', '<', $startDate);
+            }
 
             if ($entityKey === 'customer') {
                 $openingBalance = $openingBalanceQuery->select(DB::raw('SUM(base_debit - base_credit) as balance'))->value('balance') ?? 0;

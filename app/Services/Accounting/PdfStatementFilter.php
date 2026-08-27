@@ -42,10 +42,9 @@ class PdfStatementFilter
             $txId = $entry->transaction_id;
             
             $isPartOfReversalPair = isset($reversals[$txId]) || isset($originalToReversal[$txId]);
-            $isAdvanceAllocation = (stripos($entry->source_type ?? '', 'advance_settlement') !== false || stripos($entry->source_type ?? '', 'allocation') !== false);
             
-            // If the transaction is NOT a reversal pair and NOT an advance allocation, keep it.
-            if (!$isPartOfReversalPair && !$isAdvanceAllocation) {
+            // If the transaction is NOT a reversal pair, keep it.
+            if (!$isPartOfReversalPair) {
                 $filtered[] = $entry;
             }
         }

@@ -329,6 +329,7 @@ class FinishingWorkController extends Controller
             $finish->exchange_rate = $exchangeRate;
             $finish->price = $baseUsdAmount;
             $finish->price_af = $priceAf;
+            $finish->unit_price = $unitPrice;
             $finish->base_currency_amount = $baseUsdAmount;
             $finish->debit_account_id = $request->override_debit_account_id;
             $finish->credit_account_id = $request->override_credit_account_id;
@@ -483,17 +484,24 @@ class FinishingWorkController extends Controller
 
         $currency = $finish->currency_code ?? 'USD';
         
-        // FORENSIC RULE: Use price_af to retrieve the original raw local currency (PKR, EUR, AFN), fallback to price for USD
-        $totalAmountInOriginalCurrency = ($finish->currency_code == 'USD') ? $finish->price : $finish->price_af;
-        $unitPrice = 0;
-        $category_id = $finish->category_id;
-        
-        if (in_array($category_id, [1, 3, 5, 6, 7])) {
-            $unitPrice = $newCarpet->area > 0 ? ($totalAmountInOriginalCurrency / $newCarpet->area) : 0;
-        } elseif (in_array($category_id, [4, 8])) {
-            $unitPrice = ($newCarpet->height > 0) ? ($totalAmountInOriginalCurrency / ($newCarpet->height * 2)) : 0;
-        } elseif ($category_id == 2) {
-            $unitPrice = $totalAmountInOriginalCurrency;
+        // Use stored unit_price if available, fallback to calculated per-unit cost
+        if (!is_null($finish->unit_price) && (float)$finish->unit_price > 0) {
+            $unitPrice = (float)$finish->unit_price;
+        } else {
+            $totalAmountInOriginalCurrency = ($finish->currency_code == 'USD') ? $finish->price : $finish->price_af;
+            $unitPrice = 0;
+            $category_id = $finish->category_id;
+            
+            $area = ($newCarpet && (float)$newCarpet->area > 0) ? (float)$newCarpet->area : (($carpet && (float)$carpet->area > 0) ? (float)$carpet->area : 0);
+            $height = ($newCarpet && (float)$newCarpet->height > 0) ? (float)$newCarpet->height : (($carpet && (float)$carpet->height > 0) ? (float)$carpet->height : 0);
+
+            if (in_array($category_id, [1, 3, 5, 6, 7, 9])) {
+                $unitPrice = $area > 0 ? ($totalAmountInOriginalCurrency / $area) : 0;
+            } elseif (in_array($category_id, [4, 8])) {
+                $unitPrice = $height > 0 ? ($totalAmountInOriginalCurrency / ($height * 2)) : 0;
+            } elseif ($category_id == 2) {
+                $unitPrice = $totalAmountInOriginalCurrency;
+            }
         }
 
         $mainPrice = $finish->price;
@@ -504,11 +512,12 @@ class FinishingWorkController extends Controller
         $allowedCreditAccounts = $selectionService->getValidAccounts('FINISHING_CREDIT', 'credit');
         $mapping = \App\MappingRule::where('mapping_key', 'FINISHING_CREDIT')->first();
 
+        $currencies = \App\Currency::all();
         $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
 
         return view('finishing-center.edit', compact(
             'finish', 'carpet', 'newCarpet', 'teams', 'team', 'category', 'team_categories', 
-            'currency', 'mainPrice', 'mainPrice_af',
+            'currency', 'currencies', 'mainPrice', 'mainPrice_af',
             'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'warehouses'
         ));
     }
@@ -531,7 +540,7 @@ class FinishingWorkController extends Controller
             $totalAmount = 0;
             $category_id = $request->category_id;
             
-            if (in_array($category_id, [1, 3, 5, 6, 7])) {
+            if (in_array($category_id, [1, 3, 5, 6, 7, 9])) {
                 $totalAmount = $newCarpet->area * $rate;
             } elseif (in_array($category_id, [4, 8])) {
                 $totalAmount = $newCarpet->height * $rate * 2;
@@ -539,8 +548,8 @@ class FinishingWorkController extends Controller
                 $totalAmount = $rate;
             }
 
-            $currencyCode = $finish->currency_code ?? 'USD';
-            $exchangeRate = $finish->exchange_rate ?? 1.0;
+            $currencyCode = $request->input('currency_code', $finish->currency_code ?? 'USD');
+            $exchangeRate = (float)$request->input('exchange_rate', $finish->exchange_rate ?? 1.0);
 
             // FORENSIC RULE: Use safe BCMath division to get correct USD equivalent
             $newPriceUsd = ($currencyCode == 'USD') ? $totalAmount : bcdiv((string)$totalAmount, (string)$exchangeRate, 4);
@@ -558,6 +567,9 @@ class FinishingWorkController extends Controller
             
             $finish->price = $newPriceUsd;
             $finish->price_af = $newPriceAfn;
+            $finish->unit_price = $rate;
+            $finish->currency_code = $currencyCode;
+            $finish->exchange_rate = $exchangeRate;
             $finish->base_currency_amount = $newPriceUsd;
             
             $finish->debit_account_id = $request->override_debit_account_id;
@@ -578,9 +590,9 @@ class FinishingWorkController extends Controller
             $this->inventoryManager->recordProductionService($finish, $carpet, [
                 'type' => 'FINISHING',
                 'mapping_key' => 'FINISHING_CREDIT',
-                'amount' => ($finish->currency_code && $finish->currency_code !== 'USD') ? $finish->price_af : $finish->price,
-                'currency_code' => $finish->currency_code ?? 'USD',
-                'exchange_rate' => $finish->exchange_rate ?? 1.0,
+                'amount' => ($currencyCode !== 'USD') ? $newPriceAfn : $newPriceUsd,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'date' => $finish->date,
                 'party_type' => 'App\FinishingTeam',
                 'party_id' => $finish->team_id,

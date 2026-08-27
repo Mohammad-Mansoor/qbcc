@@ -13,6 +13,29 @@
                     <form action="/dashboard/finishing-center/{{$finish->id}}" method="post">
                         @csrf
                         @method('PUT')
+                        <div class="row mb-3 p-3" style="background: #fdfdfe; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px;">
+                            <div class="col-lg-12">
+                                <h6 class="text-primary mb-3"><i class="fa fa-money"></i> تنظیمات پولی و مالی (Financial Settings)</h6>
+                            </div>
+                            <div class="col-lg-3">
+                                <div class="form-group">
+                                    <label class="pull-right" style="font-weight: 600;">واحد پولی (Currency)</label>
+                                    <select name="currency_code" id="currency_code" class="form-control select2" required>
+                                        @foreach($currencies as $curr)
+                                            <option value="{{ $curr->code }}" data-rate="{{ $curr->exchange_rate }}" {{ ($finish->currency_code ?? 'USD') == $curr->code ? 'selected' : '' }}>
+                                                {{ $curr->code }} ({{ $curr->symbol }}) - {{ $curr->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                                <div class="form-group">
+                                    <label class="pull-right" style="font-weight: 600;">نرخ تبادله (به دالر)</label>
+                                    <input type="number" step="any" name="exchange_rate" id="exchange_rate" value="{{ $finish->exchange_rate ?? 1.0 }}" class="form-control bg-light" required>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row" >
                             <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
                                 <div class="form-group fill">
@@ -180,6 +203,27 @@
           $('#override_debit_account_id').select2({ width: '100%' });
           $('#override_credit_account_id').select2({ width: '100%' });
           $('#warehouse_id').select2({ width: '100%' });
+          $('#currency_code').select2({ width: '100%' });
+
+          function updateCurrencyUI() {
+              let selectedOption = $('#currency_code').find('option:selected');
+              let code = $('#currency_code').val();
+              let rate = parseFloat(selectedOption.data('rate')) || 1.0;
+              
+              if (code === 'USD') {
+                  $('#exchange_rate').val(1.0);
+              } else {
+                  if (rate > 0) {
+                      $('#exchange_rate').val((1 / rate).toFixed(6));
+                  } else {
+                      $('#exchange_rate').val(1.0);
+                  }
+              }
+              
+              $('#fp').attr('placeholder', 'مصرف به ' + code);
+          }
+          
+          $('#currency_code').on('change', updateCurrencyUI);
 
           function toggleWarehouseSection() {
               $('#warehouse_transfer_section').show();
