@@ -376,6 +376,7 @@ class RoleController extends Controller
             'sale' => 'فروش',
             'edit_sale' => 'ویرایش فروش',
             'delete_sale' => 'حذف فروش',
+            'return_sale' => 'مستردی قالین به گدام',
             'invoices' => 'انوایس ها',
             'invoice' => 'انوایس',
             'customer_orders' => 'سفارشات مشتری',

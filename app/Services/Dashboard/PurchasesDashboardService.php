@@ -25,7 +25,7 @@ class PurchasesDashboardService
         // KPI: Yarn
         $yarnValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'yarn');
-        })->sum('total') ?? 0;
+        })->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
 
         $yarnQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'yarn');
@@ -34,7 +34,7 @@ class PurchasesDashboardService
         // KPI: Dye
         $dyeValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'dye');
-        })->sum('total') ?? 0;
+        })->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
 
         $dyeQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'dye');
@@ -59,7 +59,7 @@ class PurchasesDashboardService
 
         // Top Material Suppliers
         $materialSuppliersRaw = \App\PurchaseMaterial::with('seller')
-            ->select('seller_id', DB::raw('SUM(total) as total_sum'))
+            ->select('seller_id', DB::raw('SUM(COALESCE(base_currency_amount, total)) as total_sum'))
             ->groupBy('seller_id')
             ->orderBy('total_sum', 'desc')
             ->take(5)

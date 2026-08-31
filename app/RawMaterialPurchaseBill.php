@@ -27,7 +27,7 @@ class RawMaterialPurchaseBill extends Model
 
     public function getTotalAmountAttribute()
     {
-        return $this->purchases()->sum('total') ?? 0;
+        return $this->purchases()->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
     }
 
     public function getPaidAmountAttribute()

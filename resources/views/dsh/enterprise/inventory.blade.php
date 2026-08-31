@@ -88,21 +88,79 @@
     </div>
 </div>
 
+@php
+    // Carpet By Type logic
+    $typeData = [];
+    $typeLabels = $data['carpet_by_type']['labels'] ?? [];
+    $typeCounts = $data['carpet_by_type']['data'] ?? [];
+    foreach($typeLabels as $index => $label) {
+        $typeData[] = ['label' => $label, 'count' => $typeCounts[$index]];
+    }
+    usort($typeData, function($a, $b) { return $b['count'] <=> $a['count']; });
+    $topTypes = array_slice($typeData, 0, 5);
+    $othersTypeCount = array_sum(array_column(array_slice($typeData, 5), 'count'));
+    if ($othersTypeCount > 0) {
+        $topTypes[] = ['label' => 'سایر (Others)', 'count' => $othersTypeCount];
+    }
+    $maxType = count($typeData) > 0 ? max(array_column($topTypes, 'count')) : 1;
+    if ($maxType == 0) $maxType = 1;
+
+    // Carpet By Quality logic
+    $qualData = [];
+    $qualLabels = $data['carpet_by_quality']['labels'] ?? [];
+    $qualCounts = $data['carpet_by_quality']['data'] ?? [];
+    foreach($qualLabels as $index => $label) {
+        $qualData[] = ['label' => $label, 'count' => $qualCounts[$index]];
+    }
+    usort($qualData, function($a, $b) { return $b['count'] <=> $a['count']; });
+    $topQuals = array_slice($qualData, 0, 5);
+    $othersQualCount = array_sum(array_column(array_slice($qualData, 5), 'count'));
+    if ($othersQualCount > 0) {
+        $topQuals[] = ['label' => 'سایر (Others)', 'count' => $othersQualCount];
+    }
+    $maxQual = count($qualData) > 0 ? max(array_column($topQuals, 'count')) : 1;
+    if ($maxQual == 0) $maxQual = 1;
+@endphp
+
 <!-- 2. Charts Row (Carpet Breakdowns) -->
 <div class="row row-gap" style="margin: 10px;">
     <!-- Carpet By Type -->
     <div class="col-md-6 col-gap">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-chart-pie text-primary me-2"></i> موجودی قالین نظر به نوعیت</h5>
-            <div id="carpetByTypeChart" class="chart-container"></div>
+            <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-chart-pie text-primary me-2"></i> موجودی قالین نظر به نوعیت (Top 5)</h5>
+            <div class="top-list-container mt-2">
+                @foreach($topTypes as $item)
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-dark fw-bold">{{ $item['label'] }}</span>
+                            <span class="text-muted text-sm" style="font-size: 13px;">{{ number_format($item['count']) }} تخته</span>
+                        </div>
+                        <div class="progress" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ ($item['count'] / $maxType) * 100 }}%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 
     <!-- Carpet By Quality -->
     <div class="col-md-6 col-gap">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-award text-success me-2"></i> موجودی قالین نظر به کیفیت</h5>
-            <div id="carpetByQualityChart" class="chart-container"></div>
+            <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-award text-success me-2"></i> موجودی قالین نظر به کیفیت (Top 5)</h5>
+            <div class="top-list-container mt-2">
+                @foreach($topQuals as $item)
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-dark fw-bold">{{ $item['label'] }}</span>
+                            <span class="text-muted text-sm" style="font-size: 13px;">{{ number_format($item['count']) }} تخته</span>
+                        </div>
+                        <div class="progress" style="height: 8px; border-radius: 4px; background: rgba(0,0,0,0.05);">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ ($item['count'] / $maxQual) * 100 }}%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 </div>
@@ -232,34 +290,7 @@
             grid: { borderColor: '#e2e8f0', strokeDashArray: 4 }
         };
 
-        // 1. Carpet by Type
-        var typeLabels = {!! json_encode($data['carpet_by_type']['labels'] ?? []) !!};
-        var typeData = {!! json_encode($data['carpet_by_type']['data'] ?? []) !!};
-        if(typeLabels.length === 0) { typeLabels = ['Empty']; typeData = [0]; }
-        
-        var typeOptions = { ...commonOptions,
-            series: [{ name: 'تعداد (تخته)', data: typeData }],
-            colors: ['#3b82f6', '#0ea5e9', '#6366f1', '#8b5cf6', '#a855f7'],
-            xaxis: { categories: typeLabels, ...commonOptions.xaxis },
-            dataLabels: { enabled: true, formatter: function (val) { return val + " تخته"; }, offsetY: -20, style: { fontSize: '12px', colors: ["#304758"] } }
-        };
-        new ApexCharts(document.querySelector("#carpetByTypeChart"), typeOptions).render();
 
-        // 2. Carpet by Quality
-        var qualLabels = {!! json_encode($data['carpet_by_quality']['labels'] ?? []) !!};
-        var qualData = {!! json_encode($data['carpet_by_quality']['data'] ?? []) !!};
-        if(qualLabels.length === 0) { qualLabels = ['Empty']; qualData = [0]; }
-
-        var qualOptions = { ...commonOptions,
-            chart: { type: 'pie', height: 340, fontFamily: 'Inter, Vazirmatn, sans-serif' },
-            series: qualData,
-            labels: qualLabels,
-            plotOptions: { pie: { donut: { size: '65%' } } },
-            colors: ['#10b981', '#34d399', '#059669', '#047857'],
-            legend: { show: true, position: 'bottom' },
-            dataLabels: { enabled: true, formatter: function (val, opts) { return opts.w.globals.seriesTotals[opts.seriesIndex] + " تخته"; } }
-        };
-        new ApexCharts(document.querySelector("#carpetByQualityChart"), qualOptions).render();
 
         // 3. Yarn by Category
         var yarnLabels = {!! json_encode($data['yarn_by_category']['labels'] ?? []) !!};

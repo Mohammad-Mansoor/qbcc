@@ -22,19 +22,19 @@ class SalesDashboardService
                 ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
                 ->where('sales.is_returned', 0)
                 ->selectRaw("
-                    SUM(sales.sale_cost_total) as lifetime_revenue,
+                    SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as lifetime_revenue,
                     SUM(sales.profit) as lifetime_profit,
                     SUM(carpets.area) as lifetime_area,
                     COUNT(sales.id) as lifetime_count,
-                    SUM(CASE WHEN sales.sale_date = ? THEN sales.sale_cost_total ELSE 0 END) as today_revenue,
+                    SUM(CASE WHEN sales.sale_date = ? THEN sales.sale_cost_total * COALESCE(sales.exchange_rate, 1) ELSE 0 END) as today_revenue,
                     SUM(CASE WHEN sales.sale_date = ? THEN sales.profit ELSE 0 END) as today_profit,
                     SUM(CASE WHEN sales.sale_date = ? THEN carpets.area ELSE 0 END) as today_area,
                     SUM(CASE WHEN sales.sale_date = ? THEN 1 ELSE 0 END) as today_count,
-                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total ELSE 0 END) as month_revenue,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total * COALESCE(sales.exchange_rate, 1) ELSE 0 END) as month_revenue,
                     SUM(CASE WHEN sales.sale_date >= ? THEN sales.profit ELSE 0 END) as month_profit,
                     SUM(CASE WHEN sales.sale_date >= ? THEN carpets.area ELSE 0 END) as month_area,
                     SUM(CASE WHEN sales.sale_date >= ? THEN 1 ELSE 0 END) as month_count,
-                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total ELSE 0 END) as year_revenue,
+                    SUM(CASE WHEN sales.sale_date >= ? THEN sales.sale_cost_total * COALESCE(sales.exchange_rate, 1) ELSE 0 END) as year_revenue,
                     SUM(CASE WHEN sales.sale_date >= ? THEN sales.profit ELSE 0 END) as year_profit
                 ", [
                     $today, $today, $today, $today, 
@@ -82,9 +82,9 @@ class SalesDashboardService
                 $query->from('invoices')
                     ->select('id', 'payment_status')
                     ->selectRaw('DATEDIFF(CURDATE(), invoice_date) as age')
-                    ->selectRaw('COALESCE((SELECT SUM(sale_cost_total) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0) as total')
+                    ->selectRaw('COALESCE((SELECT SUM(sale_cost_total * COALESCE(exchange_rate, 1)) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0) as total')
                     ->selectRaw('COALESCE((SELECT SUM(amount_applied) FROM invoice_payments WHERE invoice_id = invoices.id), 0) as paid')
-                    ->selectRaw('(COALESCE((SELECT SUM(sale_cost_total) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0)) - COALESCE((SELECT SUM(amount_applied) FROM invoice_payments WHERE invoice_id = invoices.id), 0) as outstanding')
+                    ->selectRaw('(COALESCE((SELECT SUM(sale_cost_total * COALESCE(exchange_rate, 1)) FROM sales WHERE invoice_id = invoices.id AND is_returned = 0), 0) + COALESCE((SELECT SUM(base_currency_amount) FROM material_sales WHERE invoice_id = invoices.id AND status = 1), 0)) - COALESCE((SELECT SUM(amount_applied) FROM invoice_payments WHERE invoice_id = invoices.id), 0) as outstanding')
                     ->where('status', 'open');
             }, 'invoice_totals')
             ->selectRaw("
@@ -111,7 +111,7 @@ class SalesDashboardService
             $carpetTrendData = DB::table('sales')
                 ->where('sale_date', '>=', $twelveMonthsAgo)
                 ->where('is_returned', 0)
-                ->selectRaw("DATE_FORMAT(sale_date, '%Y-%m') as month, SUM(sale_cost_total) as rev")
+                ->selectRaw("DATE_FORMAT(sale_date, '%Y-%m') as month, SUM(sale_cost_total * COALESCE(exchange_rate, 1)) as rev")
                 ->groupBy('month')
                 ->pluck('rev', 'month')->toArray();
 
@@ -146,7 +146,7 @@ class SalesDashboardService
                 ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
                 ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
                 ->where('sales.is_returned', 0)
-                ->selectRaw('carpet_types.carpet_type as name, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit, SUM(carpets.area) as area, COUNT(*) as qty')
+                ->selectRaw('carpet_types.carpet_type as name, SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as revenue, SUM(sales.profit) as profit, SUM(carpets.area) as area, COUNT(*) as qty')
                 ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
                 ->orderByDesc('profit')
                 ->limit(5)
@@ -156,7 +156,7 @@ class SalesDashboardService
                 ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
                 ->join('qualities', 'carpets.quality_id', '=', 'qualities.id')
                 ->where('sales.is_returned', 0)
-                ->selectRaw('qualities.quality as name, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit, COUNT(*) as qty')
+                ->selectRaw('qualities.quality as name, SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as revenue, SUM(sales.profit) as profit, COUNT(*) as qty')
                 ->groupBy('qualities.id', 'qualities.quality')
                 ->orderByDesc('profit')
                 ->limit(5)
@@ -179,7 +179,7 @@ class SalesDashboardService
             $topCustomers = DB::table('sales')
                 ->join('customers', 'sales.customer_id', '=', 'customers.id')
                 ->where('sales.is_returned', 0)
-                ->selectRaw('customers.name, customers.id, SUM(sales.sale_cost_total) as total_revenue, COUNT(sales.id) as sales_count, MAX(sales.sale_date) as last_purchase')
+                ->selectRaw('customers.name, customers.id, SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as total_revenue, COUNT(sales.id) as sales_count, MAX(sales.sale_date) as last_purchase')
                 ->groupBy('customers.id', 'customers.name')
                 ->orderByDesc('total_revenue')
                 ->limit(5)
@@ -192,7 +192,7 @@ class SalesDashboardService
                 ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
                 ->join('warehouses', 'carpets.warehouse_id', '=', 'warehouses.id')
                 ->where('sales.is_returned', 0)
-                ->selectRaw('warehouses.name, COUNT(*) as qty, SUM(carpets.area) as area, SUM(sales.sale_cost_total) as revenue')
+                ->selectRaw('warehouses.name, COUNT(*) as qty, SUM(carpets.area) as area, SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as revenue')
                 ->groupBy('warehouses.id', 'warehouses.name')
                 ->get();
 

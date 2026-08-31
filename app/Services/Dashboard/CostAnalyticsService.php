@@ -25,17 +25,17 @@ class CostAnalyticsService
             $carpetSales = DB::table('sales')
                 ->where('is_returned', 0)
                 ->selectRaw("
-                    SUM(sale_cost_total) as lifetime_rev,
-                    SUM(sale_cost_total - profit) as lifetime_cost,
+                    SUM(sale_cost_total * COALESCE(exchange_rate, 1)) as lifetime_rev,
+                    SUM((sale_cost_total * COALESCE(exchange_rate, 1)) - profit) as lifetime_cost,
                     SUM(profit) as lifetime_profit,
-                    SUM(CASE WHEN sale_date = ? THEN sale_cost_total ELSE 0 END) as today_rev,
-                    SUM(CASE WHEN sale_date = ? THEN sale_cost_total - profit ELSE 0 END) as today_cost,
+                    SUM(CASE WHEN sale_date = ? THEN sale_cost_total * COALESCE(exchange_rate, 1) ELSE 0 END) as today_rev,
+                    SUM(CASE WHEN sale_date = ? THEN (sale_cost_total * COALESCE(exchange_rate, 1)) - profit ELSE 0 END) as today_cost,
                     SUM(CASE WHEN sale_date = ? THEN profit ELSE 0 END) as today_profit,
-                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total ELSE 0 END) as month_rev,
-                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total - profit ELSE 0 END) as month_cost,
+                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total * COALESCE(exchange_rate, 1) ELSE 0 END) as month_rev,
+                    SUM(CASE WHEN sale_date >= ? THEN (sale_cost_total * COALESCE(exchange_rate, 1)) - profit ELSE 0 END) as month_cost,
                     SUM(CASE WHEN sale_date >= ? THEN profit ELSE 0 END) as month_profit,
-                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total ELSE 0 END) as year_rev,
-                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total - profit ELSE 0 END) as year_cost,
+                    SUM(CASE WHEN sale_date >= ? THEN sale_cost_total * COALESCE(exchange_rate, 1) ELSE 0 END) as year_rev,
+                    SUM(CASE WHEN sale_date >= ? THEN (sale_cost_total * COALESCE(exchange_rate, 1)) - profit ELSE 0 END) as year_cost,
                     SUM(CASE WHEN sale_date >= ? THEN profit ELSE 0 END) as year_profit
                 ", [$today, $today, $today, $monthStart, $monthStart, $monthStart, $yearStart, $yearStart, $yearStart])
                 ->first();
@@ -162,8 +162,8 @@ class CostAnalyticsService
                 ->where('sales.is_returned', 0)
                 ->selectRaw("
                     carpet_types.carpet_type as name,
-                    SUM(sales.sale_cost_total) as revenue,
-                    SUM(sales.sale_cost_total - sales.profit) as cost,
+                    SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as revenue,
+                    SUM((sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) - sales.profit) as cost,
                     SUM(sales.profit) as profit
                 ")
                 ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
@@ -175,8 +175,8 @@ class CostAnalyticsService
                 ->where('sales.is_returned', 0)
                 ->selectRaw("
                     qualities.quality as name,
-                    SUM(sales.sale_cost_total) as revenue,
-                    SUM(sales.sale_cost_total - sales.profit) as cost,
+                    SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as revenue,
+                    SUM((sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) - sales.profit) as cost,
                     SUM(sales.profit) as profit
                 ")
                 ->groupBy('qualities.id', 'qualities.quality')

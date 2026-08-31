@@ -30,6 +30,7 @@ class SaleController extends Controller
         $this->middleware('permission:create_sale')->only(['create', 'store']);
         $this->middleware('permission:edit_sale')->only(['edit', 'update']);
         $this->middleware('permission:delete_sale')->only('destroy');
+        $this->middleware('permission:return_sale')->only('returnSale');
     }
 
     /**
@@ -63,11 +64,13 @@ class SaleController extends Controller
         $mappingCogs = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
 
         $sales = Sale::with(['carpet', 'invoice', 'customer', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
+            ->where('is_returned', 0)
             ->where(function($query) use ($search) {
                 $query->where('type', 'like', '%' . $search . '%')
                       ->orWhere('quality', 'like', '%' . $search . '%')
                       ->orWhereHas('carpet', function($q) use ($search) {
                           $q->where('carpet_no', 'like', '%' . $search . '%')
+                            ->orWhere('map_number', 'like', '%' . $search . '%')
                             ->orWhere('width', 'like', '%' . $search . '%')
                             ->orWhere('height', 'like', '%' . $search . '%')
                             ->orWhere('area', 'like', '%' . $search . '%');
@@ -88,9 +91,10 @@ class SaleController extends Controller
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
+        
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
 
-
-        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','search', 'mappingRevenue', 'mappingCogs'));
+        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','search', 'mappingRevenue', 'mappingCogs', 'warehouses'));
     }
 
     public function index()
@@ -101,12 +105,13 @@ class SaleController extends Controller
         }
         $mappingCogs = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
        
-        $sales = Sale::with(['carpet', 'invoice', 'customer', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])->orderBy('created_at','DESC')->paginate(60);
+        $sales = Sale::with(['carpet', 'invoice', 'customer', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])->where('is_returned', 0)->orderBy('created_at','DESC')->paginate(60);
         $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
-        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale', 'mappingRevenue', 'mappingCogs'));
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale', 'mappingRevenue', 'mappingCogs', 'warehouses'));
     }
     public function show_all(){
         $mappingRevenue = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_REVENUE')->first();
@@ -115,19 +120,20 @@ class SaleController extends Controller
         }
         $mappingCogs = \App\MappingRule::with(['debitAccount', 'creditAccount'])->where('mapping_key', 'SALES_COGS')->first();
 
-        $sales = Sale::with(['carpet', 'invoice', 'customer', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])->orderBy('created_at','DESC')->paginate(50);
+        $sales = Sale::with(['carpet', 'invoice', 'customer', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])->where('is_returned', 0)->orderBy('created_at','DESC')->paginate(50);
         $invoices = Invoice::where('type', 'carpet')->where('status', 'open')->orderBy('id','DESC')->get();
         $packing_list = PakingList::orderBy('id','DESC')->get();
         $carpets = Carpet::where('status',5)->get();
         $sale = '';
         $all = '';
-        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','all', 'mappingRevenue', 'mappingCogs'));
+        $warehouses = \App\Warehouse::where('is_active', true)->where('subtype', 'carpet')->get();
+        return view('sales.sales-list',compact('sales','carpets','invoices','packing_list','sale','all', 'mappingRevenue', 'mappingCogs', 'warehouses'));
     }
     public function exportPdf(Request $request)
     {
         $search = $request->search;
 
-        $query = Sale::with(['carpet', 'invoice', 'customer']);
+        $query = Sale::with(['carpet', 'invoice', 'customer'])->where('is_returned', 0);
         
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -482,5 +488,75 @@ class SaleController extends Controller
     public function destroy(Sale $sale)
     {
         //
+    }
+
+    /**
+     * Return a sold carpet back to the warehouse.
+     */
+    public function returnSale(Request $request, $id, \App\Services\InventoryService $inventoryService)
+    {
+        $this->accountingService->failIfLocked(Carbon::today()->format('Y-m-d'));
+        
+        $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+        ]);
+
+        return DB::transaction(function () use ($request, $id, $inventoryService) {
+            $sale = Sale::with(['carpet', 'invoice'])->findOrFail($id);
+
+            if ($sale->is_returned) {
+                return redirect()->back()->with('error', 'این فروش قبلاً مسترد شده است!');
+            }
+
+            if (!$sale->carpet) {
+                return redirect()->back()->with('error', 'قالین یافت نشد!');
+            }
+
+            $carpet = $sale->carpet;
+            $invoice = $sale->invoice;
+
+            // 1. Payment Check: Calculate the base USD cost of the carpet sale
+            $currencyCode = $sale->currency_code ?? 'USD';
+            $exchangeRate = $sale->exchange_rate ?? 1.0;
+            $saleCostUsd = ($currencyCode === 'USD') ? $sale->sale_cost_total : (float)bcmul((string)$sale->sale_cost_total, (string)$exchangeRate, 4);
+
+            if ($invoice && (float)$invoice->remaining_balance < $saleCostUsd) {
+                return redirect()->back()->with('error', 'نمی‌توانید این قالین را مسترد کنید زیرا مبلغ انوایس قبلاً پرداخت شده است. لطفاً ابتدا پرداخت را مسترد کنید.');
+            }
+
+            // 2. Inventory Reversal (Physical ONLY for SALE)
+            $inventoryService->reverseMovement($carpet, "مستردی فروش به گدام", "SALE");
+
+            // 3. Accounting Reversal (Revenue and COGS related to this specific Sale and Carpet)
+            $saleLedgers = \App\LedgerTransaction::where('source_type', get_class($carpet))
+                ->where('source_id', $carpet->getKey())
+                ->where('journal_type', 'sales')
+                ->whereNull('reversed_transaction_id')
+                ->get();
+            
+            foreach ($saleLedgers as $tx) {
+                $this->accountingService->reverseTransaction($tx->id, "لغو فروش قالین نمبر " . $carpet->carpet_no);
+            }
+
+            // 4. Update Carpet
+            $carpet->status = 5; // Return to Carpet Stock (Ready for Sale)
+            $carpet->warehouse_id = $request->warehouse_id;
+            $carpet->save();
+
+            // 5. Update Sale record
+            $sale->is_returned = 1;
+            $sale->returned_at = now();
+            $sale->returned_by = Auth::user()->id;
+            $sale->save();
+
+            // 6. Activity Log
+            $activity = new Activity();
+            $activity->date = Carbon::today()->format('Y-m-d');
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از فروش مسترد و به گدام انتقال یافت ";
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return redirect()->back()->with('status', 'قالین موفقانه مسترد و به گدام اضافه شد!');
+        });
     }
 }

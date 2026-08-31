@@ -706,6 +706,7 @@
                                             <th>تاریخ تخصیص (Allocation Date)</th>
                                             <th>سند پیش‌پرداخت (Source Advance)</th>
                                             <th>گروپ شست‌وشو مقصد (Target Batch)</th>
+                                            <th>نوع تراکنش (Type)</th>
                                             <th>حسابات درگیر (Accounts Involved)</th>
                                             <th>مبلغ تخصیص (Allocated Amount)</th>
                                             <th>نرخ ارز (Exchange Rate)</th>
@@ -730,6 +731,15 @@
                                                     <strong>{{ $alloc->allocatable->reference_number }}</strong>
                                                 @else
                                                     <span class="text-danger">سند حذف شده</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($alloc->payment && $alloc->payment->type == 'رسید')
+                                                    <span class="badge badge-success">رسید</span>
+                                                @elseif($alloc->payment && $alloc->payment->type == 'گرفت')
+                                                    <span class="badge badge-danger">گرفت</span>
+                                                @else
+                                                    <span class="badge badge-secondary">نامشخص</span>
                                                 @endif
                                             </td>
                                             <td>
@@ -785,7 +795,7 @@
 
                                         @if(count($directPayments) > 0)
                                         <tr class="bg-light">
-                                            <td colspan="7" class="text-center font-weight-bold text-primary py-3">
+                                            <td colspan="9" class="text-center font-weight-bold text-primary py-3">
                                                 <i class="fa fa-arrow-down mr-1"></i> پرداخت‌های مستقیم به گروپ‌های شست‌وشو (Direct Payments) <i class="fa fa-arrow-down ml-1"></i>
                                             </td>
                                         </tr>
@@ -802,6 +812,31 @@
                                             <td>
                                                 <span class="badge badge-info text-white">گروپ شست‌وشو</span>
                                                 <strong>{{ $dp->wash_number }}</strong>
+                                            </td>
+                                            <td>
+                                                @if($dp->type == 'رسید')
+                                                    <span class="badge badge-success">رسید</span>
+                                                @elseif($dp->type == 'گرفت')
+                                                    <span class="badge badge-danger">گرفت</span>
+                                                @else
+                                                    <span class="badge badge-secondary">نامشخص</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $dpRule = ($dp->type == 'گرفت') ? ($pymtOutRule ?? null) : ($pymtInRule ?? null);
+                                                    $dpDeb = $dp->debitAccount ?? ($dpRule->debitAccount ?? null);
+                                                    $dpCred = $dp->creditAccount ?? ($dpRule->creditAccount ?? null);
+                                                    $dpDebCode = $dpDeb ? $dpDeb->account_code : ($dp->type == 'گرفت' ? '15000' : '10000');
+                                                    $dpCredCode = $dpCred ? $dpCred->account_code : ($dp->type == 'گرفت' ? '10400' : '15000');
+                                                    $dpDebName = $dpDeb ? ($dpDeb->account_code . ' - ' . $dpDeb->account_name) : 'Accounts Payable';
+                                                    $dpCredName = $dpCred ? ($dpCred->account_code . ' - ' . $dpCred->account_name) : 'Cash/Bank Account';
+                                                @endphp
+                                                <div style="font-size: 0.78rem; line-height: 1.3;">
+                                                    <span class="badge badge-light border text-info font-weight-bold" style="padding: 3px 6px;" title="پرداخت مستقیم (Direct Payment): Dr {{ $dpDebName }} / Cr {{ $dpCredName }}" data-toggle="tooltip">
+                                                        پرداخت: {{ $dpDebCode }} / {{ $dpCredCode }}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="font-weight-bold text-success" style="direction: ltr;">
                                                 {{ number_format($dp->original_amount, 2) }} {{ $dp->currency_code ?? 'USD' }}
@@ -822,7 +857,7 @@
 
                                         @if(count($washingAllocations) == 0 && count($directPayments) == 0)
                                         <tr>
-                                            <td colspan="7" class="text-center py-4">هیچ تصفیه یا پرداخت مستقیمی ثبت نشده است.</td>
+                                            <td colspan="9" class="text-center py-4">هیچ تصفیه یا پرداخت مستقیمی ثبت نشده است.</td>
                                         </tr>
                                         @endif
                                     </tbody>

@@ -11,10 +11,13 @@ class ProductionDashboardService
     {
         // 1. Executive KPIs (Database direct aggregations)
         
-        // Carpet Inventory Available
         $carpetInventory = DB::table('carpets')
-            ->where('status', '!=', 6)
-            ->selectRaw('COUNT(carpet_id) as total_qty, COALESCE(SUM(area), 0) as total_area, COALESCE(SUM(total_price), 0) as total_value')
+            ->where('carpets.status', '!=', 6)
+            ->leftJoin('items', function ($join) {
+                $join->on('carpets.carpet_id', '=', 'items.ref_id')
+                     ->where('items.type', '=', 'App\\Carpet');
+            })
+            ->selectRaw('COUNT(carpets.carpet_id) as total_qty, COALESCE(SUM(carpets.area), 0) as total_area, COALESCE(SUM(COALESCE(items.current_cost, carpets.total_price)), 0) as total_value')
             ->first();
 
         // Raw Material Stock
@@ -30,20 +33,22 @@ class ProductionDashboardService
         $costs = DB::table('inventory_transactions')
             ->selectRaw("
                 SUM(CASE WHEN type = 'PURCHASE' AND direction = 'IN' AND reference_type = 'App\\Carpet' THEN total_cost ELSE 0 END) as carpet_purchase_cost,
-                SUM(CASE WHEN type = 'KACHAEE' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as repair_cost,
-                SUM(CASE WHEN type = 'WASHING' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as washing_cost,
-                SUM(CASE WHEN type = 'FINISHING' AND is_value_adjustment = 1 THEN total_cost ELSE 0 END) as finishing_cost
+                SUM(CASE WHEN type = 'KACHAEE' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as repair_cost,
+                SUM(CASE WHEN type = 'WASHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as washing_cost,
+                SUM(CASE WHEN type = 'FINISHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as finishing_cost
             ")
             ->whereIn('type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
+            ->where('status', 1)
             ->first();
 
         $revenueData = DB::table('sales')
             ->where('is_returned', '!=', 1)
-            ->selectRaw('COALESCE(SUM(sale_cost_total), 0) as total_revenue, COALESCE(SUM(profit), 0) as net_profit')
+            ->selectRaw('COALESCE(SUM(CASE WHEN currency_code = "USD" THEN sale_cost_total ELSE sale_cost_total * COALESCE(exchange_rate, 1) END), 0) as total_revenue, COALESCE(SUM(profit), 0) as net_profit')
             ->first();
 
         // 3. Work In Progress (WIP) Queues
         $wipRepair = DB::table('carpets')->where('status', 2)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
+        $wipWash = DB::table('carpets')->where('status', 13)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
         $wipFinish = DB::table('carpets')->where('status', 4)->selectRaw('COUNT(*) as count, SUM(area) as area')->first();
         
         // 4. Warehouse Carpet Intelligence (Live physical ledger calculation)
@@ -135,7 +140,7 @@ class ProductionDashboardService
             ->where('sales.is_returned', '!=', 1)
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
             ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
-            ->selectRaw('carpet_types.carpet_type as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')
+            ->selectRaw('carpet_types.carpet_type as name, COUNT(sales.id) as sold_qty, SUM(CASE WHEN sales.currency_code = "USD" THEN sales.sale_cost_total ELSE sales.sale_cost_total * COALESCE(sales.exchange_rate, 1) END) as revenue, SUM(sales.profit) as profit')
             ->groupBy('carpet_types.carpet_type_id', 'carpet_types.carpet_type')
             ->orderByDesc('profit')
             ->limit(5)
@@ -146,7 +151,7 @@ class ProductionDashboardService
             ->where('sales.is_returned', '!=', 1)
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
             ->join('qualities', 'carpets.quality_id', '=', 'qualities.id')
-            ->selectRaw('qualities.quality as name, COUNT(sales.id) as sold_qty, SUM(sales.sale_cost_total) as revenue, SUM(sales.profit) as profit')
+            ->selectRaw('qualities.quality as name, COUNT(sales.id) as sold_qty, SUM(CASE WHEN sales.currency_code = "USD" THEN sales.sale_cost_total ELSE sales.sale_cost_total * COALESCE(sales.exchange_rate, 1) END) as revenue, SUM(sales.profit) as profit')
             ->groupBy('qualities.id', 'qualities.quality')
             ->orderByDesc('profit')
             ->limit(5)
@@ -159,7 +164,7 @@ class ProductionDashboardService
                 material_categories.material_category as name,
                 material_categories.subtype,
                 SUM(material_sales.amount) as sold_qty,
-                SUM(material_sales.total_price) as revenue
+                SUM(COALESCE(material_sales.base_currency_amount, material_sales.total_price)) as revenue
             ")
             ->groupBy('material_categories.material_category_id', 'material_categories.material_category', 'material_categories.subtype')
             ->orderByDesc('revenue')
@@ -195,6 +200,7 @@ class ProductionDashboardService
             'topMaterials' => $topMaterials,
             'activities' => $activities,
             'wipRepair' => $wipRepair,
+            'wipWash' => $wipWash,
             'wipFinish' => $wipFinish,
             'warehouseMaterials' => $warehouseMaterials,
         ];

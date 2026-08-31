@@ -234,6 +234,7 @@ class PermissionSeeder extends Seeder
             'create_sale',
             'edit_sale',
             'delete_sale',
+            'return_sale',
             'view_invoices',
             'create_invoice',
             'edit_invoice',

@@ -237,6 +237,17 @@
 
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-end mb-1">
+                        <span class="primary-text fw-bold">شستشو (Wash Queue)</span>
+                        <span class="badge badge-glow-info" style="background-color: #0ea5e9; color: white;">{{ number_format($data['wipWash']->count) }} تخته</span>
+                    </div>
+                    <div class="progress" style="height: 8px; background: rgba(0,0,0,0.05);">
+                        <div class="progress-bar bg-info" style="width: 60%; background-color: #0ea5e9;"></div>
+                    </div>
+                    <div class="secondary-text text-xs mt-1">{{ number_format($data['wipWash']->area, 2) }} m² در حال جریان</div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-end mb-1">
                         <span class="primary-text fw-bold">تیاری (Finishing Queue)</span>
                         <span class="badge badge-glow-purple">{{ number_format($data['wipFinish']->count) }} تخته</span>
                     </div>

@@ -245,6 +245,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
 /** Route For Sales */
 Route::resource('/sales', 'SaleController');
 Route::get('/sales-all', 'SaleController@show_all');
+Route::post('/sales/{id}/return', 'SaleController@returnSale')->name('sales.return');
 Route::get('/sales/export/pdf', 'SaleController@exportPdf')->name('sales.pdf_export');
 Route::post('/search-carpet-from-sales','SaleController@search');
 Route::get('/get_carpet_details.get_by_carpet', 'SaleController@get_carpet_details')->name('dashboard.get_carpet_details.get_by_carpet');

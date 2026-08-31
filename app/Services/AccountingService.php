@@ -95,16 +95,22 @@ class AccountingService
             } elseif ($typeParam === 'رسید') {
                 $isPaymentOut = false;
             } else {
-                $isPaymentOut = str_contains($condLower, 'out') 
-                             || str_contains($condLower, 'advance') 
+                $isPaymentOut = str_contains($condLower, 'out')
+                             || str_contains($condLower, 'advance')
                              || str_contains($condLower, 'گرفت')
                              || str_contains($condLower, 'payroll')
                              || str_contains($condLower, 'expense')
                              || str_contains($condLower, 'debit')
-                             || str_contains($condLower, 'withdrawal');
+                             || str_contains($condLower, 'withdrawal')
+                             || $type === 'sale'
+                             || $type === 'sales';
             }
 
-            if ($isPaymentOut) {
+            if ($type === 'agent_advance_settlement') {
+                // To prevent double deductions on statement calculation, tag both sides
+                $shouldTagDebit = true;
+                $shouldTagCredit = true;
+            } elseif ($isPaymentOut) {
                 $shouldTagDebit = true;
                 $shouldTagCredit = false;
             } else {

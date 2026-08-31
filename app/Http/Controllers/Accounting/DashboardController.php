@@ -104,9 +104,10 @@ class DashboardController extends Controller
         // NEW: Profitability by Carpet Type (Simplified)
         $profitability = DB::table('sales')
             ->join('carpets', 'sales.carpet_id', '=', 'carpets.carpet_id')
-            ->select('carpets.field as type', DB::raw('SUM(sales.profit) as total_profit'))
+            ->join('carpet_types', 'carpets.type_id', '=', 'carpet_types.carpet_type_id')
+            ->select('carpet_types.carpet_type as type', DB::raw('SUM(sales.profit) as total_profit'))
             ->where('sales.is_returned', '!=', 1)
-            ->groupBy('carpets.field')
+            ->groupBy('carpet_types.carpet_type')
             ->orderBy('total_profit', 'desc')
             ->limit(5)
             ->get();

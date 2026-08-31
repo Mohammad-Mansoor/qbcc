@@ -495,6 +495,18 @@
                                         @endcan
                                         @endif
 
+                                        @if(!$sale->is_returned)
+                                        @can('return_sale')
+                                        <button type="button" class="dropdown-item py-2 px-3 small text-danger" data-toggle="modal" data-target="#returnModal-{{ $sale->id }}">
+                                            <i class="fa fa-undo mr-2"></i> مستردی قالین به گدام
+                                        </button>
+                                        @endcan
+                                        @else
+                                        <div class="dropdown-item py-2 px-3 small text-muted">
+                                            <i class="fa fa-check mr-2"></i> مسترد شده
+                                        </div>
+                                        @endif
+
                                         @if($sale->ledger_transaction_id)
                                         <a class="dropdown-item py-2 px-3 small" href="{{ route('accounting.journals.show', $sale->ledger_transaction_id) }}" target="_blank">
                                             <i class="fa fa-book text-success mr-2"></i> مشاهده در روزنامچه
@@ -514,7 +526,54 @@
                                     </div>
                                 </div>
                             </td>
+                            </td>
                         </tr>
+
+                        <!-- Return Modal -->
+                        @if(!$sale->is_returned)
+                        <div class="modal fade" id="returnModal-{{ $sale->id }}" tabindex="-1" role="dialog" aria-labelledby="returnModalLabel-{{ $sale->id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+                                    <div class="modal-header bg-danger text-white" style="border-radius: 12px 12px 0 0;">
+                                        <h5 class="modal-title font-weight-bold" id="returnModalLabel-{{ $sale->id }}">
+                                            <i class="fa fa-undo mr-2"></i> مستردی قالین به گدام
+                                        </h5>
+                                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <form action="{{ route('sales.return', $sale->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-body p-4 text-right">
+                                            <div class="alert alert-warning mb-4" style="font-size: 0.9rem;">
+                                                <i class="fa fa-exclamation-triangle mr-2"></i>
+                                                <strong>توجه:</strong> این عملیات فروش را لغو کرده و قالین نمبر <strong class="text-danger">{{ $sale->carpet->carpet_no ?? '' }}</strong> را دوباره به موجودی گدام اضافه می‌کند. <br>
+                                                (تنها عملیات فروش و حسابداری مربوطه برگشت داده می‌شود، مصارف شستشو و غیره حفظ می‌گردند).
+                                            </div>
+
+                                            <div class="form-group mb-0">
+                                                <label class="font-weight-bold text-dark">انتخاب گدام برای بازگشت قالین <span class="text-danger">*</span></label>
+                                                <select name="warehouse_id" class="form-control select2 bg-light border-danger font-weight-bold" style="width: 100%;" required>
+                                                    <option value="" disabled selected>-- لطفاً گدام را انتخاب کنید --</option>
+                                                    @if(isset($warehouses))
+                                                    @foreach($warehouses as $wh)
+                                                        <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                                                    @endforeach
+                                                    @endif
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light" style="border-radius: 0 0 12px 12px;">
+                                            <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">لغو</button>
+                                            <button type="submit" class="btn btn-danger font-weight-bold">
+                                                <i class="fa fa-undo mr-1"></i> تایید مستردی
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         @empty
                         <tr>
                             <td colspan="{{ auth()->user()->role == 'SP' ? '13' : '12' }}" class="py-5 text-center">
@@ -566,6 +625,13 @@
     $(document).ready(function() {
         $('.select2').select2({
             width: '100%'
+        });
+        
+        $('.modal').on('shown.bs.modal', function () {
+            $(this).find('.select2').select2({
+                dropdownParent: $(this),
+                width: '100%'
+            });
         });
 
         function updateEditFormLabels() {

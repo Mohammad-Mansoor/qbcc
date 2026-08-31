@@ -14,7 +14,14 @@ class InventoryDashboardService
     public function getAnalytics()
     {
         // Total Values & Quantities
-        $carpetValue = Carpet::where('status', '!=', 6)->sum('total_price') ?? 0;
+        $carpetValue = DB::table('carpets')
+            ->where('carpets.status', '!=', 6)
+            ->leftJoin('items', function ($join) {
+                $join->on('carpets.carpet_id', '=', 'items.ref_id')
+                     ->where('items.type', '=', 'App\\Carpet');
+            })
+            ->selectRaw('COALESCE(SUM(COALESCE(items.current_cost, carpets.total_price)), 0) as total')
+            ->value('total') ?? 0;
         $carpetCount = Carpet::where('status', '!=', 6)->count();
         $carpetArea = Carpet::where('status', '!=', 6)->sum('area') ?? 0;
         
