@@ -154,7 +154,7 @@ class FinishingWorkController extends Controller
         $activity->user_id = Auth::user()->id;
         $activity->save();
 
-        return back()->with('status', 'قالین موفقانه به بخش شست بازگشت داده شد');
+        return redirect('/dashboard/finishing-center')->with('status', 'قالین موفقانه به بخش شست بازگشت داده شد');
     }
 
     public function return_to_center($carpet_id)
@@ -189,7 +189,7 @@ class FinishingWorkController extends Controller
             $inventoryService = app(\App\Services\InventoryService::class);
             $inventoryService->reverseMovement($carpet, 'Returned from Finishing', 'Finishing Transfer');
 
-            return back()->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد');
+            return redirect('/dashboard/finishing-center')->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد');
         });
     }
 

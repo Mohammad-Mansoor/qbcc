@@ -108,7 +108,7 @@ class CarpetRepairController extends Controller
                 ]);
             }
 
-            return back()->with('status','موفقانه بازگشت شد !');
+            return redirect('/dashboard/carpet-repair')->with('status','موفقانه بازگشت شد !');
         });
     }
 
@@ -194,7 +194,7 @@ class CarpetRepairController extends Controller
                 ]);
             }
 
-            return back()->with('status','موفقانه بازگشت شد !');
+            return redirect('/dashboard/carpet-repair')->with('status','موفقانه بازگشت شد !');
         });
     }
     public function index()
