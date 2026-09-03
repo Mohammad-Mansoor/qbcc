@@ -216,7 +216,7 @@
                                     $price = 0;
                                     if($batch->type == 'finish') $price = $item->price;
                                     elseif($batch->type == 'kachaee') $price = $item->total_price;
-                                    elseif($batch->type == 'wash') $price = $item->total_price ?: $item->af_total_price;
+                                    elseif($batch->type == 'wash') $price = $item->total_price;
 
                                     if (isset($item->price) && $item->price > 0 && ($item->currency_code ?? 'USD') === 'USD') {
                                         $unitRate = $item->price;

@@ -72,7 +72,7 @@
                                 <option value="journal">Journal (روزنامچه عمومی)</option>
                                 <option value="payment">Payment (سند تادیاتی)</option>
                                 <option value="receipt">Receipt (سند رسید)</option>
-                                <option value="adjustment">Adjustment (سند تعدیلی)</option>
+                                <option value="journal">Adjustment (سند تعدیلی)</option>
                             </select>
                             <small class="text-info mt-1 d-block"><i class="feather icon-info"></i> دسته‌بندی سند برای گزارشات بهتر.</small>
                         </div>

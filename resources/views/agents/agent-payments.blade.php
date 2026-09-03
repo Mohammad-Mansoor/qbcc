@@ -790,6 +790,7 @@
                                     <tr class="text-right">
                                         <th>تاریخ تخصیص (Allocation Date)</th>
                                         <th>سند پیش‌پرداخت (Source Advance)</th>
+                                        <th>نوعیت (Type)</th>
                                         <th>بل/انوایس مقصد (Target Document)</th>
                                         <th>حسابات درگیر (Accounts Involved)</th>
                                         <th>مبلغ تخصیص (Allocated Amount)</th>
@@ -808,6 +809,11 @@
                                             </a>
                                             <br>
                                             <small class="text-muted">{{ $alloc->agent_payment->description ?? '' }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ $alloc->agent_payment->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
+                                                {{ $alloc->agent_payment->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
+                                            </span>
                                         </td>
                                         <td>
                                             @if($alloc->allocatable)

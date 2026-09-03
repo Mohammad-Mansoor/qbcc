@@ -85,13 +85,17 @@ class JournalController extends Controller
         
         $year = date('Y');
         $prefix = "JV-{$year}-";
-        $lastTransactions = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")->get();
+        
+        $prefixLength = strlen($prefix) + 1;
+        $latestJournalId = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")
+            ->orderByRaw("CAST(SUBSTRING(journal_id, {$prefixLength}) AS UNSIGNED) DESC")
+            ->value('journal_id');
         
         $maxNum = 0;
-        foreach ($lastTransactions as $t) {
-            $numPart = str_replace($prefix, '', $t->journal_id);
+        if ($latestJournalId) {
+            $numPart = str_replace($prefix, '', $latestJournalId);
             if (is_numeric($numPart)) {
-                $maxNum = max($maxNum, intval($numPart));
+                $maxNum = intval($numPart);
             }
         }
         
@@ -247,14 +251,19 @@ class JournalController extends Controller
             if (empty($journalId)) {
                 $year = date('Y');
                 $prefix = "JV-{$year}-";
-                $lastTransactions = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")->get();
+                $prefixLength = strlen($prefix) + 1;
+                $latestJournalId = LedgerTransaction::where('journal_id', 'LIKE', "{$prefix}%")
+                    ->orderByRaw("CAST(SUBSTRING(journal_id, {$prefixLength}) AS UNSIGNED) DESC")
+                    ->value('journal_id');
+                
                 $maxNum = 0;
-                foreach ($lastTransactions as $t) {
-                    $numPart = str_replace($prefix, '', $t->journal_id);
+                if ($latestJournalId) {
+                    $numPart = str_replace($prefix, '', $latestJournalId);
                     if (is_numeric($numPart)) {
-                        $maxNum = max($maxNum, intval($numPart));
+                        $maxNum = intval($numPart);
                     }
                 }
+                
                 $nextNum = $maxNum + 1;
                 $journalId = $prefix . sprintf('%05d', $nextNum);
             }

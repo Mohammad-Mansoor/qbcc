@@ -760,6 +760,9 @@
                                             <td class="font-weight-bold" style="direction: ltr;">$ {{ number_format($dp->base_amount, 2) }}</td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_finishing_payment')
+                                                <a href="/dashboard/finishing-payments/{{ $dp->id }}/edit" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </a>
                                                 <button type="button" onclick="deletePayment({{$dp->id}}, {{$dp->team_id}})" class="btn btn-sm btn-outline-danger">
                                                     <i class="fa fa-trash"></i> ابطال
                                                 </button>
@@ -837,6 +840,9 @@
                                             </td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_finishing_payment')
+                                                <button onclick="editAllocation({{ $alloc->id }}, {{ $alloc->allocated_amount }}, '{{ $alloc->payment->currency_code ?? 'USD' }}')" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش تخصیص">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </button>
                                                 <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                     <i class="fa fa-undo"></i> لغو تصفیه
                                                 </button>
@@ -921,6 +927,42 @@
                     <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
                     <button type="submit" class="btn btn-warning text-white shadow-sm font-weight-bold" id="btn_submit_modal_allocation" style="background:var(--primary-amber); border:none;">
                         <i class="fa fa-save"></i> ثبت تخصیص (Apply Allocation)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Edit Allocation Modal -->
+<div class="modal fade" id="editAllocationModal" tabindex="-1" role="dialog" aria-labelledby="editAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content premium-modal">
+            <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: #2a2a2a;">
+                <h5 class="modal-title font-weight-bold" id="editAllocationModalLabel"><i class="fa fa-edit"></i> ویرایش مبلغ تخصیص</h5>
+                <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editAllocationForm">
+                <input type="hidden" id="edit_modal_allocation_id">
+                <div class="modal-body text-right" style="direction: rtl;">
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold mb-2">مبلغ جدید تخصیص (New Allocated Amount)</label>
+                        <div class="input-group input-group-lg" style="direction: ltr;">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text edit_modal_currency_display" style="font-weight: bold; background: #fff3e0;">USD</span>
+                            </div>
+                            <input type="number" step="0.0001" name="amount" id="edit_modal_alloc_amount" class="form-control font-weight-bold text-center text-primary" style="font-size: 1.25rem; direction: ltr;" required>
+                        </div>
+                        <small class="text-muted d-block mt-2 text-right">مبلغ جدید را وارد کنید. سیستم معادل دالری را بصورت خودکار با همان نرخ ارز قبلی محاسبه و جایگزین میکند.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-premium shadow-sm text-white" id="btn_submit_edit_allocation" style="background: #f57c00;">
+                        <i class="fa fa-save"></i> ذخیره تغییرات
                     </button>
                 </div>
             </form>
@@ -1208,5 +1250,52 @@
             }
         });
     }
+    function editAllocation(id, currentAmount, currencyCode) {
+        $('#edit_modal_allocation_id').val(id);
+        $('#edit_modal_alloc_amount').val(currentAmount);
+        $('.edit_modal_currency_display').text(currencyCode);
+        $('#editAllocationModal').modal('show');
+    }
+
+    $(document).ready(function() {
+        $('#editAllocationForm').on('submit', function(e) {
+            e.preventDefault();
+            let id = $('#edit_modal_allocation_id').val();
+            let amount = $('#edit_modal_alloc_amount').val();
+            let btn = $('#btn_submit_edit_allocation');
+            let originalHtml = btn.html();
+            
+            btn.html('<i class="fa fa-spinner fa-spin"></i> در حال بروزرسانی...').prop('disabled', true);
+
+            $.ajax({
+                url: '/dashboard/finishing-payments/allocation/' + id,
+                type: 'PUT',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    allocated_amount: amount
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#editAllocationModal').modal('hide');
+                        toastr.success(response.message);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        toastr.error(response.message || 'خطا در بروزرسانی');
+                        btn.html(originalHtml).prop('disabled', false);
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'خطایی رخ داد';
+                    if(xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    toastr.error(msg);
+                    btn.html(originalHtml).prop('disabled', false);
+                }
+            });
+        });
+    });
 </script>
 @endsection

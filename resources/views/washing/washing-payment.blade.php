@@ -785,6 +785,9 @@
                                             </td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_washing_payment')
+                                                <button onclick="editAllocation({{ $alloc->id }}, {{ $alloc->allocated_amount }}, '{{ $alloc->payment->currency_code ?? 'USD' }}')" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش تخصیص">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </button>
                                                 <button onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                     <i class="fa fa-undo"></i> لغو تخصیص
                                                 </button>
@@ -847,6 +850,9 @@
                                             </td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_washing_payment')
+                                                <a href="/dashboard/washing-payments/{{ $dp->id }}/edit" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </a>
                                                 <button onclick="deletePayment({{ $dp->id }}, {{ $dp->team_id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="ابطال پرداخت مستقیم">
                                                     <i class="fa fa-ban"></i> ابطال
                                                 </button>
@@ -1150,7 +1156,83 @@
             }
         });
     }
+
+    function editAllocation(id, currentAmount, currencyCode) {
+        $('#edit_modal_allocation_id').val(id);
+        $('#edit_modal_alloc_amount').val(currentAmount);
+        $('.edit_modal_currency_display').text(currencyCode);
+        $('#editAllocationModal').modal('show');
+    }
+
+    $(document).ready(function() {
+        $('#editAllocationForm').on('submit', function(e) {
+            e.preventDefault();
+            let id = $('#edit_modal_allocation_id').val();
+            let amount = $('#edit_modal_alloc_amount').val();
+            let btn = $('#btn_submit_edit_allocation');
+            
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> در حال پردازش...');
+            
+            $.ajax({
+                type: 'PUT',
+                url: '/dashboard/washing-payments/allocation/' + id,
+                data: {
+                    '_token': '{{ csrf_token() }}',
+                    'amount': amount
+                },
+                success: function(res) {
+                    if (res.status == 'success') {
+                        $('#editAllocationModal').modal('hide');
+                        swal("موفق!", res.message, { icon: "success" });
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        swal("خطا!", res.message, { icon: "error" });
+                        btn.prop('disabled', false).html('<i class="fa fa-save"></i> ذخیره تغییرات');
+                    }
+                },
+                error: function() {
+                    swal("خطا!", "مشکلی در ارتباط با سرور رخ داده است.", "error");
+                    btn.prop('disabled', false).html('<i class="fa fa-save"></i> ذخیره تغییرات');
+                }
+            });
+        });
+    });
 </script>
+
+<!-- Edit Allocation Modal -->
+<div class="modal fade" id="editAllocationModal" tabindex="-1" role="dialog" aria-labelledby="editAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content premium-modal">
+            <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);">
+                <h5 class="modal-title font-weight-bold" id="editAllocationModalLabel"><i class="fa fa-edit"></i> ویرایش مبلغ تخصیص</h5>
+                <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editAllocationForm">
+                <input type="hidden" id="edit_modal_allocation_id">
+                <div class="modal-body text-right" style="direction: rtl;">
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark field-label">مبلغ تخصیص جدید (New Allocation Amount):</label>
+                        <div class="input-group" style="direction: ltr;">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text edit_modal_currency_display" style="font-weight: bold; background: #fff3e0;">USD</span>
+                            </div>
+                            <input type="number" step="0.0001" name="amount" id="edit_modal_alloc_amount" class="form-control font-weight-bold text-center text-primary" style="font-size: 1.25rem; direction: ltr;" required>
+                        </div>
+                        <small class="field-explanation text-right d-block mt-1">مبلغ جدید تخصیص را وارد کنید. سیستم مابه‌التفاوت را محاسبه خواهد کرد.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
+                    <button type="submit" class="btn btn-premium shadow-sm text-white" id="btn_submit_edit_allocation" style="background: #f57c00;">
+                        <i class="fa fa-save"></i> ذخیره تغییرات (Save Changes)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Allocation Modal -->
 <div class="modal fade" id="allocateAdvanceModal" tabindex="-1" role="dialog" aria-labelledby="allocateAdvanceModalLabel" aria-hidden="true">

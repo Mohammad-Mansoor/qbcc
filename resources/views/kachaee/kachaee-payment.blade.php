@@ -665,6 +665,7 @@
                                             <th>تاریخ تخصیص (Allocation Date)</th>
                                             <th>سند پیش‌پرداخت (Source Advance)</th>
                                             <th>گروپ کچایی مقصد (Target Batch)</th>
+                                            <th>نوع تراکنش (Type)</th>
                                             <th>مبلغ تخصیص (Allocated Amount)</th>
                                             <th>نرخ ارز (Exchange Rate)</th>
                                             <th>معادل دالر (Base USD Allocated)</th>
@@ -691,6 +692,13 @@
                                                     <span class="text-danger">سند حذف شده</span>
                                                 @endif
                                             </td>
+                                            <td>
+                                                @if($alloc->payment && $alloc->payment->type == 'رسید')
+                                                    <span class="badge badge-success text-white py-1 px-2"><i class="fa fa-arrow-down mr-1"></i>رسید (Receipt)</span>
+                                                @else
+                                                    <span class="badge badge-danger text-white py-1 px-2"><i class="fa fa-arrow-up mr-1"></i>گرفت (Payment)</span>
+                                                @endif
+                                            </td>
                                             <td class="font-weight-bold text-success" style="direction: ltr;">
                                                 {{ number_format($alloc->allocated_amount, 2) }} {{ $alloc->payment->currency_code ?? 'USD' }}
                                             </td>
@@ -698,8 +706,33 @@
                                             <td class="font-weight-bold text-dark" style="direction: ltr;">
                                                 $ {{ number_format($alloc->base_allocated_amount, 2) }}
                                             </td>
+                                            <td class="small" style="font-size: 0.85rem;">
+                                                @php
+                                                    $advPayment = $alloc->payment;
+                                                    if ($advPayment) {
+                                                        $advRule = ($advPayment->type == 'گرفت') ? ($advOutRule ?? null) : ($advInRule ?? null);
+                                                        $advDeb = $advPayment->debitAccount ?? ($advRule->debitAccount ?? null);
+                                                        $advCred = $advPayment->creditAccount ?? ($advRule->creditAccount ?? null);
+                                                        $advDebCode = $advDeb ? $advDeb->account_code : ($advPayment->type == 'گرفت' ? 'Advance Debit' : 'Cash/Bank');
+                                                        $advCredCode = $advCred ? $advCred->account_code : ($advPayment->type == 'گرفت' ? 'Cash/Bank' : 'Advance Credit');
+                                                        $advDebName = $advDeb ? ($advDeb->account_code . ' - ' . $advDeb->account_name) : 'Advance Account';
+                                                        $advCredName = $advCred ? ($advCred->account_code . ' - ' . $advCred->account_name) : 'Cash/Bank Account';
+                                                    } else {
+                                                        $advDebCode = 'N/A'; $advCredCode = 'N/A'; $advDebName = 'N/A'; $advCredName = 'N/A';
+                                                    }
+                                                    $settleDebCode = 'Exp/Payable'; // Generic placeholder for Kachaee Settlement debit
+                                                    $settleCredCode = $advPayment && $advPayment->type == 'گرفت' ? $advDebCode : $advCredCode; // Reversing the advance
+                                                @endphp
+                                                <div class="d-flex flex-column">
+                                                    <span class="text-danger" title="{{ $settleDebCode }} Debit"><i class="fa fa-minus-circle mr-1"></i> {{ $settleDebCode }}</span>
+                                                    <span class="text-success" title="{{ $advCredName }} Credit"><i class="fa fa-plus-circle mr-1"></i> {{ $settleCredCode }}</span>
+                                                </div>
+                                            </td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_kachaee_payment')
+                                                <button type="button" onclick="editAllocation({{ $alloc->id }}, {{ $alloc->allocated_amount }}, '{{ $alloc->payment->currency_code ?? 'USD' }}')" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش تخصیص">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </button>
                                                 <button type="button" onclick="removeAllocation({{ $alloc->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="حذف تخصیص">
                                                     <i class="fa fa-undo"></i> لغو تخصیص
                                                 </button>
@@ -724,6 +757,13 @@
                                                 <span class="badge badge-warning text-dark">گروپ کچایی (مستقیم)</span>
                                                 <strong>{{ $dp->kachaee_number }}</strong>
                                             </td>
+                                            <td>
+                                                @if($dp->type == 'رسید')
+                                                    <span class="badge badge-success text-white py-1 px-2"><i class="fa fa-arrow-down mr-1"></i>رسید (Receipt)</span>
+                                                @else
+                                                    <span class="badge badge-danger text-white py-1 px-2"><i class="fa fa-arrow-up mr-1"></i>گرفت (Payment)</span>
+                                                @endif
+                                            </td>
                                             <td class="font-weight-bold text-success" style="direction: ltr;">
                                                 {{ number_format($dp->original_amount, 2) }} {{ $dp->currency_code ?? 'USD' }}
                                             </td>
@@ -731,8 +771,24 @@
                                             <td class="font-weight-bold text-dark" style="direction: ltr;">
                                                 $ {{ number_format($dp->base_amount, 2) }}
                                             </td>
+                                            <td class="small" style="font-size: 0.85rem;">
+                                                @php
+                                                    $rule = ($dp->type == 'گرفت') ? ($pymtOutRule ?? null) : ($pymtInRule ?? null);
+                                                    $deb = $dp->debitAccount ?? ($rule->debitAccount ?? null);
+                                                    $cred = $dp->creditAccount ?? ($rule->creditAccount ?? null);
+                                                    $debName = $deb ? ($deb->account_code . ' - ' . $deb->account_name) : 'Debit Account';
+                                                    $credName = $cred ? ($cred->account_code . ' - ' . $cred->account_name) : 'Credit Account';
+                                                @endphp
+                                                <div class="d-flex flex-column">
+                                                    <span class="text-danger" title="{{ $debName }}"><i class="fa fa-minus-circle mr-1"></i> {{ $deb ? $deb->account_code : 'N/A' }}</span>
+                                                    <span class="text-success" title="{{ $credName }}"><i class="fa fa-plus-circle mr-1"></i> {{ $cred ? $cred->account_code : 'N/A' }}</span>
+                                                </div>
+                                            </td>
                                             <td class="hideOnPrint">
                                                 @can('cancel_kachaee_payment')
+                                                <a href="/dashboard/kachaee-payments/{{ $dp->id }}/edit" class="btn btn-sm btn-outline-primary shadow-sm" title="ویرایش">
+                                                    <i class="fa fa-edit"></i> ویرایش
+                                                </a>
                                                 <button type="button" onclick="deletePayment({{ $dp->id }}, {{ $team->id }})" class="btn btn-sm btn-outline-danger shadow-sm" title="لغو پرداخت مستقیم">
                                                     <i class="fa fa-times"></i> ابطال
                                                 </button>
@@ -743,7 +799,7 @@
 
                                         @if($kachaeeAllocations->isEmpty() && $directPayments->isEmpty())
                                         <tr>
-                                            <td colspan="7" class="text-center py-4">هیچ تخصیص پیش‌پرداختی ثبت نشده است.</td>
+                                            <td colspan="9" class="text-center py-4">هیچ تخصیص پیش‌پرداختی ثبت نشده است.</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -1045,7 +1101,83 @@
             }
         });
     }
+
+    function editAllocation(id, currentAmount, currencyCode) {
+        $('#edit_modal_allocation_id').val(id);
+        $('#edit_modal_alloc_amount').val(currentAmount);
+        $('.edit_modal_currency_display').text(currencyCode);
+        $('#editAllocationModal').modal('show');
+    }
+
+    $(document).ready(function() {
+        $('#editAllocationForm').on('submit', function(e) {
+            e.preventDefault();
+            let id = $('#edit_modal_allocation_id').val();
+            let amount = $('#edit_modal_alloc_amount').val();
+            let btn = $('#btn_submit_edit_allocation');
+            
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> در حال پردازش...');
+            
+            $.ajax({
+                type: 'PUT',
+                url: '/dashboard/kachaee-payments/allocation/' + id,
+                data: {
+                    '_token': '{{ csrf_token() }}',
+                    'amount': amount
+                },
+                success: function(res) {
+                    if (res.status == 'success') {
+                        $('#editAllocationModal').modal('hide');
+                        swal("موفق!", res.message, { icon: "success" });
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        swal("خطا!", res.message, { icon: "error" });
+                        btn.prop('disabled', false).html('<i class="fa fa-save"></i> ذخیره تغییرات');
+                    }
+                },
+                error: function() {
+                    swal("خطا!", "مشکلی در ارتباط با سرور رخ داده است.", "error");
+                    btn.prop('disabled', false).html('<i class="fa fa-save"></i> ذخیره تغییرات');
+                }
+            });
+        });
+    });
 </script>
+
+<!-- Edit Allocation Modal -->
+<div class="modal fade" id="editAllocationModal" tabindex="-1" role="dialog" aria-labelledby="editAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content premium-modal">
+            <div class="modal-header bg-premium-dark text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);">
+                <h5 class="modal-title font-weight-bold" id="editAllocationModalLabel"><i class="fa fa-edit"></i> ویرایش مبلغ تخصیص</h5>
+                <button type="button" class="close text-white m-0 p-0" data-dismiss="modal" aria-label="Close" style="opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editAllocationForm">
+                <input type="hidden" id="edit_modal_allocation_id">
+                <div class="modal-body text-right" style="direction: rtl;">
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark field-label">مبلغ تخصیص جدید (New Allocation Amount):</label>
+                        <div class="input-group" style="direction: ltr;">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text edit_modal_currency_display" style="font-weight: bold; background: #fff3e0;">USD</span>
+                            </div>
+                            <input type="number" step="0.0001" name="amount" id="edit_modal_alloc_amount" class="form-control font-weight-bold text-center text-primary" style="font-size: 1.25rem; direction: ltr;" required>
+                        </div>
+                        <small class="field-explanation text-right d-block mt-1">مبلغ جدید تخصیص را وارد کنید. سیستم مابه‌التفاوت را محاسبه خواهد کرد.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">انصراف (Cancel)</button>
+                    <button type="submit" class="btn btn-premium shadow-sm text-white" id="btn_submit_edit_allocation" style="background: #f57c00;">
+                        <i class="fa fa-save"></i> ذخیره تغییرات (Save Changes)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Allocation Modal -->
 <div class="modal fade" id="allocateAdvanceModal" tabindex="-1" role="dialog" aria-labelledby="allocateAdvanceModalLabel" aria-hidden="true">

@@ -731,6 +731,7 @@
                                     <tr class="text-right">
                                         <th>تاریخ تخصیص (Allocation Date)</th>
                                         <th>سند پیش‌پرداخت (Source Advance)</th>
+                                        <th>نوعیت (Type)</th>
                                         <th>بل خرید مقصد (Target Bill)</th>
                                         <th>حسابات درگیر (Accounts Involved)</th>
                                         <th>مبلغ تخصیص (Allocated Amount)</th>
@@ -749,6 +750,11 @@
                                             </a>
                                             <br>
                                             <small class="text-muted">{{ $alloc->seller_payment->description ?? '' }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ $alloc->seller_payment->type == 'رسید' ? 'badge-success' : 'badge-danger' }} px-3 py-2">
+                                                {{ $alloc->seller_payment->type == 'رسید' ? 'رسید (Received)' : 'گرفت (Sent)' }}
+                                            </span>
                                         </td>
                                         <td>
                                             @if($alloc->purchase_bill)

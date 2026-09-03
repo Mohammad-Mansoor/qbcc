@@ -106,8 +106,8 @@ class AccountingService
                              || $type === 'sales';
             }
 
-            if ($type === 'agent_advance_settlement') {
-                // To prevent double deductions on statement calculation, tag both sides
+            if (str_ends_with($type, 'advance_settlement')) {
+                // To prevent double deductions on statement calculation, tag both sides for ALL advance settlements
                 $shouldTagDebit = true;
                 $shouldTagCredit = true;
             } elseif ($isPaymentOut) {

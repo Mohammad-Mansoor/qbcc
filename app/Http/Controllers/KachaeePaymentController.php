@@ -579,8 +579,8 @@ class KachaeePaymentController extends Controller
             $ref = $rep->kachaee_number ?: 'بدون نمبر';
             if (!isset($groupedRepairs[$ref])) {
                 $groupedRepairs[$ref] = [
-                    'first_date' => $rep->date,
-                    'kachaee_number' => $ref,
+                    'date' => $rep->date,
+                    'reference' => $ref,
                     'total_carpets' => 0,
                     'total_cost' => 0,
                     'total_paid' => (float)$totalPaid,
@@ -914,6 +914,75 @@ class KachaeePaymentController extends Controller
             $activity->save();
 
             return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه حذف گردید!']);
+        });
+    }
+
+    public function updateAllocation(Request $request, $id)
+    {
+        return DB::transaction(function () use ($request, $id) {
+            $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $allocation = \App\KachaeePaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->payment;
+            $doc = $allocation->allocatable;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
+            }
+
+            $newAmount = $request->amount;
+            $oldAmount = $allocation->allocated_amount;
+            $diff = bcsub($newAmount, $oldAmount, 4);
+
+            if (bccomp($diff, 0, 4) > 0) {
+                if (bccomp($diff, $payment->remaining_unallocated_amount, 4) > 0) {
+                    return response()->json(['status' => 'error', 'message' => "مقدار افزایش بیش از موجودی علی‌الحساب است."]);
+                }
+            }
+
+            // Reverse the old accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Kachaee Allocation Edited', 'App\KachaeePaymentAllocation');
+
+            // Update Payment Unallocated Amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $diff, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Update Allocation
+            $allocation->allocated_amount = $newAmount;
+            $allocation->base_allocated_amount = bcmul($newAmount, $payment->exchange_rate, 4);
+            $allocation->save();
+
+            // Re-post accounting entry for settlement if doc exists
+            if ($doc) {
+                $this->accountingService->postAutoTransaction('kachaee_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                    'date' => now()->format('Y-m-d'),
+                    'amount' => $newAmount,
+                    'currency_code' => $payment->currency_code,
+                    'exchange_rate' => $payment->exchange_rate,
+                    'party_type' => 'App\Kachaee',
+                    'party_id' => $payment->team_id,
+                    'reference' => $doc->reference_number ?? 'General',
+                    'description' => "ویرایش تصفیه بل کچایی " . ($doc->reference_number ?? '') . " از پیش‌پرداخت شماره " . $payment->id,
+                    'source_id' => $allocation->id,
+                    'source_type' => 'App\KachaeePaymentAllocation',
+                ]);
+            }
+
+            // Log activity
+            $activity = new Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "ویرایش تخصیص پیش‌پرداخت به مبلغ " . $newAmount . " در پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['status' => 'success', 'message' => 'تخصیص موفقانه ویرایش گردید!']);
         });
     }
 }

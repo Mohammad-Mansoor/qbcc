@@ -35,15 +35,19 @@ class LedgerTransaction extends Model
                 $prefix = "JV-{$year}-";
                 
                 // Get the maximum sequential number for this prefix
-                $lastTransactions = self::where('journal_id', 'LIKE', "{$prefix}%")
+                $prefixLength = strlen($prefix) + 1;
+                $latestTransaction = self::where('journal_id', 'LIKE', "{$prefix}%")
+                    ->orderByRaw("CAST(SUBSTRING(journal_id, {$prefixLength}) AS UNSIGNED) DESC")
                     ->lockForUpdate()
-                    ->get();
+                    ->first();
+                
+                $latestJournalId = $latestTransaction ? $latestTransaction->journal_id : null;
                 
                 $maxNum = 0;
-                foreach ($lastTransactions as $t) {
-                    $numPart = str_replace($prefix, '', $t->journal_id);
+                if ($latestJournalId) {
+                    $numPart = str_replace($prefix, '', $latestJournalId);
                     if (is_numeric($numPart)) {
-                        $maxNum = max($maxNum, intval($numPart));
+                        $maxNum = intval($numPart);
                     }
                 }
                 

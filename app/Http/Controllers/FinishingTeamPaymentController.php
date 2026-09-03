@@ -784,6 +784,75 @@ class FinishingTeamPaymentController extends Controller
         });
     }
 
+    public function updateAllocation(Request $request, $id)
+    {
+        return DB::transaction(function () use ($request, $id) {
+            $request->validate([
+                'allocated_amount' => 'required|numeric|min:0.01',
+            ]);
+
+            $allocation = \App\FinishingPaymentAllocation::lockForUpdate()->findOrFail($id);
+            $payment = $allocation->payment;
+            $doc = $allocation->allocatable;
+
+            // Check if date is locked
+            $this->accountingService->failIfLocked($payment->date);
+            if ($doc) {
+                $this->accountingService->failIfLocked($doc->date ?? now()->format('Y-m-d'));
+            }
+
+            $newAmount = $request->allocated_amount;
+            $oldAmount = $allocation->allocated_amount;
+            $diff = bcsub($newAmount, $oldAmount, 4);
+
+            if (bccomp($diff, 0, 4) > 0) {
+                if (bccomp($diff, $payment->remaining_unallocated_amount, 4) > 0) {
+                    return response()->json(['success' => false, 'message' => "مقدار افزایش بیش از موجودی علی‌الحساب است."]);
+                }
+            }
+
+            // Reverse the old accounting transaction
+            $this->accountingService->reverseTransactionBySource($allocation->id, 'Finishing Allocation Edited', 'App\FinishingPaymentAllocation');
+
+            // Update Payment Unallocated Amount
+            if ($payment->is_advance) {
+                $payment->remaining_unallocated_amount = bcsub($payment->remaining_unallocated_amount, $diff, 4);
+                $payment->payment_status = $payment->remaining_unallocated_amount <= 0.01 ? 'allocated' : 'partially_allocated';
+                $payment->save();
+            }
+
+            // Update Allocation
+            $allocation->allocated_amount = $newAmount;
+            $allocation->base_allocated_amount = bcmul($newAmount, $payment->exchange_rate, 4);
+            $allocation->save();
+
+            // Re-post accounting entry for settlement if doc exists
+            if ($doc) {
+                $this->accountingService->postAutoTransaction('finishing_advance_settlement', 'ADVANCE_SETTLEMENT', [
+                    'date' => now()->format('Y-m-d'),
+                    'amount' => $newAmount,
+                    'currency_code' => $payment->currency_code,
+                    'exchange_rate' => $payment->exchange_rate,
+                    'party_type' => 'App\FinishingTeam',
+                    'party_id' => $payment->team_id,
+                    'reference' => $doc->reference_number ?? 'General',
+                    'description' => "ویرایش تصفیه بل تیاری " . ($doc->reference_number ?? '') . " از پیش‌پرداخت شماره " . $payment->id,
+                    'source_id' => $allocation->id,
+                    'source_type' => 'App\FinishingPaymentAllocation',
+                ]);
+            }
+
+            // Log activity
+            $activity = new \App\Activity();
+            $activity->date = now()->format('Y-m-d');
+            $activity->description = "ویرایش تخصیص پیش‌پرداخت تیاری به مبلغ " . $newAmount . " در پیش‌پرداخت شماره " . $payment->id;
+            $activity->user_id = Auth::user()->id;
+            $activity->save();
+
+            return response()->json(['success' => true, 'message' => 'تخصیص با موفقیت بروزرسانی شد.']);
+        });
+    }
+
     /**
      * Remove the specified resource from storage.
      *

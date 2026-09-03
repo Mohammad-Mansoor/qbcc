@@ -233,6 +233,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:mana
     //  FINISHING RECEIVEDS
     Route::post('/finishing-payments/allocate', 'FinishingTeamPaymentController@allocateAdvance');
     Route::delete('/finishing-payments/allocation/{id}', 'FinishingTeamPaymentController@removeAllocation');
+    Route::put('/finishing-payments/allocation/{id}', 'FinishingTeamPaymentController@updateAllocation');
     Route::resource('finishing-payments', 'FinishingTeamPaymentController');
     Route::get('/finishing-payments-all/{team_id}', 'FinishingTeamPaymentController@show_all_payment');
 });
@@ -247,7 +248,7 @@ Route::resource('/sales', 'SaleController');
 Route::get('/sales-all', 'SaleController@show_all');
 Route::post('/sales/{id}/return', 'SaleController@returnSale')->name('sales.return');
 Route::get('/sales/export/pdf', 'SaleController@exportPdf')->name('sales.pdf_export');
-Route::post('/search-carpet-from-sales','SaleController@search');
+Route::match(['get', 'post'], '/search-carpet-from-sales','SaleController@search');
 Route::get('/get_carpet_details.get_by_carpet', 'SaleController@get_carpet_details')->name('dashboard.get_carpet_details.get_by_carpet');
 
 
@@ -398,6 +399,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::resource('kachaee-team', 'KachaeeController')->parameters(['kachaee-team' => 'team']);
     Route::post('/kachaee-payments/allocate', 'KachaeePaymentController@allocateAdvance');
     Route::delete('/kachaee-payments/allocation/{id}', 'KachaeePaymentController@removeAllocation');
+    Route::put('/kachaee-payments/allocation/{id}', 'KachaeePaymentController@updateAllocation');
     Route::resource('kachaee-payments', 'KachaeePaymentController');
     Route::get('/kachaee-payments-all/{team_id}', 'KachaeePaymentController@show_all_payment');
     Route::get('/kachaee-accounts', 'KachaeeController@accounts');
@@ -495,6 +497,7 @@ Route::group(['prefix' => 'dashboard', 'middleware' => ['auth', 'permission:view
     Route::resource('washing-team', 'WashingTeamController')->parameters(['washing-team' => 'team']);
     Route::post('/washing-payments/allocate', 'WashingPaymentController@allocateAdvance');
     Route::delete('/washing-payments/allocation/{id}', 'WashingPaymentController@removeAllocation');
+    Route::put('/washing-payments/allocation/{id}', 'WashingPaymentController@updateAllocation');
     Route::resource('washing-payments', 'WashingPaymentController');
     Route::get('/washing-payments-all/{team_id}', 'WashingPaymentController@show_all_payment');
     Route::get('/washing-accounts', 'WashingTeamController@accounts');

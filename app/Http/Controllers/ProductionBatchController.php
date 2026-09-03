@@ -308,11 +308,31 @@ class ProductionBatchController extends Controller
                 ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
+            $allocationsQuery = \App\KachaeePaymentAllocation::where('allocatable_type', 'App\ProductionBatch')
+                ->where('allocatable_id', $batch->id)
+                ->with('payment');
+
             if ($startDate && $endDate) {
                 $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+                $allocationsQuery->whereDate('created_at', '>=', $startDate)->whereDate('created_at', '<=', $endDate);
             }
             
             $payments = $paymentsQuery->get();
+            $allocations = $allocationsQuery->get()->map(function($alloc) {
+                return (object)[
+                    'id' => $alloc->id,
+                    'date' => $alloc->created_at->format('Y-m-d'),
+                    'description' => 'تخصیص پیش‌پرداخت (Advance Allocation)',
+                    'type' => 'گرفت',
+                    'original_amount' => $alloc->allocated_amount,
+                    'currency_code' => $alloc->payment->currency_code ?? 'USD',
+                    'exchange_rate' => $alloc->exchange_rate,
+                    'base_amount' => $alloc->base_allocated_amount,
+                    'is_allocation' => true
+                ];
+            });
+
+            $payments = $payments->concat($allocations)->sortByDesc('date')->values();
                 
             $totalCost = (float)$carpets->sum('total_price');
             
@@ -323,7 +343,7 @@ class ProductionBatchController extends Controller
             $team = $carpets->first() ? $carpets->first()->team : null;
 
         } elseif ($type === 'wash') {
-            $query = \App\CarpetWash::where('wash_number', $ref)
+            $query = \App\CarpetWash::where('wash_number_sh', $ref)
                 ->with(['carpet.type', 'carpet.quality', 'carpet.warehouse', 'washing_team']);
                 
             if ($startDate && $endDate) {
@@ -342,15 +362,33 @@ class ProductionBatchController extends Controller
                 ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
+            $allocationsQuery = \App\WashingPaymentAllocation::where('allocatable_type', 'App\ProductionBatch')
+                ->where('allocatable_id', $batch->id)
+                ->with('payment');
+
             if ($startDate && $endDate) {
                 $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+                $allocationsQuery->whereDate('created_at', '>=', $startDate)->whereDate('created_at', '<=', $endDate);
             }
             
             $payments = $paymentsQuery->get();
-                
-            $totalCost = (float)$carpets->sum(function($w) {
-                return $w->total_price ?: $w->af_total_price;
+            $allocations = $allocationsQuery->get()->map(function($alloc) {
+                return (object)[
+                    'id' => $alloc->id,
+                    'date' => $alloc->created_at->format('Y-m-d'),
+                    'description' => 'تخصیص پیش‌پرداخت (Advance Allocation)',
+                    'type' => 'گرفت',
+                    'original_amount' => $alloc->allocated_amount,
+                    'currency_code' => $alloc->payment->currency_code ?? 'USD',
+                    'exchange_rate' => $alloc->exchange_rate,
+                    'base_amount' => $alloc->base_allocated_amount,
+                    'is_allocation' => true
+                ];
             });
+
+            $payments = $payments->concat($allocations)->sortByDesc('date')->values();
+                
+            $totalCost = (float)$carpets->sum('total_price');
             
             $totalSent = (float)$payments->where('type', 'گرفت')->sum('original_amount');
             $totalReceived = (float)$payments->where('type', 'رسید')->sum('original_amount');
@@ -372,11 +410,31 @@ class ProductionBatchController extends Controller
                 ->where('status', '!=', 2)
                 ->orderBy('date', 'desc');
                 
+            $allocationsQuery = \App\FinishingPaymentAllocation::where('allocatable_type', 'App\ProductionBatch')
+                ->where('allocatable_id', $batch->id)
+                ->with('payment');
+
             if ($startDate && $endDate) {
                 $paymentsQuery->whereBetween('date', [$startDate, $endDate]);
+                $allocationsQuery->whereDate('created_at', '>=', $startDate)->whereDate('created_at', '<=', $endDate);
             }
             
             $payments = $paymentsQuery->get();
+            $allocations = $allocationsQuery->get()->map(function($alloc) {
+                return (object)[
+                    'id' => $alloc->id,
+                    'date' => $alloc->created_at->format('Y-m-d'),
+                    'description' => 'تخصیص پیش‌پرداخت (Advance Allocation)',
+                    'type' => 'گرفت',
+                    'original_amount' => $alloc->allocated_amount,
+                    'currency_code' => $alloc->payment->currency_code ?? 'USD',
+                    'exchange_rate' => $alloc->exchange_rate,
+                    'base_amount' => $alloc->base_allocated_amount,
+                    'is_allocation' => true
+                ];
+            });
+
+            $payments = $payments->concat($allocations)->sortByDesc('date')->values();
                 
             $totalCost = (float)$carpets->sum('price');
             
