@@ -126,8 +126,8 @@ class AssetsReportController extends Controller
                     'request' => $request
                 ]);
             } else {
-                $headerPath = public_path('images/header.png');
-                $footerPath = public_path('images/footer.png');
+                $headerPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+                $footerPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
                 
                 $headerBase64 = '';
                 if (file_exists($headerPath)) {

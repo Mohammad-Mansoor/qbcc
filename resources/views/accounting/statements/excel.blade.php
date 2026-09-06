@@ -67,7 +67,7 @@
     <table>
         <!-- Company / Report Header -->
         <tr>
-            <td colspan="7" class="header-title">شرکت تولیدی قالین برادران قاسمی</td>
+            <td colspan="7" class="header-title">{{ config('company.name') }}</td>
         </tr>
         <tr>
             <td colspan="7" class="header-subtitle">صورت حساب مالی تفصیلی (Detailed Statement of Account)</td>

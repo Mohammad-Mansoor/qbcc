@@ -91,7 +91,7 @@
                 @endif
             </td>
             <td style="width: 60%; text-align: right; padding-right: 10px;">
-                <h2 class="title-main">شرکت صنعتی برادران قاسمی</h2>
+                <h2 class="title-main">{{ config('company.name') }}</h2>
             </td>
             <td style="width: 30%; text-align: left;">
                 <div class="report-title-badge">

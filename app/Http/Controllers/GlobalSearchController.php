@@ -16,8 +16,9 @@ class GlobalSearchController extends Controller
             return response()->json([]);
         }
 
-        // Clean query from "QB", "QB-", etc. for numerical comparison if possible
-        $cleanQuery = preg_replace('/^QB-?/i', '', $query);
+        $prefix = config('company.carpet_no_prefix', 'QB');
+        // Clean query from prefix, prefix with dash, etc. for numerical comparison if possible
+        $cleanQuery = preg_replace('/^' . preg_quote($prefix, '/') . '-?/i', '', $query);
 
         // Search by map_number or carpet_no matching directly or matching the number part
         $carpets = Carpet::where('map_number', 'LIKE', "%{$query}%")
@@ -25,8 +26,8 @@ class GlobalSearchController extends Controller
             
         if (!empty($cleanQuery) && is_numeric($cleanQuery)) {
             $carpets->orWhere('carpet_no', 'LIKE', "%{$cleanQuery}%")
-                    ->orWhere('carpet_no', 'LIKE', "QB-{$cleanQuery}")
-                    ->orWhere('carpet_no', 'LIKE', "QB{$cleanQuery}");
+                    ->orWhere('carpet_no', 'LIKE', "{$prefix}-{$cleanQuery}")
+                    ->orWhere('carpet_no', 'LIKE', "{$prefix}{$cleanQuery}");
         }
 
         $carpets = $carpets->with(['type', 'quality', 'agent.user'])

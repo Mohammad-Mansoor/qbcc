@@ -12,8 +12,8 @@
                 
                 <!-- Print-Only Header (Company Branding) -->
                 <div class="d-none d-print-block print-header text-center mb-5">
-                    <h1 class="font-weight-bold text-dark mb-1" style="letter-spacing: 2px;">QASIMI BROTHERS CARPET CO.</h1>
-                    <p class="text-muted mb-4">شرکت تولیدی قـاسمی بـرادران - بخش امور مالی</p>
+                    <h1 class="font-weight-bold text-dark mb-1" style="letter-spacing: 2px;">{{ config('company.name') }}</h1>
+                    <p class="text-muted mb-4">{{ config('company.description') }}</p>
                     <div style="border-bottom: 2px solid #333; width: 100%; margin-bottom: 5px;"></div>
                     <div style="border-bottom: 1px solid #333; width: 100%;"></div>
                 </div>

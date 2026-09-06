@@ -20,12 +20,12 @@ class UsersTableSeeder extends Seeder
 
         // 1. Create the user
         $user = User::updateOrCreate(
-            ['email' => 'qbc1@live.com'],
+            ['email' => env('EMAIL', 'qbc1@live.com')],
             [
-                'name' => 'QBIC',
-                'last_name' => 'QBIC',
+                'name' => env('NAME', 'QBIC'),
+                'last_name' => env('LASTNAME', 'QBIC'),
                 'role' => 'SP',
-                'password' => bcrypt('QBIC22000@1500af'),
+                'password' => bcrypt(env('PASSWORD', 'QBIC22000@1500af')),
             ]
         );
 

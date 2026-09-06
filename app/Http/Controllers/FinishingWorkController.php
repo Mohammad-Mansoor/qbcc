@@ -291,9 +291,18 @@ class FinishingWorkController extends Controller
         return view('finishing-center.re-finish-work', array_merge(compact('carpet', 'teams', 'newCarpet', 'openBatches', 'team_categories', 'allowedDebitAccounts', 'allowedCreditAccounts', 'mapping', 'currencies', 'currency', 'selected_team_id'), $checks));
     }
 
-    private function processWorkCategory($request, $carpet, $newCarpet, $category_id, $field_suffix)
+    private function processWorkCategory($request, $carpet, $newCarpet, $category_id, $field_suffix, $is_refinish = false)
     {
         if ($request->has($field_suffix . '_checkbox') && $request->input($field_suffix . '_checkbox') == 'on') {
+            if (!$is_refinish) {
+                $exists = \App\FinishingWork::where('carpetId', $request->carpetId)
+                                            ->where('category_id', $category_id)
+                                            ->exists();
+                if ($exists) {
+                    return null;
+                }
+            }
+
             $finish = new FinishingWork();
             $finish->finish_number = $request->input('finish_number_' . $field_suffix);
             $finish->carpetId = $request->carpetId;
@@ -382,7 +391,7 @@ class FinishingWorkController extends Controller
             ];
 
             foreach ($categories as $id => $suffix) {
-                $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix);
+                $this->processWorkCategory($request, $carpet, $newCarpet, $id, $suffix, true);
             }
         });
 

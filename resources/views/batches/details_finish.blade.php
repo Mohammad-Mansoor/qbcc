@@ -62,8 +62,8 @@
     <div class="card border-0 shadow-lg rounded-lg overflow-hidden" id="premiumBatchInvoice">
         <!-- Invoice Header -->
         <div class="card-header bg-white border-bottom p-5 text-center">
-            <h2 class="font-weight-bold text-dark mb-2" style="font-size: 2.2rem; color: #1e3a8a !important;">شرکت صنعتی برادران قاسمی</h2>
-            <p class="text-muted mb-4" style="font-size: 1.1rem;">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت افغانستان</p>
+            <h2 class="font-weight-bold text-dark mb-2" style="font-size: 2.2rem; color: #1e3a8a !important;">{{ config('company.name') }}</h2>
+            <p class="text-muted mb-4" style="font-size: 1.1rem;">{{ config('company.description') }}</p>
             
             <div class="d-inline-block px-5 py-2 mt-2 rounded-pill shadow-sm" style="background-color: #eff6ff; border: 1px solid #bfdbfe;">
                 <h4 class="font-weight-bold mb-0" style="color: #1d4ed8;">صورتحساب تیاری (Finishing Payment Bill)</h4>

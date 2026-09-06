@@ -25,7 +25,7 @@ class WarehouseReportController extends Controller
      */
     private function getHeaderBase64()
     {
-        $headerPath = public_path('images/header.png');
+        $headerPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
         if (file_exists($headerPath)) {
             return 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath));
         }
@@ -37,7 +37,7 @@ class WarehouseReportController extends Controller
      */
     private function getLogoBase64()
     {
-        $logoPath = public_path('images/logo.png');
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
         if (file_exists($logoPath)) {
             return 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
         }

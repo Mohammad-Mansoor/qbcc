@@ -104,8 +104,8 @@
                 <div class="d-none d-print-block p-5 bg-light">
                     <div class="row align-items-center">
                         <div class="col-6">
-                            <h1 class="font-weight-bold text-dark mb-1">QASIMI BROTHERS</h1>
-                            <p class="text-muted mb-0">شرکت تولیدی قاسمی برادران</p>
+                            <h1 class="font-weight-bold text-dark mb-1">{{ config('company.name') }}</h1>
+                            <p class="text-muted mb-0">{{ config('company.description') }}</p>
                         </div>
                         <div class="col-6 text-right">
                             <h2 class="font-weight-bold text-indigo mb-1" style="color: #3f51b5;">صورت حساب (Statement)</h2>

@@ -164,3 +164,7 @@ sudo /opt/lampp/lampp start
 ### to start project
 /opt/lampp/bin/php -S 127.0.0.1:8000 server.php
 
+شرکت صنعتی برادران قاسمی
+شرکت تولید قالین اطلس منان
+شرکت قالین بافی چوب رنگ
+شرکت فرش زرین

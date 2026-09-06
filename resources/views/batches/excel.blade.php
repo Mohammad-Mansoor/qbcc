@@ -42,8 +42,8 @@
                 @endif
             </td>
             <td colspan="{{ $batch->type == 'finish' ? '5' : '4' }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
-                <span class="company-name">شرکت صنعتی برادران قاسمی</span><br><br>
-                <span class="company-subtitle">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت  افغانستان</span>
+                <span class="company-name">{{ config('company.name') }}</span><br><br>
+                <span class="company-subtitle">{{ config('company.description') }}</span>
             </td>
         </tr>
         <tr style="height: 10pt;"><td colspan="{{ $batch->type == 'finish' ? '6' : '5' }}" style="border: none; background-color: #ffffff;"></td></tr>

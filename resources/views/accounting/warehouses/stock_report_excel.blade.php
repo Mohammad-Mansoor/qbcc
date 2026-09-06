@@ -88,7 +88,7 @@ header("Cache-Control: private",false);
                 @endif
             </td>
             <td colspan="{{ $warehouse->subtype === 'carpet' ? 9 : 5 }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
-                <span class="company-name">شرکت صنعتی برادران قاسمی</span><br><br>
+                <span class="company-name">{{ config('company.name') }}</span><br><br>
                 <span class="company-subtitle">گزارش موجودی گدام</span>
             </td>
         </tr>

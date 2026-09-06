@@ -338,8 +338,8 @@ class JournalController extends Controller
         $transactions = $query->get();
         $accounts = \App\ChartOfAccount::orderBy('account_code')->get();
 
-        $topHeaderPath = public_path('images/header.png');
-        $bottomFooterPath = public_path('images/footer.png');
+        $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+        $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
         
         $topHeaderBase64 = '';
         if (file_exists($topHeaderPath)) {
@@ -370,8 +370,8 @@ class JournalController extends Controller
         $transaction = LedgerTransaction::with('entries.account')->findOrFail($id);
 
         if ($request->get('export') === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {

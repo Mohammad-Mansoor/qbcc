@@ -70,7 +70,7 @@
                     
                     <!-- Print Header -->
                     <div class="text-center mb-5">
-                        <h2 class="font-weight-bold">شرکت تولیدی قالین برادران قاسمی</h2>
+                        <h2 class="font-weight-bold">{{ config('company.name') }}</h2>
                         <h4 class="text-muted">گزارش مقایسوی عواید و مصارف</h4>
                         <p class="mb-0">دوره فعلی: {{ $startDate }} الی {{ $endDate }} | دوره قبلی: {{ \Carbon\Carbon::parse($startDate)->subYear()->toDateString() }} الی {{ \Carbon\Carbon::parse($endDate)->subYear()->toDateString() }}</p>
                     </div>

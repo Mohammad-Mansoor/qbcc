@@ -569,7 +569,7 @@ class CarpetsController extends Controller
 
     protected function exportStock($carpets, $request, $format)
     {
-        $logoPath = public_path('images/logo.png');
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
         $logoBase64 = '';
         if (file_exists($logoPath)) {
             $logoBase64 = base64_encode(file_get_contents($logoPath));
@@ -1228,15 +1228,17 @@ class CarpetsController extends Controller
         $carpets = $query->paginate(20);
         $carpets->appends($request->all());
 
-        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
+        $carpetStart = config('company.carpet_no_start', 'QB1000');
+        $lastId = Carpet::where('carpet_no', 'LIKE', $carpetPrefix . '%')->max('carpet_no');
 
         if ($lastId) {
             $numericPart = preg_replace('/[^0-9]/', '', $lastId);
             $nextVal = intval($numericPart) + 1;
             $len = strlen($numericPart);
-            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
+            $AccountNo = $carpetPrefix . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB1000';
+            $AccountNo = $carpetStart;
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::orderBy('order_number')->get();
@@ -1262,14 +1264,16 @@ class CarpetsController extends Controller
             })
             ->with('agent')
             ->get();
-        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
+        $carpetStart = config('company.carpet_no_start', 'QB1000');
+        $lastId = Carpet::where('carpet_no', 'LIKE', $carpetPrefix . '%')->max('carpet_no');
         if ($lastId) {
             $numericPart = preg_replace('/[^0-9]/', '', $lastId);
             $nextVal = intval($numericPart) + 1;
             $len = strlen($numericPart);
-            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
+            $AccountNo = $carpetPrefix . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB1000';
+            $AccountNo = $carpetStart;
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::orderBy('order_number')->get();
@@ -1320,14 +1324,16 @@ class CarpetsController extends Controller
             })
             ->get();
 
-        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
+        $carpetStart = config('company.carpet_no_start', 'QB1000');
+        $lastId = Carpet::where('carpet_no', 'LIKE', $carpetPrefix . '%')->max('carpet_no');
         if ($lastId) {
             $numericPart = preg_replace('/[^0-9]/', '', $lastId);
             $nextVal = intval($numericPart) + 1;
             $len = strlen($numericPart);
-            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
+            $AccountNo = $carpetPrefix . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB1000';
+            $AccountNo = $carpetStart;
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::orderBy('order_number')->get();
@@ -1482,14 +1488,16 @@ class CarpetsController extends Controller
             ->with('agent')
             ->paginate(20);
 
-        $lastId = Carpet::where('carpet_no', 'LIKE', 'QB%')->max('carpet_no');
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
+        $carpetStart = config('company.carpet_no_start', 'QB1000');
+        $lastId = Carpet::where('carpet_no', 'LIKE', $carpetPrefix . '%')->max('carpet_no');
         if ($lastId) {
             $numericPart = preg_replace('/[^0-9]/', '', $lastId);
             $nextVal = intval($numericPart) + 1;
             $len = strlen($numericPart);
-            $AccountNo = 'QB' . sprintf('%0' . $len . 'd', $nextVal);
+            $AccountNo = $carpetPrefix . sprintf('%0' . $len . 'd', $nextVal);
         } else {
-            $AccountNo = 'QB1000';
+            $AccountNo = $carpetStart;
         }
         $agents = Agents::where('contract_type', 'carpet seller')->get();
         $orders = CarpetOrder::orderBy('order_number')->get();

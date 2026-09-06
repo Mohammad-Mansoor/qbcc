@@ -448,9 +448,9 @@ class ProductionBatchController extends Controller
         $remaining = max(0.0, $totalCost - $totalPaid);
         
         if ($request->get('export') === 'pdf' || $request->get('export') === 'excel') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
-            $logoPath = public_path('images/logo.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
+            $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {

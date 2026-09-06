@@ -137,7 +137,7 @@ class PurchasedCarpetReportController extends Controller
                     'request' => $request
                 ]);
             } else {
-                $logoPath = public_path('images/logo.png');
+                $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
                 
                 $logoBase64 = '';
                 if (file_exists($logoPath)) {

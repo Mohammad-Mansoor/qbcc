@@ -46,8 +46,8 @@
                 @endif
             </td>
             <td colspan="{{ $colspanHeader - 1 }}" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px;">
-                <span class="company-name">شرکت برادران قاسمی</span><br>
-                <span class="company-subtitle">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت  افغانستان</span>
+                <span class="company-name">{{ config('company.name') }}</span><br>
+                <span class="company-subtitle">{{ config('company.description') }}</span>
             </td>
         </tr>
         <tr style="height: 10pt;"><td colspan="{{ $colspanHeader }}" style="border: none; background-color: #ffffff;"></td></tr>

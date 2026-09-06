@@ -126,7 +126,8 @@
                 @endif
             </td>
             <td style="width: 30%; text-align: right; padding-right: 5px; vertical-align: middle;">
-                <h2 class="title-main">شرکت برادران قاسمی</h2>
+                <h2 class="title-main">{{ config('company.name') }}</h2>
+                <div style="font-size: 8pt; color: #475569;">{{ config('company.description') }}</div>
             </td>
             <td style="width: 60%; text-align: left; vertical-align: middle;">
                 <div class="report-title-badge">صورتحساب تیاری (Finishing Payment Bill)</div>

@@ -79,7 +79,7 @@
     <table>
         <!-- Company / Report Header -->
         <tr>
-            <td colspan="12" class="header-title">شرکت تولیدی قالین برادران قاسمی</td>
+            <td colspan="12" class="header-title">{{ config('company.name') }}</td>
         </tr>
         <tr>
             <td colspan="12" class="header-subtitle">گزارش ورودی و خروجی گدام‌ها (Warehouse Movement Ledger)</td>

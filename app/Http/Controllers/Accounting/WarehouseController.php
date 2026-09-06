@@ -231,9 +231,9 @@ class WarehouseController extends Controller
             }
         }
 
-        $headerPath = public_path('images/header.png');
-        $footerPath = public_path('images/footer.png');
-        $logoPath = public_path('images/logo.png');
+        $headerPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+        $footerPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
         
         $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : '';
         $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : '';

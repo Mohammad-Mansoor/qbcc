@@ -45,8 +45,8 @@ class AccountingReportController extends Controller
         });
 
         if ($request->export === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {

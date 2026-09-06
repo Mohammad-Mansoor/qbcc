@@ -208,9 +208,8 @@
 
     <div
         style="text-align: center; padding: 10px 20px 20px 20px; border-bottom: 2px solid #0056b3; margin-bottom: 20px;">
-        <h1 style="color: #0056b3; margin: 0; font-size: 24px;">شرکت صنعتی برادران قاسمی</h1>
-        <p style="color: #666; margin: 5px 0 0 0; font-size: 12px; font-weight: bold;">تولید و صادر کننده انواع مختلف
-            قالین و گیلم های دست بافت افغانستان</p>
+        <h1 style="color: #0056b3; margin: 0; font-size: 24px;">{{ config('company.name') }}</h1>
+        <p style="color: #666; margin: 5px 0 0 0; font-size: 12px; font-weight: bold;">{{ config('company.description') }}</p>
     </div>
 
     <div class="container">

@@ -80,9 +80,9 @@ class ReportController extends Controller
                 ->get();
         }
 
-        $logoPath = public_path('images/logo.png');
-        $topHeaderPath = public_path('images/header.png');
-        $bottomFooterPath = public_path('images/footer.png');
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
+        $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+        $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
 
         $logoBase64 = '';
         if (file_exists($logoPath)) {
@@ -248,9 +248,9 @@ class ReportController extends Controller
                 ->get();
         }
 
-        $logoPath = public_path('images/logo.png');
-        $topHeaderPath = public_path('images/header.png');
-        $bottomFooterPath = public_path('images/footer.png');
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
+        $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+        $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
 
         $logoBase64 = '';
         if (file_exists($logoPath)) {
@@ -595,8 +595,8 @@ class ReportController extends Controller
         ];
 
         if ($request->export === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {
@@ -676,8 +676,8 @@ class ReportController extends Controller
         $currencies = \App\Currency::all()->keyBy('code');
 
         if ($request->get('export') === 'excel') {
-            $logoPath = public_path('images/logo.png');
-            $topHeaderPath = public_path('images/header.png');
+            $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
             $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
             $topHeaderBase64 = file_exists($topHeaderPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath)) : '';
 
@@ -695,9 +695,9 @@ class ReportController extends Controller
         }
 
         if ($request->get('export') === 'pdf') {
-            $logoPath = public_path('images/logo.png');
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
             $topHeaderBase64 = file_exists($topHeaderPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($topHeaderPath)) : '';
@@ -732,8 +732,8 @@ class ReportController extends Controller
             ->get();
 
         if ($request->export === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {
@@ -773,8 +773,8 @@ class ReportController extends Controller
         }
 
         if ($request->get('export') === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {
@@ -806,8 +806,8 @@ class ReportController extends Controller
         $currentNetProfit = $revenue->sum('balance') - $expenses->sum('balance');
 
         if ($request->export === 'pdf') {
-            $topHeaderPath = public_path('images/header.png');
-            $bottomFooterPath = public_path('images/footer.png');
+            $topHeaderPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+            $bottomFooterPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
             
             $topHeaderBase64 = '';
             if (file_exists($topHeaderPath)) {

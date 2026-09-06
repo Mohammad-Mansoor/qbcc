@@ -48,7 +48,8 @@
                         @endif
                     </td>
                     <td style="border:none; padding:0 10px 0 0; vertical-align:middle;">
-                        <p class="company-name">شرکت صنعتی برادران قاسمی</p>
+                        <p class="company-name">{{ config('company.name') }}</p>
+                        <div style="font-size: 8pt; color: #475569;">{{ config('company.description') }}</div>
                     </td>
                 </tr>
             </table>

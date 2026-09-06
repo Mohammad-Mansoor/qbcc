@@ -275,7 +275,8 @@
 
                     <div class="content-wrapper">
                         <div class="title-block">
-                            <h2 class="title-main">شرکت صنعتی برادران قاسمی</h2>
+                            <h2 class="title-main">{{ config('company.name') }}</h2>
+                            <div style="font-size: 8pt; color: #475569; margin-bottom: 2px;">{{ config('company.description') }}</div>
                             <div
                                 style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 15px; border-radius: 10px; color: #1d4ed8; font-weight: bold; font-size: 12pt; margin-top: 2px;">
                                 بل خرید مواد خام

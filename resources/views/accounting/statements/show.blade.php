@@ -150,7 +150,7 @@
         <table class="w-100" style="border: none;">
             <tr>
                 <td style="text-align: right; border: none; width: 33%;">
-                    <h5 class="font-weight-bold">شرکت تولیدی قالین برادران قاسمی</h5>
+                    <h5 class="font-weight-bold">{{ config('company.name') }}</h5>
                     <p class="text-muted small mb-0">سیستم تفتیش مالی و اداری</p>
                 </td>
                 <td style="text-align: center; border: none; width: 33%;">

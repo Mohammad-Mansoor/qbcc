@@ -137,7 +137,7 @@
 
         <div class="">
           <div class="main-menu-header">
-            <img class="img-radius" src="/printStyle/logo.png" height="40px" alt="User-Profile-Image">
+            <img class="img-radius" src="/public/{{ config('company.logo_path', 'images/logos/qasimi_logo.png') }}" height="40px" style="object-fit: contain;" alt="Company Logo" onerror="this.onerror=null; this.src='/printStyle/logo.png';">
             <div class="user-details">
               <div id="more-details">&nbsp;{{Auth::user()->name}}<i class="fa fa-caret-down"></i></div>
               @if(Auth::user()->role == 'SP')
@@ -173,39 +173,60 @@
 
           @if(auth()->user()->hasAnyPermission(['view_production_dashboard', 'view_inventory_dashboard', 'view_finance_dashboard', 'view_sales_dashboard', 'view_purchases_dashboard', 'view_cost_analytics']))
 
-          <li
-            class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/accounting*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
-            <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
-                class="pcoded-mtext"><b>داشبورد</b></span></a>
-            <ul class="pcoded-submenu">
-              <!-- <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li> -->
-              @can('view_production_dashboard')
-              <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
-              @endcan
-              @can('view_inventory_dashboard')
-              <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
-              @endcan
-              @can('view_finance_dashboard')
-              <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
-              @endcan
-              @can('view_sales_dashboard')
-              <li><a href="/dashboard/sales-dashboard">داشبورد فروشات (Sales)</a></li>
-              @endcan
-              @can('view_purchases_dashboard')
-              <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>
-              @endcan
-              @can('view_cost_analytics')
-              <li><a href="/dashboard/cost-analytics">تحلیل مصارف (Cost Analytics)</a></li>
-              @endcan
-            </ul>
-          </li>
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('dashboard', 'dashboard/production*', 'dashboard/inventory*', 'dashboard/accounting*', 'dashboard/purchases*', 'dashboard/sales*', 'dashboard/cost-analytics*') ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link"><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                  class="pcoded-mtext"><b>داشبورد</b></span></a>
+              <ul class="pcoded-submenu">
+                <!-- <li><a href="/dashboard">داشبورد اجرایی (Executive)</a></li> -->
+                @can('view_production_dashboard')
+                  <li><a href="/dashboard/production">داشبورد تولید (Production)</a></li>
+                @endcan
+                @can('view_inventory_dashboard')
+                  <li><a href="/dashboard/inventory">داشبورد گدام (Inventory)</a></li>
+                @endcan
+                @can('view_finance_dashboard')
+                  <li><a href="/dashboard/accounting">داشبورد مالی (Finance)</a></li>
+                @endcan
+                @can('view_sales_dashboard')
+                  <li><a href="/dashboard/sales-dashboard">داشبورد فروشات (Sales)</a></li>
+                @endcan
+                @can('view_purchases_dashboard')
+                  <li><a href="/dashboard/purchases">داشبورد خرید (Purchases)</a></li>
+                @endcan
+                @can('view_cost_analytics')
+                  <li><a href="/dashboard/cost-analytics">تحلیل مصارف (Cost Analytics)</a></li>
+                @endcan
+              </ul>
+            </li>
           @endif
 
-          @if(auth()->user()->hasAnyPermission([
-              'view_coa', 'view_journals', 'view_mapping_rules', 'view_currencies',
-              'view_pl_report', 'view_balance_sheet', 'view_trial_balance', 'view_comparative_pl', 'view_cash_flow_report', 'view_fx_exposure_report',
-              'view_inventory_valuation', 'view_cost_center_performance', 'view_audit_corrections', 'view_account_ledger', 'view_customer_statement', 'view_agent_statement', 'view_different_account_statement', 'view_kachaee_team_statement', 'view_washing_team_statement', 'view_finishing_team_statement', 'view_seller_statement', 'view_employee_statement'
-          ]))
+          @if(
+              auth()->user()->hasAnyPermission([
+                'view_coa',
+                'view_journals',
+                'view_mapping_rules',
+                'view_currencies',
+                'view_pl_report',
+                'view_balance_sheet',
+                'view_trial_balance',
+                'view_comparative_pl',
+                'view_cash_flow_report',
+                'view_fx_exposure_report',
+                'view_inventory_valuation',
+                'view_cost_center_performance',
+                'view_audit_corrections',
+                'view_account_ledger',
+                'view_customer_statement',
+                'view_agent_statement',
+                'view_different_account_statement',
+                'view_kachaee_team_statement',
+                'view_washing_team_statement',
+                'view_finishing_team_statement',
+                'view_seller_statement',
+                'view_employee_statement'
+              ])
+            )
             <li
               class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting*') && !request()->is('dashboard/accounting/warehouses*') && !request()->is('dashboard/accounting/transfers*')) ? 'active pcoded-trigger' : '' }}">
               <a href="#" class="nav-link">
@@ -214,93 +235,93 @@
               </a>
               <ul class="pcoded-submenu">
                 @can('view_coa')
-                <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
+                  <li><a href="{{ route('accounting.coa.index') }}">لایحه حسابات (COA)</a></li>
                 @endcan
                 @can('view_journals')
-                <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
+                  <li><a href="{{ route('accounting.journals.index') }}">روزنامچه عمومی (GL)</a></li>
                 @endcan
                 @can('view_mapping_rules')
-                <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
+                  <li><a href="{{ route('accounting.mappings.index') }}">تنظیمات محاسباتی</a></li>
                 @endcan
                 @can('view_currencies')
-                <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
+                  <li><a href="{{ route('accounting.currencies.index') }}">مدیریت اسعار (Forensic FX)</a></li>
                 @endcan
 
                 <!-- Advanced Financial Reports (Dari Afghanistan) -->
                 @if(auth()->user()->hasAnyPermission(['view_pl_report', 'view_balance_sheet', 'view_trial_balance', 'view_comparative_pl', 'view_cash_flow_report', 'view_fx_exposure_report']))
-                <li class="nav-item pcoded-hasmenu">
-                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و
-                      تحلیلی</span></a>
-                  <ul class="pcoded-submenu">
-                    @can('view_pl_report')
-                    <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
-                    @endcan
-                    @can('view_balance_sheet')
-                    <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
-                    @endcan
-                    @can('view_trial_balance')
-                    <li><a href="{{ route('accounting.reports.trial_balance') }}" style="color: #4caf50;">بیلان آزمایشی
-                        (Trial
-                        Balance)</a></li>
-                    @endcan
-                    @can('view_comparative_pl')
-                    <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
-                    @endcan
-                    @can('view_cash_flow_report')
-                    <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
-                    @endcan
-                    @can('view_fx_exposure_report')
-                    <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
-                    @endcan
-                  </ul>
-                </li>
+                  <li class="nav-item pcoded-hasmenu">
+                    <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #4caf50;">گزارشات مالی و
+                        تحلیلی</span></a>
+                    <ul class="pcoded-submenu">
+                      @can('view_pl_report')
+                        <li><a href="{{ route('accounting.reports.profit_loss') }}">مفاد و ضرر (P&L)</a></li>
+                      @endcan
+                      @can('view_balance_sheet')
+                        <li><a href="{{ route('accounting.reports.balance_sheet') }}">ترازنامه (بیلانس شیت)</a></li>
+                      @endcan
+                      @can('view_trial_balance')
+                        <li><a href="{{ route('accounting.reports.trial_balance') }}" style="color: #4caf50;">بیلان آزمایشی
+                            (Trial
+                            Balance)</a></li>
+                      @endcan
+                      @can('view_comparative_pl')
+                        <li><a href="{{ route('accounting.reports.comparative_pl') }}">تحلیل مقایسوی عملکرد</a></li>
+                      @endcan
+                      @can('view_cash_flow_report')
+                        <li><a href="{{ route('accounting.reports.cash_flow') }}">جریان وجوه نقد (Cash Flow)</a></li>
+                      @endcan
+                      @can('view_fx_exposure_report')
+                        <li><a href="{{ route('accounting.reports.fx_exposure') }}">تحلیل اسعار و نقدینگی</a></li>
+                      @endcan
+                    </ul>
+                  </li>
                 @endif
 
                 <!-- Operational & Audit Reports -->
                 @if(auth()->user()->hasAnyPermission(['view_inventory_valuation', 'view_cost_center_performance', 'view_audit_corrections', 'view_account_ledger', 'view_customer_statement', 'view_agent_statement', 'view_different_account_statement', 'view_kachaee_team_statement', 'view_washing_team_statement', 'view_finishing_team_statement', 'view_seller_statement', 'view_employee_statement']))
-                <li class="nav-item pcoded-hasmenu">
-                  <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و
-                      تفتیش</span></a>
-                  <ul class="pcoded-submenu">
-                    @can('view_inventory_valuation')
-                    <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
-                    @endcan
-                    @can('view_cost_center_performance')
-                    <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
-                    @endcan
-                    @can('view_audit_corrections')
-                    <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
-                    @endcan
-                    @can('view_account_ledger')
-                    <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
-                    @endcan
-                    @can('view_customer_statement')
-                    <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
-                    @endcan
-                    @can('view_agent_statement')
-                    <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده</a></li>
-                    @endcan
-                    @can('view_different_account_statement')
-                    <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
-                    @endcan
-                    @can('view_kachaee_team_statement')
-                    <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب تیم کچایی</a></li>
-                    @endcan
-                    @can('view_washing_team_statement')
-                    <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب تیم شست</a></li>
-                    @endcan
-                    @can('view_finishing_team_statement')
-                    <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیم تیاری</a></li>
-                    @endcan
-                    @can('view_seller_statement')
-                    <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشندگان مواد
-                        خام</a></li>
-                    @endcan
-                    @can('view_employee_statement')
-                    <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
-                    @endcan
-                  </ul>
-                </li>
+                  <li class="nav-item pcoded-hasmenu">
+                    <a href="#!" class="nav-link"><span class="pcoded-mtext" style="color: #00acc1;">گزارشات عملیاتی و
+                        تفتیش</span></a>
+                    <ul class="pcoded-submenu">
+                      @can('view_inventory_valuation')
+                        <li><a href="{{ route('accounting.reports.inventory_valuation') }}">ارزش پولی موجودی گدام</a></li>
+                      @endcan
+                      @can('view_cost_center_performance')
+                        <li><a href="{{ route('accounting.reports.cost_center_performance') }}">عملکرد دیپارتمنت‌ها</a></li>
+                      @endcan
+                      @can('view_audit_corrections')
+                        <li><a href="{{ route('accounting.reports.audit_corrections') }}">تفتیش اصلاحات و ریورس</a></li>
+                      @endcan
+                      @can('view_account_ledger')
+                        <li><a href="{{ route('accounting.reports.account_ledger') }}">دفتر تفصیلی حساب</a></li>
+                      @endcan
+                      @can('view_customer_statement')
+                        <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
+                      @endcan
+                      @can('view_agent_statement')
+                        <li><a href="{{ route('accounting.reports.agent_statement') }}">صورت حساب نماینده</a></li>
+                      @endcan
+                      @can('view_different_account_statement')
+                        <li><a href="{{ route('accounting.reports.different_account_statement') }}">صورت حساب متفرقه</a></li>
+                      @endcan
+                      @can('view_kachaee_team_statement')
+                        <li><a href="{{ route('accounting.reports.repair_team_statement') }}">صورت حساب تیم کچایی</a></li>
+                      @endcan
+                      @can('view_washing_team_statement')
+                        <li><a href="{{ route('accounting.reports.washing_team_statement') }}">صورت حساب تیم شست</a></li>
+                      @endcan
+                      @can('view_finishing_team_statement')
+                        <li><a href="{{ route('accounting.reports.finishing_team_statement') }}">صورت حساب تیم تیاری</a></li>
+                      @endcan
+                      @can('view_seller_statement')
+                        <li><a href="{{ route('accounting.reports.string_seller_statement') }}">صورت حساب فروشندگان مواد
+                            خام</a></li>
+                      @endcan
+                      @can('view_employee_statement')
+                        <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+                      @endcan
+                    </ul>
+                  </li>
                 @endif
               </ul>
             </li>
@@ -524,16 +545,17 @@
           @endif
 
           @if(auth()->user()->hasAnyPermission(['view_sales', 'view_invoices', 'create_invoice']))
-            <li class="nav-item pcoded-hasmenu {{ request()->is('sales*') || request()->is('invoices*') ? 'active' : '' }}">
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('sales*') || request()->is('invoices*') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
                   class="pcoded-mtext"><b>فروشات</b></span></a>
               <ul class="pcoded-submenu">
                 @can('view_sales')
-                <li><a href="/dashboard/sales"> لیست فروشات</a></li>
+                  <li><a href="/dashboard/sales"> لیست فروشات</a></li>
                 @endcan
                 <!-- <li><a href="/dashboard/packing-list">پکینگ لیست</a></li> -->
                 @canany(['view_invoices', 'create_invoice'])
-                <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
+                  <li><a href="/dashboard/invoices">لیست انوایس ها</a></li>
                 @endcanany
               </ul>
             </li>
@@ -554,69 +576,72 @@
                   class="pcoded-mtext"><b>اجناس ثابت شرکت</b></span></a>
               <ul class="pcoded-submenu">
                 @can('view_assets_accounts')
-                <li><a href="/dashboard/assets-accounts">حسابات اجناس</a></li>
+                  <li><a href="/dashboard/assets-accounts">حسابات اجناس</a></li>
                 @endcan
                 @can('view_assets_report')
-                <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a>
-                </li>
+                  <li><a href="{{ route('assets.report') }}" style="color: #00acc1; font-weight: bold;">گزارش اجناس ثابت</a>
+                  </li>
                 @endcan
               </ul>
             </li>
           @endif
 
           @if(auth()->user()->hasAnyPermission(['view_warehouse_inventory_report', 'view_carpet_stock_report', 'view_raw_material_stock_report', 'view_warehouses', 'view_inventory_transfers', 'view_warehouse_movements']))
-              <li
-                class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*') || request()->is('dashboard/inventory/reports*')) ? 'active pcoded-trigger' : '' }}">
-                <a href="#" class="nav-link">
-                  <span class="pcoded-micon"><i class="feather icon-package"></i></span>
-                  <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
-                </a>
-                <ul class="pcoded-submenu">
-                  @can('view_warehouse_inventory_report')
-                    <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a></li>
-                  @endcan
-                  @can('view_carpet_stock_report')
-                    <li><a href="{{ route('accounting.warehouses.carpet_stock') }}" style="color: #10b981;">موجودی قالین‌ها (Carpet Stock)</a></li>
-                  @endcan
-                  @can('view_raw_material_stock_report')
-                    <li><a href="{{ route('accounting.warehouses.raw_material_stock') }}" style="color: #6366f1;">موجودی مواد خام (Raw Material Stock)</a></li>
-                  @endcan
-                  @can('view_warehouses')
-                    <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
-                  @endcan
-                  @can('view_inventory_transfers')
-                    <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
-                  @endcan
-                  @can('view_warehouse_movements')
-                    <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
-                  @endcan
-                </ul>
-              </li>
+            <li
+              class="nav-item pcoded-hasmenu {{ (request()->is('dashboard/accounting/warehouses*') || request()->is('dashboard/accounting/transfers*') || request()->is('dashboard/accounting/warehouse-movements*') || request()->is('dashboard/inventory/reports*')) ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link">
+                <span class="pcoded-micon"><i class="feather icon-package"></i></span>
+                <span class="pcoded-mtext"><b>مدیریت گدام‌ها (Warehouse)</b></span>
+              </a>
+              <ul class="pcoded-submenu">
+                @can('view_warehouse_inventory_report')
+                  <li><a href="{{ route('inventory.reports.index') }}" style="color: #00acc1;">گزارش موجودی گدام (ERP)</a>
+                  </li>
+                @endcan
+                @can('view_carpet_stock_report')
+                  <li><a href="{{ route('accounting.warehouses.carpet_stock') }}" style="color: #10b981;">موجودی قالین‌ها
+                      (Carpet Stock)</a></li>
+                @endcan
+                @can('view_raw_material_stock_report')
+                  <li><a href="{{ route('accounting.warehouses.raw_material_stock') }}" style="color: #6366f1;">موجودی مواد
+                      خام (Raw Material Stock)</a></li>
+                @endcan
+                @can('view_warehouses')
+                  <li><a href="{{ route('accounting.warehouses.index') }}">مدیریت گدام‌ها (Locations)</a></li>
+                @endcan
+                @can('view_inventory_transfers')
+                  <li><a href="{{ route('accounting.transfers.index') }}">انتقال جنس بین گدام‌ها</a></li>
+                @endcan
+                @can('view_warehouse_movements')
+                  <li><a href="{{ route('accounting.warehouses.movements') }}">گزارش ورودی و خروجی (IN/OUT)</a></li>
+                @endcan
+              </ul>
+            </li>
           @endif
 
-        @if(auth()->user()->hasAnyPermission(['view_customers']))
-          <li class="nav-item pcoded-hasmenu">
-            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
-                class="pcoded-mtext"><b>مشتری ها</b></span></a>
-            <ul class="pcoded-submenu">
-              <li><a href="/dashboard/customers">لیست مشتریان</a></li>
-              @can('view_customer_statement')
-              <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
-              @endcan
-              @can('view_customer_money_requests')
-                <li><a href="/dashboard/customer-request-list"> لیست درخواست پول مشتریان</a></li>
-              @endcan
-              @can('view_ar_aging_report')
-              <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
-                  (Aging)</a></li>
-              @endcan
+          @if(auth()->user()->hasAnyPermission(['view_customers']))
+            <li class="nav-item pcoded-hasmenu">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span
+                  class="pcoded-mtext"><b>مشتری ها</b></span></a>
+              <ul class="pcoded-submenu">
+                <li><a href="/dashboard/customers">لیست مشتریان</a></li>
+                @can('view_customer_statement')
+                  <li><a href="{{ route('accounting.reports.customer_statement') }}">صورت حساب مشتری</a></li>
+                @endcan
+                @can('view_customer_money_requests')
+                  <li><a href="/dashboard/customer-request-list"> لیست درخواست پول مشتریان</a></li>
+                @endcan
+                @can('view_ar_aging_report')
+                  <li><a href="{{ route('accounting.reports.ar-aging') }}" style="color: #4caf50;">تحلیل بدهی مشتریان
+                      (Aging)</a></li>
+                @endcan
 
-            </ul>
+              </ul>
 
-          </li>
-        @endif
+            </li>
+          @endif
 
-        <!-- @if(auth()->user()->hasAnyPermission(['view_contract_carpets']))
+          <!-- @if(auth()->user()->hasAnyPermission(['view_contract_carpets']))
             <li
               class="nav-item pcoded-hasmenu {{ request()->is('add-office-credit*', 'money-request-list', 'office-cash-book') ? 'active' : '' }}">
               <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
@@ -633,109 +658,110 @@
             </li>
           @endif -->
 
-        @if(auth()->user()->hasAnyPermission(['view_monthly_expenses']))
-          <li class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*') ? 'active' : '' }}">
-            <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
-                  class="feather icon-home"></i></span><span class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
-          </li>
-        @endif
+          @if(auth()->user()->hasAnyPermission(['view_monthly_expenses']))
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/monthly-expense-accounts*') ? 'active' : '' }}">
+              <a href="/dashboard/monthly-expense-accounts" class="nav-link"><span class="pcoded-micon"><i
+                    class="feather icon-home"></i></span><span class="pcoded-mtext"><b>مصارف ماهانه</b></span></a>
+            </li>
+          @endif
 
-        @if(auth()->user()->hasAnyPermission(['view_employees', 'view_employee_statement', 'view_payroll', 'view_employee_money_requests', 'view_employee_departments']))
-          <li
-            class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*', 'dashboard/payroll*', 'dashboard/employee-request-list*', 'dashboard/employee-department*') ? 'active pcoded-trigger' : '' }}">
-            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-users"></i></span><span
-                class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
-            <ul class="pcoded-submenu">
-              @can('view_employees')
-              <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
-              @endcan
-              @can('view_employee_statement')
-              <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
-              @endcan
-              @can('view_payroll')
-              <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
-              @endcan
-              @if(auth()->user()->can('view_employee_money_requests'))
-                <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
-              @endif
-              @can('view_employee_departments')
-              <li><a href="/dashboard/employee-department">دیپارتمنت کارمندان</a></li>
-              @endcan
-            </ul>
-          </li>
-        @endif
+          @if(auth()->user()->hasAnyPermission(['view_employees', 'view_employee_statement', 'view_payroll', 'view_employee_money_requests', 'view_employee_departments']))
+            <li
+              class="nav-item pcoded-hasmenu {{ request()->is('dashboard/office-employee*', 'dashboard/accounting/reports/employee-statement*', 'dashboard/payroll*', 'dashboard/employee-request-list*', 'dashboard/employee-department*') ? 'active pcoded-trigger' : '' }}">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-users"></i></span><span
+                  class="pcoded-mtext"><b>کارمندان دفتر</b></span></a>
+              <ul class="pcoded-submenu">
+                @can('view_employees')
+                  <li><a href="/dashboard/office-employee">لیست کارمندان</a></li>
+                @endcan
+                @can('view_employee_statement')
+                  <li><a href="{{ route('accounting.reports.employee_statement') }}">صورت حساب کارمندان</a></li>
+                @endcan
+                @can('view_payroll')
+                  <li><a href="/dashboard/payroll">اجرای معاشات (Payroll)</a></li>
+                @endcan
+                @if(auth()->user()->can('view_employee_money_requests'))
+                  <li><a href="/dashboard/employee-request-list"> لیست درخواست پول کارمندان</a></li>
+                @endif
+                @can('view_employee_departments')
+                  <li><a href="/dashboard/employee-department">دیپارتمنت کارمندان</a></li>
+                @endcan
+              </ul>
+            </li>
+          @endif
 
-        @if(auth()->user()->hasAnyPermission(['view_trial_balance', 'view_inventory_valuation']))
-          <li class="nav-item pcoded-hasmenu">
-            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                class="pcoded-mtext"><b>گزارشات</b></span></a>
-            <ul class="pcoded-submenu">
+          @if(auth()->user()->hasAnyPermission(['view_trial_balance', 'view_inventory_valuation']))
+            <li class="nav-item pcoded-hasmenu">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>گزارشات</b></span></a>
+              <ul class="pcoded-submenu">
 
-              <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
-                                    <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
-                                    <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
-                                    <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
-                                    <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
-                                    <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
-                                    <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
-                                    <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
-                                    <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
-                                    <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
-              @can('view_trial_balance')
-              <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
-                  Balance)</a></li>
-              @endcan
-              
-              @can('view_inventory_valuation')
-              <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
-              <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
-                  (WIP)</a></li>
-              @endcan
-              <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
+                <!-- <li><a href="/dashboard/agent_balance_report">صورت حساب نماینده ها</a></li>
+                                                  <li><a href="/dashboard/different_account_balance_report">صورت حساب متفرقه جدید </a></li>
+                                                  <li><a href="/dashboard/kachaee_team_balance_report">صورت حساب تیم کچایی </a></li>
+                                                  <li><a href="/dashboard/washing_team_balance_report">صورت حساب تیم شست </a></li>
+                                                  <li><a href="/dashboard/finishing_team_balance_report">صورت حساب تیم تیاری </a></li>
+                                                  <li><a href="/dashboard/string_seller_balance_report">صورت حساب فروشندگان مواد خام </a></li>
+                                                  <li><a href="/dashboard/customer_balance_report">صورت حساب مشتری ها </a></li>
+                                                  <li><a href="/dashboard/expense_report">گزارش مصارف</a></li>
+                                                  <li><a href="/dashboard/purchase_carpet_report">گزارش خرید قالین</a></li>
+                                                  <li><a href="/dashboard/sales_report">گزارش فروشات</a></li> -->
+                @can('view_trial_balance')
+                  <li><a href="{{ route('accounting.reports.trial-balance') }}" style="color: #4caf50;">بیلان آزمایشی (Trial
+                      Balance)</a></li>
+                @endcan
 
-
-              <!--<li><a href="/admin/customer_demand">طلبات مردم</a></li>-->
-
-              <!--<li><a href="/admin/customer_debtor">باقیات مردم</a></li>-->
-
-            </ul>
-          </li>
-
-        @endif
-
-        @if(auth()->user()->hasAnyPermission(['manage_roles_and_permissions', 'view_users', 'view_phone_book', 'view_provinces', 'view_agent_employees', 'view_orders', 'view_activities']))
-          <li class="nav-item pcoded-hasmenu">
-            <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
-                class="pcoded-mtext"><b>تنظیمات</b></span></a>
-            <ul class="pcoded-submenu">
-              @can('view_users')
-                <li><a href="/dashboard/users">کاربران سیستم</a></li>
-              @endcan
-              @can('manage_roles_and_permissions')
-                <li><a href="/dashboard/roles">نقش ها و دسترسی ها</a></li>
-              @endcan
-
-              @can('view_phone_book')
-                <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
-              @endcan
-              @can('view_provinces')
-                <li><a href="/dashboard/provinces">ولایات</a></li>
-              @endcan
-              @can('view_agent_employees')
-                <li><a href="/dashboard/agent-employees">کارگرها</a></li>
-              @endcan
-              @can('view_orders')
-                <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
-              @endcan
-              @can('view_activities')
-                <li><a href="/dashboard/activities">نمایش فعالیت ها</a></li>
-              @endcan
-
-            </ul>
-          </li>
+                @can('view_inventory_valuation')
+                  <hr style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                  <li><a href="{{ route('inventory.reports.wip') }}" style="color: #00acc1;">گزارش سرمایه در حال کار
+                      (WIP)</a></li>
+                @endcan
+                <!--<li><a href="/admin/benefit_lose_report">گزارش مفاد و نقص</a></li>-->
 
 
-        @endif
+                <!--<li><a href="/admin/customer_demand">طلبات مردم</a></li>-->
+
+                <!--<li><a href="/admin/customer_debtor">باقیات مردم</a></li>-->
+
+              </ul>
+            </li>
+
+          @endif
+
+          @if(auth()->user()->hasAnyPermission(['manage_roles_and_permissions', 'view_users', 'view_phone_book', 'view_provinces', 'view_agent_employees', 'view_orders', 'view_activities']))
+            <li class="nav-item pcoded-hasmenu">
+              <a href="#" class="nav-link "><span class="pcoded-micon"><i class="feather icon-layout"></i></span><span
+                  class="pcoded-mtext"><b>تنظیمات</b></span></a>
+              <ul class="pcoded-submenu">
+                @can('view_users')
+                  <li><a href="/dashboard/users">کاربران سیستم</a></li>
+                @endcan
+                @can('manage_roles_and_permissions')
+                  <li><a href="/dashboard/roles">نقش ها و دسترسی ها</a></li>
+                @endcan
+
+                @can('view_phone_book')
+                  <li><a href="/dashboard/phone-book">دفترچه تلفون</a></li>
+                @endcan
+                @can('view_provinces')
+                  <li><a href="/dashboard/provinces">ولایات</a></li>
+                @endcan
+                @can('view_agent_employees')
+                  <li><a href="/dashboard/agent-employees">کارگرها</a></li>
+                @endcan
+                @can('view_orders')
+                  <li><a href="/dashboard/carpet-orders">شماره فرمایش</a></li>
+                @endcan
+                @can('view_activities')
+                  <li><a href="/dashboard/activities">نمایش فعالیت ها</a></li>
+                @endcan
+
+              </ul>
+            </li>
+
+
+          @endif
 
         </ul>
 
@@ -753,7 +779,7 @@
       <a href="#!" class="b-brand">
         <!-- ========   change your logo hear   ============ -->
         {{--<img src="/dsh/assets/images/logo.png" alt="" class="logo">--}}
-        QBIC
+        {{ config('company.name', 'QBIC') }}
 
       </a>
       <a href="#!" class="mob-toggler">
@@ -783,11 +809,12 @@
       <a href="/dashboard/close-to-end-customer-order" title="لیست سفارشات رو به اتمام">
 
         @php
-            $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
+          $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
         @endphp
 
         @if($unreadCount > 0)
-          <span class="badge badge-danger" style="position: absolute; top: 20px; left: 15px; border-radius: 50%; padding: 4px 6px; font-size: 12px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.3);">{{$unreadCount}}</span>
+          <span class="badge badge-danger"
+            style="position: absolute; top: 20px; left: 15px; border-radius: 50%; padding: 4px 6px; font-size: 12px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.3);">{{$unreadCount}}</span>
         @endif
         <i class="fa fa-bell" style="font-size: 30px;margin-top: 30px;color: white;">
         </i></a>
@@ -835,8 +862,8 @@
         <div id="PC" style="display: none;overflow-y:scroll">
           <div class="middleContainer" style="position: relative;background-color: white">
             <div id="headerimage">
-              <img src="/printStyle/header.png" height="330px" width="1110px" style="margin-right: 5px;"
-                alt="Header Logo">
+              <img src="{{ asset(config('company.header_path', 'images/logos/qasimi_header.png')) }}" height="330px"
+                width="1110px" style="margin-right: 5px;" alt="Header Logo">
             </div>
             <div id="SC" style="min-height: 990px;background-color: white;"></div>
             <div id="footerimage" style="background-color: white;">
@@ -973,8 +1000,8 @@
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/file-saverjs/FileSaver.min.js')}}"></script>
   <script src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/blobjs/Blob.min.js')}}"></script>
 
-    <script
-      src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/tableexport/dist/js/tableexport.min.js')}}"></script>
+  <script
+    src="{{\Illuminate\Support\Facades\URL::asset('dsh/assets/tableexport/dist/js/tableexport.min.js')}}"></script>
   <script src="{{asset('dsh/assets/js/pages/form-select-custom.js')}}"></script>
   <script>
     $(document).ready(function () {

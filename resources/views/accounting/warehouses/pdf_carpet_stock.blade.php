@@ -166,7 +166,7 @@
 
         <!-- Company Header Block -->
         <div class="company-header-block">
-            <h2 class="company-title">شرکت تولیدی قالین برادران قاسمی</h2>
+            <h2 class="company-title">{{ config('company.name') }}</h2>
             <div class="report-subtitle">گزارش موجودی قالین‌ها (Carpet Available Stock Report)</div>
         </div>
 

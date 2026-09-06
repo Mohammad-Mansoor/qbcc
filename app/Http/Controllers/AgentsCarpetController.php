@@ -107,15 +107,16 @@ class AgentsCarpetController extends Controller
 
 
 
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
         if ($lastId) {
             $lastId = $lastId->carpet_no;
             $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-' . sprintf('%05d', '10101');
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', '10101');
         }
         $orders = CustomerOrder::all();
         $types = CarpetType::all();
@@ -150,15 +151,16 @@ class AgentsCarpetController extends Controller
         $mawad_ranga = CarpetMaterial::where('agent_id', '=', $editCarpet->agent_id)->where('category_id', '=', 2)->get();
         $mawad_pakhta = CarpetMaterial::where('agent_id', '=', $editCarpet->agent_id)->where('category_id', '=', 1)->get();
 
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
         if ($lastId) {
             $lastId = $lastId->carpet_no;
             $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-' . sprintf('%05d', '10101');
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', '10101');
         }
         $orders = CustomerOrder::all();
         $types = CarpetType::all();
@@ -233,15 +235,16 @@ class AgentsCarpetController extends Controller
 
 
 
+        $carpetPrefix = config('company.carpet_no_prefix', 'QB');
         $lastId = Carpet::latest()->first();
         $CarpetNo = '';
         if ($lastId) {
             $lastId = $lastId->carpet_no;
             $lastId = substr($lastId, -5);
             $lastId++;
-            $AccountNo = 'QB-' . sprintf('%05d', $lastId);
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', $lastId);
         } else {
-            $AccountNo = 'QB-' . sprintf('%05d', '10101');
+            $AccountNo = $carpetPrefix . '-' . sprintf('%05d', '10101');
         }
         $orders = CustomerOrder::all();
         $types = CarpetType::all();

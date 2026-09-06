@@ -295,7 +295,7 @@
             <div class="invoice-header">
                 <div class="row align-items-center">
                     <div class="col-md-6 col-sm-6 company-logo-section">
-                        <div class="company-name">شرکت تولیدی قالین QBIC</div>
+                        <div class="company-name">{{ config('company.name') }}</div>
                         <div class="company-details">
                             آدرس: کابل، افغانستان<br>
                             ایمیل: info@QBIC.com | تلفن: +93 (0) 700 000 000<br>

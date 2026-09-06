@@ -248,8 +248,8 @@ class InvoiceController extends Controller
 
     protected function exportPdf($invoice, $sales)
     {
-        $headerPath = public_path('images/header.png');
-        $footerPath = public_path('images/footer.png');
+        $headerPath = public_path(config('company.header_path', 'images/logos/qasimi_header.png'));
+        $footerPath = public_path(config('company.footer_path', 'images/logos/qasimi_footer.png'));
         $headerBase64 = '';
         $footerBase64 = '';
         

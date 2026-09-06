@@ -206,8 +206,8 @@
                 @endif
             </td>
             <td colspan="5" valign="middle" style="border: none; background-color: #ffffff; padding-right: 15px; height: 70pt;">
-                <span class="company-name">شرکت صنعتی برادران قاسمی</span><br><br>
-                <span class="company-subtitle">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت  افغانستان</span>
+                <span class="company-name">{{ config('company.name') }}</span><br><br>
+                <span class="company-subtitle">{{ config('company.description') }}</span>
             </td>
         </tr>
 

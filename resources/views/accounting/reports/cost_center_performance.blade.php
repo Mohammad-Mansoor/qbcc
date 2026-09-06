@@ -73,7 +73,7 @@
                 <div class="card-body p-5">
                     
                     <div class="text-center mb-5 d-none d-print-block">
-                        <h2 class="font-weight-bold">شرکت تولیدی قالین برادران قاسمی</h2>
+                        <h2 class="font-weight-bold">{{ config('company.name') }}</h2>
                         <h4>گزارش عملکرد مالی مراکز هزینه و دیپارتمنت‌ها</h4>
                         <p>دوره: {{ $startDate }} الی {{ $endDate }}</p>
                     </div>

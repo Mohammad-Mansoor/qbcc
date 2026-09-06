@@ -66,7 +66,7 @@
                 <div class="card-body p-5">
                     
                     <div class="text-center d-none d-print-block mb-5">
-                        <h2 class="font-weight-bold">شرکت تولیدی قالین برادران قاسمی</h2>
+                        <h2 class="font-weight-bold">{{ config('company.name') }}</h2>
                         <h4>صورت ریز ارزش موجودی گدام</h4>
                         <p>به تاریخ: {{ $date }}</p>
                     </div>

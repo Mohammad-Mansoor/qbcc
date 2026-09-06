@@ -247,9 +247,8 @@
 
                     <div class="content-wrapper">
                         <div class="title-block">
-                            <h2 class="title-main">شرکت صنعتی برادران قاسمی</h2>
-                            <p class="title-sub" style="margin-bottom: 10px;">تولید و صادر کننده انواع مختلف قالین و
-                                گیلم های دست بافت افغانستان</p>
+                            <h2 class="title-main">{{ config('company.name') }}</h2>
+                            <p class="title-sub" style="margin-bottom: 10px;">{{ config('company.description') }}</p>
 
                             <div
                                 style="display: inline-block; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 6px 20px; border-radius: 20px; color: #1d4ed8; font-weight: bold; font-size: 14pt; margin-top: 5px;">

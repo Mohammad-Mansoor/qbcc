@@ -126,7 +126,7 @@ class WarehouseMovementController extends Controller
 
         $typeFa = $request->type ?? 'همه تراکنش‌ها';
 
-        $logoPath = public_path('images/logo.png');
+        $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
         $logoBase64 = '';
         if (file_exists($logoPath)) {
             $logoBase64 = base64_encode(file_get_contents($logoPath));

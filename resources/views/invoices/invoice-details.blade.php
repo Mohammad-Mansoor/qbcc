@@ -45,9 +45,9 @@
         <div class="card-header bg-white border-0 p-5">
             <div class="row align-items-center mb-4 pb-4 border-bottom">
                 <div class="col-6">
-                    <img src="/images/header.png" style="max-width: 250px; height: auto;" alt="Logo" onerror="this.style.display='none'">
-                    <h3 class="font-weight-bold text-dark mt-3 mb-0">شرکت صنعتی برادران قاسمی</h3>
-                    <p class="text-muted small mb-0">تولید و صادر کننده انواع مختلف قالین و گیلم های دست بافت</p>
+                    <img src="{{ asset(config('company.logo_path', 'images/logos/qasimi_logo.png')) }}" style="max-width: 250px; height: auto;" alt="Logo" onerror="this.style.display='none'">
+                    <h3 class="font-weight-bold text-dark mt-3 mb-0">{{ config('company.name') }}</h3>
+                    <p class="text-muted small mb-0">{{ config('company.description') }}</p>
                 </div>
                 <div class="col-6 text-left" style="direction: ltr;">
                     <h1 class="font-weight-bold mb-1" style="color: #0056b3; letter-spacing: 3px; font-size: 38px;">INVOICE</h1>

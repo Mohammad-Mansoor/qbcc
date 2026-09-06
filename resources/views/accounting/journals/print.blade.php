@@ -173,10 +173,10 @@
         <!-- Main Header -->
         <table class="header-table">
             <tr>
-                <td class="company-name">QASIMI BROTHERS CARPET CO.</td>
+                <td class="company-name">{{ config('company.name') }}</td>
             </tr>
             <tr>
-                <td class="company-subtitle">شرکت تولیدی قـاسمی بـرادران - بخش امور مالی</td>
+                <td class="company-subtitle">{{ config('company.description') }}</td>
             </tr>
         </table>
 

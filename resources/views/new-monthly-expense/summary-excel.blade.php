@@ -14,7 +14,7 @@ echo "\xEF\xBB\xBF"; // UTF-8 BOM
     <table border="1" cellpadding="5">
         <thead>
             <tr>
-                <th colspan="3" style="background-color: #1e3a8a; color: #ffffff; font-size: 14pt;">گزارش خلاصه مصارف ماهانه - شرکت صنعتی برادران قاسمی</th>
+                <th colspan="3" style="background-color: #1e3a8a; color: #ffffff; font-size: 14pt;">گزارش خلاصه مصارف ماهانه - {{ config('company.name') }}</th>
             </tr>
             <tr>
                 <th style="background-color: #e2e8f0; font-weight: bold;">نام ماه</th>

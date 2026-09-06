@@ -188,7 +188,7 @@ class CustomerOrderController extends Controller
                 'customer', 'customer_orders', 'kpis', 'issueDate', 'request'
             ));
         } else {
-            $logoPath = public_path('images/logo.png');
+            $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
             $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
 
             return view('customer-orders.reports.customer_orders_pdf', compact(

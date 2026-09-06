@@ -100,7 +100,7 @@ class NewMonthlyExpenseController extends Controller
             ->groupBy('category');
 
         if (request()->export === 'pdf') {
-            $logoPath = public_path('images/logo.png');
+            $logoPath = public_path(config('company.logo_path', 'images/logos/qasimi_logo.png'));
             $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
             return view('new-monthly-expense.summary-pdf', compact('month_obj', 'categoryTotals', 'logoBase64'));
         }
