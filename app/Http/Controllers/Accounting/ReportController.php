@@ -395,14 +395,14 @@ class ReportController extends Controller
         $group = $account->report_group;
 
         if ($type === 'asset') {
-            if ($group === 'Fixed Asset' || $group === 'Fixed Assets' || $group === 'Investing' || strpos($code, '15') === 0) {
+            if ($group === 'Fixed Asset' || $group === 'Fixed Assets' || $group === 'Investing') {
                 return 'Investing';
             }
             return 'Operating';
         }
 
         if ($type === 'liability') {
-            if ($group === 'Long-term Liability' || $group === 'Financing' || strpos($code, '22') === 0 || strpos($code, '25') === 0) {
+            if ($group === 'Long-term Liability' || $group === 'Financing') {
                 return 'Financing';
             }
             return 'Operating';
@@ -534,17 +534,21 @@ class ReportController extends Controller
             $group = $this->classifyAccountForCashFlow($account);
 
             if ($group === 'Operating') {
-                if (strpos($account->account_code, '13') === 0) {
-                    $operatingAdjustments['receivables'] += $effect;
-                } elseif (strpos($account->account_code, '14') === 0) {
+                $type = strtolower($account->account_type ?? '');
+                
+                if ($account->report_group == 'Current Asset' && $account->account_code != '13100' && $account->account_code != '13200') {
+                    if ($type === 'asset') {
+                        $operatingAdjustments['receivables'] += $effect;
+                    }
+                } elseif ($account->report_group == 'Inventory') {
                     $operatingAdjustments['inventory'] += $effect;
-                } elseif (strpos($account->account_code, '21') === 0) {
+                } elseif ($type === 'liability') {
                     $operatingAdjustments['payables'] += $effect;
                 } else {
                     $operatingAdjustments['other'] += $effect;
                 }
             } elseif ($group === 'Investing') {
-                if (strpos($account->account_code, '15') === 0) {
+                if ($account->report_group == 'Fixed Asset') {
                     $investingAdjustments['fixed_assets'] += $effect;
                 } else {
                     $investingAdjustments['other'] += $effect;
@@ -554,7 +558,7 @@ class ReportController extends Controller
                     // Adjust Retained Earnings for Net Profit to avoid double counting
                     $directEquityAdjustment = $effect - $netProfit;
                     $financingAdjustments['retained_earnings'] += $directEquityAdjustment;
-                } elseif (strpos($account->account_code, '3') === 0) {
+                } elseif (strtolower($account->account_type ?? '') === 'equity') {
                     $financingAdjustments['equity'] += $effect;
                 } else {
                     $financingAdjustments['other'] += $effect;

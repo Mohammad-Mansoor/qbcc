@@ -75,11 +75,15 @@ class DashboardController extends Controller
 
             $rate = floatval($currencyRates[$acc->currency ?? 'USD'] ?? 1.0);
             if ($rate <= 0) $rate = 1.0; // Prevent division by zero
-            $balance = $base_balance / $rate;
+            $local_balance = DB::table('ledger_entries')
+                ->join('ledger_transactions', 'ledger_entries.transaction_id', '=', 'ledger_transactions.id')
+                ->where('ledger_entries.account_id', $acc->id)
+                ->where('ledger_transactions.status', 'posted')
+                ->sum(DB::raw('debit - credit'));
 
             $cashAccounts[] = [
                 'name' => $acc->account_name,
-                'balance' => $balance,
+                'balance' => (float)$local_balance,
                 'currency' => $acc->currency ?? 'USD',
                 'base_balance' => $base_balance
             ];

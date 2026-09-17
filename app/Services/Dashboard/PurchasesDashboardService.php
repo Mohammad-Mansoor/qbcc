@@ -25,20 +25,20 @@ class PurchasesDashboardService
         // KPI: Yarn
         $yarnValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'yarn');
-        })->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
+        })->where('status', 1)->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
 
         $yarnQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'yarn');
-        })->sum('quantity') ?? 0;
+        })->where('status', 1)->sum('quantity') ?? 0;
 
         // KPI: Dye
         $dyeValue = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'dye');
-        })->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
+        })->where('status', 1)->selectRaw('SUM(COALESCE(base_currency_amount, total)) as sum')->value('sum') ?? 0;
 
         $dyeQuantity = \App\PurchaseMaterial::whereHas('materialCategory', function($q) {
             $q->where('subtype', 'dye');
-        })->sum('quantity') ?? 0;
+        })->where('status', 1)->sum('quantity') ?? 0;
 
         // Top Carpet Suppliers
         $carpetSuppliersRaw = PurchaseInvoice::join('carpets', 'purchase_invoices.id', '=', 'carpets.purchase_invoice_id')
@@ -59,6 +59,7 @@ class PurchasesDashboardService
 
         // Top Material Suppliers
         $materialSuppliersRaw = \App\PurchaseMaterial::with('seller')
+            ->where('status', 1)
             ->select('seller_id', DB::raw('SUM(COALESCE(base_currency_amount, total)) as total_sum'))
             ->groupBy('seller_id')
             ->orderBy('total_sum', 'desc')
@@ -85,6 +86,7 @@ class PurchasesDashboardService
             
             // Carpet Area
             $carpetM = Carpet::join('purchase_invoices', 'carpets.purchase_invoice_id', '=', 'purchase_invoices.id')
+                ->where('carpets.status', '!=', 6)
                 ->whereYear('purchase_invoices.date', $date->year)
                 ->whereMonth('purchase_invoices.date', $date->month)
                 ->sum('carpets.area') ?? 0;
@@ -92,6 +94,7 @@ class PurchasesDashboardService
 
             // Yarn Kilos
             $yarnK = \App\PurchaseMaterial::whereHas('materialCategory', function($q){$q->where('subtype','yarn');})
+                ->where('status', 1)
                 ->whereYear('purchase_date', $date->year)
                 ->whereMonth('purchase_date', $date->month)
                 ->sum('quantity') ?? 0;
@@ -99,6 +102,7 @@ class PurchasesDashboardService
             
             // Dye Kilos
             $dyeK = \App\PurchaseMaterial::whereHas('materialCategory', function($q){$q->where('subtype','dye');})
+                ->where('status', 1)
                 ->whereYear('purchase_date', $date->year)
                 ->whereMonth('purchase_date', $date->month)
                 ->sum('quantity') ?? 0;
@@ -106,7 +110,7 @@ class PurchasesDashboardService
         }
 
         // Recent Purchases: Carpet
-        $recentCarpets = PurchaseInvoice::with('agent.user')->orderBy('date', 'desc')->take(5)->get()->map(function($inv) {
+        $recentCarpets = PurchaseInvoice::with('agent.user')->where('status', '!=', 6)->orderBy('date', 'desc')->take(5)->get()->map(function($inv) {
             return [
                 'id' => $inv->id,
                 'number' => $inv->invoice_number,
@@ -118,7 +122,7 @@ class PurchasesDashboardService
         })->toArray();
 
         // Recent Purchases: Materials
-        $recentMaterials = \App\RawMaterialPurchaseBill::with('seller')->orderBy('date', 'desc')->take(5)->get()->map(function($bill) {
+        $recentMaterials = \App\RawMaterialPurchaseBill::with('seller')->where('status', 1)->orderBy('date', 'desc')->take(5)->get()->map(function($bill) {
             return [
                 'id' => $bill->id,
                 'number' => $bill->bill_number,

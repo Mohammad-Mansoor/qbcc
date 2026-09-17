@@ -352,7 +352,7 @@
                             <td>{{ number_format($carpet->buying_height ?? $carpet->height, 2) }} m</td>
                             <td>{{ number_format($carpet->buying_width ?? $carpet->width, 2) }} m</td>
                             <td>{{ number_format($carpet->buying_area ?? $carpet->area, 2) }} m²</td>
-                            <td>${{ number_format($carpet->price, 2) }}</td>
+                            <td>${{ number_format($carpet->area > 0 ? ($carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price) / $carpet->area : 0, 2) }}</td>
                             <td class="font-weight-bold text-dark">${{ number_format($carpet->carpet_price_us > 0 ? $carpet->carpet_price_us : $carpet->total_price, 2) }}</td>
                         </tr>
                     @empty

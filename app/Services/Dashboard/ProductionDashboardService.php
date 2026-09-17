@@ -32,10 +32,10 @@ class ProductionDashboardService
         // 2. Financial Costs & Profitability (From Inventory Ledger)
         $costs = DB::table('inventory_transactions')
             ->selectRaw("
-                SUM(CASE WHEN type = 'PURCHASE' AND direction = 'IN' AND reference_type = 'App\\Carpet' THEN total_cost ELSE 0 END) as carpet_purchase_cost,
-                SUM(CASE WHEN type = 'KACHAEE' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as repair_cost,
-                SUM(CASE WHEN type = 'WASHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as washing_cost,
-                SUM(CASE WHEN type = 'FINISHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost ELSE -total_cost END) ELSE 0 END) as finishing_cost
+                SUM(CASE WHEN type = 'PURCHASE' AND direction = 'IN' AND reference_type = 'App\\Carpet' THEN total_cost * COALESCE(exchange_rate, 1) ELSE 0 END) as carpet_purchase_cost,
+                SUM(CASE WHEN type = 'KACHAEE' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost * COALESCE(exchange_rate, 1) ELSE -total_cost * COALESCE(exchange_rate, 1) END) ELSE 0 END) as repair_cost,
+                SUM(CASE WHEN type = 'WASHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost * COALESCE(exchange_rate, 1) ELSE -total_cost * COALESCE(exchange_rate, 1) END) ELSE 0 END) as washing_cost,
+                SUM(CASE WHEN type = 'FINISHING' AND is_value_adjustment = 1 THEN (CASE WHEN direction = 'IN' THEN total_cost * COALESCE(exchange_rate, 1) ELSE -total_cost * COALESCE(exchange_rate, 1) END) ELSE 0 END) as finishing_cost
             ")
             ->whereIn('type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
             ->where('status', 1)
@@ -73,16 +73,16 @@ class ProductionDashboardService
         $warehouseMaterials = DB::table('inventory_transactions')
             ->join('warehouses', 'inventory_transactions.warehouse_id', '=', 'warehouses.id')
             ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
-            ->join('material_categories', 'items.ref_id', '=', 'material_categories.material_category_id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
             ->selectRaw("
                 warehouses.name as warehouse_name,
-                material_categories.subtype,
+                material_types.subtype,
                 SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as qty,
-                SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.total_cost ELSE -inventory_transactions.total_cost END) as value
+                SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.total_cost * COALESCE(inventory_transactions.exchange_rate, 1) ELSE -inventory_transactions.total_cost * COALESCE(inventory_transactions.exchange_rate, 1) END) as value
             ")
             ->where('inventory_transactions.status', 1)
-            ->where('items.type', 'App\\MaterialType')
-            ->groupBy('warehouses.id', 'warehouses.name', 'material_categories.subtype')
+            ->where('items.type', 'App\MaterialType')
+            ->groupBy('warehouses.id', 'warehouses.name', 'material_types.subtype')
             ->having('qty', '>', 0)
             ->get();
 

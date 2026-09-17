@@ -185,6 +185,9 @@ class CarpetCheckBookController extends Controller
             return redirect()->back()->with('error', 'امکان ویرایش این بل خرید وجود ندارد زیرا برای آن تادیات ثبت شده است.');
         }
 
+        $old_agent_id = $invoice->agent_id;
+        $old_invoice_number = $invoice->invoice_number;
+
         $data = $request->validate([
             'invoice_number' => 'required|string|unique:purchase_invoices,invoice_number,' . $id,
             'agent_id' => 'required|exists:agents,agent_id',
@@ -192,6 +195,35 @@ class CarpetCheckBookController extends Controller
         ]);
 
         $invoice->update($data);
+
+        // SYNC CHANGES TO CHILD RECORDS AND ACCOUNTING
+        if ($old_agent_id != $request->agent_id || $old_invoice_number != $request->invoice_number) {
+            
+            // Sync Agent ID
+            if ($old_agent_id != $request->agent_id) {
+                // Update all child carpets
+                \App\Carpet::where('purchase_invoice_id', $id)->update(['agent_id' => $request->agent_id]);
+                
+                // Update accounting entries to reflect the new agent
+                $transactionIds = \Illuminate\Support\Facades\DB::table('ledger_transactions')
+                    ->where('reference', $old_invoice_number)
+                    ->pluck('id')->toArray();
+                    
+                if (!empty($transactionIds)) {
+                    \Illuminate\Support\Facades\DB::table('ledger_entries')
+                        ->whereIn('transaction_id', $transactionIds)
+                        ->where('party_type', 'App\Agents')
+                        ->update(['party_id' => $request->agent_id]);
+                }
+            }
+            
+            // Sync Invoice Number (Accounting Reference)
+            if ($old_invoice_number != $request->invoice_number) {
+                \Illuminate\Support\Facades\DB::table('ledger_transactions')
+                    ->where('reference', $old_invoice_number)
+                    ->update(['reference' => $request->invoice_number]);
+            }
+        }
 
         // Audit Log
         $activity = new Activity();

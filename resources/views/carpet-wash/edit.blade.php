@@ -235,7 +235,8 @@
                 <div class="col-md-3 col-sm-6 mb-3">
                   <div class="form-group">
                     <label class="pull-right text-info">حساب بدهکار (Debit WIP)</label>
-                    <select name="account_id" id="account_id" class="form-control select2" required>
+                    <input type="hidden" name="account_id" value="{{ $existingDebitAccount ?? $defaultAccount }}">
+                    <select id="account_id" class="form-control select2" disabled required>
                       @foreach($allowedDebitAccounts as $acc)
                         <option value="{{$acc->id}}" {{ ($existingDebitAccount ?? $defaultAccount) == $acc->id ? 'selected' : '' }}>{{$acc->account_code}} - {{$acc->account_name}}</option>
                       @endforeach
@@ -246,8 +247,8 @@
                 <div class="col-md-3 col-sm-6 mb-3">
                   <div class="form-group">
                     <label class="pull-right text-danger">حساب بستانکار (Credit Payable)</label>
-                    <select name="override_credit_account_id" id="override_credit_account_id" class="form-control select2"
-                      required>
+                    <input type="hidden" name="override_credit_account_id" value="{{ $existingCreditAccount ?? ($mapping ? $mapping->credit_account_id : null) }}">
+                    <select id="override_credit_account_id" class="form-control select2" disabled required>
                       @foreach($allowedCreditAccounts as $acc)
                         <option value="{{$acc->id}}" {{ ($existingCreditAccount ?? ($mapping ? $mapping->credit_account_id : null)) == $acc->id ? 'selected' : '' }}>{{$acc->account_code}} - {{$acc->account_name}}</option>
                       @endforeach

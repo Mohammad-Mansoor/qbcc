@@ -82,6 +82,8 @@ class CostAnalyticsService
                     SUM(CASE WHEN DATE(created_at) >= ? THEN total_cost ELSE 0 END) as year_cost
                 ", [$today, $monthStart, $yearStart])
                 ->whereIn('type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
+                ->where('status', 1)
+                ->where('is_value_adjustment', 0)
                 ->groupBy('type', 'reference_type')
                 ->get();
 
@@ -100,6 +102,8 @@ class CostAnalyticsService
                       ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
                       ->leftJoin('carpets', 'items.ref_id', '=', 'carpets.carpet_id')
                       ->where('items.type', 'App\\Carpet')
+                      ->where('inventory_transactions.status', 1)
+                      ->where('inventory_transactions.is_value_adjustment', 0)
                       ->selectRaw("items.id, items.current_cost, MAX(carpets.area) as carpet_area, SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
                       ->groupBy('items.id', 'items.current_cost');
             }, 'balances')
@@ -112,6 +116,8 @@ class CostAnalyticsService
                       ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
                       ->leftJoin('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
                       ->where('items.type', 'App\\MaterialType')
+                      ->where('inventory_transactions.status', 1)
+                      ->where('inventory_transactions.is_value_adjustment', 0)
                       ->selectRaw("material_types.subtype, items.current_cost, SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
                       ->groupBy('items.id', 'material_types.subtype', 'items.current_cost');
             }, 'balances')
@@ -131,6 +137,8 @@ class CostAnalyticsService
             $trendLedger = DB::table('inventory_transactions')
                 ->where('created_at', '>=', $twelveMonthsAgo)
                 ->whereIn('type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
+                ->where('status', 1)
+                ->where('is_value_adjustment', 0)
                 ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, type, SUM(total_cost) as cost")
                 ->groupBy('month', 'type')
                 ->get();
@@ -189,6 +197,7 @@ class CostAnalyticsService
             $topCarpetSuppliers = DB::table('carpets')
                 ->join('agents', 'carpets.agent_id', '=', 'agents.agent_id')
                 ->join('users', 'agents.user_id', '=', 'users.id')
+                ->where('carpets.status', '!=', 6)
                 ->selectRaw("
                     users.name,
                     COUNT(carpets.carpet_id) as qty,
@@ -203,6 +212,7 @@ class CostAnalyticsService
             $topMaterialSuppliers = DB::table('purchase_materials')
                 ->join('string_sellers', 'purchase_materials.seller_id', '=', 'string_sellers.id')
                 ->join('material_categories', 'purchase_materials.material_category', '=', 'material_categories.material_category_id')
+                ->where('purchase_materials.status', 1)
                 ->selectRaw("
                     string_sellers.name,
                     material_categories.subtype,
@@ -219,6 +229,7 @@ class CostAnalyticsService
             
             $activities = DB::table('inventory_transactions')
                 ->leftJoin('users', 'inventory_transactions.created_by', '=', 'users.id')
+                ->where('inventory_transactions.status', 1)
                 ->selectRaw("
                     inventory_transactions.type, 
                     inventory_transactions.reference_type, 
@@ -289,6 +300,8 @@ class CostAnalyticsService
                 ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
                 ->join('carpets', 'items.ref_id', '=', 'carpets.carpet_id')
                 ->where('items.type', 'App\\Carpet')
+                ->where('inventory_transactions.status', 1)
+                ->where('carpets.status', '!=', 6)
                 ->whereIn('inventory_transactions.type', ['PURCHASE', 'KACHAEE', 'WASHING', 'FINISHING'])
                 ->selectRaw('inventory_transactions.type, MAX(carpets.area) as area, carpets.carpet_id')
                 ->groupBy('inventory_transactions.type', 'carpets.carpet_id')
@@ -303,7 +316,7 @@ class CostAnalyticsService
             $washArea     = floatval($stageAreas->get('WASHING') ?? 0);
             $finishArea   = floatval($stageAreas->get('FINISHING') ?? 0);
 
-            $totalPurchasedArea = floatval(DB::table('carpets')->sum('area'));
+            $totalPurchasedArea = floatval(DB::table('carpets')->where('status', '!=', 6)->sum('area'));
             $overallArea = $totalPurchasedArea > 0 ? $totalPurchasedArea : 1; // avoid division by zero
 
             $purchaseAvgOverall = $carpetPurchaseCost / $overallArea;

@@ -130,15 +130,17 @@ class AccountingAnalyticsService
             ->get();
 
         foreach ($bsDataFull as $row) {
+            $type = strtolower($row->account_type ?? '');
+            
             if ($row->is_cash_account) {
                 $summary['cash'] += ($row->total_debit - $row->total_credit);
-            }
-            
-            if ($row->report_group == 'Current Asset' && strpos($row->account_code, '13') === 0) {
-                $summary['receivables'] += ($row->total_debit - $row->total_credit);
-            } elseif ($row->report_group == 'Current Liability' && strpos($row->account_code, '21') === 0) {
+            } elseif ($row->report_group == 'Current Asset' && $row->account_code != '13100' && $row->account_code != '13200') {
+                if ($type === 'asset') {
+                    $summary['receivables'] += ($row->total_debit - $row->total_credit);
+                }
+            } elseif ($type === 'liability') {
                 $summary['payables'] += ($row->total_credit - $row->total_debit);
-            } elseif ($row->report_group == 'Inventory' || strpos($row->account_code, '14') === 0) {
+            } elseif ($row->report_group == 'Inventory') {
                 $summary['inventory'] += ($row->total_debit - $row->total_credit);
             }
         }
@@ -194,7 +196,7 @@ class AccountingAnalyticsService
             ->where('lt.status', 'posted')
             ->where('lt.date', '<=', $endDate)
             ->whereNotNull('le.party_id')
-            ->where('coa.account_code', 'LIKE', '13%') // Accounts Receivable
+            ->where('coa.report_group', 'Current Asset') // Accounts Receivable
             ->groupBy('le.party_id', 'lt.date')
             ->orderBy('le.party_id')
             ->orderBy('lt.date', 'asc')
@@ -409,18 +411,19 @@ class AccountingAnalyticsService
         $balances = ['receivables' => 0, 'payables' => 0, 'inventory' => 0, 'equity' => 0, 'investing' => 0];
 
         foreach ($data as $row) {
-            $type = strtolower($row->account_type);
+            $type = strtolower($row->account_type ?? '');
             
-            // Logic based on Tags first, then fallback to code ranges
-            if ($row->report_group == 'Current Asset' && strpos($row->account_code, '13') === 0) {
-                $balances['receivables'] += $row->balance_debit_base;
-            } elseif ($row->report_group == 'Current Liability' && strpos($row->account_code, '21') === 0) {
+            if ($row->report_group == 'Current Asset' && $row->account_code != '13100' && $row->account_code != '13200') {
+                if ($type === 'asset') {
+                    $balances['receivables'] += $row->balance_debit_base;
+                }
+            } elseif ($type === 'liability') {
                 $balances['payables'] += $row->balance_credit_base;
-            } elseif ($row->report_group == 'Inventory' || strpos($row->account_code, '14') === 0) {
+            } elseif ($row->report_group == 'Inventory') {
                 $balances['inventory'] += $row->balance_debit_base;
-            } elseif ($type == 'equity' || strpos($row->account_code, '3') === 0) {
+            } elseif ($type === 'equity') {
                 $balances['equity'] += $row->balance_credit_base;
-            } elseif ($row->cashflow_group == 'Investing' || strpos($row->account_code, '15') === 0) {
+            } elseif ($row->report_group == 'Fixed Asset') {
                 $balances['investing'] += $row->balance_debit_base;
             }
         }

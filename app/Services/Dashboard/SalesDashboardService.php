@@ -176,14 +176,23 @@ class SalesDashboardService
                 ->get();
 
             // 6. Top Customers Deep Analytics
-            $topCustomers = DB::table('sales')
-                ->join('customers', 'sales.customer_id', '=', 'customers.id')
-                ->where('sales.is_returned', 0)
-                ->selectRaw('customers.name, customers.id, SUM(sales.sale_cost_total * COALESCE(sales.exchange_rate, 1)) as total_revenue, COUNT(sales.id) as sales_count, MAX(sales.sale_date) as last_purchase')
-                ->groupBy('customers.id', 'customers.name')
-                ->orderByDesc('total_revenue')
-                ->limit(5)
-                ->get();
+            $topCustomers = DB::query()->fromSub(function ($query) {
+                $query->from('sales')
+                    ->where('is_returned', 0)
+                    ->selectRaw('customer_id as id, (sale_cost_total * COALESCE(exchange_rate, 1)) as rev, 1 as count, sale_date as date')
+                    ->unionAll(
+                        DB::table('material_sales')
+                            ->join('invoices', 'material_sales.invoice_id', '=', 'invoices.id')
+                            ->where('material_sales.status', 1)
+                            ->selectRaw('invoices.customer_id as id, material_sales.base_currency_amount as rev, 1 as count, material_sales.date as date')
+                    );
+            }, 'all_sales')
+            ->join('customers', 'all_sales.id', '=', 'customers.id')
+            ->selectRaw('customers.name, customers.id, SUM(all_sales.rev) as total_revenue, SUM(all_sales.count) as sales_count, MAX(all_sales.date) as last_purchase')
+            ->groupBy('customers.id', 'customers.name')
+            ->orderByDesc('total_revenue')
+            ->limit(5)
+            ->get();
                 
             // (We omit balances directly here as balances per customer need AccountingService which is expensive in a tight loop. We use AR Aging for global balance).
 
@@ -217,10 +226,15 @@ class SalesDashboardService
                 ->value('avg_days') ?? 0;
 
             // Yarn Velocity = Total Stock / 30-day burn rate
-            $yarnStock = DB::table('material_stocks')
-                ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-                ->where('material_categories.subtype', 'yarn')
-                ->sum('quantity');
+            $yarnStock = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+                ->where('inventory_transactions.status', 1)
+                ->where('inventory_transactions.is_value_adjustment', 0)
+                ->where('items.type', 'App\MaterialType')
+                ->where('material_types.subtype', 'yarn')
+                ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as total")
+                ->value('total') ?? 0;
 
             $yarnSales30 = DB::table('material_sales')
                 ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')
@@ -232,10 +246,15 @@ class SalesDashboardService
             $yarnVelocity = $yarnDailyBurn > 0 ? ($yarnStock / $yarnDailyBurn) : 0;
 
             // Dye Velocity
-            $dyeStock = DB::table('material_stocks')
-                ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-                ->where('material_categories.subtype', 'dye')
-                ->sum('quantity');
+            $dyeStock = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+                ->where('inventory_transactions.status', 1)
+                ->where('inventory_transactions.is_value_adjustment', 0)
+                ->where('items.type', 'App\MaterialType')
+                ->where('material_types.subtype', 'dye')
+                ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as total")
+                ->value('total') ?? 0;
 
             $dyeSales30 = DB::table('material_sales')
                 ->join('material_categories', 'material_sales.category_id', '=', 'material_categories.material_category_id')

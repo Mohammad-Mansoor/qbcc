@@ -162,6 +162,10 @@ class WashingTeamController extends Controller
             'warehouse_id' => 'required'
         ]);
 
+        if ($carpetId->status == 3) {
+            return redirect()->back()->with('error', 'این قالین در حال حاضر در بخش شست‌وشو می‌باشد (This carpet is already in the washing process).');
+        }
+
         $previousStatus = $carpetId->status;
 
         return DB::transaction(function () use ($request, $carpetId, $previousStatus) {

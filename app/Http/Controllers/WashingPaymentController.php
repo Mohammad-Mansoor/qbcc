@@ -196,30 +196,46 @@ class WashingPaymentController extends Controller
 
         $payments = WashingPayment::with(['debitAccount', 'creditAccount'])->where('team_id',$team_id)->where('wash_number', 'General')->where('status', '!=', 2)->orderBy('date','DESC')->paginate(30);
         
-        // FORENSIC DYNAMIC TOTALS
-        $currencyTotals = WashingPayment::where('team_id', $team_id)
-            ->where('wash_number', 'General')
-            ->where('status', '!=', 2)
-            ->select('currency_code', 
-                \DB::raw("SUM(CASE WHEN type = 'رسید' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_received"),
-                \DB::raw("SUM(CASE WHEN type = 'گرفت' THEN (CASE WHEN is_advance = 1 THEN remaining_unallocated_amount ELSE original_amount END) ELSE 0 END) as total_sent")
+        // FORENSIC DYNAMIC TOTALS (Now pulled from full Ledger for accuracy)
+        $reversedTxIds = \DB::table('ledger_transactions as lt')
+            ->join('ledger_entries as le', 'le.transaction_id', '=', 'lt.id')
+            ->where('le.party_type', 'App\WashingTeam')
+            ->where('le.party_id', $team_id)
+            ->whereNotNull('lt.reversed_transaction_id')
+            ->pluck('lt.reversed_transaction_id')
+            ->toArray();
+
+        $currencyTotals = \DB::table('ledger_entries as le')
+            ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->where('le.party_type', 'App\WashingTeam')
+            ->where('le.party_id', $team_id)
+            ->where('lt.status', 'posted')
+            ->whereNull('lt.reversed_transaction_id')
+            ->whereNotIn('lt.id', $reversedTxIds)
+            ->select(
+                'le.currency_code',
+                \DB::raw('SUM(le.debit) as total_sent'),
+                \DB::raw('SUM(le.credit) as total_received')
             )
-            ->groupBy('currency_code')
+            ->groupBy('le.currency_code')
             ->get()
             ->keyBy('currency_code');
 
         // Total in Base Currency (USD)
-        $totalBaseReceived = WashingPayment::where('team_id', $team_id)
-            ->where('wash_number', 'General')
-            ->where('status', '!=', 2)
-            ->where('type', 'رسید')
-            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $baseTotals = \DB::table('ledger_entries as le')
+            ->join('ledger_transactions as lt', 'le.transaction_id', '=', 'lt.id')
+            ->where('le.party_type', 'App\WashingTeam')
+            ->where('le.party_id', $team_id)
+            ->where('lt.status', 'posted')
+            ->whereNull('lt.reversed_transaction_id')
+            ->whereNotIn('lt.id', $reversedTxIds)
+            ->select(
+                \DB::raw('SUM(le.base_debit) as total_sent'),
+                \DB::raw('SUM(le.base_credit) as total_received')
+            )->first();
 
-        $totalBaseSent = WashingPayment::where('team_id', $team_id)
-            ->where('wash_number', 'General')
-            ->where('status', '!=', 2)
-            ->where('type', 'گرفت')
-            ->sum(DB::raw('CASE WHEN is_advance = 1 THEN remaining_unallocated_amount * exchange_rate ELSE base_amount END'));
+        $totalBaseSent = $baseTotals ? (float)$baseTotals->total_sent : 0.0;
+        $totalBaseReceived = $baseTotals ? (float)$baseTotals->total_received : 0.0;
 
         $paymentEdit = '';
         $wash_numbers = CarpetWash::where('team_id','=',$team_id)->distinct()->get(['wash_number_sh']);

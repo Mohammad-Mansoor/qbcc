@@ -18,40 +18,50 @@ class InventoryDashboardService
             ->where('carpets.status', '!=', 6)
             ->leftJoin('items', function ($join) {
                 $join->on('carpets.carpet_id', '=', 'items.ref_id')
-                     ->where('items.type', '=', 'App\\Carpet');
+                     ->where('items.type', '=', 'App\Carpet');
             })
             ->selectRaw('COALESCE(SUM(COALESCE(items.current_cost, carpets.total_price)), 0) as total')
             ->value('total') ?? 0;
         $carpetCount = Carpet::where('status', '!=', 6)->count();
         $carpetArea = Carpet::where('status', '!=', 6)->sum('area') ?? 0;
         
-        $yarnValue = DB::table('material_stocks')
-            ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-            ->leftJoin('items', function($join) {
-                $join->on('material_stocks.material_type', '=', 'items.ref_id')
-                     ->where('items.type', '=', 'App\MaterialType');
-            })
-            ->where('material_categories.subtype', 'yarn')
-            ->selectRaw('SUM(material_stocks.quantity * COALESCE(items.current_cost, material_stocks.price_per_kilo, 0)) as total')
+        $yarnValue = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'yarn')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN total_cost * COALESCE(exchange_rate, 1) ELSE -total_cost * COALESCE(exchange_rate, 1) END) as total")
             ->value('total') ?? 0;
         
-        $yarnQuantity = MaterialStock::whereHas('category', function($q) {
-            $q->where('subtype', 'yarn');
-        })->sum('quantity') ?? 0;
-
-        $dyeValue = DB::table('material_stocks')
-            ->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-            ->leftJoin('items', function($join) {
-                $join->on('material_stocks.material_type', '=', 'items.ref_id')
-                     ->where('items.type', '=', 'App\MaterialType');
-            })
-            ->where('material_categories.subtype', 'dye')
-            ->selectRaw('SUM(material_stocks.quantity * COALESCE(items.current_cost, material_stocks.price_per_kilo, 0)) as total')
+        $yarnQuantity = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('inventory_transactions.is_value_adjustment', 0)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'yarn')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as total")
             ->value('total') ?? 0;
 
-        $dyeQuantity = MaterialStock::whereHas('category', function($q) {
-            $q->where('subtype', 'dye');
-        })->sum('quantity') ?? 0;
+        $dyeValue = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'dye')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN total_cost * COALESCE(exchange_rate, 1) ELSE -total_cost * COALESCE(exchange_rate, 1) END) as total")
+            ->value('total') ?? 0;
+
+        $dyeQuantity = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('inventory_transactions.is_value_adjustment', 0)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'dye')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as total")
+            ->value('total') ?? 0;
 
         // Carpet by Type
         $carpetByTypeRaw = Carpet::where('status', '!=', 6)
@@ -82,12 +92,18 @@ class InventoryDashboardService
         }
 
         // Yarn by Category
-        $yarnByCategoryRaw = MaterialStock::whereHas('category', function($q) {
-            $q->where('subtype', 'yarn');
-        })->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-          ->select('material_categories.material_category as name', DB::raw('SUM(material_stocks.quantity) as count'))
-          ->groupBy('material_categories.material_category_id', 'material_categories.material_category')
-          ->get();
+        $yarnByCategoryRaw = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->join('material_categories', 'inventory_transactions.category_id', '=', 'material_categories.material_category_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'yarn')
+            ->where('inventory_transactions.is_value_adjustment', 0)
+            ->select('material_categories.material_category as name', DB::raw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as count"))
+            ->groupBy('material_categories.material_category_id', 'material_categories.material_category')
+            ->having('count', '>', 0)
+            ->get();
           
         $yarnCategories = [];
         $yarnCategoryCounts = [];
@@ -97,12 +113,18 @@ class InventoryDashboardService
         }
 
         // Dye by Category
-        $dyeByCategoryRaw = MaterialStock::whereHas('category', function($q) {
-            $q->where('subtype', 'dye');
-        })->join('material_categories', 'material_stocks.material_category', '=', 'material_categories.material_category_id')
-          ->select('material_categories.material_category as name', DB::raw('SUM(material_stocks.quantity) as count'))
-          ->groupBy('material_categories.material_category_id', 'material_categories.material_category')
-          ->get();
+        $dyeByCategoryRaw = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->join('material_categories', 'inventory_transactions.category_id', '=', 'material_categories.material_category_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'dye')
+            ->where('inventory_transactions.is_value_adjustment', 0)
+            ->select('material_categories.material_category as name', DB::raw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as count"))
+            ->groupBy('material_categories.material_category_id', 'material_categories.material_category')
+            ->having('count', '>', 0)
+            ->get();
           
         $dyeCategories = [];
         $dyeCategoryCounts = [];
@@ -121,19 +143,47 @@ class InventoryDashboardService
             '180_days' => Carpet::where('status', '!=', 6)->where('updated_at', '<', $now->copy()->subDays(180))->count(),
         ];
         
-        $yarnDeadStock = [
-            '30_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','yarn');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(30))->where('updated_at', '>=', $now->copy()->subDays(60))->sum('quantity'),
-            '60_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','yarn');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(60))->where('updated_at', '>=', $now->copy()->subDays(90))->sum('quantity'),
-            '90_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','yarn');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(90))->where('updated_at', '>=', $now->copy()->subDays(180))->sum('quantity'),
-            '180_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','yarn');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(180))->sum('quantity'),
-        ];
-        
-        $dyeDeadStock = [
-            '30_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','dye');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(30))->where('updated_at', '>=', $now->copy()->subDays(60))->sum('quantity'),
-            '60_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','dye');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(60))->where('updated_at', '>=', $now->copy()->subDays(90))->sum('quantity'),
-            '90_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','dye');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(90))->where('updated_at', '>=', $now->copy()->subDays(180))->sum('quantity'),
-            '180_days' => MaterialStock::whereHas('category', function($q){$q->where('subtype','dye');})->where('quantity','>',0)->where('updated_at', '<', $now->copy()->subDays(180))->sum('quantity'),
-        ];
+        $yarnDeadStockItems = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'yarn')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+            ->selectRaw("MAX(inventory_transactions.created_at) as last_activity")
+            ->groupBy('items.id')
+            ->having('balance', '>', 0)
+            ->get();
+            
+        $yarnDeadStock = ['30_days' => 0, '60_days' => 0, '90_days' => 0, '180_days' => 0];
+        foreach($yarnDeadStockItems as $item) {
+            $days = $now->diffInDays(Carbon::parse($item->last_activity));
+            if ($days >= 180) { $yarnDeadStock['180_days'] += $item->balance; }
+            elseif ($days >= 90) { $yarnDeadStock['90_days'] += $item->balance; }
+            elseif ($days >= 60) { $yarnDeadStock['60_days'] += $item->balance; }
+            elseif ($days >= 30) { $yarnDeadStock['30_days'] += $item->balance; }
+        }
+
+        $dyeDeadStockItems = DB::table('inventory_transactions')
+            ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+            ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+            ->where('inventory_transactions.status', 1)
+            ->where('items.type', 'App\MaterialType')
+            ->where('material_types.subtype', 'dye')
+            ->selectRaw("SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END) as balance")
+            ->selectRaw("MAX(inventory_transactions.created_at) as last_activity")
+            ->groupBy('items.id')
+            ->having('balance', '>', 0)
+            ->get();
+            
+        $dyeDeadStock = ['30_days' => 0, '60_days' => 0, '90_days' => 0, '180_days' => 0];
+        foreach($dyeDeadStockItems as $item) {
+            $days = $now->diffInDays(Carbon::parse($item->last_activity));
+            if ($days >= 180) { $dyeDeadStock['180_days'] += $item->balance; }
+            elseif ($days >= 90) { $dyeDeadStock['90_days'] += $item->balance; }
+            elseif ($days >= 60) { $dyeDeadStock['60_days'] += $item->balance; }
+            elseif ($days >= 30) { $dyeDeadStock['30_days'] += $item->balance; }
+        }
 
         // Warehouse Data
         $warehouses = Warehouse::all();
