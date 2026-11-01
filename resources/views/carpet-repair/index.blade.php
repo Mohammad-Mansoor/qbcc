@@ -522,6 +522,7 @@
                       <th>تیم ترمیم کننده</th>
                       <th>شرح</th>
                       <th class="printTitle text-center">وضعیت / عملیات</th>
+                      <th class="printTitle text-center">بازگشت قالین</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -587,15 +588,6 @@
                                     ارسال به تیاری (Send to Finish)
                                   </a>
                                 @endcan
-                                @can('return_carpet_from_repair')
-                                  <a class="dropdown-item text-right text-danger btn-return-to-center" href="javascript:void(0)"
-                                    data-carpet-id="{{$repaired->carpetId}}" data-carpet-no="{{$repaired->carpet->carpet_no}}"
-                                    data-current-warehouse-id="{{$repaired->carpet->warehouse_id}}"
-                                    data-action-url="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
-                                    <i class="feather icon-corner-up-right"></i>
-                                    بازگشت به مرکزی
-                                  </a>
-                                @endcan
                               @else
                                 <div class="dropdown-item text-right text-muted" style="cursor: not-allowed; opacity: 0.6;">
                                   <i class="feather icon-lock"></i>
@@ -617,6 +609,22 @@
                             </div>
                           </div>
                         </td>
+                        <td class="hideOnPrint text-center">
+                          @if ($repaired->carpet->status == 12)
+                            @can('return_carpet_from_repair')
+                              <a href="javascript:void(0)"
+                                class="btn-return-to-center"
+                                style="display: inline-block; border-radius: 8px; font-weight: bold; background: #fee2e2; color: #dc2626; padding: 6px 12px; border: 1px solid #fecaca; text-decoration: none;"
+                                data-carpet-id="{{$repaired->carpetId}}" data-carpet-no="{{$repaired->carpet->carpet_no}}"
+                                data-current-warehouse-id="{{$repaired->carpet->warehouse_id}}"
+                                data-action-url="/dashboard/return-to-center-from-repair/{{$repaired->carpetId}}">
+                                <i class="fa fa-reply"></i> بازگشت و حذف
+                              </a>
+                            @endcan
+                          @else
+                            <span class="text-muted" style="font-size: 0.85rem;" title="فقط زمانی که قالین در کچایی باشد فعال است"><i class="feather icon-lock"></i> غیرفعال</span>
+                          @endif
+                        </td>
                       </tr>
                     @endforeach
                     <tr style="background: #f8fafc;" class="font-weight-bold">
@@ -627,6 +635,7 @@
     return $r->carpet->area ?? 0; }), 2)}}
                         m<sup>2</sup>
                       </td>
+                      <td class="hideOnPrint"></td>
                       <td class="hideOnPrint"></td>
                     </tr>
                   </tbody>
@@ -658,7 +667,8 @@
                     </div>
                     <div class="modal-body p-4 text-right" style="direction: rtl;">
                       <p class="font-weight-bold text-dark mb-3">آیا مطمئن هستید که می‌خواهید قالین شماره <span
-                          id="modalCarpetNo" class="text-danger font-weight-bold"></span> را به دفتر مرکزی بازگشت دهید؟
+                          id="modalCarpetNo" class="text-danger font-weight-bold"></span> را به دفتر مرکزی بازگشت دهید؟<br>
+                        <span style="color: #dc3545; font-size: 0.9rem; font-weight: normal;">توجه: تمام مصارف ترمیم (کچایی) مربوط به این قالین کاملاً حذف خواهد شد.</span>
                       </p>
 
                       <div class="form-group">

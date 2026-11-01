@@ -99,7 +99,7 @@ class ReportController extends Controller
             $bottomFooterBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bottomFooterPath));
         }
 
-        if ($customerId && $request->get('export') === 'pdf' && !empty($entries)) {
+        if ($customerId && !empty($entries)) {
             $pdfFilter = new \App\Services\Accounting\PdfStatementFilter();
             $entries = $pdfFilter->collapse(collect($entries));
         }
@@ -108,16 +108,20 @@ class ReportController extends Controller
         if ($customerId && $isSummary) {
             // Batch pre-fetch relationships to avoid N+1 queries
             $paymentIds = [];
+            $carpetIds = [];
             foreach ($entries as $item) {
                 $srcType = strtolower($item->source_type);
                 if ($srcType === 'app\customerpayment' || $srcType === 'customer_payment') {
                     $paymentIds[] = $item->source_id;
+                } elseif ($srcType === 'app\carpet') {
+                    $carpetIds[] = $item->source_id;
                 }
             }
 
             $payments = \App\CustomerPayment::whereIn('id', array_unique($paymentIds))->with(['allocations.invoice'])->get()->keyBy('id');
+            $sales = \App\Sale::whereIn('carpet_id', array_unique($carpetIds))->with(['invoice'])->get()->keyBy('carpet_id');
 
-            $entries = collect($entries)->groupBy(function($item) use ($payments) {
+            $entries = collect($entries)->groupBy(function($item) use ($payments, $sales) {
                 $groupRef = trim($item->reference);
                 $srcType = strtolower($item->source_type);
                 if ($srcType === 'app\customerpayment' || $srcType === 'customer_payment') {
@@ -127,6 +131,11 @@ class ReportController extends Controller
                         if ($alloc && $alloc->invoice) {
                             $groupRef = $alloc->invoice->invoice_no;
                         }
+                    }
+                } elseif ($srcType === 'app\carpet') {
+                    $sale = $sales->get($item->source_id);
+                    if ($sale && $sale->invoice) {
+                        $groupRef = $sale->invoice->invoice_no;
                     }
                 }
                 return (!empty($groupRef) && $groupRef !== '-') ? $groupRef : 'tx_' . $item->transaction_id;

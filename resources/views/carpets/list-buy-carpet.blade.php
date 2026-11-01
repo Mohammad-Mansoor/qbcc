@@ -335,12 +335,14 @@
                                                         </a>
                                                         @endcan
                                                     @endif
-                                                    @can('send_carpet_to_washing')
-                                                    <a class="dropdown-item py-2 px-3 small"
-                                                        href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
-                                                        <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
-                                                    </a>
-                                                    @endcan
+                                                    @if($carpet->status != 13 && $carpet->status != 3)
+                                                        @can('send_carpet_to_washing')
+                                                        <a class="dropdown-item py-2 px-3 small"
+                                                            href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
+                                                            <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
+                                                        </a>
+                                                        @endcan
+                                                    @endif
                                                     @can('send_carpet_to_finishing')
                                                     <a class="dropdown-item py-2 px-3 small"
                                                         href="/dashboard/carpet-wash/sent-to-finish/{{$carpet->carpet_id}}">

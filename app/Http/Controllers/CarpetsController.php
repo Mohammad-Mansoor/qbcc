@@ -453,21 +453,35 @@ class CarpetsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = trim($request->search);
             $query->where(function($q) use ($search) {
                 $q->where('carpet_no', 'like', '%' . $search . '%')
+                  ->orWhere('map_number', 'like', '%' . $search . '%')
+                  ->orWhere('parcha_number', 'like', '%' . $search . '%')
+                  ->orWhere('field', 'like', '%' . $search . '%')
+                  ->orWhere('margin', 'like', '%' . $search . '%')
                   ->orWhere('date', 'like', '%' . $search . '%')
                   ->orWhereHas('carpet_order', function ($query) use ($search) {
                       $query->where('order_number', 'like', '%' . $search . '%');
                   })
                   ->orWhereHas('type', function ($query) use ($search) {
                       $query->where('carpet_type', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('quality', function ($query) use ($search) {
+                      $query->where('quality', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('warehouse', function ($query) use ($search) {
+                      $query->where('name', 'like', '%' . $search . '%');
                   });
             });
         }
 
         if ($request->filled('from_date') && $request->filled('to_date')) {
             $query->whereBetween('date', [$request->from_date, $request->to_date]);
+        } elseif ($request->filled('from_date')) {
+            $query->where('date', '>=', $request->from_date);
+        } elseif ($request->filled('to_date')) {
+            $query->where('date', '<=', $request->to_date);
         }
 
         $carpetsQuery = $query->with(['type', 'warehouse', 'carpet_order', 'quality'])->orderBy('carpet_no', 'DESC');
@@ -521,15 +535,25 @@ class CarpetsController extends Controller
 
     public function carpet_stock_search(Request $request)
     {
-        $search = $request->search;
+        $search = trim($request->search);
         $query = Carpet::where('status', '=', 5)->where(function($q) use ($search) {
             $q->where('carpet_no', 'like', '%' . $search . '%')
+              ->orWhere('map_number', 'like', '%' . $search . '%')
+              ->orWhere('parcha_number', 'like', '%' . $search . '%')
+              ->orWhere('field', 'like', '%' . $search . '%')
+              ->orWhere('margin', 'like', '%' . $search . '%')
               ->orWhere('date', 'like', '%' . $search . '%')
               ->orWhereHas('carpet_order', function ($query) use ($search) {
                   $query->where('order_number', 'like', '%' . $search . '%');
               })
               ->orWhereHas('type', function ($query) use ($search) {
                   $query->where('carpet_type', 'like', '%' . $search . '%');
+              })
+              ->orWhereHas('quality', function ($query) use ($search) {
+                  $query->where('quality', 'like', '%' . $search . '%');
+              })
+              ->orWhereHas('warehouse', function ($query) use ($search) {
+                  $query->where('name', 'like', '%' . $search . '%');
               });
         });
 
@@ -541,7 +565,6 @@ class CarpetsController extends Controller
 
         $data = $this->getStockDependencies();
         $data['carpets'] = $carpets;
-        $data['search'] = $search;
 
         return view('carpet-stock.carpet-stock', $data);
     }
@@ -551,7 +574,14 @@ class CarpetsController extends Controller
         $from_date = $request->from_date;
         $to_date = $request->to_date;
 
-        $query = Carpet::where('status', 5)->whereBetween('date', [$from_date, $to_date]);
+        $query = Carpet::where('status', 5);
+        if (!empty($from_date) && !empty($to_date)) {
+            $query->whereBetween('date', [$from_date, $to_date]);
+        } elseif (!empty($from_date)) {
+            $query->where('date', '>=', $from_date);
+        } elseif (!empty($to_date)) {
+            $query->where('date', '<=', $to_date);
+        }
         
         if ($request->export) {
             return $this->exportStock($query->with(['type', 'warehouse', 'carpet_order', 'quality'])->get(), $request, $request->export);

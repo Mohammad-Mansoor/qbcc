@@ -161,7 +161,24 @@ class FinishingWorkController extends Controller
     {
         return DB::transaction(function () use ($carpet_id) {
             $carpet = Carpet::find($carpet_id);
+            $inventoryService = app(\App\Services\InventoryService::class);
             
+            // Reversing all finishing works and expenses
+            $finishingWorks = \App\FinishingWork::where('carpetId', $carpet_id)->get();
+            foreach ($finishingWorks as $work) {
+                // Deduct from carpet total price
+                $carpet->total_price -= $work->price;
+                $carpet->total_price_af -= $work->price_af;
+                
+                // Reverse Accounting
+                $this->accountingService->reverseTransactionBySource($work->id, 'Carpet Returned: Finishing Work Deleted', get_class($work));
+                
+                // Reverse inventory completion transfer
+                $inventoryService->reverseMovement($work, 'Carpet Returned: Finishing Work Deleted');
+                
+                $work->delete();
+            }
+
             // Get original source warehouse from the latest active Finishing Transfer OUT transaction for this carpet
             $originalTransaction = DB::table('inventory_transactions')
                 ->where('reference_type', get_class($carpet))
@@ -176,7 +193,7 @@ class FinishingWorkController extends Controller
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از بخش تیاری به دفتر مرکزی بازگشت داده شد ";
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از بخش تیاری به دفتر مرکزی بازگشت داده شد و تمام مصارف تیاری آن حذف گردید ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
 
@@ -186,10 +203,9 @@ class FinishingWorkController extends Controller
             $carpet->update();
 
             // Reverse physical transfer using the new safe transactionType parameter
-            $inventoryService = app(\App\Services\InventoryService::class);
             $inventoryService->reverseMovement($carpet, 'Returned from Finishing', 'Finishing Transfer');
 
-            return redirect('/dashboard/finishing-center')->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد');
+            return redirect('/dashboard/finishing-center')->with('status', 'قالین موفقانه به دفتر مرکزی بازگشت داده شد و تمام مصارف تیاری آن حذف گردید');
         });
     }
 

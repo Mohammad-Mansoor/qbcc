@@ -26,19 +26,10 @@
             display: block;
         }
 
-        .footer-img {
-            width: 100%;
-            height: auto;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-        }
-
         .container {
             width: 90%;
             margin: 20px auto;
-            padding-bottom: 120px;
-            /* Space for footer */
+            padding-bottom: 20px;
         }
 
         .report-title {
@@ -403,9 +394,6 @@
         </div>
     </div>
 
-    @if(isset($footerBase64) && $footerBase64)
-        <img src="data:image/png;base64,{{ $footerBase64 }}" class="footer-img" alt="Footer">
-    @endif
 </body>
 
 </html>

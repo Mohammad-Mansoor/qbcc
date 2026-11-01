@@ -121,6 +121,19 @@ class WashingTeamController extends Controller
     // SENDING CARPET FOR WASHING
     public function sending_to_washing(Carpet $carpetId)
     {
+        if ($carpetId->status == 3) {
+            return redirect()->back()->with('error', 'این قالین در حال حاضر در بخش شست‌وشو می‌باشد (This carpet is already in the washing process).');
+        }
+
+        if ($carpetId->status == 13) {
+            return redirect()->back()->with('error', 'این قالین قبلاً شسته شده است (This carpet has already been washed).');
+        }
+
+        $existingWash = CarpetWash::where('carpetId', $carpetId->carpet_id)->first();
+        if ($existingWash) {
+            return redirect()->back()->with('error', 'برای این قالین قبلاً ریکورد شست ثبت گردیده است (A wash record already exists for this carpet).');
+        }
+
         $washing_team = WashingTeam::all();
         $lastId = CarpetWash::latest()->first();
         $WashNo = '';
@@ -166,9 +179,23 @@ class WashingTeamController extends Controller
             return redirect()->back()->with('error', 'این قالین در حال حاضر در بخش شست‌وشو می‌باشد (This carpet is already in the washing process).');
         }
 
+        if ($carpetId->status == 13) {
+            return redirect()->back()->with('error', 'این قالین قبلاً شسته شده است (This carpet has already been washed).');
+        }
+
+        $existingWash = CarpetWash::where('carpetId', $carpetId->carpet_id)->first();
+        if ($existingWash) {
+            return redirect()->back()->with('error', 'برای این قالین قبلاً ریکورد شست ثبت گردیده است (A wash record already exists for this carpet).');
+        }
+
         $previousStatus = $carpetId->status;
 
         return DB::transaction(function () use ($request, $carpetId, $previousStatus) {
+            $duplicateCheck = CarpetWash::where('carpetId', $carpetId->carpet_id)->lockForUpdate()->first();
+            if ($duplicateCheck) {
+                return redirect()->back()->with('error', 'برای این قالین قبلاً ریکورد شست ثبت گردیده است (A wash record already exists for this carpet).');
+            }
+
             $lastId = CarpetWash::where('team_id',$request->team_id)->latest()->first();
 
             $WashNo = '';

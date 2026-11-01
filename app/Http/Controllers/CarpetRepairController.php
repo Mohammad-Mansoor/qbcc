@@ -114,10 +114,11 @@ class CarpetRepairController extends Controller
 
     public function return_to_center_from_repair($carpet_id){
         return DB::transaction(function () use ($carpet_id) {
-            $carpet_repair = CarpetRepair::where('carpetId',$carpet_id)->first();
-            
             $carpet = Carpet::find($carpet_id);
-            if ($carpet_repair) {
+            
+            // Get all repairs and delete them
+            $repairs = CarpetRepair::where('carpetId', $carpet_id)->get();
+            foreach ($repairs as $carpet_repair) {
                 // Deduct from carpet
                 if ($carpet) {
                     $carpet->total_price -= $carpet_repair->base_currency_amount;
@@ -130,8 +131,6 @@ class CarpetRepairController extends Controller
                 $this->inventoryService->reverseMovement($carpet_repair, 'Reversing Repair Cost');
                 $carpet_repair->delete();
             }
-            
-            $carpet = Carpet::find($carpet_id);
 
             // Get original source warehouse from the latest OUT transaction for this carpet
             $originalTransaction = DB::table('inventory_transactions')
@@ -156,6 +155,12 @@ class CarpetRepairController extends Controller
             $carpet->kachaee_id = null;
             $carpet->warehouse_id = $targetWarehouseId;
             $carpet->update();
+
+            // Sync items table current_cost with carpet total_price
+            DB::table('items')
+                ->where('type', 'App\Carpet')
+                ->where('ref_id', $carpet->carpet_id)
+                ->update(['current_cost' => round((float)$carpet->total_price, 4)]);
 
             // Reverse the physical transfer
             $this->inventoryService->reverseMovement($carpet, 'Returned from Kachaee (Repaired)', 'Kachaee Transfer');

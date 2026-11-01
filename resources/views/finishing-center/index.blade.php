@@ -495,8 +495,9 @@
                         
                         <td>
                           @can('return_carpet_from_finishing')
-                          <a href="/dashboard/return-to-center-from-finish/{{$nonfinish->carpet_id}}"
-                                 class="btn-modern-action btn-central printBTN"><i
+                          <a href="javascript:void(0)"
+                                 class="btn-modern-action btn-central printBTN"
+                                 onclick="confirmReturnCarpet('/dashboard/return-to-center-from-finish/{{$nonfinish->carpet_id}}')"><i
                                       class="fa fa-reply"></i>&nbsp; بازگشت به مرکزی</a>
                           @endcan
                         </td>
@@ -580,6 +581,7 @@
                     <th class="printTitle">ویرایش</th>
                     {{-- <th class="printTitle">ارسال به گدام</th> --}}
                     <th class="printTitle">جزئیات کلی</th>
+                    <th class="printTitle">بازگشت قالین</th>
                   </tr>
                   </thead>
                   <tbody>
@@ -640,6 +642,15 @@
                                     class="fa fa-eye"></i>&nbsp; نمایش</a>
                         @endcan
                       </td>
+                      <td class="hideOnPrint">
+                        @can('return_carpet_from_finishing')
+                        <a href="javascript:void(0)"
+                               class="btn-modern-action btn-central printBTN"
+                               onclick="confirmReturnCarpet('/dashboard/return-to-center-from-finish/{{$finish->carpet->carpet_id ?? ''}}')">
+                               <i class="fa fa-reply"></i>&nbsp; بازگشت و حذف
+                        </a>
+                        @endcan
+                      </td>
                     </tr>
                     
                     <span style="display: none">
@@ -694,5 +705,34 @@
       </div>
     </div>
   </div>
+
+  <!-- Return Carpet Modal -->
+  <div class="modal fade" id="returnCarpetModal" tabindex="-1" role="dialog" aria-labelledby="returnCarpetModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" style="border-radius: 12px; overflow: hidden;">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="returnCarpetModalLabel"><i class="fa fa-exclamation-triangle"></i> تایید بازگشت قالین</h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 1; text-shadow: none;">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" style="font-size: 1.1rem; padding: 25px;">
+          آیا مطمئن هستید که می‌خواهید این قالین را به دفتر مرکزی بازگشت داده و <strong>تمام مصارف تیاری آن را حذف کنید؟</strong><br>
+          <span style="font-size: 0.9rem; color: #dc3545;">این عملیات قابل برگشت نیست!</span>
+        </div>
+        <div class="modal-footer" style="background: #f8fafc;">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" style="border-radius: 8px;">انصراف</button>
+          <a href="#" id="confirmReturnCarpetBtn" class="btn btn-danger" style="border-radius: 8px;">بله، بازگشت و حذف مصارف</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function confirmReturnCarpet(url) {
+        document.getElementById('confirmReturnCarpetBtn').href = url;
+        $('#returnCarpetModal').modal('show');
+    }
+  </script>
 
 @endsection

@@ -24,17 +24,29 @@ class CustomerController extends Controller
         $customers = Customer::paginate(30);
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
+        $ledgerTotals = $this->getCustomerLedgerTotals();
+        $customers_owe_company = $ledgerTotals ? (float)$ledgerTotals->customers_owe_company : 0;
+        $company_owes_customers = $ledgerTotals ? (float)$ledgerTotals->company_owes_customers : 0;
+        $total_receivable = $customers_owe_company - $company_owes_customers;
 
-        // Global Receivable Total from Ledger in Base Currency (USD)
-        $total_receivable = DB::table('ledger_entries')
+        return view('customers.customers', compact('customers', 'customerEdit', 'customers_owe_company', 'company_owes_customers', 'ledgerTotals', 'total_receivable'));
+    }
+
+    private function getCustomerLedgerTotals()
+    {
+        $subQuery = DB::table('ledger_entries')
+            ->select('party_id', DB::raw('SUM(base_debit - base_credit) as balance'))
             ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('base_credit - base_debit'));
+            ->groupBy('party_id');
 
-        return view('customers.customers', compact('customers', 'customerEdit', 'credit_us', 'credit_af', 'debit_us', 'debit_af', 'total_receivable'));
+        return DB::query()->fromSub($subQuery, 'cust_balances')
+            ->selectRaw('
+                COALESCE(SUM(CASE WHEN balance > 0.0001 THEN balance ELSE 0 END), 0) as customers_owe_company,
+                COALESCE(SUM(CASE WHEN balance < -0.0001 THEN ABS(balance) ELSE 0 END), 0) as company_owes_customers,
+                COUNT(CASE WHEN balance > 0.0001 THEN 1 END) as count_customers_owe,
+                COUNT(CASE WHEN balance < -0.0001 THEN 1 END) as count_company_owes
+            ')
+            ->first();
     }
 
     private function enrichCustomerRecordsBatch($customers)
@@ -53,9 +65,9 @@ class CustomerController extends Controller
             ->groupBy('customer_id')
             ->pluck('total', 'customer_id');
 
-        // 2. Live Ledger Balance (Net Position in Base Currency USD)
+        // 2. Live Ledger Balance (Net Position in Base Currency USD: Debit > Credit means customer owes company)
         $ledgerBalances = DB::table('ledger_entries')
-            ->select('party_id', DB::raw('SUM(base_credit - base_debit) as balance'))
+            ->select('party_id', DB::raw('SUM(base_debit - base_credit) as balance'))
             ->where('party_type', 'App\Customer')
             ->whereIn('party_id', $customerIds)
             ->groupBy('party_id')
@@ -128,17 +140,12 @@ class CustomerController extends Controller
 
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
+        $ledgerTotals = $this->getCustomerLedgerTotals();
+        $customers_owe_company = $ledgerTotals ? (float)$ledgerTotals->customers_owe_company : 0;
+        $company_owes_customers = $ledgerTotals ? (float)$ledgerTotals->company_owes_customers : 0;
+        $total_receivable = $customers_owe_company - $company_owes_customers;
 
-        // Global Receivable Total from Ledger in Base Currency (USD)
-        $total_receivable = DB::table('ledger_entries')
-            ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('base_credit - base_debit'));
-
-        return view('customers.customers', compact('customers', 'customerEdit', 'credit_us', 'credit_af', 'debit_us', 'debit_af', 'search', 'total_receivable'));
+        return view('customers.customers', compact('customers', 'customerEdit', 'search', 'customers_owe_company', 'company_owes_customers', 'ledgerTotals', 'total_receivable'));
     }
 
     public function accounts()
@@ -147,18 +154,13 @@ class CustomerController extends Controller
         $customers = Customer::paginate(30);
         $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
-
-        // Global Receivable Total from Ledger in Base Currency (USD)
-        $total_receivable = DB::table('ledger_entries')
-            ->where('party_type', 'App\Customer')
-            ->sum(DB::raw('base_credit - base_debit'));
+        $ledgerTotals = $this->getCustomerLedgerTotals();
+        $customers_owe_company = $ledgerTotals ? (float)$ledgerTotals->customers_owe_company : 0;
+        $company_owes_customers = $ledgerTotals ? (float)$ledgerTotals->company_owes_customers : 0;
+        $total_receivable = $customers_owe_company - $company_owes_customers;
 
         $accounts = '';
-        return view('customers.customers', compact('customers', 'customerEdit', 'credit_us', 'credit_af', 'debit_us', 'debit_af', 'accounts', 'total_receivable'));
+        return view('customers.customers', compact('customers', 'customerEdit', 'accounts', 'customers_owe_company', 'company_owes_customers', 'ledgerTotals', 'total_receivable'));
     }
     /**
      * Show the form for creating a new resource.
@@ -215,12 +217,14 @@ class CustomerController extends Controller
 
         $customerEdit = Customer::find($id);
         $customers = Customer::paginate(30);
-        $credit_us = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount');
-        $credit_af = CustomerPayment::where('type', '=', 'رسید')->where('status', 1)->sum('amount_af');
+        $this->enrichCustomerRecordsBatch($customers->getCollection());
 
-        $debit_us = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount');
-        $debit_af = CustomerPayment::where('type', '=', 'گرفت')->where('status', 1)->sum('amount_af');
-        return view('customers.customers', compact('customers', 'customerEdit', 'credit_us', 'credit_af', 'debit_us', 'debit_af'));
+        $ledgerTotals = $this->getCustomerLedgerTotals();
+        $customers_owe_company = $ledgerTotals ? (float)$ledgerTotals->customers_owe_company : 0;
+        $company_owes_customers = $ledgerTotals ? (float)$ledgerTotals->company_owes_customers : 0;
+        $total_receivable = $customers_owe_company - $company_owes_customers;
+
+        return view('customers.customers', compact('customers', 'customerEdit', 'customers_owe_company', 'company_owes_customers', 'ledgerTotals', 'total_receivable'));
 
     }
 

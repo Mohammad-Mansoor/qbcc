@@ -133,7 +133,7 @@ class InvoiceController extends Controller
                       ->orWhere('carpet_types.carpet_type', 'like', '%' . $search . '%');
                 })
                 ->select('sales.*', 'carpets.carpet_no', 'carpets.width', 'carpets.height', 'carpets.area')
-                ->paginate(30);
+                ->get();
         } else {
             $sales = DB::table('material_sales')
                 ->join('material_categories', 'material_sales.category_id', 'material_categories.material_category_id')
@@ -145,7 +145,7 @@ class InvoiceController extends Controller
                       ->orWhere('material_types.material_type', 'like', '%' . $search . '%');
                 })
                 ->select('material_sales.*', 'material_categories.material_category', 'material_types.material_type')
-                ->paginate(30);
+                ->get();
         }
 
         return view('invoices.invoice-details',compact('invoice','sales','search'));
@@ -239,9 +239,9 @@ class InvoiceController extends Controller
         }
 
         if ($invoice->type === 'carpet') {
-            $sales = Sale::with('carpet')->where('invoice_id',$id)->paginate(30);
+            $sales = Sale::with('carpet')->where('invoice_id',$id)->get();
         } else {
-            $sales = \App\MaterialSale::with(['category', 'type'])->where('invoice_id',$id)->paginate(30);
+            $sales = \App\MaterialSale::with(['category', 'type'])->where('invoice_id',$id)->get();
         }
         return view('invoices.invoice-details',compact('invoice','sales'));
     }

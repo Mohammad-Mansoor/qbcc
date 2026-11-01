@@ -56,9 +56,13 @@ class CarpetWashController extends Controller
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از شست به دفتر مرکزی بازگشت داده شد ";
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از شست به دفتر مرکزی بازگشت داده شد و مصارف شست حذف گردید ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
+
+            $carpet->total_price -= $carpet_wash->base_currency_amount;
+            $carpet->total_price_af -= $carpet_wash->af_total_price;
+            $carpet->area -= $carpet_wash->area_difference;
 
             $carpet->status = 1;
             $carpet->washing_id = null;
@@ -126,10 +130,14 @@ class CarpetWashController extends Controller
 
             $activity = new Activity();
             $activity->date = Carbon::today()->format('Y-m-d');
-            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از شست به کچایی بازگشت داده شد" .
+            $activity->description = " قالین نمبر " . $carpet->carpet_no . " از شست به کچایی بازگشت داده شد و مصارف شست حذف گردید" .
                 ($warehouseName ? " (انبار: " . $warehouseName . ")" : "") . " ";
             $activity->user_id = Auth::user()->id;
             $activity->save();
+
+            $carpet->total_price -= $carpet_wash->base_currency_amount;
+            $carpet->total_price_af -= $carpet_wash->af_total_price;
+            $carpet->area -= $carpet_wash->area_difference;
 
             $carpet->status = 12;
             $carpet->washing_id = null;

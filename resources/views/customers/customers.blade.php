@@ -18,17 +18,24 @@
 
         <!-- Stats & Summary Row -->
         <div class="row mb-4">
-            <div class="col-lg-4 col-md-6 mb-3">
+            <!-- Card 1: Customers Owe Company -->
+            <div class="col-lg-6 col-md-6 mb-3">
                 <div class="card border-0 shadow-sm"
                     style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-radius: 12px;">
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-uppercase text-muted mb-2 font-weight-bold" style="font-size: 0.85rem;">کل
-                                    طلبات از مشتریان (GL)</h6>
+                                <h6 class="text-uppercase text-muted mb-2 font-weight-bold" style="font-size: 0.85rem;">
+                                    طلبات از مشتریان (بدهکاری مشتریان به شرکت)
+                                </h6>
                                 <h3 class="font-weight-bold mb-0 text-primary">
-                                    ${{ number_format($total_receivable ?? 0, 2) }}
+                                    ${{ number_format($customers_owe_company ?? 0, 2) }}
                                 </h3>
+                                @if(isset($ledgerTotals->count_customers_owe))
+                                    <small class="text-muted d-block mt-1">
+                                        {{ $ledgerTotals->count_customers_owe }} مشتری دارای باقی‌داری (GL)
+                                    </small>
+                                @endif
                             </div>
                             <div class="rounded-circle bg-light p-3 d-flex align-items-center justify-content-center"
                                 style="width: 50px; height: 50px;">
@@ -39,42 +46,28 @@
                 </div>
             </div>
 
-            <div class="col-lg-4 col-md-6 mb-3">
+            <!-- Card 2: Company Owes Customers -->
+            <div class="col-lg-6 col-md-6 mb-3">
                 <div class="card border-0 shadow-sm"
                     style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-radius: 12px;">
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="text-uppercase text-muted mb-2 font-weight-bold" style="font-size: 0.85rem;">
-                                    مجموع پرداخت‌ها (USD)</h6>
+                                    بدهی شرکت به مشتریان (طلب مشتریان / پیش‌پرداخت)
+                                </h6>
                                 <h3 class="font-weight-bold mb-0 text-success">
-                                    ${{ number_format($credit_us ?? 0, 2) }}
+                                    ${{ number_format($company_owes_customers ?? 0, 2) }}
                                 </h3>
+                                @if(isset($ledgerTotals->count_company_owes))
+                                    <small class="text-muted d-block mt-1">
+                                        {{ $ledgerTotals->count_company_owes }} مشتری دارای طلبکاری / اضافه پرداخت (GL)
+                                    </small>
+                                @endif
                             </div>
                             <div class="rounded-circle bg-light p-3 d-flex align-items-center justify-content-center"
                                 style="width: 50px; height: 50px;">
-                                <i class="fa fa-arrow-down text-success fa-lg"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="card border-0 shadow-sm"
-                    style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-radius: 12px;">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-uppercase text-muted mb-2 font-weight-bold" style="font-size: 0.85rem;">
-                                    مجموع پرداخت‌ها (AFN)</h6>
-                                <h3 class="font-weight-bold mb-0 text-info">
-                                    {{ number_format($credit_af ?? 0, 0) }} AFN
-                                </h3>
-                            </div>
-                            <div class="rounded-circle bg-light p-3 d-flex align-items-center justify-content-center"
-                                style="width: 50px; height: 50px;">
-                                <i class="fa fa-university text-info fa-lg"></i>
+                                <i class="fa fa-university text-success fa-lg"></i>
                             </div>
                         </div>
                     </div>
@@ -211,10 +204,7 @@
                             <tr>
                                 <th class="py-3 px-4">کود</th>
                                 <th class="py-3">نام و کمپنی</th>
-                                <th class="py-3 text-left">ارزش کل تجارت (USD)</th>
-                                <th class="py-3 text-left">بیلانس حسابی (USD)</th>
-                                <th class="py-3 text-left">باقیات نقدی (USD)</th>
-                                <th class="py-3 text-left">باقیات نقدی (AFN)</th>
+                                <th class="py-3 text-left">وضعیت حساب (USD)</th>
                                 <th class="py-3">آخرین فعالیت</th>
                                 <th class="py-3 hideOnPrint text-center" style="width: 120px;">عملیات</th>
                             </tr>
@@ -244,25 +234,12 @@
                                         </div>
                                         <small class="text-muted">{{ $cust->company_name }}</small>
                                     </td>
-                                    <td class="text-left font-weight-bold text-primary" dir="ltr">
-                                        ${{ number_format($cust->lifetime_sales ?? 0, 2) }}
-                                    </td>
                                     <td class="text-left font-weight-bold" dir="ltr">
-                                        <span
-                                            class="{{ ($cust->ledger_balance ?? 0) > 0 ? 'text-success' : (($cust->ledger_balance ?? 0) < 0 ? 'text-danger' : 'text-muted') }}">
-                                            ${{ number_format($cust->ledger_balance ?? 0, 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-left font-weight-bold" dir="ltr">
-                                        <span
-                                            class="{{ ($cust->total_usd ?? 0) > 0 ? 'text-success' : (($cust->total_usd ?? 0) < 0 ? 'text-danger' : 'text-muted') }}">
-                                            ${{ number_format($cust->total_usd ?? 0, 2) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-left font-weight-bold" dir="ltr">
-                                        <span
-                                            class="{{ ($cust->total_af ?? 0) > 0 ? 'text-success' : (($cust->total_af ?? 0) < 0 ? 'text-danger' : 'text-muted') }}">
-                                            {{ number_format($cust->total_af ?? 0, 0) }} AFN
+                                        @php
+                                            $bal = (float)($cust->ledger_balance ?? 0);
+                                        @endphp
+                                        <span class="{{ $bal > 0.001 ? 'text-danger' : ($bal < -0.001 ? 'text-success' : 'text-muted') }}">
+                                            ${{ number_format(abs($bal), 2) }}
                                         </span>
                                     </td>
                                     <td>
@@ -315,7 +292,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
+                                    <td colspan="5" class="text-center py-4 text-muted">
                                         هیچ مشتری با این مشخصات یافت نشد.
                                     </td>
                                 </tr>

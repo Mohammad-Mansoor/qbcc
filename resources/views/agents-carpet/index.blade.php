@@ -260,11 +260,13 @@
                                                 onclick="sendToService('{{$carpet->carpet_id}}', 'kachaee')"
                                                 title="ارسال به کچایی"><i class="feather icon-tool"></i></button>
                                             @endcan
+                                            @if($carpet->status != 13 && $carpet->status != 3)
                                             @can('create_carpet_wash')
                                             <button class="btn-action-round bg-light-success text-success"
                                                 onclick="sendToService('{{$carpet->carpet_id}}', 'washing')"
                                                 title="ارسال به شست"><i class="feather icon-droplet"></i></button>
                                             @endcan
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

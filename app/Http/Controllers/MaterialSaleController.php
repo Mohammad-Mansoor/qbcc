@@ -139,7 +139,7 @@ class MaterialSaleController extends Controller
     {
         $material_sales = MaterialSale::with(['category', 'type', 'agent', 'warehouse', 'debitAccount', 'creditAccount', 'cogsDebitAccount', 'cogsCreditAccount'])
             ->orderBy('created_at', 'DESC')
-            ->paginate(60);
+            ->paginate(30);
         $categories = MaterialCategory::all();
         $material_types = MaterialType::all();
         $saleEdit = '';

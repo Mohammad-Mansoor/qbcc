@@ -336,11 +336,18 @@
         <div class="card p-3 mb-4 hideOnPrint" style="background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
           <form action="/dashboard/carpet-stock" method="GET" id="unifiedSearchForm">
             <div class="row align-items-end">
-              <!-- 1. Live Instant Search -->
+              <!-- 1. Search (Carpet No, Map, Quality, etc.) -->
               <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
                 <label class="font-weight-bold small text-muted">🔍 جستجو (شماره/نقشه)</label>
-                <input type="text" value="{{ request('search') }}" name="search" id="live-carpet-search"
-                       placeholder="نمبر قالین، نقشه..." class="form-control modern-search" style="border-radius: 8px !important;" autocomplete="off">
+                <div class="input-group">
+                  <input type="text" value="{{ request('search') }}" name="search" id="live-carpet-search"
+                         placeholder="نمبر قالین، نقشه..." class="form-control modern-search" style="border-radius: 0 8px 8px 0 !important;" autocomplete="off">
+                  <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit" title="جستجو" style="border-radius: 8px 0 0 8px !important; z-index: 1;">
+                      <i class="fa fa-search"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
               
               <!-- 2. Filter by Warehouse -->
@@ -502,12 +509,14 @@
                                          @endcan
                                      @endif
                                      
-                                     @can('send_carpet_to_washing')
-                                     <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
-                                         href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
-                                         <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
-                                     </a>
-                                     @endcan
+                                     @if($carpet->status != 13 && $carpet->status != 3)
+                                         @can('send_carpet_to_washing')
+                                         <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
+                                             href="/dashboard/washing-team/sending-to-washing/{{$carpet->carpet_id}}">
+                                             <i class="feather icon-droplet mr-2 text-info"></i> ارسال به شست (Wash)
+                                         </a>
+                                         @endcan
+                                     @endif
                                      
                                      @can('send_carpet_to_finishing')
                                      <a class="dropdown-item py-2 px-3 small text-right text-dark animate-fade-in"
@@ -532,11 +541,9 @@
                 @endif
               </tbody>
             </table>
-            @if(!isset($search))
-               <div class="d-flex justify-content-center mt-3">
-                   {{ $carpets->appends(request()->input())->links() }}
-               </div>
-            @endif
+            <div class="d-flex justify-content-center mt-3">
+                {{ $carpets->appends(request()->input())->links() }}
+            </div>
           </div>
         </div>
       </div>
@@ -845,14 +852,7 @@
         $('#type_id').select2();
         $('#warehouse_filter').select2();
         
-        // Live client-side row filtering (instant filtering)
-        $('#live-carpet-search').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
-            $('#dataTable tbody tr').filter(function() {
-                if ($(this).hasClass('no-records-row')) return;
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-            });
-        });
+
         
         // Prevent double submit on sales form
         $('#sale_form').on('submit', function() {

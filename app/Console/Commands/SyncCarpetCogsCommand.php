@@ -79,6 +79,12 @@ class SyncCarpetCogsCommand extends Command
                 
                 // Silent update without triggering events if needed, but standard update is fine
                 $carpet->save();
+
+                DB::table('items')
+                    ->where('type', 'App\\Carpet')
+                    ->where('ref_id', $carpet->carpet_id)
+                    ->update(['current_cost' => round((float)$base_usd, 4)]);
+
                 $updatedCount++;
             }
         }

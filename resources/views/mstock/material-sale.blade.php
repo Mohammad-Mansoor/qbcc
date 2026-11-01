@@ -492,6 +492,13 @@
             </tbody>
           </table>
         </div>
+
+        {{-- Pagination Navigation --}}
+        @if(method_exists($material_sales, 'links'))
+          <div class="d-flex justify-content-center py-3 hideOnPrint" style="border-top: 1px solid #f1f5f9; background: #fafafa; border-radius: 0 0 8px 8px;">
+            {{ $material_sales->appends(request()->query())->links() }}
+          </div>
+        @endif
       </div>
     </div>
 
