@@ -142,6 +142,9 @@
                                         قالین نمبر: {{ $item->itemModel->carpet_no ?? $item->ref_id }}
                                     @else
                                         {{ $item->itemModel->material_type ?? 'مواد خام' }}
+                                        @if($item->category)
+                                            <span class="badge badge-light border mr-1 text-muted">({{ $item->category->material_category }})</span>
+                                        @endif
                                     @endif
                                 </td>
                                 <td>

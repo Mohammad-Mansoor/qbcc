@@ -999,14 +999,36 @@
         // Toggle is_advance checkbox visibility
         function toggleAdvanceCheckbox() {
             const isNqd = $('#wash_number').val() === 'General';
-            if (isNqd) {
-                $('#is_advance_group').show();
-            } else {
-                $('#is_advance_group').hide();
+            const type = $('#payment_type').val();
+            const isAdvance = $('#is_advance').is(':checked');
+
+            if (type === 'رسید') {
                 $('#is_advance').prop('checked', false);
+                $('#is_advance_group').hide();
+                $('#payment_type option[value="رسید"]').prop('disabled', false);
+            } else {
+                if (isNqd) {
+                    $('#is_advance_group').show();
+                    if (isAdvance) {
+                        $('#payment_type option[value="رسید"]').prop('disabled', true);
+                    } else {
+                        $('#payment_type option[value="رسید"]').prop('disabled', false);
+                    }
+                } else {
+                    $('#is_advance_group').hide();
+                    $('#is_advance').prop('checked', false);
+                    $('#payment_type option[value="رسید"]').prop('disabled', false);
+                }
             }
         }
         $('#wash_number').on('change', toggleAdvanceCheckbox);
+        $('#payment_type').on('change', toggleAdvanceCheckbox);
+        $('#is_advance').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#payment_type').val('گرفت').trigger('change');
+            }
+            toggleAdvanceCheckbox();
+        });
         toggleAdvanceCheckbox();
 
         let activePaymentRemaining = 0;

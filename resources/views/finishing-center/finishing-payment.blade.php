@@ -1013,10 +1013,12 @@
         // LIVE TRUTH PREVIEW & VALIDATION LOGIC
         function updateUsdPreview() {
             const amount = parseFloat($('#original_amount').val()) || 0;
-            const rate = parseFloat($('#exchange_rate').val()) || 0;
+            const selectedCurrency = $('#currency_id option:selected');
+            const rate = parseFloat(selectedCurrency.data('rate')) || parseFloat($('#exchange_rate').val()) || 0;
             const baseAmount = (amount * rate).toFixed(4);
             
             $('#usd_truth_preview').text('$ ' + parseFloat(baseAmount).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4}));
+            $('#exchange_rate').val(rate);
             
             // Validate remaining balance
             const ref = $('#finish_number').val();
@@ -1050,12 +1052,13 @@
         }
 
         $('#currency_id').on('change', function() {
-            const rate = $(this).find(':selected').data('rate');
+            const selectedCurrency = $(this).find('option:selected');
+            const rate = parseFloat(selectedCurrency.data('rate')) || 0;
             $('#exchange_rate').val(rate);
             updateUsdPreview();
         });
 
-        $('#original_amount, #exchange_rate, #finish_number, #payment_type').on('input change', updateUsdPreview);
+        $('#original_amount, #currency_id, #exchange_rate, #finish_number, #payment_type').on('input change', updateUsdPreview);
         updateUsdPreview();
 
         // Pay Button Click Handler
@@ -1091,14 +1094,36 @@
         // Toggle is_advance checkbox visibility
         function toggleAdvanceCheckbox() {
             const isNqd = $('#finish_number').val() === 'General';
-            if (isNqd) {
-                $('#is_advance_group').show();
-            } else {
-                $('#is_advance_group').hide();
+            const type = $('#payment_type').val();
+            const isAdvance = $('#is_advance').is(':checked');
+
+            if (type === 'رسید') {
                 $('#is_advance').prop('checked', false);
+                $('#is_advance_group').hide();
+                $('#payment_type option[value="رسید"]').prop('disabled', false);
+            } else {
+                if (isNqd) {
+                    $('#is_advance_group').show();
+                    if (isAdvance) {
+                        $('#payment_type option[value="رسید"]').prop('disabled', true);
+                    } else {
+                        $('#payment_type option[value="رسید"]').prop('disabled', false);
+                    }
+                } else {
+                    $('#is_advance_group').hide();
+                    $('#is_advance').prop('checked', false);
+                    $('#payment_type option[value="رسید"]').prop('disabled', false);
+                }
             }
         }
         $('#finish_number').on('change', toggleAdvanceCheckbox);
+        $('#payment_type').on('change', toggleAdvanceCheckbox);
+        $('#is_advance').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#payment_type').val('گرفت').trigger('change');
+            }
+            toggleAdvanceCheckbox();
+        });
         toggleAdvanceCheckbox();
 
         let activePaymentRemaining = 0;

@@ -195,13 +195,14 @@ class WarehouseController extends Controller
             }
 
             $query->select(
+                    'inventory_transactions.category_id',
                     'material_types.material_type_id',
                     'material_types.material_type',
-                    \DB::raw("MAX(material_categories.material_category) as material_category"),
+                    \DB::raw("COALESCE(MAX(material_categories.material_category), 'نامشخص') as material_category"),
                     \DB::raw("SUM(CASE WHEN direction = 'IN' THEN inventory_transactions.quantity ELSE -inventory_transactions.quantity END) as available_qty"),
                     \DB::raw("MAX(items.current_cost) as current_cost")
                 )
-                ->groupBy('material_types.material_type_id', 'material_types.material_type');
+                ->groupBy('inventory_transactions.category_id', 'material_types.material_type_id', 'material_types.material_type');
             
             if ($request->filled('min_qty')) {
                 $minQty = (float) $request->get('min_qty');
@@ -215,6 +216,18 @@ class WarehouseController extends Controller
             $items = $query->get();
 
             $latestPrices = \DB::table('purchase_materials as pm')
+                ->select('pm.material_category', 'pm.material_type', 'pm.price_per_kilo')
+                ->whereIn('pm.id', function($q) {
+                    $q->select(\DB::raw('MAX(id)'))
+                      ->from('purchase_materials')
+                      ->groupBy('material_category', 'material_type');
+                })
+                ->get()
+                ->keyBy(function($row) {
+                    return $row->material_category . '_' . $row->material_type;
+                });
+
+            $typeFallbackPrices = \DB::table('purchase_materials as pm')
                 ->select('pm.material_type', 'pm.price_per_kilo')
                 ->whereIn('pm.id', function($q) {
                     $q->select(\DB::raw('MAX(id)'))
@@ -225,9 +238,14 @@ class WarehouseController extends Controller
                 ->keyBy('material_type');
 
             foreach ($items as $item) {
-                $item->last_purchase_price = isset($latestPrices[$item->material_type_id])
-                    ? (float) $latestPrices[$item->material_type_id]->price_per_kilo
-                    : (float) $item->current_cost;
+                $comboKey = $item->category_id . '_' . $item->material_type_id;
+                if (isset($latestPrices[$comboKey])) {
+                    $item->last_purchase_price = (float) $latestPrices[$comboKey]->price_per_kilo;
+                } elseif (isset($typeFallbackPrices[$item->material_type_id])) {
+                    $item->last_purchase_price = (float) $typeFallbackPrices[$item->material_type_id]->price_per_kilo;
+                } else {
+                    $item->last_purchase_price = (float) $item->current_cost;
+                }
             }
         }
 

@@ -257,8 +257,8 @@
                                 <div class="form-group mb-4">
                                     <label class="field-label">نوع معامله (Entry Type)</label>
                                     <select name="type" id="payment_type" class="form-control custom-input font-weight-bold">
-                                        <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید / تصفیه (Balance In)</option>
                                         <option value="گرفت" class="text-danger" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت / علی الحساب (Payment Out)</option>
+                                        <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید / تصفیه (Balance In)</option>
                                     </select>
                                 </div>
 
@@ -990,14 +990,36 @@
         // Toggle is_advance checkbox visibility
         function toggleAdvanceCheckbox() {
             const isNqd = $('#kachaee_number').val() === 'نقد';
-            if (isNqd) {
-                $('#is_advance_group').show();
-            } else {
-                $('#is_advance_group').hide();
+            const type = $('#payment_type').val();
+            const isAdvance = $('#is_advance').is(':checked');
+
+            if (type === 'رسید') {
                 $('#is_advance').prop('checked', false);
+                $('#is_advance_group').hide();
+                $('#payment_type option[value="رسید"]').prop('disabled', false);
+            } else {
+                if (isNqd) {
+                    $('#is_advance_group').show();
+                    if (isAdvance) {
+                        $('#payment_type option[value="رسید"]').prop('disabled', true);
+                    } else {
+                        $('#payment_type option[value="رسید"]').prop('disabled', false);
+                    }
+                } else {
+                    $('#is_advance_group').hide();
+                    $('#is_advance').prop('checked', false);
+                    $('#payment_type option[value="رسید"]').prop('disabled', false);
+                }
             }
         }
         $('#kachaee_number').on('change', toggleAdvanceCheckbox);
+        $('#payment_type').on('change', toggleAdvanceCheckbox);
+        $('#is_advance').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#payment_type').val('گرفت').trigger('change');
+            }
+            toggleAdvanceCheckbox();
+        });
         toggleAdvanceCheckbox();
 
         let activePaymentRemaining = 0;

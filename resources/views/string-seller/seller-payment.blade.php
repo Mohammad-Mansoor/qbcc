@@ -265,16 +265,16 @@
 
                                 <div class="form-group mb-4">
                                     <label class="field-label">نوع معامله (Entry Type)</label>
-                                    <select name="type" class="form-control custom-input font-weight-bold">
-                                        <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید / تصفیه (Balance In)</option>
+                                    <select name="type" id="payment_type" class="form-control custom-input font-weight-bold">
                                         <option value="گرفت" class="text-danger" {{ ($paymentEdit && $paymentEdit->type == 'گرفت') ? 'selected' : '' }}>گرفت / پرداخت (Payment Out)</option>
+                                        <option value="رسید" class="text-success" {{ ($paymentEdit && $paymentEdit->type == 'رسید') ? 'selected' : '' }}>رسید / تصفیه (Balance In)</option>
                                     </select>
                                 </div>
 
                                 <div class="form-group mb-4" id="is_advance_container">
                                     <div class="custom-control custom-checkbox text-right" style="direction: rtl;">
                                         <input type="hidden" name="is_advance" value="0">
-                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" {{ ($paymentEdit && !$paymentEdit->is_advance) ? '' : 'checked' }}>
+                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" {{ ($paymentEdit && $paymentEdit->is_advance) ? 'checked' : '' }}>
                                         <label class="custom-control-label field-label pr-4" for="is_advance" style="cursor: pointer;">به عنوان پیش‌پرداخت (As Advance Payment)</label>
                                     </div>
                                     <small class="field-explanation text-right">آیا این مبلغ علی‌الحساب بوده و بعداً به بل‌ها تخصیص می‌یابد؟</small>
@@ -903,9 +903,36 @@
         $('#currency_id').select2();
         $('.override-select').select2({ width: '100%' });
 
+        // SYNC IS_ADVANCE AND PAYMENT_TYPE
+        function syncAdvanceAndType() {
+            const isAdvance = $('#is_advance').is(':checked');
+            const type = $('#payment_type').val();
+
+            if (type === 'رسید') {
+                $('#is_advance').prop('checked', false);
+                $('#is_advance_container').hide();
+                $('#payment_type option[value="رسید"]').prop('disabled', false);
+            } else {
+                $('#is_advance_container').show();
+                if (isAdvance) {
+                    $('#payment_type option[value="رسید"]').prop('disabled', true);
+                } else {
+                    $('#payment_type option[value="رسید"]').prop('disabled', false);
+                }
+            }
+        }
+
+        $('#is_advance').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('#payment_type').val('گرفت').trigger('change');
+            }
+            syncAdvanceAndType();
+        });
+
         // MANUAL GL OVERRIDES TOGGLE
         function toggleOverrideAccounts() {
             const type = $('select[name="type"]').val();
+            syncAdvanceAndType();
             if (type === 'رسید') {
                 $('#override_received_group').show();
                 $('#debit_received, #credit_received').prop('disabled', false).trigger('change');
@@ -923,6 +950,7 @@
 
         $('select[name="type"]').on('change', toggleOverrideAccounts);
         toggleOverrideAccounts(); // Initial call
+        syncAdvanceAndType();
 
         // ── TAB SWITCHING ──
         $('#sellerDetailTabs a').on('click', function (e) {
@@ -988,7 +1016,8 @@
             $('#allocation_info_box').fadeOut();
             $('#original_amount').val('');
             $('textarea[name="description"]').val('');
-            $('#is_advance').prop('checked', true);
+            $('#is_advance').prop('checked', false);
+            syncAdvanceAndType();
         });
 
         // ADVANCE ALLOCATION MODAL ACTIONS

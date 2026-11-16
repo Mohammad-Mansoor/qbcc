@@ -397,10 +397,24 @@ class InventoryTransactionManager
                     ->first();
                 $unitCostUsd = $itemRecord ? $itemRecord->current_cost : ($itemModel->total_price ?? 0);
 
+                $categoryId = $itemRow['category_id'] ?? null;
+                if (!$categoryId && $itemModel instanceof \App\MaterialType) {
+                    $itemRec = DB::table('items')->where('type', 'App\MaterialType')->where('ref_id', $itemModel->material_type_id)->first();
+                    if ($itemRec) {
+                        $categoryId = DB::table('inventory_transactions')
+                            ->where('item_id', $itemRec->id)
+                            ->where('warehouse_id', $transfer->source_warehouse_id)
+                            ->whereNotNull('category_id')
+                            ->where('status', 1)
+                            ->value('category_id');
+                    }
+                }
+
                 // 1. Record Physical OUT from source
                 $this->inventoryService->recordMovement([
                     'item_model' => $transfer,
                     'parent_item_model' => $itemModel,
+                    'category_id' => $categoryId,
                     'type' => 'TRANSFER_OUT',
                     'direction' => 'OUT',
                     'quantity' => $qty,
@@ -417,6 +431,7 @@ class InventoryTransactionManager
                 $this->inventoryService->recordMovement([
                     'item_model' => $transfer,
                     'parent_item_model' => $itemModel,
+                    'category_id' => $categoryId,
                     'type' => 'TRANSFER_IN',
                     'direction' => 'IN',
                     'quantity' => $qty,
@@ -439,6 +454,7 @@ class InventoryTransactionManager
                 $transfer->items()->create([
                     'item_type' => get_class($itemModel),
                     'ref_id' => $itemId,
+                    'category_id' => $categoryId,
                     'quantity' => $qty,
                 ]);
             }

@@ -17,4 +17,9 @@ class WarehouseTransferItem extends Model
     {
         return $this->morphTo(null, 'item_type', 'ref_id');
     }
+
+    public function category()
+    {
+        return $this->belongsTo(MaterialCategory::class, 'category_id', 'material_category_id');
+    }
 }

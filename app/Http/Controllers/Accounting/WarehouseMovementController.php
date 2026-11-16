@@ -73,19 +73,20 @@ class WarehouseMovementController extends Controller
         // Check if PDF export is requested
         if ($request->get('export') === 'pdf') {
             abort_if(!auth()->user()->can('export_warehouse_movements_pdf'), 403);
-            $transactions = $query->get();
+            $transactions = $this->loadSaleDetails($query->get());
             return $this->exportToPdf($transactions, $request);
         }
 
         // Check if Excel export is requested
         if ($request->get('export') === 'excel') {
             abort_if(!auth()->user()->can('export_warehouse_movements_excel'), 403);
-            $transactions = $query->get();
+            $transactions = $this->loadSaleDetails($query->get());
             return $this->exportToExcel($transactions, $request);
         }
 
         // Paginate for web view
         $transactions = $query->paginate(30);
+        $this->loadSaleDetails($transactions->getCollection());
 
         // Fetch options for filters
         $warehouses = Warehouse::where('is_active', 1)->get();
@@ -184,5 +185,54 @@ class WarehouseMovementController extends Controller
             'request'
         ))->render();
         exit;
+    }
+
+    /**
+     * Batch resolve sale unit price and total price for Carpet, Yarn, and Dye sales.
+     */
+    protected function loadSaleDetails($transactions)
+    {
+        $carpetIds = [];
+        $materialSaleIds = [];
+
+        foreach ($transactions as $tx) {
+            if ($tx->type === 'SALE') {
+                if ($tx->reference_type === 'App\Carpet') {
+                    $carpetIds[] = $tx->reference_id;
+                } elseif ($tx->reference_type === 'App\MaterialSale') {
+                    $materialSaleIds[] = $tx->reference_id;
+                }
+            }
+        }
+
+        $carpetSales = !empty($carpetIds)
+            ? \App\Sale::whereIn('carpet_id', array_unique($carpetIds))->where('is_returned', 0)->get()->keyBy('carpet_id')
+            : collect();
+
+        $materialSales = !empty($materialSaleIds)
+            ? \App\MaterialSale::whereIn('id', array_unique($materialSaleIds))->get()->keyBy('id')
+            : collect();
+
+        foreach ($transactions as $tx) {
+            if ($tx->type === 'SALE') {
+                if ($tx->reference_type === 'App\Carpet' && isset($carpetSales[$tx->reference_id])) {
+                    $cs = $carpetSales[$tx->reference_id];
+                    $tx->sale_unit_price = (float)$cs->sale_cost_per_meter;
+                    $tx->sale_total_price = (float)$cs->sale_cost_total;
+                } elseif ($tx->reference_type === 'App\MaterialSale' && isset($materialSales[$tx->reference_id])) {
+                    $ms = $materialSales[$tx->reference_id];
+                    $tx->sale_unit_price = (float)$ms->price;
+                    $tx->sale_total_price = (float)$ms->total_price;
+                } else {
+                    $tx->sale_unit_price = null;
+                    $tx->sale_total_price = null;
+                }
+            } else {
+                $tx->sale_unit_price = null;
+                $tx->sale_total_price = null;
+            }
+        }
+
+        return $transactions;
     }
 }

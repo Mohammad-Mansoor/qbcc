@@ -305,7 +305,7 @@
                                 <div class="form-group mb-4" id="is_advance_container">
                                     <div class="custom-control custom-checkbox text-right" style="direction: rtl;">
                                         <input type="hidden" name="is_advance" value="0">
-                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" checked {{ ($paymentEdit && !$paymentEdit->is_advance) ? '' : 'checked' }}>
+                                        <input type="checkbox" class="custom-control-input" id="is_advance" name="is_advance" value="1" {{ ($paymentEdit && $paymentEdit->is_advance) ? 'checked' : '' }}>
                                         <label class="custom-control-label field-label pr-4" for="is_advance" style="cursor: pointer;">به عنوان پیش‌پرداخت (As Advance Payment)</label>
                                     </div>
                                     <small class="field-explanation text-right">آیا این مبلغ علی‌الحساب بوده و بعداً به بل‌ها تخصیص می‌یابد؟</small>
@@ -1050,7 +1050,8 @@
             $('#allocation_info_box').fadeOut();
             $('#original_amount').val('');
             $('#payment_description').val('');
-            $('#is_advance').prop('checked', true);
+            $('#is_advance').prop('checked', false);
+            syncAdvanceAndType();
         });
 
         // Export functionality
@@ -1064,9 +1065,36 @@
         var $buttons = $('#agent_payment_table').find('caption').children().detach();
         $buttons.appendTo('#exportButton');
 
+        // SYNC IS_ADVANCE AND PAYMENT_TYPE
+        function syncAdvanceAndType() {
+            const isAdvance = $('#is_advance').is(':checked');
+            const type = $('#payment_type').val();
+
+            if (type === 'رسید') {
+                $('#is_advance').prop('checked', false);
+                $('#is_advance_container').hide();
+                $('#payment_type option[value="رسید"]').prop('disabled', false);
+            } else {
+                $('#is_advance_container').show();
+                if (isAdvance) {
+                    $('#payment_type option[value="رسید"]').prop('disabled', true);
+                } else {
+                    $('#payment_type option[value="رسید"]').prop('disabled', false);
+                }
+            }
+        }
+
+        $('#is_advance').on('change', function () {
+            if ($(this).is(':checked')) {
+                $('#payment_type').val('گرفت').trigger('change');
+            }
+            syncAdvanceAndType();
+        });
+
         // MANUAL GL OVERRIDES TOGGLE
         function toggleOverrideAccounts() {
             const type = $('select[name="type"]').val();
+            syncAdvanceAndType();
             if (type === 'رسید') {
                 $('#override_received_group').show();
                 $('#debit_received, #credit_received').prop('disabled', false).trigger('change');
@@ -1085,6 +1113,7 @@
         $('.override-select').select2({ width: '100%' });
         $('select[name="type"]').on('change', toggleOverrideAccounts);
         toggleOverrideAccounts(); // Initial call
+        syncAdvanceAndType();
 
         // ADVANCE ALLOCATION MODAL ACTIONS
         const purchaseBills = @json($purchaseBills);

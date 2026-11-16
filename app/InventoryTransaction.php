@@ -127,4 +127,48 @@ class InventoryTransaction extends Model
             return 'خطا در خواندن سند';
         }
     }
+
+    /**
+     * Resolve Sale Unit Price if transaction is a SALE (Carpet, Yarn, Dye)
+     */
+    public function getSaleUnitPriceAttribute()
+    {
+        if (array_key_exists('sale_unit_price', $this->attributes)) {
+            return $this->attributes['sale_unit_price'];
+        }
+
+        if ($this->type !== 'SALE') {
+            return null;
+        }
+
+        if ($this->reference_type === 'App\MaterialSale') {
+            return \App\MaterialSale::where('id', $this->reference_id)->value('price');
+        } elseif ($this->reference_type === 'App\Carpet') {
+            return \App\Sale::where('carpet_id', $this->reference_id)->where('is_returned', 0)->value('sale_cost_per_meter');
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve Sale Total Price if transaction is a SALE (Carpet, Yarn, Dye)
+     */
+    public function getSaleTotalPriceAttribute()
+    {
+        if (array_key_exists('sale_total_price', $this->attributes)) {
+            return $this->attributes['sale_total_price'];
+        }
+
+        if ($this->type !== 'SALE') {
+            return null;
+        }
+
+        if ($this->reference_type === 'App\MaterialSale') {
+            return \App\MaterialSale::where('id', $this->reference_id)->value('total_price');
+        } elseif ($this->reference_type === 'App\Carpet') {
+            return \App\Sale::where('carpet_id', $this->reference_id)->where('is_returned', 0)->value('sale_cost_total');
+        }
+
+        return null;
+    }
 }

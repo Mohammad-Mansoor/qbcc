@@ -108,23 +108,25 @@
         </tr>
         
         <!-- Empty Row Spacer -->
-        <tr><td colspan="12" style="border: none; height: 15px;"></td></tr>
+        <tr><td colspan="14" style="border: none; height: 15px;"></td></tr>
 
         <!-- Data Headers -->
         <thead>
             <tr>
-                <th style="width: 12%;">تاریخ ثبت</th>
-                <th style="width: 12%;">شماره سند مرجع</th>
-                <th style="width: 12%;">گدام</th>
+                <th style="width: 10%;">تاریخ ثبت</th>
+                <th style="width: 10%;">شماره سند مرجع</th>
+                <th style="width: 10%;">گدام</th>
                 <th style="width: 8%;">نوعیت آیتم</th>
-                <th style="width: 16%;">شرح آیتم</th>
-                <th style="width: 12%;">نوع تراکنش</th>
-                <th style="width: 8%;">جهت حرکت</th>
-                <th style="width: 8%;">مقدار/تعداد</th>
-                <th style="width: 8%;">ابعاد (m)</th>
-                <th style="width: 8%;">مساحت (م²)</th>
-                <th style="width: 8%;">قیمت واحد</th>
-                <th style="width: 10%;">مجموع هزینه</th>
+                <th style="width: 14%;">شرح آیتم</th>
+                <th style="width: 10%;">نوع تراکنش</th>
+                <th style="width: 7%;">جهت حرکت</th>
+                <th style="width: 7%;">مقدار/تعداد</th>
+                <th style="width: 6%;">ابعاد (m)</th>
+                <th style="width: 5%;">مساحت (م²)</th>
+                <th style="width: 6%;">قیمت تمام‌شد ($)</th>
+                <th style="width: 6%;">قیمت فروش ($)</th>
+                <th style="width: 6%;">مجموع تمام‌شد ($)</th>
+                <th style="width: 6%;">مجموع فروش ($)</th>
             </tr>
         </thead>
         <tbody>
@@ -135,6 +137,7 @@
                 $totalOutArea = 0;
                 $totalInCost = 0;
                 $totalOutCost = 0;
+                $totalSaleAmount = 0;
             @endphp
             @foreach($transactions as $tx)
                 @php
@@ -147,6 +150,9 @@
                         $totalOutQty += $tx->quantity;
                         $totalOutArea += $tx->area;
                         $totalOutCost += $tx->total_cost;
+                    }
+                    if ($tx->type === 'SALE' && $tx->sale_total_price !== null) {
+                        $totalSaleAmount += $tx->sale_total_price;
                     }
                     $carpetDims = '-';
                     if ($isCarpet) {
@@ -172,12 +178,18 @@
                     <td class="text-left" style="direction: ltr;">{{ $carpetDims }}</td>
                     <td class="text-left">{{ $tx->area > 0 ? number_format($tx->area, 2) : '-' }}</td>
                     <td class="text-left">${{ number_format($tx->unit_cost, 2) }}</td>
+                    <td class="text-left" style="color: #16a34a; font-weight: bold;">
+                        {{ $tx->type === 'SALE' && $tx->sale_unit_price !== null ? '$' . number_format($tx->sale_unit_price, 2) : '-' }}
+                    </td>
                     <td class="text-left font-bold">${{ number_format($tx->total_cost, 2) }}</td>
+                    <td class="text-left" style="color: #16a34a; font-weight: bold;">
+                        {{ $tx->type === 'SALE' && $tx->sale_total_price !== null ? '$' . number_format($tx->sale_total_price, 2) : '-' }}
+                    </td>
                 </tr>
             @endforeach
 
             <!-- Total Spacer -->
-            <tr><td colspan="11" style="border: none; height: 10px;"></td></tr>
+            <tr><td colspan="14" style="border: none; height: 10px;"></td></tr>
 
             <!-- Totals Rows -->
             <tr class="total-row">
@@ -187,6 +199,8 @@
                 <td class="text-left">{{ number_format($totalInArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalInCost, 2) }}</td>
+                <td>-</td>
+                <td>-</td>
             </tr>
             <tr class="total-row">
                 <td colspan="7" class="text-center">خلاصه کل خروجی‌ها (Total OUT)</td>
@@ -195,6 +209,8 @@
                 <td class="text-left">{{ number_format($totalOutArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalOutCost, 2) }}</td>
+                <td>-</td>
+                <td class="text-left" style="color: #16a34a; font-weight: bold;">${{ number_format($totalSaleAmount, 2) }}</td>
             </tr>
             <tr class="total-row" style="background-color: #cbd5e1;">
                 <td colspan="7" class="text-center">صافی کل دوره (Net Balance)</td>
@@ -203,6 +219,8 @@
                 <td class="text-left">{{ number_format($totalInArea - $totalOutArea, 2) }}</td>
                 <td>-</td>
                 <td class="text-left">${{ number_format($totalInCost - $totalOutCost, 2) }}</td>
+                <td>-</td>
+                <td>-</td>
             </tr>
         </tbody>
     </table>

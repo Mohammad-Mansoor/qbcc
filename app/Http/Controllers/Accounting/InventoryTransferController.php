@@ -80,35 +80,35 @@ class InventoryTransferController extends Controller
                 });
             return response()->json(['items' => $carpets]);
         } else {
-            $materials = MaterialType::where('subtype', $itemType)
+            $materials = DB::table('inventory_transactions')
+                ->join('items', 'inventory_transactions.item_id', '=', 'items.id')
+                ->join('material_types', 'items.ref_id', '=', 'material_types.material_type_id')
+                ->leftJoin('material_categories', 'inventory_transactions.category_id', '=', 'material_categories.material_category_id')
+                ->where('inventory_transactions.warehouse_id', $warehouseId)
+                ->where('inventory_transactions.status', 1)
+                ->where('items.type', 'App\MaterialType')
+                ->where('material_types.subtype', $itemType)
+                ->select(
+                    'inventory_transactions.category_id',
+                    DB::raw("COALESCE(material_categories.material_category, 'عمومی / نامشخص') as category_name"),
+                    'material_types.material_type_id',
+                    'material_types.material_type as name',
+                    DB::raw("MAX(items.current_cost) as cost_usd"),
+                    DB::raw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) as available_qty")
+                )
+                ->groupBy('inventory_transactions.category_id', 'material_categories.material_category', 'material_types.material_type_id', 'material_types.material_type')
+                ->havingRaw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) > 0.0001")
                 ->get()
-                ->map(function($m) use ($warehouseId) {
-                    $item = DB::table('items')
-                        ->where('type', 'App\MaterialType')
-                        ->where('ref_id', $m->material_type_id)
-                        ->first();
-                    
-                    $qty = 0;
-                    $costUsd = $m->price_per_kilo ?? 0;
-                    if ($item) {
-                        $qty = DB::table('inventory_transactions')
-                            ->where('item_id', $item->id)
-                            ->where('warehouse_id', $warehouseId)
-                            ->where('status', 1)
-                            ->selectRaw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) as balance")
-                            ->value('balance') ?? 0;
-                        $costUsd = $item->current_cost;
-                    }
-
+                ->map(function($m) {
                     return [
+                        'category_id' => $m->category_id,
+                        'category_name' => $m->category_name,
                         'material_type_id' => $m->material_type_id,
-                        'name' => $m->material_type,
-                        'available_qty' => (float)$qty,
-                        'cost_usd' => (float)$costUsd
+                        'name' => $m->name,
+                        'available_qty' => (float)$m->available_qty,
+                        'cost_usd' => (float)$m->cost_usd
                     ];
-                })->filter(function($m) {
-                    return $m['available_qty'] > 0;
-                })->values();
+                });
 
             return response()->json(['items' => $materials]);
         }
@@ -163,6 +163,8 @@ class InventoryTransferController extends Controller
                         $qty = (float)$row['quantity'];
                         if ($qty <= 0) continue;
 
+                        $categoryId = isset($row['category_id']) && $row['category_id'] !== '' ? (int)$row['category_id'] : null;
+
                         $item = DB::table('items')
                             ->where('type', 'App\MaterialType')
                             ->where('ref_id', $model->material_type_id)
@@ -170,11 +172,16 @@ class InventoryTransferController extends Controller
                         
                         $available = 0;
                         if ($item) {
-                            $available = DB::table('inventory_transactions')
+                            $stockQuery = DB::table('inventory_transactions')
                                 ->where('item_id', $item->id)
                                 ->where('warehouse_id', $request->source_warehouse_id)
-                                ->where('status', 1)
-                                ->selectRaw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) as balance")
+                                ->where('status', 1);
+
+                            if ($categoryId) {
+                                $stockQuery->where('category_id', $categoryId);
+                            }
+
+                            $available = $stockQuery->selectRaw("SUM(CASE WHEN direction = 'IN' AND is_value_adjustment = 0 THEN quantity WHEN direction = 'OUT' THEN -quantity ELSE 0 END) as balance")
                                 ->value('balance') ?? 0;
                         }
 
@@ -184,6 +191,7 @@ class InventoryTransferController extends Controller
 
                         $itemsData[] = [
                             'model' => $model,
+                            'category_id' => $categoryId,
                             'quantity' => $qty
                         ];
                         $totalQty += $qty;
@@ -209,7 +217,7 @@ class InventoryTransferController extends Controller
 
     public function show($id)
     {
-        $transfer = WarehouseTransfer::with(['items.itemModel', 'sourceWarehouse', 'destinationWarehouse', 'creator'])
+        $transfer = WarehouseTransfer::with(['items.itemModel', 'items.category', 'sourceWarehouse', 'destinationWarehouse', 'creator'])
             ->findOrFail($id);
 
         return view('accounting.transfers.show', compact('transfer'));

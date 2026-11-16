@@ -139,8 +139,10 @@
                                     <th class="text-left">مقدار/تعداد</th>
                                     <th class="text-left">ابعاد (m)</th>
                                     <th class="text-left">مساحت (م²)</th>
-                                    <th class="text-left">قیمت واحد (USD)</th>
-                                    <th class="text-left">مجموع (USD)</th>
+                                    <th class="text-left">قیمت تمام‌شد (USD)</th>
+                                    <th class="text-left text-success">قیمت فروش (USD)</th>
+                                    <th class="text-left">مجموع تمام‌شد (USD)</th>
+                                    <th class="text-left text-success">مجموع فروش (USD)</th>
                                     <th>کاربر ثبت کننده</th>
                                 </tr>
                             </thead>
@@ -241,8 +243,31 @@
                                     <td class="text-left text-muted font-mono">
                                         ${{ number_format($tx->unit_cost, 2) }}
                                     </td>
+                                    <td class="text-left font-mono">
+                                        @if($tx->type === 'SALE' && $tx->sale_unit_price !== null)
+                                            <span class="text-success font-weight-bold">
+                                                ${{ number_format($tx->sale_unit_price, 2) }}
+                                                @if($tx->item && $tx->item->type === 'App\Carpet')
+                                                    <small class="text-muted">/m²</small>
+                                                @else
+                                                    <small class="text-muted">/kg</small>
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td class="text-left font-weight-bold text-dark font-mono">
                                         ${{ number_format($tx->total_cost, 2) }}
+                                    </td>
+                                    <td class="text-left font-mono">
+                                        @if($tx->type === 'SALE' && $tx->sale_total_price !== null)
+                                            <span class="text-success font-weight-bold">
+                                                ${{ number_format($tx->sale_total_price, 2) }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     </td>
                                     <td class="text-muted small">
                                         {{ $tx->creator ? $tx->creator->name : 'سیستم' }}
@@ -250,7 +275,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="12" class="text-center py-5 text-muted">
+                                    <td colspan="15" class="text-center py-5 text-muted">
                                         <i class="feather icon-info f-30 d-block mb-3"></i>
                                         هیچ تراکنشی یافت نشد.
                                     </td>

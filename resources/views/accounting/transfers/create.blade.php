@@ -261,22 +261,25 @@
                         }
                     } else {
                         headerHtml = `
-                            <th>نام جنس</th>
+                            <th>کتگوری</th>
+                            <th>نوعیت مواد</th>
                             <th>موجودی فعلی (کیلوگرم)</th>
                             <th style="width: 250px;">مقدار انتقالی (کیلوگرم)</th>
                         `;
                         
                         if (response.items.length === 0) {
-                            html = '<tr><td colspan="3" class="text-muted p-4">هیچ موجودی برای مواد خام در این گدام وجود ندارد.</td></tr>';
+                            html = '<tr><td colspan="4" class="text-muted p-4">هیچ موجودی برای مواد خام در این گدام وجود ندارد.</td></tr>';
                             $('#submitBtn').prop('disabled', true);
                         } else {
                             response.items.forEach((item, index) => {
                                 html += `
                                     <tr>
+                                        <td class="font-weight-bold" style="color: #2e7d32;">${item.category_name || '-'}</td>
                                         <td class="font-weight-bold">${item.name}</td>
                                         <td class="text-primary font-weight-bold">${item.available_qty.toFixed(2)} کیلوگرم</td>
                                         <td>
                                             <input type="hidden" name="items[${index}][id]" value="${item.material_type_id}">
+                                            <input type="hidden" name="items[${index}][category_id]" value="${item.category_id || ''}">
                                             <input type="number" step="0.01" name="items[${index}][quantity]" 
                                                 class="form-control custom-input qty-input" 
                                                 placeholder="0.00" 
